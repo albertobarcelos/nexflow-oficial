@@ -27,6 +27,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Client } from "@/types/database";
 import { DocumentUpload } from "@/components/client/DocumentUpload";
 
+interface Document {
+  name: string;
+  path: string;
+  type: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export default function ClientForm() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -109,7 +117,7 @@ export default function ClientForm() {
     }
   };
 
-  const handleDocumentsUpdate = async (newDocuments: any[]) => {
+  const handleDocumentsUpdate = async (newDocuments: Document[]) => {
     if (!id) return;
 
     try {
