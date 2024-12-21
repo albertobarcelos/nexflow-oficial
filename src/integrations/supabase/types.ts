@@ -12,6 +12,7 @@ export type Database = {
       administrators: {
         Row: {
           access_level: Database["public"]["Enums"]["admin_access_level"]
+          auth_user_id: string
           created_at: string
           email: string
           id: string
@@ -20,6 +21,7 @@ export type Database = {
         }
         Insert: {
           access_level?: Database["public"]["Enums"]["admin_access_level"]
+          auth_user_id: string
           created_at?: string
           email: string
           id?: string
@@ -28,6 +30,7 @@ export type Database = {
         }
         Update: {
           access_level?: Database["public"]["Enums"]["admin_access_level"]
+          auth_user_id?: string
           created_at?: string
           email?: string
           id?: string
