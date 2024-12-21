@@ -2,6 +2,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Report } from "@/types/database";
 
+interface ReportWithClient extends Report {
+  clients: {
+    name: string;
+    email: string;
+  };
+  title: string;
+  download_count: number;
+}
+
 export default function Reports() {
   const { data: reports, isLoading } = useQuery({
     queryKey: ['reports'],
@@ -18,7 +27,7 @@ export default function Reports() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as (Report & { clients: { name: string; email: string } })[];
+      return data as ReportWithClient[];
     },
   });
 

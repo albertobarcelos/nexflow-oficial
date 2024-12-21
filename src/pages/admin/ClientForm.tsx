@@ -40,11 +40,13 @@ export default function ClientForm() {
       return data;
     },
     enabled: !!id,
-    onSuccess: (data) => {
-      if (data) {
-        reset(data);
+    meta: {
+      onSuccess: (data: any) => {
+        if (data) {
+          reset(data);
+        }
       }
-    },
+    }
   });
 
   const onSubmit = async (data: ClientFormData) => {
