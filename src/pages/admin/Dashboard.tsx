@@ -20,10 +20,10 @@ interface DashboardMetrics {
   totalClients: number;
   activeLicenses: number;
   totalReports: number;
-  licenseDistribution: {
+  licenseDistribution: Array<{
     name: string;
     count: number;
-  }[];
+  }>;
 }
 
 export default function Dashboard() {
@@ -51,28 +51,26 @@ export default function Dashboard() {
           .select('*', { count: 'exact', head: true });
 
         // Get license distribution
-        const { data: licenseData } = await supabase
+        const { data: licenses } = await supabase
           .from('licenses')
-          .select('status, count')
-          .select('status')
-          .then(({ data }) => {
-            const distribution = data?.reduce((acc, curr) => {
-              const status = curr.status;
-              acc[status] = (acc[status] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>);
+          .select('status');
 
-            return Object.entries(distribution || {}).map(([name, count]) => ({
-              name,
-              count,
-            }));
-          });
+        const distribution = licenses?.reduce((acc, curr) => {
+          const status = curr.status;
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const licenseDistribution = Object.entries(distribution || {}).map(([name, count]) => ({
+          name,
+          count,
+        }));
 
         return {
           totalClients: totalClients || 0,
           activeLicenses: activeLicenses || 0,
           totalReports: totalReports || 0,
-          licenseDistribution: licenseData || [],
+          licenseDistribution,
         };
       } catch (error) {
         console.error('Error fetching dashboard metrics:', error);
