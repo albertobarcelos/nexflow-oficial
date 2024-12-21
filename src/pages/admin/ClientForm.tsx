@@ -47,7 +47,7 @@ export default function ClientForm() {
         .from('clients')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       if (data) {
@@ -58,11 +58,11 @@ export default function ClientForm() {
     enabled: !!id,
   });
 
-  const onSubmit = async (data: ClientFormData) => {
+  const onSubmit = async (formData: ClientFormData) => {
     try {
       const timestamp = new Date().toISOString();
       const clientData = {
-        ...data,
+        ...formData,
         updated_at: timestamp,
       };
 
@@ -86,7 +86,7 @@ export default function ClientForm() {
             created_at: timestamp,
             documents: [],
             history: [],
-          });
+          } as Client);
 
         if (error) throw error;
 
