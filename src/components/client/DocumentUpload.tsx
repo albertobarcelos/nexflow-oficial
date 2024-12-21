@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Upload, File, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ClientDocument } from "@/types/database/client";
 
 interface DocumentUploadProps {
   clientId: string;
-  documents: any[];
-  onDocumentsUpdate: (documents: any[]) => void;
+  documents: ClientDocument[];
+  onDocumentsUpdate: (documents: ClientDocument[]) => void;
 }
 
 export function DocumentUpload({ clientId, documents, onDocumentsUpdate }: DocumentUploadProps) {

@@ -1,3 +1,18 @@
+export interface ClientHistoryEntry {
+  timestamp: string;
+  action: string;
+  changes: Record<string, { old: any; new: any }>;
+  user?: string;
+}
+
+export interface ClientDocument {
+  name: string;
+  path: string;
+  type: string;
+  size: number;
+  uploadedAt: string;
+}
+
 export interface Client {
   id: string;
   name: string;
@@ -15,8 +30,8 @@ export interface Client {
   postal_code: string | null;
   country: string | null;
   notes: string | null;
-  documents: any[] | null;
-  history: any[] | null;
+  documents: ClientDocument[] | null;
+  history: ClientHistoryEntry[] | null;
   created_at: string;
   updated_at: string;
 }

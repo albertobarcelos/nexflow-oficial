@@ -2,39 +2,19 @@ import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { clientSchema, type ClientFormData } from "@/lib/validations/client";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Client } from "@/types/database";
+import { Client, ClientDocument, ClientHistoryEntry } from "@/types/database";
 import { DocumentUpload } from "@/components/client/DocumentUpload";
 import { LicenseManager } from "@/components/client/LicenseManager";
-
-interface ClientDocument {
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  uploadedAt: string;
-}
+import { ClientBasicInfo } from "@/components/client/ClientBasicInfo";
+import { ClientAddress } from "@/components/client/ClientAddress";
+import { ClientStatus } from "@/components/client/ClientStatus";
 
 export default function ClientForm() {
   const { id } = useParams();
@@ -78,25 +58,53 @@ export default function ClientForm() {
       };
 
       if (id) {
-        const { error } = await supabase
-          .from('clients')
-          .update(clientData)
-          .eq('id', id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Cliente atualizado",
-          description: "Os dados do cliente foram atualizados com sucesso.",
+        // Create history entry
+        const changes: Record<string, { old: any; new: any }> = {};
+        Object.keys(formData).forEach((key) => {
+          if (client && formData[key as keyof ClientFormData] !== client[key as keyof Client]) {
+            changes[key] = {
+              old: client[key as keyof Client],
+              new: formData[key as keyof ClientFormData],
+            };
+          }
         });
+
+        if (Object.keys(changes).length > 0) {
+          const historyEntry: ClientHistoryEntry = {
+            timestamp,
+            action: 'update',
+            changes,
+          };
+
+          const { error } = await supabase
+            .from('clients')
+            .update({
+              ...clientData,
+              history: [...(client?.history || []), historyEntry],
+            })
+            .eq('id', id);
+
+          if (error) throw error;
+
+          toast({
+            title: "Cliente atualizado",
+            description: "Os dados do cliente foram atualizados com sucesso.",
+          });
+        }
       } else {
+        const historyEntry: ClientHistoryEntry = {
+          timestamp,
+          action: 'create',
+          changes: {},
+        };
+
         const { error } = await supabase
           .from('clients')
           .insert({
             ...clientData,
             created_at: timestamp,
             documents: [],
-            history: [],
+            history: [historyEntry],
           } as Client);
 
         if (error) throw error;
@@ -124,15 +132,7 @@ export default function ClientForm() {
     try {
       const { error } = await supabase
         .from('clients')
-        .update({ 
-          documents: newDocuments.map(doc => ({
-            name: doc.name,
-            path: doc.path,
-            type: doc.type,
-            size: doc.size,
-            uploadedAt: doc.uploadedAt
-          }))
-        })
+        .update({ documents: newDocuments })
         .eq('id', id);
 
       if (error) throw error;
@@ -163,197 +163,9 @@ export default function ClientForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid gap-4 md:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="company_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome da Empresa</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="contact_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome do Contato</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telefone</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">Ativo</SelectItem>
-                      <SelectItem value="inactive">Inativo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="plan"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Plano</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o plano" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="free">Gratuito</SelectItem>
-                      <SelectItem value="premium">Premium</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Endereço</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="city"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cidade</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="state"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Estado</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="postal_code"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CEP</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>País</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <ClientBasicInfo form={form} />
+          <ClientAddress form={form} />
+          <ClientStatus form={form} />
 
           <FormField
             control={form.control}
