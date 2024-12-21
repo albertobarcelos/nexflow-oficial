@@ -41,35 +41,62 @@ export type Database = {
       }
       clients: {
         Row: {
+          address: string | null
+          city: string | null
+          company_name: string
+          contact_name: string | null
+          country: string | null
           created_at: string
           crm_id: string | null
           email: string
           id: string
           name: string
+          notes: string | null
           partner_portal_id: string | null
+          phone: string | null
           plan: Database["public"]["Enums"]["plan_type"]
+          postal_code: string | null
+          state: string | null
           status: Database["public"]["Enums"]["client_status"]
           updated_at: string
         }
         Insert: {
+          address?: string | null
+          city?: string | null
+          company_name?: string
+          contact_name?: string | null
+          country?: string | null
           created_at?: string
           crm_id?: string | null
           email: string
           id?: string
           name: string
+          notes?: string | null
           partner_portal_id?: string | null
+          phone?: string | null
           plan?: Database["public"]["Enums"]["plan_type"]
+          postal_code?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           updated_at?: string
         }
         Update: {
+          address?: string | null
+          city?: string | null
+          company_name?: string
+          contact_name?: string | null
+          country?: string | null
           created_at?: string
           crm_id?: string | null
           email?: string
           id?: string
           name?: string
+          notes?: string | null
           partner_portal_id?: string | null
+          phone?: string | null
           plan?: Database["public"]["Enums"]["plan_type"]
+          postal_code?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["client_status"]
           updated_at?: string
         }
@@ -77,32 +104,56 @@ export type Database = {
       }
       licenses: {
         Row: {
+          cancel_at_period_end: boolean | null
+          canceled_at: string | null
           client_id: string
           created_at: string
+          currency: string | null
           expiration_date: string
           id: string
+          last_payment_date: string | null
+          next_payment_date: string | null
+          payment_status: string | null
+          price: number | null
           start_date: string
           status: Database["public"]["Enums"]["license_status"]
+          subscription_id: string | null
           type: Database["public"]["Enums"]["plan_type"]
           updated_at: string
         }
         Insert: {
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
           client_id: string
           created_at?: string
+          currency?: string | null
           expiration_date: string
           id?: string
+          last_payment_date?: string | null
+          next_payment_date?: string | null
+          payment_status?: string | null
+          price?: number | null
           start_date?: string
           status?: Database["public"]["Enums"]["license_status"]
+          subscription_id?: string | null
           type?: Database["public"]["Enums"]["plan_type"]
           updated_at?: string
         }
         Update: {
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
           client_id?: string
           created_at?: string
+          currency?: string | null
           expiration_date?: string
           id?: string
+          last_payment_date?: string | null
+          next_payment_date?: string | null
+          payment_status?: string | null
+          price?: number | null
           start_date?: string
           status?: Database["public"]["Enums"]["license_status"]
+          subscription_id?: string | null
           type?: Database["public"]["Enums"]["plan_type"]
           updated_at?: string
         }
@@ -121,8 +172,15 @@ export type Database = {
           client_id: string
           content: Json
           created_at: string
+          description: string | null
+          download_count: number | null
+          downloaded_at: string | null
+          file_url: string | null
+          format: string | null
           generated_at: string
           id: string
+          metadata: Json | null
+          title: string
           type: Database["public"]["Enums"]["report_type"]
           updated_at: string
         }
@@ -130,8 +188,15 @@ export type Database = {
           client_id: string
           content?: Json
           created_at?: string
+          description?: string | null
+          download_count?: number | null
+          downloaded_at?: string | null
+          file_url?: string | null
+          format?: string | null
           generated_at?: string
           id?: string
+          metadata?: Json | null
+          title?: string
           type: Database["public"]["Enums"]["report_type"]
           updated_at?: string
         }
@@ -139,8 +204,15 @@ export type Database = {
           client_id?: string
           content?: Json
           created_at?: string
+          description?: string | null
+          download_count?: number | null
+          downloaded_at?: string | null
+          file_url?: string | null
+          format?: string | null
           generated_at?: string
           id?: string
+          metadata?: Json | null
+          title?: string
           type?: Database["public"]["Enums"]["report_type"]
           updated_at?: string
         }
