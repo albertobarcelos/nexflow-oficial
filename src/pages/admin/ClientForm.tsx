@@ -1,3 +1,4 @@
+import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Client } from "@/types/database";
+import { DocumentUpload } from "@/components/client/DocumentUpload";
 
 export default function ClientForm() {
   const { id } = useParams();
@@ -39,7 +41,7 @@ export default function ClientForm() {
     },
   });
 
-  const { isLoading } = useQuery({
+  const { data: client, isLoading } = useQuery({
     queryKey: ['client', id],
     queryFn: async () => {
       if (!id) return null;
@@ -102,6 +104,26 @@ export default function ClientForm() {
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar os dados do cliente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDocumentsUpdate = async (newDocuments: any[]) => {
+    if (!id) return;
+
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .update({ documents: newDocuments })
+        .eq('id', id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error updating documents:', error);
+      toast({
+        title: "Erro ao atualizar documentos",
+        description: "Ocorreu um erro ao atualizar os documentos.",
         variant: "destructive",
       });
     }
@@ -329,6 +351,17 @@ export default function ClientForm() {
               </FormItem>
             )}
           />
+
+          {id && (
+            <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Documentos</h2>
+              <DocumentUpload
+                clientId={id}
+                documents={client?.documents || []}
+                onDocumentsUpdate={handleDocumentsUpdate}
+              />
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button type="submit">
