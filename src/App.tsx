@@ -7,6 +7,8 @@ import Index from "./pages/Index";
 import AdminLogin from "./pages/admin/AdminLogin";
 import CRMLogin from "./pages/crm/CRMLogin";
 import PartnerLogin from "./pages/partner/PartnerLogin";
+import AdminLayout from "./layouts/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +23,11 @@ const App = () => (
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/crm/login" element={<CRMLogin />} />
           <Route path="/partner/login" element={<PartnerLogin />} />
+          
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+          </Route>
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
