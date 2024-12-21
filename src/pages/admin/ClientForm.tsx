@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Client } from "@/types/database";
 
 export default function ClientForm() {
   const { id } = useParams();
@@ -46,7 +47,7 @@ export default function ClientForm() {
         .from('clients')
         .select('*')
         .eq('id', id)
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
       if (data) {
@@ -59,13 +60,16 @@ export default function ClientForm() {
 
   const onSubmit = async (data: ClientFormData) => {
     try {
+      const timestamp = new Date().toISOString();
+      const clientData = {
+        ...data,
+        updated_at: timestamp,
+      };
+
       if (id) {
         const { error } = await supabase
           .from('clients')
-          .update({
-            ...data,
-            updated_at: new Date().toISOString(),
-          })
+          .update(clientData)
           .eq('id', id);
 
         if (error) throw error;
@@ -77,11 +81,12 @@ export default function ClientForm() {
       } else {
         const { error } = await supabase
           .from('clients')
-          .insert([{
-            ...data,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          }]);
+          .insert({
+            ...clientData,
+            created_at: timestamp,
+            documents: [],
+            history: [],
+          });
 
         if (error) throw error;
 
