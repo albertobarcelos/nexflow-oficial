@@ -26,8 +26,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Client } from "@/types/database";
 import { DocumentUpload } from "@/components/client/DocumentUpload";
+import { LicenseManager } from "@/components/client/LicenseManager";
 
-interface Document {
+interface ClientDocument {
   name: string;
   path: string;
   type: string;
@@ -117,13 +118,21 @@ export default function ClientForm() {
     }
   };
 
-  const handleDocumentsUpdate = async (newDocuments: Document[]) => {
+  const handleDocumentsUpdate = async (newDocuments: ClientDocument[]) => {
     if (!id) return;
 
     try {
       const { error } = await supabase
         .from('clients')
-        .update({ documents: newDocuments })
+        .update({ 
+          documents: newDocuments.map(doc => ({
+            name: doc.name,
+            path: doc.path,
+            type: doc.type,
+            size: doc.size,
+            uploadedAt: doc.uploadedAt
+          }))
+        })
         .eq('id', id);
 
       if (error) throw error;
@@ -361,14 +370,23 @@ export default function ClientForm() {
           />
 
           {id && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Documentos</h2>
-              <DocumentUpload
-                clientId={id}
-                documents={client?.documents || []}
-                onDocumentsUpdate={handleDocumentsUpdate}
-              />
-            </div>
+            <>
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Documentos</h2>
+                <DocumentUpload
+                  clientId={id}
+                  documents={client?.documents || []}
+                  onDocumentsUpdate={handleDocumentsUpdate}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <LicenseManager
+                  clientId={id}
+                  currentPlan={client?.plan || "free"}
+                />
+              </div>
+            </>
           )}
 
           <div className="flex gap-2">
