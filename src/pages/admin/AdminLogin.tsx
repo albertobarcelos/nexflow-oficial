@@ -27,9 +27,11 @@ export default function AdminLogin() {
         .from('administrators')
         .select('*')
         .eq('auth_user_id', authData.user.id)
-        .single();
+        .maybeSingle();
 
-      if (adminError || !adminData) {
+      if (adminError) throw adminError;
+      
+      if (!adminData) {
         throw new Error('Usuário não autorizado para acessar o portal administrativo.');
       }
 

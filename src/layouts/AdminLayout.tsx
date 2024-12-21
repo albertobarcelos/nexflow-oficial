@@ -23,10 +23,16 @@ export default function AdminLayout() {
           .from('administrators')
           .select('*')
           .eq('auth_user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
-        if (adminError || !adminData) {
+        if (adminError) {
           console.error('Erro ao verificar acesso de administrador:', adminError);
+          navigate("/admin/login");
+          return;
+        }
+
+        if (!adminData) {
+          console.error('Usuário não é um administrador');
           navigate("/admin/login");
           return;
         }
