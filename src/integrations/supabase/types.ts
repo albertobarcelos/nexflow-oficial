@@ -9,7 +9,148 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      administrators: {
+        Row: {
+          access_level: Database["public"]["Enums"]["admin_access_level"]
+          created_at: string
+          email: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          access_level?: Database["public"]["Enums"]["admin_access_level"]
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["admin_access_level"]
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          created_at: string
+          crm_id: string | null
+          email: string
+          id: string
+          name: string
+          partner_portal_id: string | null
+          plan: Database["public"]["Enums"]["plan_type"]
+          status: Database["public"]["Enums"]["client_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          crm_id?: string | null
+          email: string
+          id?: string
+          name: string
+          partner_portal_id?: string | null
+          plan?: Database["public"]["Enums"]["plan_type"]
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          crm_id?: string | null
+          email?: string
+          id?: string
+          name?: string
+          partner_portal_id?: string | null
+          plan?: Database["public"]["Enums"]["plan_type"]
+          status?: Database["public"]["Enums"]["client_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      licenses: {
+        Row: {
+          client_id: string
+          created_at: string
+          expiration_date: string
+          id: string
+          start_date: string
+          status: Database["public"]["Enums"]["license_status"]
+          type: Database["public"]["Enums"]["plan_type"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          expiration_date: string
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["license_status"]
+          type?: Database["public"]["Enums"]["plan_type"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          expiration_date?: string
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["license_status"]
+          type?: Database["public"]["Enums"]["plan_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenses_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          client_id: string
+          content: Json
+          created_at: string
+          generated_at: string
+          id: string
+          type: Database["public"]["Enums"]["report_type"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          content?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          type: Database["public"]["Enums"]["report_type"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          content?: Json
+          created_at?: string
+          generated_at?: string
+          id?: string
+          type?: Database["public"]["Enums"]["report_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +159,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      admin_access_level: "general" | "limited"
+      client_status: "active" | "inactive"
+      license_status: "active" | "suspended" | "expired"
+      plan_type: "free" | "premium"
+      report_type: "usage" | "financial"
     }
     CompositeTypes: {
       [_ in never]: never
