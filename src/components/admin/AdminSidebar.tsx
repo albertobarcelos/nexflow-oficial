@@ -6,6 +6,7 @@ import {
   LogOut,
   Settings,
   Users,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -19,8 +20,9 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   {
@@ -39,14 +41,19 @@ const menuItems = [
     url: "/admin/licenses",
   },
   {
+    title: "Relatórios",
+    icon: FileText,
+    url: "/admin/reports",
+  },
+  {
     title: "Usuários",
     icon: Users,
     url: "/admin/users",
   },
   {
-    title: "Relatórios",
+    title: "Análises",
     icon: BarChart3,
-    url: "/admin/reports",
+    url: "/admin/analytics",
   },
   {
     title: "Configurações",
@@ -57,6 +64,7 @@ const menuItems = [
 
 export function AdminSidebar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   const handleLogout = async () => {
@@ -90,8 +98,16 @@ export function AdminSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <a href={item.url} className="flex items-center gap-2">
+                  <SidebarMenuButton
+                    asChild
+                    className={cn(
+                      location.pathname === item.url && "bg-muted"
+                    )}
+                  >
+                    <a
+                      href={item.url}
+                      className="flex items-center gap-2"
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </a>
@@ -99,7 +115,10 @@ export function AdminSidebar() {
                 </SidebarMenuItem>
               ))}
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={handleLogout} className="flex items-center gap-2 text-red-500 hover:text-red-600">
+                <SidebarMenuButton
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 text-red-500 hover:text-red-600"
+                >
                   <LogOut className="h-4 w-4" />
                   <span>Sair</span>
                 </SidebarMenuButton>
