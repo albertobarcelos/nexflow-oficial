@@ -48,7 +48,9 @@ export type Database = {
           country: string | null
           created_at: string
           crm_id: string | null
+          documents: Json | null
           email: string
+          history: Json | null
           id: string
           name: string
           notes: string | null
@@ -68,7 +70,9 @@ export type Database = {
           country?: string | null
           created_at?: string
           crm_id?: string | null
+          documents?: Json | null
           email: string
+          history?: Json | null
           id?: string
           name: string
           notes?: string | null
@@ -88,7 +92,9 @@ export type Database = {
           country?: string | null
           created_at?: string
           crm_id?: string | null
+          documents?: Json | null
           email?: string
+          history?: Json | null
           id?: string
           name?: string
           notes?: string | null

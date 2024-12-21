@@ -1,32 +1,44 @@
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-
-interface ClientFormData {
-  name: string;
-  email: string;
-  company_name: string;
-  contact_name?: string;
-  phone?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  postal_code?: string;
-  country?: string;
-  notes?: string;
-}
+import { clientSchema, type ClientFormData } from "@/lib/validations/client";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function ClientForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { register, handleSubmit, reset } = useForm<ClientFormData>();
+  
+  const form = useForm<ClientFormData>({
+    resolver: zodResolver(clientSchema),
+    defaultValues: {
+      status: "active",
+      plan: "free",
+      country: "Brasil",
+    },
+  });
 
-  const { data: client } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['client', id],
     queryFn: async () => {
       if (!id) return null;
@@ -34,37 +46,44 @@ export default function ClientForm() {
         .from('clients')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (data) {
+        form.reset(data);
+      }
       return data;
     },
     enabled: !!id,
-    meta: {
-      onSuccess: (data: any) => {
-        if (data) {
-          reset(data);
-        }
-      }
-    }
   });
 
   const onSubmit = async (data: ClientFormData) => {
     try {
       if (id) {
-        await supabase
+        const { error } = await supabase
           .from('clients')
-          .update(data)
+          .update({
+            ...data,
+            updated_at: new Date().toISOString(),
+          })
           .eq('id', id);
+
+        if (error) throw error;
 
         toast({
           title: "Cliente atualizado",
           description: "Os dados do cliente foram atualizados com sucesso.",
         });
       } else {
-        await supabase
+        const { error } = await supabase
           .from('clients')
-          .insert([data]);
+          .insert([{
+            ...data,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }]);
+
+        if (error) throw error;
 
         toast({
           title: "Cliente criado",
@@ -83,6 +102,10 @@ export default function ClientForm() {
     }
   };
 
+  if (isLoading) {
+    return <div>Carregando...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -94,68 +117,228 @@ export default function ClientForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <label htmlFor="name">Nome</label>
-            <Input id="name" {...register('name')} required />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="email">Email</label>
-            <Input id="email" type="email" {...register('email')} required />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="company_name">Nome da Empresa</label>
-            <Input id="company_name" {...register('company_name')} required />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="contact_name">Nome do Contato</label>
-            <Input id="contact_name" {...register('contact_name')} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="phone">Telefone</label>
-            <Input id="phone" {...register('phone')} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="address">Endereço</label>
-            <Input id="address" {...register('address')} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="city">Cidade</label>
-            <Input id="city" {...register('city')} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="state">Estado</label>
-            <Input id="state" {...register('state')} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="postal_code">CEP</label>
-            <Input id="postal_code" {...register('postal_code')} />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="country">País</label>
-            <Input id="country" {...register('country')} defaultValue="Brasil" />
-          </div>
-        </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="space-y-2">
-          <label htmlFor="notes">Observações</label>
-          <Input id="notes" {...register('notes')} />
-        </div>
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="flex gap-2">
-          <Button type="submit">
-            {id ? 'Atualizar' : 'Cadastrar'}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate('/admin/clients')}
-          >
-            Cancelar
-          </Button>
-        </div>
-      </form>
+            <FormField
+              control={form.control}
+              name="company_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome da Empresa</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="contact_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nome do Contato</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telefone</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="active">Ativo</SelectItem>
+                      <SelectItem value="inactive">Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="plan"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plano</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o plano" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="free">Gratuito</SelectItem>
+                      <SelectItem value="premium">Premium</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Endereço</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="city"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cidade</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="state"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Estado</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="postal_code"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CEP</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>País</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Observações</FormLabel>
+                <FormControl>
+                  <Textarea {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="flex gap-2">
+            <Button type="submit">
+              {id ? 'Atualizar' : 'Cadastrar'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/admin/clients')}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
