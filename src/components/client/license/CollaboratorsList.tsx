@@ -15,9 +15,14 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
         .select('*')
         .eq('client_id', client_id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching collaborators:', error);
+        throw error;
+      }
+
       return data;
     },
+    enabled: !!client_id,
   });
 
   if (isLoading) {

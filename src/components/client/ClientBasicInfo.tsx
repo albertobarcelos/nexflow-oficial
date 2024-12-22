@@ -9,6 +9,9 @@ interface ClientBasicInfoProps {
 }
 
 export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
+  const tax_id = form.watch('tax_id');
+  const isCPF = tax_id?.length <= 11;
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <FormField
@@ -47,7 +50,7 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
             <FormLabel>CNPJ/CPF</FormLabel>
             <FormControl>
               <InputMask
-                mask={field.value?.length <= 11 ? "999.999.999-99" : "99.999.999/9999-99"}
+                mask={isCPF ? "999.999.999-99" : "99.999.999/9999-99"}
                 value={field.value || ''}
                 onChange={field.onChange}
               >
