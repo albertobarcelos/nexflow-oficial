@@ -31,10 +31,7 @@ export default function ClientForm() {
         .maybeSingle();
 
       if (error) throw error;
-      if (data) {
-        return mapClientRowToClient(data);
-      }
-      return null;
+      return data ? mapClientRowToClient(data) : null;
     },
     enabled: !!id,
   });

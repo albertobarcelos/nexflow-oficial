@@ -12,11 +12,24 @@ export function useClientForm(clientData?: Client | null) {
   
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
-    defaultValues: {
+    defaultValues: clientData ? {
+      name: clientData.name,
+      email: clientData.email,
+      company_name: clientData.company_name,
+      contact_name: clientData.contact_name || undefined,
+      phone: clientData.phone || undefined,
+      address: clientData.address || undefined,
+      city: clientData.city || undefined,
+      state: clientData.state || undefined,
+      postal_code: clientData.postal_code || undefined,
+      country: clientData.country || 'Brasil',
+      notes: clientData.notes || undefined,
+      status: clientData.status || 'active',
+      plan: clientData.plan || 'free',
+    } : {
       status: "active",
       plan: "free",
       country: "Brasil",
-      ...(clientData || {}),
     },
   });
 

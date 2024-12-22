@@ -111,7 +111,7 @@ export function CRMSidebar() {
         variant="ghost"
         size="icon"
         className="fixed top-3 left-4 z-30 lg:hidden"
-        onClick={() => setOpen(!state === "expanded")}
+        onClick={() => setOpen(state !== "expanded")}
       >
         <Menu className="h-6 w-6" />
       </Button>
