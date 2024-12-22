@@ -1,11 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Form } from "@/components/ui/form";
 import { mapClientRowToClient } from "@/types/database";
 import { DocumentUpload } from "@/components/client/DocumentUpload";
-import { LicenseManager } from "@/components/client/LicenseManager";
 import { ClientBasicInfo } from "@/components/client/ClientBasicInfo";
 import { ClientAddress } from "@/components/client/ClientAddress";
 import { ClientStatus } from "@/components/client/ClientStatus";
@@ -37,6 +36,26 @@ export default function ClientForm() {
   });
 
   const { form, onSubmit } = useClientForm(clientData);
+
+  useEffect(() => {
+    if (clientData) {
+      form.reset({
+        name: clientData.name,
+        email: clientData.email,
+        company_name: clientData.company_name,
+        contact_name: clientData.contact_name || '',
+        phone: clientData.phone || '',
+        address: clientData.address || '',
+        city: clientData.city || '',
+        state: clientData.state || '',
+        postal_code: clientData.postal_code || '',
+        country: clientData.country || 'Brasil',
+        notes: clientData.notes || '',
+        status: clientData.status,
+        plan: clientData.plan,
+      });
+    }
+  }, [clientData, form]);
 
   const handleDocumentsUpdate = async (newDocuments: ClientDocument[]) => {
     if (!id || !clientData) return;
@@ -95,14 +114,6 @@ export default function ClientForm() {
                   clientId={id}
                   documents={clientData?.documents || []}
                   onDocumentsUpdate={handleDocumentsUpdate}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Licenças</h2>
-                <LicenseManager
-                  clientId={id}
-                  currentPlan={clientData?.plan || "free"}
                 />
               </div>
             </>
