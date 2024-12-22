@@ -28,6 +28,7 @@ export function useClientForm(clientData?: Client | null) {
       notes: clientData?.notes || '',
       status: clientData?.status || 'active',
       plan: clientData?.plan || 'free',
+      tax_id: clientData?.tax_id || '',
     },
   });
 
@@ -100,6 +101,7 @@ export function useClientForm(clientData?: Client | null) {
             notes: formData.notes,
             status: formData.status,
             plan: formData.plan,
+            tax_id: formData.tax_id,
             documents: [],
             history: [historyEntry]
           });
