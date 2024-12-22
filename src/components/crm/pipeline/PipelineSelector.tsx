@@ -40,13 +40,27 @@ export function PipelineSelector({ onSelect }: { onSelect: (pipelineId: string) 
     return (
       <div className="px-2 py-1 text-muted-foreground flex items-center gap-2">
         <CircleMinus className="h-4 w-4" />
-        Nenhum pipeline disponível
+        Nenhum Disponível
       </div>
     );
   }
 
   return (
     <div className="relative">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="w-full justify-between px-2 py-1"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <span>Selecionar Pipeline</span>
+        {isOpen ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
+      </Button>
+
       {isOpen && (
         <div className="absolute inset-x-0 top-0 mt-1 z-50">
           <div className="bg-popover border rounded-md shadow-md overflow-hidden">
