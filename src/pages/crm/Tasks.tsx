@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DragDropContext } from '@hello-pangea/dnd';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Plus, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { TaskColumn } from '@/components/crm/tasks/TaskColumn';
 
 type Task = {
   id: string;
@@ -16,6 +15,9 @@ type Task = {
   priority: 'low' | 'medium' | 'high';
   assigned_to: string | null;
   due_date: string | null;
+  assigned_to_collaborator?: {
+    name: string;
+  };
 };
 
 type Column = {
@@ -29,12 +31,6 @@ const initialColumns: Column[] = [
   { id: 'doing', title: 'Em Andamento', tasks: [] },
   { id: 'done', title: 'Concluído', tasks: [] },
 ];
-
-const priorityColors = {
-  low: 'bg-blue-100 text-blue-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-red-100 text-red-800',
-};
 
 export default function Tasks() {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
@@ -91,7 +87,6 @@ export default function Tasks() {
 
     const task = sourceCol.tasks[source.index];
 
-    // Update columns locally
     const newColumns = columns.map(col => {
       if (col.id === source.droppableId) {
         const newTasks = Array.from(col.tasks);
@@ -108,7 +103,6 @@ export default function Tasks() {
 
     setColumns(newColumns);
 
-    // Update in database
     try {
       const { error } = await supabase
         .from('tasks')
@@ -158,60 +152,12 @@ export default function Tasks() {
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {columns.map(column => (
-            <div key={column.id} className="bg-muted p-4 rounded-lg">
-              <h3 className="font-semibold mb-4">{column.title}</h3>
-              <Droppable droppableId={column.id}>
-                {(provided) => (
-                  <div
-                    {...provided.droppableProps}
-                    ref={provided.innerRef}
-                    className="space-y-2 min-h-[200px]"
-                  >
-                    {column.tasks.map((task, index) => (
-                      <Draggable
-                        key={task.id}
-                        draggableId={task.id}
-                        index={index}
-                      >
-                        {(provided) => (
-                          <Card
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className="cursor-grab active:cursor-grabbing"
-                            onClick={() => navigate(`/crm/tasks/${task.id}`)}
-                          >
-                            <CardContent className="p-4">
-                              <h4 className="font-medium">{task.title}</h4>
-                              <div className="flex gap-2 mt-2">
-                                <Badge 
-                                  variant="secondary"
-                                  className={priorityColors[task.priority]}
-                                >
-                                  {task.priority === 'low' ? 'Baixa' : 
-                                   task.priority === 'medium' ? 'Média' : 'Alta'}
-                                </Badge>
-                                {task.assigned_to_collaborator && (
-                                  <Badge variant="outline">
-                                    {task.assigned_to_collaborator.name}
-                                  </Badge>
-                                )}
-                              </div>
-                              {task.due_date && (
-                                <p className="text-sm text-muted-foreground mt-2">
-                                  Prazo: {new Date(task.due_date).toLocaleDateString('pt-BR')}
-                                </p>
-                              )}
-                            </CardContent>
-                          </Card>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
+            <TaskColumn
+              key={column.id}
+              id={column.id}
+              title={column.title}
+              tasks={column.tasks}
+            />
           ))}
         </div>
       </DragDropContext>
