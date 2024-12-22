@@ -4,6 +4,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEntityNames } from "@/hooks/useEntityNames";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Users,
@@ -15,7 +16,6 @@ import {
   Menu,
 } from "lucide-react";
 import { PipelineSelector } from "./pipeline/PipelineSelector";
-import { useState } from "react";
 
 const getMenuItems = (leadSingular: string, leadPlural: string) => [
   {
@@ -59,6 +59,27 @@ export function CRMSidebar() {
   const { leadSingular, leadPlural } = useEntityNames();
   const menuItems = getMenuItems(leadSingular, leadPlural);
 
+  // Query para buscar os pipelines
+  const { data: pipelines } = useQuery({
+    queryKey: ['pipelines'],
+    queryFn: async () => {
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!collaborator) throw new Error('Collaborator not found');
+
+      const { data } = await supabase
+        .from('pipeline_configs')
+        .select('*')
+        .eq('client_id', collaborator.client_id);
+
+      return data;
+    }
+  });
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/crm/login");
@@ -71,17 +92,16 @@ export function CRMSidebar() {
     return location.pathname === href;
   };
 
-  const handleMenuClick = (href: string, showSelector: boolean) => {
+  const handleMenuClick = async (href: string, showSelector: boolean) => {
     if (showSelector) {
+      // Se tiver pipelines, navega direto para o primeiro
+      if (pipelines?.length) {
+        navigate(`/crm/opportunities/${pipelines[0].id}`);
+      }
       setShowPipelineSelector(!showPipelineSelector);
       return;
     }
     navigate(href);
-  };
-
-  const handlePipelineSelect = (pipelineId: string) => {
-    navigate(`/crm/opportunities/${pipelineId}`);
-    setShowPipelineSelector(false);
   };
 
   return (
@@ -125,7 +145,10 @@ export function CRMSidebar() {
                   {item.title}
                 </Button>
                 {item.showSelector && showPipelineSelector && (
-                  <PipelineSelector onSelect={handlePipelineSelect} />
+                  <PipelineSelector onSelect={(id) => {
+                    navigate(`/crm/opportunities/${id}`);
+                    setShowPipelineSelector(false);
+                  }} />
                 )}
               </div>
             ))}
