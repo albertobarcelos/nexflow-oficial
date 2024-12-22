@@ -66,6 +66,14 @@ export function CRMSidebar() {
     return location.pathname === href;
   };
 
+  const handleMenuClick = (href: string, showSelector: boolean) => {
+    if (showSelector) {
+      // Don't navigate if it's the Pipelines menu item
+      return;
+    }
+    navigate(href);
+  };
+
   const handlePipelineSelect = (pipelineId: string) => {
     navigate(`/crm/opportunities/${pipelineId}`);
   };
@@ -105,12 +113,12 @@ export function CRMSidebar() {
                 <Button
                   variant={isActive(item.href) ? "secondary" : "ghost"}
                   className="w-full justify-start gap-2"
-                  onClick={() => navigate(item.href)}
+                  onClick={() => handleMenuClick(item.href, item.showSelector)}
                 >
                   <item.icon className="h-5 w-5" />
                   {item.title}
                 </Button>
-                {item.showSelector && isActive(item.href) && (
+                {item.showSelector && (
                   <PipelineSelector onSelect={handlePipelineSelect} />
                 )}
               </div>
