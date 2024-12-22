@@ -12,14 +12,14 @@ export default function OpportunityDetails() {
   const { data: opportunity, isLoading } = useQuery({
     queryKey: ['opportunity', id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('opportunities')
         .select(`
           *,
-          assigned_to (
+          assigned_to_collaborator:collaborators!opportunities_assigned_to_fkey (
             name
           ),
-          lead (
+          lead:leads!opportunities_lead_id_fkey (
             name,
             email,
             company
@@ -28,6 +28,7 @@ export default function OpportunityDetails() {
         .eq('id', id)
         .single();
 
+      if (error) throw error;
       return data;
     }
   });
@@ -89,7 +90,7 @@ export default function OpportunityDetails() {
             <div>
               <span className="font-medium">Responsável:</span>
               <span className="ml-2">
-                {opportunity.assigned_to?.name || 'Não atribuído'}
+                {opportunity.assigned_to_collaborator?.name || 'Não atribuído'}
               </span>
             </div>
           </CardContent>
