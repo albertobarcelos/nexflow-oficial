@@ -7,9 +7,9 @@ interface LicenseHeaderProps {
 export function LicenseHeader({ license }: LicenseHeaderProps) {
   return (
     <div>
-      <p className="text-sm text-muted-foreground">Status: {license.status}</p>
+      <h4 className="font-medium">Plano {license.type === 'premium' ? 'Premium' : 'Gratuito'}</h4>
       <p className="text-sm text-muted-foreground">
-        Expira em: {new Date(license.expiration_date).toLocaleDateString()}
+        Expira em: {new Date(license.expiration_date).toLocaleDateString('pt-BR')}
       </p>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,9 +35,12 @@ export function LicenseManager({ clientId, currentPlan }: LicenseManagerProps) {
         .from('licenses')
         .select('*')
         .eq('client_id', clientId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (data) {
+        setUserLimit(data.user_limit);
+      }
       return data;
     },
   });
