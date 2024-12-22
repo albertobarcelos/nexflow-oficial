@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { AddCollaboratorForm } from "@/components/client/license/AddCollaboratorForm";
 import { CollaboratorFormData } from "@/lib/validations/collaborator";
 
@@ -25,7 +24,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
 
   const handleAddCollaborator = async (data: CollaboratorFormData & { license_id: string }) => {
     try {
-      const { error } = await supabase
+      const { error: collaboratorError } = await supabase
         .from('collaborators')
         .insert({
           client_id: clientId,
@@ -33,11 +32,10 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
           name: data.name,
           email: data.email,
           role: data.role,
-          auth_user_id: (await supabase.auth.getUser()).data.user?.id,
           permissions: [],
         });
 
-      if (error) throw error;
+      if (collaboratorError) throw collaboratorError;
 
       // Send invitation email
       const { error: inviteError } = await supabase.functions.invoke('send-invite', {
