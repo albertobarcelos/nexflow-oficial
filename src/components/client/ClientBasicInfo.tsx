@@ -45,33 +45,26 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
       <FormField
         control={form.control}
         name="tax_id"
-        render={({ field }) => {
-          const maskedValue = field.value ? (isCPF ? 
-            field.value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") :
-            field.value.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5")
-          ) : '';
-
-          return (
-            <FormItem>
-              <FormLabel>CNPJ/CPF</FormLabel>
-              <FormControl>
-                <InputMask
-                  mask={isCPF ? "999.999.999-99" : "99.999.999/9999-99"}
-                  value={maskedValue}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/[^\d]/g, '');
-                    field.onChange(value);
-                  }}
-                >
-                  {(inputProps: any) => (
-                    <Input {...inputProps} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
-                  )}
-                </InputMask>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          );
-        }}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>CNPJ/CPF</FormLabel>
+            <FormControl>
+              <InputMask
+                mask={isCPF ? "999.999.999-99" : "99.999.999/9999-99"}
+                value={field.value}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^\d]/g, '');
+                  field.onChange(value);
+                }}
+              >
+                {(inputProps: any) => (
+                  <Input {...inputProps} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+                )}
+              </InputMask>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
 
       <FormField
