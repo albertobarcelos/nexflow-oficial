@@ -146,6 +146,11 @@ const App = () => (
                   <TasksList />
                 </Suspense>
               } />
+              <Route path="settings" element={
+                <Suspense fallback={<LoadingPage />}>
+                  <Settings />
+                </Suspense>
+              } />
             </Route>
           </Routes>
         </Suspense>
