@@ -22,7 +22,7 @@ export function AddCollaboratorForm({ clientId, onSubmit }: AddCollaboratorFormP
     defaultValues: {
       name: "",
       email: "",
-      role: "closer",
+      role: "administrator",
     },
   });
 
