@@ -28,7 +28,7 @@ import { useToast } from "@/components/ui/use-toast";
 const Leads = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
-  const { leadPlural } = useEntityNames();
+  const { leadSingular, leadPlural } = useEntityNames();
 
   const { data: leads, isLoading } = useQuery({
     queryKey: ['leads'],
@@ -89,6 +89,19 @@ const Leads = () => {
     });
   };
 
+  const getGenderPrefix = (word: string) => {
+    // Common Portuguese feminine word endings
+    const feminineEndings = ['a', 'ã', 'ora', 'esa', 'isa', 'iz'];
+    const wordLower = word.toLowerCase();
+    
+    for (const ending of feminineEndings) {
+      if (wordLower.endsWith(ending)) {
+        return "Nova";
+      }
+    }
+    return "Novo";
+  };
+
   const filteredLeads = leads?.filter(lead =>
     lead.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,7 +122,7 @@ const Leads = () => {
         <h1 className="text-3xl font-bold text-foreground">{leadPlural}</h1>
         <Button onClick={handleAddLead} className="bg-primary hover:bg-primary/90">
           <Plus className="mr-2 h-4 w-4" />
-          Novo {leadPlural.slice(0, -1)} {/* Removes the last letter, assuming it's the 's' for plural */}
+          {`${getGenderPrefix(leadSingular)} ${leadSingular}`}
         </Button>
       </div>
 
@@ -120,7 +133,7 @@ const Leads = () => {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Buscar leads..."
+                  placeholder={`Buscar ${leadPlural.toLowerCase()}...`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"

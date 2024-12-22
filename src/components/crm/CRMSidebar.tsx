@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useEntityNames } from "@/hooks/useEntityNames";
 import {
   LayoutDashboard,
   Users,
@@ -16,14 +17,14 @@ import {
 import { PipelineSelector } from "./pipeline/PipelineSelector";
 import { useState } from "react";
 
-const menuItems = [
+const getMenuItems = (leadSingular: string, leadPlural: string) => [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
     href: "/crm/dashboard",
   },
   {
-    title: "Leads",
+    title: leadPlural,
     icon: Users,
     href: "/crm/leads",
   },
@@ -55,6 +56,8 @@ export function CRMSidebar() {
   const location = useLocation();
   const { state, setOpen, isMobile } = useSidebar();
   const [showPipelineSelector, setShowPipelineSelector] = useState(false);
+  const { leadSingular, leadPlural } = useEntityNames();
+  const menuItems = getMenuItems(leadSingular, leadPlural);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
