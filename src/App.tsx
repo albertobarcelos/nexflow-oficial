@@ -11,6 +11,7 @@ import AdminLayout from "./layouts/AdminLayout";
 const AdminLogin = React.lazy(() => import("./pages/admin/AdminLogin"));
 const CRMLogin = React.lazy(() => import("./pages/crm/CRMLogin"));
 const PartnerLogin = React.lazy(() => import("./pages/partner/PartnerLogin"));
+const SetPassword = React.lazy(() => import("./pages/collaborator/SetPassword"));
 const Dashboard = React.lazy(() => import("./pages/admin/Dashboard"));
 const CRMDashboard = React.lazy(() => import("./pages/crm/Dashboard"));
 const Clients = React.lazy(() => import("./pages/admin/Clients"));
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/crm/login" element={<CRMLogin />} />
             <Route path="/partner/login" element={<PartnerLogin />} />
+            <Route path="/collaborator/set-password" element={<SetPassword />} />
             
             {/* Admin routes */}
             <Route path="/admin" element={<AdminLayout />}>

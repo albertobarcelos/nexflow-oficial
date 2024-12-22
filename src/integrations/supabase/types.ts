@@ -111,6 +111,44 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborator_invites: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+          updated_at: string
+          used_at: string | null
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          updated_at?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_invites_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           auth_user_id: string
