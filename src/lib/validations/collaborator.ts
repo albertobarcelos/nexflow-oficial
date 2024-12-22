@@ -6,4 +6,6 @@ export const collaboratorSchema = z.object({
   role: z.enum(["administrator", "closer", "partnership_director", "partner"]),
 });
 
+export type CollaboratorRole = "administrator" | "closer" | "partnership_director" | "partner";
+
 export type CollaboratorFormData = z.infer<typeof collaboratorSchema>;

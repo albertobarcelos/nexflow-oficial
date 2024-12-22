@@ -5,13 +5,14 @@ import { GripVertical, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PipelinePermissionsDialog } from "./PipelinePermissionsDialog";
 import { useState } from "react";
+import type { CollaboratorRole } from "@/lib/validations/collaborator";
 
 type PipelineCardProps = {
   pipeline: {
     id: string;
     name: string;
     description: string | null;
-    allowed_roles?: string[];
+    allowed_roles?: CollaboratorRole[];
     pipeline_stages?: Array<{
       id: string;
       name: string;
