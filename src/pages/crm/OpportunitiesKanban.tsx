@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { KanbanHeader } from '@/components/crm/opportunities/KanbanHeader';
 import { KanbanColumn } from '@/components/crm/opportunities/KanbanColumn';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
 
 export default function OpportunitiesKanban() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
@@ -17,16 +19,25 @@ export default function OpportunitiesKanban() {
       if (!selectedPipelineId) return;
 
       // Fetch stages with their opportunities
-      const { data: stages } = await supabase
+      const { data: stages, error: stagesError } = await supabase
         .from('pipeline_stages')
         .select('*')
         .eq('pipeline_id', selectedPipelineId)
         .order('order_index');
 
+      if (stagesError) {
+        toast({
+          title: "Erro ao carregar etapas",
+          description: "Não foi possível carregar as etapas do pipeline.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!stages) return;
 
       // Fetch opportunities with their categories
-      const { data: opportunities } = await supabase
+      const { data: opportunities, error: oppsError } = await supabase
         .from('opportunities')
         .select(`
           *,
@@ -36,6 +47,15 @@ export default function OpportunitiesKanban() {
           )
         `)
         .eq('pipeline_id', selectedPipelineId);
+
+      if (oppsError) {
+        toast({
+          title: "Erro ao carregar oportunidades",
+          description: "Não foi possível carregar as oportunidades.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Create columns with stages and their opportunities
       const newColumns = stages.map(stage => ({
@@ -111,7 +131,11 @@ export default function OpportunitiesKanban() {
   };
 
   if (isLoadingStages) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
