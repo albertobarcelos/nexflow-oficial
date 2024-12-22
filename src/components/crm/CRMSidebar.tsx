@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
 } from "lucide-react";
+import { PipelineSelector } from "./pipeline/PipelineSelector";
 
 const menuItems = [
   {
@@ -29,6 +30,7 @@ const menuItems = [
     title: "Pipelines",
     icon: Kanban,
     href: "/crm/opportunities",
+    showSelector: true,
   },
   {
     title: "Tarefas",
@@ -64,6 +66,10 @@ export function CRMSidebar() {
     return location.pathname === href;
   };
 
+  const handlePipelineSelect = (pipelineId: string) => {
+    navigate(`/crm/opportunities/${pipelineId}`);
+  };
+
   return (
     <>
       <div
@@ -95,15 +101,19 @@ export function CRMSidebar() {
         <div className="flex-1 overflow-auto">
           <nav className="flex-1 space-y-1 p-2">
             {menuItems.map((item) => (
-              <Button
-                key={item.href}
-                variant={isActive(item.href) ? "secondary" : "ghost"}
-                className="w-full justify-start gap-2"
-                onClick={() => navigate(item.href)}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.title}
-              </Button>
+              <div key={item.href}>
+                <Button
+                  variant={isActive(item.href) ? "secondary" : "ghost"}
+                  className="w-full justify-start gap-2"
+                  onClick={() => navigate(item.href)}
+                >
+                  <item.icon className="h-5 w-5" />
+                  {item.title}
+                </Button>
+                {item.showSelector && isActive(item.href) && (
+                  <PipelineSelector onSelect={handlePipelineSelect} />
+                )}
+              </div>
             ))}
           </nav>
         </div>
