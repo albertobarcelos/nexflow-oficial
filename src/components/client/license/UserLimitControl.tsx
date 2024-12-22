@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MinusCircle, PlusCircle } from "lucide-react";
 import { useState, useEffect } from "react";
+import { License } from "@/types/database";
 
 interface UserLimitControlProps {
   userLimit: number;

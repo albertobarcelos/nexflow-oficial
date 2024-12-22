@@ -1,15 +1,25 @@
 import { Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CollaboratorsListProps {
-  collaborators: Array<{
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  }>;
+  clientId: string;
 }
 
-export function CollaboratorsList({ collaborators }: CollaboratorsListProps) {
+export function CollaboratorsList({ clientId }: CollaboratorsListProps) {
+  const { data: collaborators } = useQuery({
+    queryKey: ['collaborators', clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('collaborators')
+        .select('*')
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <div className="rounded-md border">
       <div className="flex items-center p-4 border-b">
@@ -27,6 +37,7 @@ export function CollaboratorsList({ collaborators }: CollaboratorsListProps) {
               {collaborator.role === 'closer' && 'Closer'}
               {collaborator.role === 'partnership_director' && 'Diretor de Parcerias'}
               {collaborator.role === 'partner' && 'Parceiro'}
+              {collaborator.role === 'administrator' && 'Administrador'}
             </span>
           </div>
         ))}

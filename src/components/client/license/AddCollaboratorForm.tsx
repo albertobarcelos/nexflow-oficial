@@ -39,14 +39,10 @@ export function AddCollaboratorForm({ clientId, onSubmit }: AddCollaboratorFormP
 
   const handleSubmit = async (data: CollaboratorFormData) => {
     if (!license) return;
-
-    const { data: userData } = await supabase.auth.getUser();
     
     onSubmit({
       ...data,
       license_id: license.id,
-      auth_user_id: userData.user?.id || '',
-      client_id: clientId,
     });
   };
 

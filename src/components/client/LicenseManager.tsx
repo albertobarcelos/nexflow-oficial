@@ -7,10 +7,11 @@ import { CollaboratorsList } from "./license/CollaboratorsList";
 import { LicenseHeader } from "./license/LicenseHeader";
 import { UserLimitControl } from "./license/UserLimitControl";
 import { AddCollaboratorDialog } from "../collaborator/AddCollaboratorDialog";
+import type { License } from "@/types/database";
 
 interface LicenseManagerProps {
   clientId: string;
-  currentPlan: string;
+  currentPlan: "free" | "premium";
   clientName: string;
   clientEmail: string;
 }
@@ -29,7 +30,7 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
         .single();
 
       if (error) throw error;
-      return data;
+      return data as License;
     },
   });
 
@@ -42,7 +43,7 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
         .from('licenses')
         .insert({
           client_id: clientId,
-          type: currentPlan,
+          type: currentPlan as "free" | "premium",
           expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           user_limit: 3,
         })
@@ -100,7 +101,11 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
   return (
     <div className="space-y-6">
       <LicenseHeader license={license} />
-      <UserLimitControl license={license} />
+      <UserLimitControl 
+        userLimit={license.user_limit} 
+        onUpdateLimit={() => {}} 
+        onSave={() => {}}
+      />
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">Colaboradores</h3>
