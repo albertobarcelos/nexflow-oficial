@@ -1,8 +1,8 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useEntityNames } from "@/hooks/useEntityNames";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -12,10 +12,13 @@ import {
   CheckSquare,
   BarChart,
   Settings,
-  LogOut,
   Menu,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { PipelineSelector } from "./pipeline/PipelineSelector";
+import { SidebarMenuItem } from "./sidebar/SidebarMenuItem";
+import { SidebarLogoutButton } from "./sidebar/SidebarLogoutButton";
+import { SidebarHeader } from "./sidebar/SidebarHeader";
 
 const getMenuItems = (leadSingular: string, leadPlural: string) => [
   {
@@ -59,7 +62,6 @@ export function CRMSidebar() {
   const { leadSingular, leadPlural } = useEntityNames();
   const menuItems = getMenuItems(leadSingular, leadPlural);
 
-  // Query para buscar os pipelines
   const { data: pipelines } = useQuery({
     queryKey: ['pipelines'],
     queryFn: async () => {
@@ -80,11 +82,6 @@ export function CRMSidebar() {
     }
   });
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/crm/login");
-  };
-
   const isActive = (href: string) => {
     if (href === '/crm/opportunities') {
       return location.pathname.startsWith(href);
@@ -94,7 +91,6 @@ export function CRMSidebar() {
 
   const handleMenuClick = async (href: string, showSelector: boolean) => {
     if (showSelector) {
-      // Se tiver pipelines, navega direto para o primeiro
       if (pipelines?.length) {
         navigate(`/crm/opportunities/${pipelines[0].id}`);
       }
@@ -120,51 +116,33 @@ export function CRMSidebar() {
           state === "expanded" ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-14 items-center justify-between px-4 border-b">
-          <span className="text-lg font-semibold">Portal CRM</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setOpen(false)}
-          >
-            <Menu className="h-6 w-6" />
-          </Button>
-        </div>
+        <SidebarHeader onClose={() => setOpen(false)} />
 
         <div className="flex-1 overflow-auto">
           <nav className="flex-1 space-y-1 p-2">
             {menuItems.map((item) => (
               <div key={item.href}>
-                <Button
-                  variant={isActive(item.href) ? "secondary" : "ghost"}
-                  className="w-full justify-start gap-2"
+                <SidebarMenuItem
+                  title={item.title}
+                  href={item.href}
+                  icon={item.icon}
+                  isActive={isActive(item.href)}
                   onClick={() => handleMenuClick(item.href, item.showSelector)}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.title}
-                </Button>
+                />
                 {item.showSelector && showPipelineSelector && (
-                  <PipelineSelector onSelect={(id) => {
-                    navigate(`/crm/opportunities/${id}`);
-                    setShowPipelineSelector(false);
-                  }} />
+                  <PipelineSelector 
+                    onSelect={(id) => {
+                      navigate(`/crm/opportunities/${id}`);
+                      setShowPipelineSelector(false);
+                    }} 
+                  />
                 )}
               </div>
             ))}
           </nav>
         </div>
 
-        <div className="p-2 border-t">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            Sair
-          </Button>
-        </div>
+        <SidebarLogoutButton />
       </div>
 
       <Button
