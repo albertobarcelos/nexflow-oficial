@@ -27,10 +27,10 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
         .from('licenses')
         .select('*')
         .eq('client_id', clientId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as License;
+      return data as License | null;
     },
   });
 
