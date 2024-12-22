@@ -10,13 +10,21 @@ import { Loader2 } from 'lucide-react';
 
 export default function OpportunitiesKanban() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
-  const [columns, setColumns] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const { isLoading: isLoadingStages } = useQuery({
+  const { data: columns = [], isLoading: isLoadingStages } = useQuery({
     queryKey: ['pipeline-stages', selectedPipelineId],
     queryFn: async () => {
-      if (!selectedPipelineId) return;
+      if (!selectedPipelineId) return [];
+
+      // First get the client_id
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!collaborator) throw new Error('Collaborator not found');
 
       // Fetch stages first
       const { data: stages, error: stagesError } = await supabase
@@ -31,10 +39,10 @@ export default function OpportunitiesKanban() {
           description: "Não foi possível carregar as etapas do pipeline.",
           variant: "destructive",
         });
-        return;
+        return [];
       }
 
-      if (!stages) return;
+      if (!stages?.length) return [];
 
       // Then fetch opportunities
       const { data: opportunities, error: oppsError } = await supabase
@@ -46,7 +54,8 @@ export default function OpportunitiesKanban() {
             color
           )
         `)
-        .eq('pipeline_id', selectedPipelineId);
+        .eq('pipeline_id', selectedPipelineId)
+        .eq('client_id', collaborator.client_id);
 
       if (oppsError) {
         toast({
@@ -54,19 +63,16 @@ export default function OpportunitiesKanban() {
           description: "Não foi possível carregar as oportunidades.",
           variant: "destructive",
         });
-        return;
+        return [];
       }
 
       // Create columns with stages and their opportunities
-      const newColumns = stages.map(stage => ({
+      return stages.map(stage => ({
         id: stage.id,
         title: stage.name,
         color: stage.color,
         opportunities: opportunities?.filter(opp => opp.stage_id === stage.id) || []
       }));
-
-      setColumns(newColumns);
-      return stages;
     },
     enabled: !!selectedPipelineId
   });
@@ -82,30 +88,6 @@ export default function OpportunitiesKanban() {
     ) {
       return;
     }
-
-    const sourceCol = columns.find(col => col.id === source.droppableId);
-    const destCol = columns.find(col => col.id === destination.droppableId);
-    
-    if (!sourceCol || !destCol) return;
-
-    const opportunity = sourceCol.opportunities[source.index];
-
-    // Update columns locally
-    const newColumns = columns.map(col => {
-      if (col.id === source.droppableId) {
-        const newOpportunities = Array.from(col.opportunities);
-        newOpportunities.splice(source.index, 1);
-        return { ...col, opportunities: newOpportunities };
-      }
-      if (col.id === destination.droppableId) {
-        const newOpportunities = Array.from(col.opportunities);
-        newOpportunities.splice(destination.index, 0, opportunity);
-        return { ...col, opportunities: newOpportunities };
-      }
-      return col;
-    });
-
-    setColumns(newColumns);
 
     // Update in database
     try {
