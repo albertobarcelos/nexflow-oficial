@@ -39,9 +39,21 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
 
       if (error) throw error;
 
+      // Send invitation email
+      const { error: inviteError } = await supabase.functions.invoke('send-invite', {
+        body: {
+          collaboratorId: data.license_id,
+          name: data.name,
+          email: data.email,
+          inviteUrl: `${window.location.origin}/collaborator/set-password`,
+        },
+      });
+
+      if (inviteError) throw inviteError;
+
       toast({
         title: "Colaborador adicionado",
-        description: "O colaborador foi adicionado com sucesso.",
+        description: "O colaborador foi adicionado com sucesso e receberá um email de convite.",
       });
       onSuccess();
       setIsOpen(false);
