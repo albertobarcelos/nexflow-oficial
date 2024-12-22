@@ -10,7 +10,7 @@ interface ClientBasicInfoProps {
 
 export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
   const tax_id = form.watch('tax_id');
-  const isCPF = tax_id && tax_id.replace(/[^\d]/g, '').length <= 11;
+  const isCPF = tax_id ? tax_id.replace(/[^\d]/g, '').length <= 11 : true;
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -54,11 +54,7 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
                 value={field.value || ''}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^\d]/g, '');
-                  if (value.length <= 11) {
-                    field.onChange(value);
-                  } else if (value.length <= 14) {
-                    field.onChange(value);
-                  }
+                  field.onChange(value);
                 }}
               >
                 {(inputProps: any) => (
