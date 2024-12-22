@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ClientsTable } from "@/components/client/ClientsTable";
 import { supabase } from "@/integrations/supabase/client";
-import { Client } from "@/types/database";
+import { mapClientRowToClient } from "@/types/database";
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -19,22 +19,7 @@ export default function Clients() {
 
       if (error) throw error;
 
-      return data.map((row: any): Client => ({
-        ...row,
-        documents: (row.documents || []).map((doc: any) => ({
-          name: doc.name,
-          path: doc.path,
-          type: doc.type,
-          size: doc.size,
-          uploadedAt: doc.uploadedAt
-        })),
-        history: (row.history || []).map((entry: any) => ({
-          timestamp: entry.timestamp,
-          action: entry.action,
-          changes: entry.changes,
-          user: entry.user
-        }))
-      }));
+      return data.map(mapClientRowToClient);
     },
   });
 

@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { clientSchema, type ClientFormData } from "@/lib/validations/client";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Client, ClientDocument, ClientHistoryEntry, ClientRow } from "@/types/database";
+import { Client, ClientDocument, mapClientRowToClient, mapClientToClientRow } from "@/types/database";
 import { DocumentUpload } from "@/components/client/DocumentUpload";
 import { LicenseManager } from "@/components/client/LicenseManager";
 import { ClientBasicInfo } from "@/components/client/ClientBasicInfo";
@@ -42,22 +42,7 @@ export default function ClientForm() {
 
       if (error) throw error;
       if (data) {
-        const client: Client = {
-          ...data,
-          documents: (data.documents as any[] || []).map((doc: any) => ({
-            name: doc.name,
-            path: doc.path,
-            type: doc.type,
-            size: doc.size,
-            uploadedAt: doc.uploadedAt
-          })),
-          history: (data.history as any[] || []).map((entry: any) => ({
-            timestamp: entry.timestamp,
-            action: entry.action,
-            changes: entry.changes,
-            user: entry.user
-          }))
-        };
+        const client = mapClientRowToClient(data);
         form.reset(client);
         return client;
       }
@@ -69,11 +54,7 @@ export default function ClientForm() {
   const onSubmit = async (formData: ClientFormData) => {
     try {
       const timestamp = new Date().toISOString();
-      const clientData: Partial<ClientRow> = {
-        ...formData,
-        updated_at: timestamp,
-      };
-
+      
       if (id) {
         const changes: Record<string, { old: any; new: any }> = {};
         Object.keys(formData).forEach((key) => {
@@ -86,30 +67,21 @@ export default function ClientForm() {
         });
 
         if (Object.keys(changes).length > 0) {
-          const historyEntry: ClientHistoryEntry = {
+          const historyEntry = {
             timestamp,
             action: 'update',
             changes,
           };
 
+          const clientRow = mapClientToClientRow({
+            ...clientData!,
+            ...formData,
+            history: [...(clientData?.history || []), historyEntry],
+          });
+
           const { error } = await supabase
             .from('clients')
-            .update({
-              ...clientData,
-              history: [...(clientData?.history || [])].map(entry => ({
-                timestamp: entry.timestamp,
-                action: entry.action,
-                changes: entry.changes,
-                user: entry.user
-              })),
-              documents: clientData?.documents?.map(doc => ({
-                name: doc.name,
-                path: doc.path,
-                type: doc.type,
-                size: doc.size,
-                uploadedAt: doc.uploadedAt
-              }))
-            })
+            .update(clientRow)
             .eq('id', id);
 
           if (error) throw error;
@@ -120,20 +92,24 @@ export default function ClientForm() {
           });
         }
       } else {
-        const historyEntry: ClientHistoryEntry = {
+        const historyEntry = {
           timestamp,
           action: 'create',
           changes: {},
         };
 
+        const clientRow = mapClientToClientRow({
+          ...formData,
+          id: '',
+          created_at: timestamp,
+          updated_at: timestamp,
+          documents: [],
+          history: [historyEntry],
+        } as Client);
+
         const { error } = await supabase
           .from('clients')
-          .insert({
-            ...clientData,
-            created_at: timestamp,
-            documents: [],
-            history: [historyEntry],
-          } as ClientRow);
+          .insert(clientRow);
 
         if (error) throw error;
 
@@ -158,17 +134,14 @@ export default function ClientForm() {
     if (!id) return;
 
     try {
+      const clientRow = mapClientToClientRow({
+        ...clientData!,
+        documents: newDocuments,
+      });
+
       const { error } = await supabase
         .from('clients')
-        .update({
-          documents: newDocuments.map(doc => ({
-            name: doc.name,
-            path: doc.path,
-            type: doc.type,
-            size: doc.size,
-            uploadedAt: doc.uploadedAt
-          }))
-        })
+        .update(clientRow)
         .eq('id', id);
 
       if (error) throw error;

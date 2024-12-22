@@ -1,5 +1,6 @@
 import { ClientDocument } from './document';
 import { ClientHistoryEntry } from './history';
+import { Json } from './json';
 
 export interface Client {
   id: string;
@@ -25,6 +26,40 @@ export interface Client {
 }
 
 export interface ClientRow extends Omit<Client, 'documents' | 'history'> {
-  documents: ClientDocument[] | null;
-  history: ClientHistoryEntry[] | null;
+  documents: Json;
+  history: Json;
 }
+
+export const mapClientRowToClient = (row: any): Client => ({
+  ...row,
+  documents: (row.documents as any[] || []).map((doc: any) => ({
+    name: doc.name,
+    path: doc.path,
+    type: doc.type,
+    size: doc.size,
+    uploadedAt: doc.uploadedAt
+  })),
+  history: (row.history as any[] || []).map((entry: any) => ({
+    timestamp: entry.timestamp,
+    action: entry.action,
+    changes: entry.changes,
+    user: entry.user
+  }))
+});
+
+export const mapClientToClientRow = (client: Client): ClientRow => ({
+  ...client,
+  documents: client.documents.map(doc => ({
+    name: doc.name,
+    path: doc.path,
+    type: doc.type,
+    size: doc.size,
+    uploadedAt: doc.uploadedAt
+  })),
+  history: client.history.map(entry => ({
+    timestamp: entry.timestamp,
+    action: entry.action,
+    changes: entry.changes,
+    user: entry.user
+  }))
+});
