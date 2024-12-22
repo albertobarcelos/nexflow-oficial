@@ -1,17 +1,5 @@
-export interface ClientHistoryEntry {
-  timestamp: string;
-  action: string;
-  changes: Record<string, { old: any; new: any }>;
-  user?: string;
-}
-
-export interface ClientDocument {
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  uploadedAt: string;
-}
+import { ClientDocument } from './document';
+import { ClientHistoryEntry } from './history';
 
 export interface Client {
   id: string;
@@ -30,8 +18,13 @@ export interface Client {
   postal_code: string | null;
   country: string | null;
   notes: string | null;
-  documents: ClientDocument[] | null;
-  history: ClientHistoryEntry[] | null;
+  documents: ClientDocument[];
+  history: ClientHistoryEntry[];
   created_at: string;
   updated_at: string;
+}
+
+export interface ClientRow extends Omit<Client, 'documents' | 'history'> {
+  documents: ClientDocument[] | null;
+  history: ClientHistoryEntry[] | null;
 }

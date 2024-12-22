@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Upload, File, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { ClientDocument } from "@/types/database/client";
+import { ClientDocument } from "@/types/database";
 
 interface DocumentUploadProps {
   clientId: string;
@@ -70,7 +70,15 @@ export function DocumentUpload({ clientId, documents, onDocumentsUpdate }: Docum
       
       const { error: updateError } = await supabase
         .from('clients')
-        .update({ documents: updatedDocuments })
+        .update({ 
+          documents: updatedDocuments.map(doc => ({
+            name: doc.name,
+            path: doc.path,
+            type: doc.type,
+            size: doc.size,
+            uploadedAt: doc.uploadedAt
+          }))
+        })
         .eq('id', clientId);
 
       if (updateError) throw updateError;
