@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { CRMLayout } from "@/layouts/CRMLayout";
-import { AdminLayout } from "@/layouts/AdminLayout";
+import CRMLayout from "@/layouts/CRMLayout";
+import AdminLayout from "@/layouts/AdminLayout";
 import Dashboard from "@/pages/crm/Dashboard";
 import Leads from "@/pages/crm/Leads";
 import OpportunitiesKanban from "@/pages/crm/OpportunitiesKanban";
