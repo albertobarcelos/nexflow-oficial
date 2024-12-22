@@ -11,7 +11,7 @@ import {
 import { PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { AddCollaboratorForm } from "./license/AddCollaboratorForm";
+import { AddCollaboratorForm } from "@/components/client/license/AddCollaboratorForm";
 
 interface AddCollaboratorDialogProps {
   clientId: string;

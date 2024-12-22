@@ -10,7 +10,7 @@ import { Collaborator } from "@/types/database";
 export default function Collaborators() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const { data: collaborators, isLoading } = useQuery({
+  const { data: collaborators, isLoading, refetch } = useQuery({
     queryKey: ['collaborators'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -51,8 +51,8 @@ export default function Collaborators() {
       <CollaboratorsTable collaborators={collaborators || []} />
       
       <AddCollaboratorDialog
-        open={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        clientId="default-client-id" // You'll need to provide the appropriate client ID
+        onSuccess={refetch}
       />
     </div>
   );

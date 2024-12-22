@@ -19,6 +19,7 @@ export interface Client {
   postal_code: string | null;
   country: string | null;
   notes: string | null;
+  tax_id: string;
   documents: ClientDocument[];
   history: ClientHistoryEntry[];
   created_at: string;
