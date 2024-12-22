@@ -90,6 +90,7 @@ export function AddCollaboratorForm({ clientId, onSubmit }: AddCollaboratorFormP
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="administrator">Administrador</SelectItem>
                   <SelectItem value="closer">Closer</SelectItem>
                   <SelectItem value="partnership_director">Diretor de Parcerias</SelectItem>
                   <SelectItem value="partner">Parceiro</SelectItem>
