@@ -26,6 +26,7 @@ const OpportunitiesKanban = React.lazy(() => import("./pages/crm/OpportunitiesKa
 const OpportunitiesList = React.lazy(() => import("./pages/crm/OpportunitiesList"));
 const OpportunityDetails = React.lazy(() => import("./pages/crm/OpportunityDetails"));
 const Leads = React.lazy(() => import("./pages/crm/Leads"));
+const Tasks = React.lazy(() => import("./pages/crm/Tasks"));
 
 const LoadingPage = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -132,6 +133,11 @@ const App = () => (
               <Route path="leads" element={
                 <Suspense fallback={<LoadingPage />}>
                   <Leads />
+                </Suspense>
+              } />
+              <Route path="tasks" element={
+                <Suspense fallback={<LoadingPage />}>
+                  <Tasks />
                 </Suspense>
               } />
             </Route>
