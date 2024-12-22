@@ -24,6 +24,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
 
   const handleAddCollaborator = async (data: CollaboratorFormData & { license_id: string }) => {
     try {
+      // Create collaborator with a temporary auth_user_id that will be updated when they accept the invitation
       const { error: collaboratorError } = await supabase
         .from('collaborators')
         .insert({
@@ -33,6 +34,8 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
           email: data.email,
           role: data.role,
           permissions: [],
+          // Use a temporary auth_user_id that will be updated when the user accepts the invitation
+          auth_user_id: `pending_${Date.now()}`,
         });
 
       if (collaboratorError) throw collaboratorError;
