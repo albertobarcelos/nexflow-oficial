@@ -8,26 +8,12 @@ import { collaboratorSchema, type CollaboratorFormData } from "@/lib/validations
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getRolePermissions } from "@/lib/utils/roles";
 
 interface AddCollaboratorFormProps {
   clientId: string;
   onSubmit: (data: CollaboratorFormData & { license_id: string }) => void;
 }
-
-const getRolePermissions = (role: string) => {
-  switch (role) {
-    case "administrator":
-      return ["manage_leads", "manage_opportunities", "manage_tasks", "manage_collaborators", "view_reports", "edit_settings"];
-    case "closer":
-      return ["manage_leads", "manage_opportunities", "manage_tasks"];
-    case "partnership_director":
-      return ["manage_leads", "manage_opportunities", "manage_tasks", "view_reports"];
-    case "partner":
-      return ["manage_leads", "view_opportunities"];
-    default:
-      return [];
-  }
-};
 
 export function AddCollaboratorForm({ clientId, onSubmit }: AddCollaboratorFormProps) {
   const { toast } = useToast();
