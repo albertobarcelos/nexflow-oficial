@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEntityNames } from "@/hooks/useEntityNames";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { useToast } from "@/components/ui/use-toast";
 const Leads = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
+  const { leadPlural } = useEntityNames();
 
   const { data: leads, isLoading } = useQuery({
     queryKey: ['leads'],
@@ -104,10 +106,10 @@ const Leads = () => {
   return (
     <div className="p-6 space-y-6 bg-background min-h-screen">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-foreground">Leads</h1>
+        <h1 className="text-3xl font-bold text-foreground">{leadPlural}</h1>
         <Button onClick={handleAddLead} className="bg-primary hover:bg-primary/90">
           <Plus className="mr-2 h-4 w-4" />
-          Novo Lead
+          Novo {leadPlural.slice(0, -1)} {/* Removes the last letter, assuming it's the 's' for plural */}
         </Button>
       </div>
 

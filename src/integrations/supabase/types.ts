@@ -206,6 +206,44 @@ export type Database = {
           },
         ]
       }
+      entity_naming_preferences: {
+        Row: {
+          client_id: string
+          created_at: string
+          entity_type: string
+          id: string
+          plural_name: string
+          singular_name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          entity_type: string
+          id?: string
+          plural_name: string
+          singular_name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          entity_type?: string
+          id?: string
+          plural_name?: string
+          singular_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_naming_preferences_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           assigned_to: string | null
