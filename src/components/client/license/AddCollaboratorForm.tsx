@@ -1,122 +1,111 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { collaboratorSchema, type CollaboratorFormData } from "@/lib/validations/collaborator";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AddCollaboratorFormProps {
   clientId: string;
-  onSuccess: () => void;
+  onSubmit: (data: CollaboratorFormData & { license_id: string }) => void;
 }
 
-export function AddCollaboratorForm({ clientId, onSuccess }: AddCollaboratorFormProps) {
-  const [newCollaboratorEmail, setNewCollaboratorEmail] = useState("");
-  const [newCollaboratorName, setNewCollaboratorName] = useState("");
-  const [newCollaboratorRole, setNewCollaboratorRole] = useState<"closer" | "partnership_director" | "partner">("closer");
-  const { toast } = useToast();
+export function AddCollaboratorForm({ clientId, onSubmit }: AddCollaboratorFormProps) {
+  const form = useForm<CollaboratorFormData>({
+    resolver: zodResolver(collaboratorSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      role: "closer",
+    },
+  });
 
-  const addCollaborator = async () => {
-    if (!newCollaboratorEmail || !newCollaboratorName || !newCollaboratorRole) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos para adicionar um colaborador.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const { data: license } = useQuery({
+    queryKey: ['license', clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('licenses')
+        .select('*')
+        .eq('client_id', clientId)
+        .single();
 
-    try {
-      // Primeiro criar o usuário no auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newCollaboratorEmail,
-        password: Math.random().toString(36).slice(-8), // Senha aleatória
-        options: {
-          data: {
-            name: newCollaboratorName,
-          },
-        },
-      });
+      if (error) throw error;
+      return data;
+    },
+  });
 
-      if (authError) throw authError;
+  const handleSubmit = async (data: CollaboratorFormData) => {
+    if (!license) return;
 
-      // Depois criar o registro do colaborador
-      const { error: collaboratorError } = await supabase
-        .from('collaborators')
-        .insert({
-          auth_user_id: authData.user!.id,
-          client_id: clientId,
-          name: newCollaboratorName,
-          email: newCollaboratorEmail,
-          role: newCollaboratorRole,
-          permissions: []
-        });
-
-      if (collaboratorError) throw collaboratorError;
-
-      toast({
-        title: "Colaborador adicionado",
-        description: "O colaborador foi adicionado com sucesso.",
-      });
-
-      onSuccess();
-    } catch (error) {
-      console.error('Error adding collaborator:', error);
-      toast({
-        title: "Erro ao adicionar colaborador",
-        description: "Ocorreu um erro ao adicionar o colaborador.",
-        variant: "destructive",
-      });
-    }
+    const { data: userData } = await supabase.auth.getUser();
+    
+    onSubmit({
+      ...data,
+      license_id: license.id,
+      auth_user_id: userData.user?.id || '',
+      client_id: clientId,
+    });
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nome</Label>
-        <Input
-          id="name"
-          value={newCollaboratorName}
-          onChange={(e) => setNewCollaboratorName(e.target.value)}
-          placeholder="Nome do colaborador"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nome</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          value={newCollaboratorEmail}
-          onChange={(e) => setNewCollaboratorEmail(e.target.value)}
-          placeholder="email@exemplo.com"
+
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="role">Função</Label>
-        <Select
-          value={newCollaboratorRole}
-          onValueChange={(value: "closer" | "partnership_director" | "partner") => setNewCollaboratorRole(value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione uma função" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="closer">Closer</SelectItem>
-            <SelectItem value="partnership_director">Diretor de Parcerias</SelectItem>
-            <SelectItem value="partner">Parceiro</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Button className="w-full" onClick={addCollaborator}>
-        Adicionar Colaborador
-      </Button>
-    </div>
+
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Função</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a função" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="closer">Closer</SelectItem>
+                  <SelectItem value="partnership_director">Diretor de Parcerias</SelectItem>
+                  <SelectItem value="partner">Parceiro</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <Button type="submit">Adicionar</Button>
+      </form>
+    </Form>
   );
 }

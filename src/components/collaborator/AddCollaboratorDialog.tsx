@@ -12,6 +12,7 @@ import { PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { AddCollaboratorForm } from "@/components/client/license/AddCollaboratorForm";
+import { CollaboratorFormData } from "@/lib/validations/collaborator";
 
 interface AddCollaboratorDialogProps {
   clientId: string;
@@ -22,13 +23,18 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleAddCollaborator = async (data: any) => {
+  const handleAddCollaborator = async (data: CollaboratorFormData & { license_id: string }) => {
     try {
       const { error } = await supabase
         .from('collaborators')
         .insert({
           client_id: clientId,
-          ...data,
+          license_id: data.license_id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          auth_user_id: (await supabase.auth.getUser()).data.user?.id,
+          permissions: [],
         });
 
       if (error) throw error;
@@ -50,21 +56,19 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
   };
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogTrigger asChild>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Adicionar Colaborador
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Adicionar Colaborador</DialogTitle>
-          </DialogHeader>
-          <AddCollaboratorForm onSubmit={handleAddCollaborator} />
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Adicionar Colaborador
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Adicionar Colaborador</DialogTitle>
+        </DialogHeader>
+        <AddCollaboratorForm clientId={clientId} onSubmit={handleAddCollaborator} />
+      </DialogContent>
+    </Dialog>
   );
 }
