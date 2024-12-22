@@ -7,7 +7,6 @@ import {
   Settings,
   Users,
   FileText,
-  UserPlus,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,11 +34,6 @@ const menuItems = [
     title: "Clientes",
     icon: Building2,
     url: "/admin/clients",
-  },
-  {
-    title: "Colaboradores",
-    icon: UserPlus,
-    url: "/admin/collaborators",
   },
   {
     title: "Licenças",
