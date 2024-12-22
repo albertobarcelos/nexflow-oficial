@@ -3,50 +3,17 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 export default function CRMLayout() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const checkCollaboratorAccess = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          navigate("/crm/login");
-          return;
-        }
+    checkAuth();
 
-        const { data: collaboratorData, error: collaboratorError } = await supabase
-          .from('collaborators')
-          .select('*')
-          .eq('auth_user_id', session.user.id)
-          .maybeSingle();
-
-        if (collaboratorError) {
-          console.error('Erro ao verificar acesso de colaborador:', collaboratorError);
-          navigate("/crm/login");
-          return;
-        }
-
-        if (!collaboratorData) {
-          console.error('Usuário não é um colaborador');
-          navigate("/crm/login");
-          return;
-        }
-      } catch (error) {
-        console.error('Erro ao verificar sessão:', error);
-        navigate("/crm/login");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkCollaboratorAccess();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
         navigate("/crm/login");
       }
     });
@@ -56,8 +23,43 @@ export default function CRMLayout() {
     };
   }, [navigate]);
 
+  const checkAuth = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No session found');
+      }
+
+      const { data: collaboratorData, error: collaboratorError } = await supabase
+        .from('collaborators')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .maybeSingle();
+
+      if (collaboratorError) {
+        console.error('Error checking collaborator access:', collaboratorError);
+        throw new Error('Error checking access');
+      }
+
+      if (!collaboratorData) {
+        console.error('User is not a collaborator');
+        throw new Error('Unauthorized');
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+      navigate("/crm/login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
   }
 
   return (
