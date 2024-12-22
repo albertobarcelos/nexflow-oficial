@@ -1,34 +1,14 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { DragDropContext } from '@hello-pangea/dnd';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Plus, List } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
-import { PipelineSelector } from '@/components/crm/pipeline/PipelineSelector';
-
-type Opportunity = {
-  id: string;
-  title: string;
-  value: number | null;
-  assigned_to: string | null;
-  expected_close_date: string | null;
-  stage_id: string;
-};
-
-type Column = {
-  id: string;
-  title: string;
-  color: string;
-  opportunities: Opportunity[];
-};
+import { useToast } from '@/hooks/use-toast';
+import { KanbanHeader } from '@/components/crm/opportunities/KanbanHeader';
+import { KanbanColumn } from '@/components/crm/opportunities/KanbanColumn';
 
 export default function OpportunitiesKanban() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
-  const [columns, setColumns] = useState<Column[]>([]);
-  const navigate = useNavigate();
+  const [columns, setColumns] = useState<any[]>([]);
   const { toast } = useToast();
 
   const { isLoading: isLoadingStages } = useQuery({
@@ -36,7 +16,7 @@ export default function OpportunitiesKanban() {
     queryFn: async () => {
       if (!selectedPipelineId) return;
 
-      // Primeiro, busca os estágios do pipeline
+      // Fetch stages with their opportunities
       const { data: stages } = await supabase
         .from('pipeline_stages')
         .select('*')
@@ -45,13 +25,19 @@ export default function OpportunitiesKanban() {
 
       if (!stages) return;
 
-      // Depois, busca as oportunidades do pipeline
+      // Fetch opportunities with their categories
       const { data: opportunities } = await supabase
         .from('opportunities')
-        .select('*')
+        .select(`
+          *,
+          category:category_id (
+            name,
+            color
+          )
+        `)
         .eq('pipeline_id', selectedPipelineId);
 
-      // Cria as colunas com os estágios, mesmo que não haja oportunidades
+      // Create columns with stages and their opportunities
       const newColumns = stages.map(stage => ({
         id: stage.id,
         title: stage.name,
@@ -130,85 +116,19 @@ export default function OpportunitiesKanban() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Pipelines</h1>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/crm/opportunities/list')}
-          >
-            <List className="h-4 w-4 mr-2" />
-            Visualizar Lista
-          </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Oportunidade
-          </Button>
-        </div>
-      </div>
-
-      <PipelineSelector onSelect={setSelectedPipelineId} />
+      <KanbanHeader onPipelineSelect={setSelectedPipelineId} />
 
       {selectedPipelineId ? (
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex gap-4 overflow-x-auto pb-4">
             {columns.map(column => (
-              <div key={column.id} className="bg-muted p-4 rounded-lg">
-                <h3 className="font-semibold mb-4 flex items-center">
-                  <span
-                    className={`w-2 h-2 rounded-full mr-2 bg-${column.color}-500`}
-                  />
-                  {column.title}
-                  {column.opportunities.length > 0 && (
-                    <span className="ml-2 text-sm text-muted-foreground">
-                      ({column.opportunities.length})
-                    </span>
-                  )}
-                </h3>
-                <Droppable droppableId={column.id}>
-                  {(provided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className="space-y-2 min-h-[200px]"
-                    >
-                      {column.opportunities.map((opportunity, index) => (
-                        <Draggable
-                          key={opportunity.id}
-                          draggableId={opportunity.id}
-                          index={index}
-                        >
-                          {(provided) => (
-                            <Card
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className="cursor-grab active:cursor-grabbing"
-                              onClick={() => navigate(`/crm/opportunities/${opportunity.id}`)}
-                            >
-                              <CardContent className="p-4">
-                                <h4 className="font-medium">{opportunity.title}</h4>
-                                {opportunity.value && (
-                                  <p className="text-sm text-muted-foreground">
-                                    R$ {opportunity.value.toLocaleString('pt-BR')}
-                                  </p>
-                                )}
-                                {opportunity.expected_close_date && (
-                                  <p className="text-sm text-muted-foreground">
-                                    Previsão: {new Date(opportunity.expected_close_date).toLocaleDateString('pt-BR')}
-                                  </p>
-                                )}
-                              </CardContent>
-                            </Card>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
+              <KanbanColumn
+                key={column.id}
+                id={column.id}
+                title={column.title}
+                color={column.color}
+                opportunities={column.opportunities}
+              />
             ))}
           </div>
         </DragDropContext>

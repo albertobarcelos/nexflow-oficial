@@ -404,6 +404,7 @@ export type Database = {
       opportunities: {
         Row: {
           assigned_to: string | null
+          category_id: string | null
           client_id: string
           closed_at: string | null
           closed_by: string | null
@@ -424,6 +425,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          category_id?: string | null
           client_id: string
           closed_at?: string | null
           closed_by?: string | null
@@ -444,6 +446,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          category_id?: string | null
           client_id?: string
           closed_at?: string | null
           closed_by?: string | null
@@ -468,6 +471,13 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_categories"
             referencedColumns: ["id"]
           },
           {
@@ -503,6 +513,41 @@ export type Database = {
             columns: ["stage_id"]
             isOneToOne: false
             referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opportunity_categories: {
+        Row: {
+          client_id: string
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_categories_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
