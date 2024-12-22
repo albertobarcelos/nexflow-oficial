@@ -4,12 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function OpportunityDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: opportunity, isLoading } = useQuery({
+  const { data: opportunity, isLoading, error } = useQuery({
     queryKey: ['opportunity', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -26,7 +27,7 @@ export default function OpportunityDetails() {
           )
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
@@ -37,8 +38,34 @@ export default function OpportunityDetails() {
     return <div>Carregando...</div>;
   }
 
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          Erro ao carregar oportunidade: {error.message}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (!opportunity) {
-    return <div>Oportunidade não encontrada</div>;
+    return (
+      <div className="space-y-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar
+        </Button>
+        <Alert>
+          <AlertDescription>
+            Oportunidade não encontrada
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
