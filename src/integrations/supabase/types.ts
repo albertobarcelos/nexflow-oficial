@@ -581,6 +581,9 @@ export type Database = {
       }
       pipeline_configs: {
         Row: {
+          allowed_roles:
+            | Database["public"]["Enums"]["collaborator_role"][]
+            | null
           client_id: string
           created_at: string
           description: string | null
@@ -589,6 +592,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allowed_roles?:
+            | Database["public"]["Enums"]["collaborator_role"][]
+            | null
           client_id: string
           created_at?: string
           description?: string | null
@@ -597,6 +603,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allowed_roles?:
+            | Database["public"]["Enums"]["collaborator_role"][]
+            | null
           client_id?: string
           created_at?: string
           description?: string | null

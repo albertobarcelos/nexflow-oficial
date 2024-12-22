@@ -1,13 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewStageDialog } from "./NewStageDialog";
 import { StageCard } from "./StageCard";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PipelinePermissionsDialog } from "./PipelinePermissionsDialog";
+import { useState } from "react";
 
 type PipelineCardProps = {
   pipeline: {
     id: string;
     name: string;
     description: string | null;
+    allowed_roles?: string[];
     pipeline_stages?: Array<{
       id: string;
       name: string;
@@ -18,6 +22,8 @@ type PipelineCardProps = {
 };
 
 export function PipelineCard({ pipeline }: PipelineCardProps) {
+  const [showPermissions, setShowPermissions] = useState(false);
+
   return (
     <Card key={pipeline.id}>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -27,10 +33,20 @@ export function PipelineCard({ pipeline }: PipelineCardProps) {
             <p className="text-sm text-muted-foreground">{pipeline.description}</p>
           )}
         </div>
-        <NewStageDialog 
-          pipelineId={pipeline.id} 
-          currentStagesCount={pipeline.pipeline_stages?.length || 0}
-        />
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPermissions(true)}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Permissões
+          </Button>
+          <NewStageDialog 
+            pipelineId={pipeline.id} 
+            currentStagesCount={pipeline.pipeline_stages?.length || 0}
+          />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="flex gap-4 overflow-x-auto p-4">
@@ -39,6 +55,13 @@ export function PipelineCard({ pipeline }: PipelineCardProps) {
           ))}
         </div>
       </CardContent>
+      {showPermissions && (
+        <PipelinePermissionsDialog
+          pipeline={pipeline}
+          open={showPermissions}
+          onOpenChange={setShowPermissions}
+        />
+      )}
     </Card>
   );
 }
