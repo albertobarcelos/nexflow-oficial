@@ -1,18 +1,56 @@
+import { useState } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { LoginCredentials } from "@/types/auth";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const CRMLogin = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (credentials: LoginCredentials) => {
-    // TODO: Implement actual login logic
-    console.log("CRM login attempt:", credentials);
-    
-    toast({
-      title: "Login em desenvolvimento",
-      description: "Funcionalidade será implementada em breve.",
-    });
+    try {
+      setLoading(true);
+      
+      // First, authenticate with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (authError) throw authError;
+
+      // Then, check if the user is a collaborator
+      const { data: collaboratorData, error: collaboratorError } = await supabase
+        .from('collaborators')
+        .select('*')
+        .eq('auth_user_id', authData.user.id)
+        .maybeSingle();
+
+      if (collaboratorError) throw collaboratorError;
+      
+      if (!collaboratorData) {
+        throw new Error('Usuário não autorizado para acessar o portal CRM.');
+      }
+
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo ao Portal CRM",
+      });
+
+      navigate("/crm/dashboard");
+    } catch (error) {
+      console.error('Erro no login:', error);
+      toast({
+        title: "Erro no login",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao tentar fazer login.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -25,6 +63,7 @@ const CRMLogin = () => {
         <LoginForm 
           portalName="Portal CRM" 
           onSubmit={handleLogin}
+          loading={loading}
         />
       </div>
     </div>
