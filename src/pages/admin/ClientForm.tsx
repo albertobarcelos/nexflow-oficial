@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { clientSchema, type ClientFormData } from "@/lib/validations/client";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Client, ClientDocument, ClientHistoryEntry } from "@/types/database";
+import { Client, ClientDocument, ClientHistoryEntry, ClientRow } from "@/types/database";
 import { DocumentUpload } from "@/components/client/DocumentUpload";
 import { LicenseManager } from "@/components/client/LicenseManager";
 import { ClientBasicInfo } from "@/components/client/ClientBasicInfo";
@@ -30,7 +30,7 @@ export default function ClientForm() {
     },
   });
 
-  const { data: client, isLoading } = useQuery({
+  const { data: clientData, isLoading } = useQuery({
     queryKey: ['client', id],
     queryFn: async () => {
       if (!id) return null;
@@ -42,9 +42,26 @@ export default function ClientForm() {
 
       if (error) throw error;
       if (data) {
-        form.reset(data);
+        const client: Client = {
+          ...data,
+          documents: (data.documents as any[] || []).map((doc: any) => ({
+            name: doc.name,
+            path: doc.path,
+            type: doc.type,
+            size: doc.size,
+            uploadedAt: doc.uploadedAt
+          })),
+          history: (data.history as any[] || []).map((entry: any) => ({
+            timestamp: entry.timestamp,
+            action: entry.action,
+            changes: entry.changes,
+            user: entry.user
+          }))
+        };
+        form.reset(client);
+        return client;
       }
-      return data;
+      return null;
     },
     enabled: !!id,
   });
@@ -52,18 +69,17 @@ export default function ClientForm() {
   const onSubmit = async (formData: ClientFormData) => {
     try {
       const timestamp = new Date().toISOString();
-      const clientData = {
+      const clientData: Partial<ClientRow> = {
         ...formData,
         updated_at: timestamp,
       };
 
       if (id) {
-        // Create history entry
         const changes: Record<string, { old: any; new: any }> = {};
         Object.keys(formData).forEach((key) => {
-          if (client && formData[key as keyof ClientFormData] !== client[key as keyof Client]) {
+          if (clientData && formData[key as keyof ClientFormData] !== clientData[key as keyof Client]) {
             changes[key] = {
-              old: client[key as keyof Client],
+              old: clientData[key as keyof Client],
               new: formData[key as keyof ClientFormData],
             };
           }
@@ -80,7 +96,19 @@ export default function ClientForm() {
             .from('clients')
             .update({
               ...clientData,
-              history: [...(client?.history || []), historyEntry],
+              history: [...(clientData?.history || [])].map(entry => ({
+                timestamp: entry.timestamp,
+                action: entry.action,
+                changes: entry.changes,
+                user: entry.user
+              })),
+              documents: clientData?.documents?.map(doc => ({
+                name: doc.name,
+                path: doc.path,
+                type: doc.type,
+                size: doc.size,
+                uploadedAt: doc.uploadedAt
+              }))
             })
             .eq('id', id);
 
@@ -105,7 +133,7 @@ export default function ClientForm() {
             created_at: timestamp,
             documents: [],
             history: [historyEntry],
-          } as Client);
+          } as ClientRow);
 
         if (error) throw error;
 
@@ -132,7 +160,15 @@ export default function ClientForm() {
     try {
       const { error } = await supabase
         .from('clients')
-        .update({ documents: newDocuments })
+        .update({
+          documents: newDocuments.map(doc => ({
+            name: doc.name,
+            path: doc.path,
+            type: doc.type,
+            size: doc.size,
+            uploadedAt: doc.uploadedAt
+          }))
+        })
         .eq('id', id);
 
       if (error) throw error;
@@ -187,7 +223,7 @@ export default function ClientForm() {
                 <h2 className="text-lg font-semibold">Documentos</h2>
                 <DocumentUpload
                   clientId={id}
-                  documents={client?.documents || []}
+                  documents={clientData?.documents || []}
                   onDocumentsUpdate={handleDocumentsUpdate}
                 />
               </div>
@@ -195,7 +231,7 @@ export default function ClientForm() {
               <div className="space-y-4">
                 <LicenseManager
                   clientId={id}
-                  currentPlan={client?.plan || "free"}
+                  currentPlan={clientData?.plan || "free"}
                 />
               </div>
             </>
