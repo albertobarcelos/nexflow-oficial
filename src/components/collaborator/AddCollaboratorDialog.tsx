@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AddCollaboratorForm } from "@/components/client/license/AddCollaboratorForm";
 import { CollaboratorFormData } from "@/lib/validations/collaborator";
 import { getRolePermissions } from "@/lib/utils/roles";
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddCollaboratorDialogProps {
   clientId: string;
@@ -51,6 +52,8 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
         return;
       }
 
+      const pendingAuthId = uuidv4();
+
       // Create collaborator with role-based permissions
       const { error: collaboratorError } = await supabase
         .from('collaborators')
@@ -61,7 +64,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
           email: data.email,
           role: data.role,
           permissions: getRolePermissions(data.role),
-          auth_user_id: `pending_${Date.now()}`,
+          auth_user_id: pendingAuthId,
         });
 
       if (collaboratorError) throw collaboratorError;
