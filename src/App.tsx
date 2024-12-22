@@ -9,7 +9,9 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import CRMLogin from "./pages/crm/CRMLogin";
 import PartnerLogin from "./pages/partner/PartnerLogin";
 import AdminLayout from "./layouts/AdminLayout";
+import CRMLayout from "./layouts/CRMLayout";
 import Dashboard from "./pages/admin/Dashboard";
+import CRMDashboard from "./pages/crm/Dashboard";
 import Clients from "./pages/admin/Clients";
 import ClientForm from "./pages/admin/ClientForm";
 import Licenses from "./pages/admin/Licenses";
@@ -21,10 +23,10 @@ import Users from "./pages/admin/Users";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // Data remains fresh for 5 minutes
-      gcTime: 1000 * 60 * 30, // Cache persists for 30 minutes
-      refetchOnWindowFocus: false, // Don't refetch on window focus
-      retry: 1, // Only retry failed requests once
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 30,
+      refetchOnWindowFocus: false,
+      retry: 1,
     },
   },
 });
@@ -52,6 +54,11 @@ const App = () => (
             <Route path="users" element={<Users />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="settings" element={<Settings />} />
+          </Route>
+
+          {/* CRM routes */}
+          <Route path="/crm" element={<CRMLayout />}>
+            <Route path="dashboard" element={<CRMDashboard />} />
           </Route>
         </Routes>
       </BrowserRouter>

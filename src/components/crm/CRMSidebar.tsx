@@ -1,0 +1,120 @@
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
+import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  LayoutDashboard,
+  Users,
+  Target,
+  CheckSquare,
+  BarChart,
+  LogOut,
+  Menu,
+} from "lucide-react";
+
+const menuItems = [
+  {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    href: "/crm/dashboard",
+  },
+  {
+    title: "Leads",
+    icon: Users,
+    href: "/crm/leads",
+  },
+  {
+    title: "Oportunidades",
+    icon: Target,
+    href: "/crm/opportunities",
+  },
+  {
+    title: "Tarefas",
+    icon: CheckSquare,
+    href: "/crm/tasks",
+  },
+  {
+    title: "Relatórios",
+    icon: BarChart,
+    href: "/crm/reports",
+  },
+];
+
+export function CRMSidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isOpen, toggle } = useSidebar();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/crm/login");
+  };
+
+  return (
+    <>
+      <div
+        className={cn(
+          "fixed inset-0 z-20 bg-black/80 lg:hidden",
+          isOpen ? "block" : "hidden"
+        )}
+        onClick={toggle}
+      />
+
+      <div
+        className={cn(
+          "fixed inset-y-0 left-0 z-20 flex h-screen w-64 flex-col bg-white transition-transform duration-300 lg:static lg:translate-x-0 dark:bg-gray-900",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex h-14 items-center justify-between px-4 border-b">
+          <span className="text-lg font-semibold">Portal CRM</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            onClick={toggle}
+          >
+            <Menu className="h-6 w-6" />
+          </Button>
+        </div>
+
+        <div className="flex-1 overflow-auto">
+          <nav className="flex-1 space-y-1 p-2">
+            {menuItems.map((item) => (
+              <Button
+                key={item.href}
+                variant={location.pathname === item.href ? "secondary" : "ghost"}
+                className="w-full justify-start gap-2"
+                onClick={() => navigate(item.href)}
+              >
+                <item.icon className="h-5 w-5" />
+                {item.title}
+              </Button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="p-2 border-t">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-5 w-5" />
+            Sair
+          </Button>
+        </div>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className="fixed top-3 left-4 z-30 lg:hidden"
+        onClick={toggle}
+      >
+        <Menu className="h-6 w-6" />
+      </Button>
+    </>
+  );
+}
