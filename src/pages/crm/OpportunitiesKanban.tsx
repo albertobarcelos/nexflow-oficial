@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,15 +6,16 @@ import { KanbanHeader } from '@/components/crm/opportunities/KanbanHeader';
 import { KanbanColumn } from '@/components/crm/opportunities/KanbanColumn';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2 } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 
 export default function OpportunitiesKanban() {
-  const [selectedPipelineId, setSelectedPipelineId] = useState<string | null>(null);
+  const { pipelineId } = useParams();
   const { toast } = useToast();
 
   const { data: columns = [], isLoading: isLoadingStages } = useQuery({
-    queryKey: ['pipeline-stages', selectedPipelineId],
+    queryKey: ['pipeline-stages', pipelineId],
     queryFn: async () => {
-      if (!selectedPipelineId) return [];
+      if (!pipelineId) return [];
 
       // First get the client_id
       const { data: collaborator } = await supabase
@@ -30,7 +30,7 @@ export default function OpportunitiesKanban() {
       const { data: stages, error: stagesError } = await supabase
         .from('pipeline_stages')
         .select('*')
-        .eq('pipeline_id', selectedPipelineId)
+        .eq('pipeline_id', pipelineId)
         .order('order_index');
 
       if (stagesError) {
@@ -54,7 +54,7 @@ export default function OpportunitiesKanban() {
             color
           )
         `)
-        .eq('pipeline_id', selectedPipelineId)
+        .eq('pipeline_id', pipelineId)
         .eq('client_id', collaborator.client_id);
 
       if (oppsError) {
@@ -74,7 +74,7 @@ export default function OpportunitiesKanban() {
         opportunities: opportunities?.filter(opp => opp.stage_id === stage.id) || []
       }));
     },
-    enabled: !!selectedPipelineId
+    enabled: !!pipelineId
   });
 
   const onDragEnd = async (result: any) => {
@@ -112,40 +112,44 @@ export default function OpportunitiesKanban() {
     }
   };
 
+  if (!pipelineId) {
+    return (
+      <Alert>
+        <AlertDescription>
+          Selecione um pipeline para visualizar as oportunidades
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <KanbanHeader onPipelineSelect={setSelectedPipelineId} />
+      <KanbanHeader />
 
       {isLoadingStages ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-      ) : selectedPipelineId ? (
-        columns.length > 0 ? (
-          <DragDropContext onDragEnd={onDragEnd}>
-            <div className="flex gap-4 overflow-x-auto pb-4">
-              {columns.map(column => (
-                <KanbanColumn
-                  key={column.id}
-                  id={column.id}
-                  title={column.title}
-                  color={column.color}
-                  opportunities={column.opportunities}
-                />
-              ))}
-            </div>
-          </DragDropContext>
-        ) : (
-          <Alert>
-            <AlertDescription>
-              Nenhuma etapa configurada para este pipeline. Configure as etapas nas configurações.
-            </AlertDescription>
-          </Alert>
-        )
+      ) : columns.length > 0 ? (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {columns.map(column => (
+              <KanbanColumn
+                key={column.id}
+                id={column.id}
+                title={column.title}
+                color={column.color}
+                opportunities={column.opportunities}
+              />
+            ))}
+          </div>
+        </DragDropContext>
       ) : (
-        <div className="text-center py-8 text-muted-foreground">
-          Selecione um pipeline para visualizar as oportunidades
-        </div>
+        <Alert>
+          <AlertDescription>
+            Nenhuma etapa configurada para este pipeline. Configure as etapas nas configurações.
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );
