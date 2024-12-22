@@ -1,13 +1,17 @@
-import { ChartConfig } from "recharts/types/util/types";
-import { ReactNode } from "react";
+import * as RechartsPrimitive from "recharts";
+
+export type ChartConfig = {
+  [k in string]: {
+    label?: React.ReactNode;
+    icon?: React.ComponentType;
+  } & (
+    | { color?: string; theme?: never }
+    | { color?: never; theme: Record<"light" | "dark", string> }
+  );
+};
 
 export type ChartContextProps = {
   config: ChartConfig;
-};
-
-export type ChartContainerProps = React.ComponentProps<"div"> & {
-  config: ChartConfig;
-  children: React.ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"];
 };
 
 export type ChartTooltipContentProps = React.ComponentProps<"div"> &
@@ -18,7 +22,13 @@ export type ChartTooltipContentProps = React.ComponentProps<"div"> &
     nameKey?: string;
     labelKey?: string;
     labelFormatter?: (value: any, payload: any[]) => React.ReactNode;
-    formatter?: (value: any, name: string, props: any, index: number, payload: any) => React.ReactNode;
+    formatter?: (
+      value: any,
+      name: string,
+      props: any,
+      index: number,
+      payload: any
+    ) => React.ReactNode;
     labelClassName?: string;
     color?: string;
     label?: React.ReactNode;
