@@ -2,20 +2,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MinusCircle, PlusCircle } from "lucide-react";
+import { useState } from "react";
 
 interface UserLimitControlProps {
   userLimit: number;
   onUpdateLimit: (newLimit: number) => void;
+  onSave: (newLimit: number) => void;
 }
 
-export function UserLimitControl({ userLimit, onUpdateLimit }: UserLimitControlProps) {
+export function UserLimitControl({ userLimit, onUpdateLimit, onSave }: UserLimitControlProps) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [tempLimit, setTempLimit] = useState(userLimit);
+
   const handleIncrement = () => {
-    onUpdateLimit(userLimit + 1);
+    setTempLimit(tempLimit + 1);
+    onUpdateLimit(tempLimit + 1);
   };
 
   const handleDecrement = () => {
-    if (userLimit > 3) {
-      onUpdateLimit(userLimit - 1);
+    if (tempLimit > 3) {
+      setTempLimit(tempLimit - 1);
+      onUpdateLimit(tempLimit - 1);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsUpdating(true);
+    try {
+      await onSave(tempLimit);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -27,13 +43,14 @@ export function UserLimitControl({ userLimit, onUpdateLimit }: UserLimitControlP
           variant="outline"
           size="icon"
           onClick={handleDecrement}
-          disabled={userLimit <= 3}
+          disabled={tempLimit <= 3}
+          type="button"
         >
           <MinusCircle className="h-4 w-4" />
         </Button>
         <Input
           type="number"
-          value={userLimit}
+          value={tempLimit}
           readOnly
           className="w-20 text-center"
         />
@@ -41,8 +58,15 @@ export function UserLimitControl({ userLimit, onUpdateLimit }: UserLimitControlP
           variant="outline"
           size="icon"
           onClick={handleIncrement}
+          type="button"
         >
           <PlusCircle className="h-4 w-4" />
+        </Button>
+        <Button 
+          onClick={handleSave}
+          disabled={isUpdating || tempLimit === userLimit}
+        >
+          {isUpdating ? "Atualizando..." : "Atualizar"}
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">

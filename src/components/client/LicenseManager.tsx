@@ -165,7 +165,8 @@ export function LicenseManager({ clientId, currentPlan }: LicenseManagerProps) {
 
           <UserLimitControl
             userLimit={userLimit}
-            onUpdateLimit={updateUserLimit}
+            onUpdateLimit={setUserLimit}
+            onSave={updateUserLimit}
           />
 
           <CollaboratorsList collaborators={collaborators || []} />
