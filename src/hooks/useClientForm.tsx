@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { clientSchema, type ClientFormData } from "@/lib/validations/client";
 import { Client, mapClientRowToClient, mapClientToClientRow } from "@/types/database";
@@ -25,6 +25,7 @@ export function useClientForm(clientData?: Client | null) {
       const timestamp = new Date().toISOString();
       
       if (clientData?.id) {
+        // Update existing client
         const changes: Record<string, { old: any; new: any }> = {};
         Object.keys(formData).forEach((key) => {
           if (clientData && formData[key as keyof ClientFormData] !== clientData[key as keyof Client]) {
@@ -61,24 +62,22 @@ export function useClientForm(clientData?: Client | null) {
           });
         }
       } else {
+        // Create new client
         const historyEntry = {
           timestamp,
           action: 'create',
           changes: {},
         };
 
-        const clientRow = mapClientToClientRow({
+        const newClient = {
           ...formData,
-          id: '',
-          created_at: timestamp,
-          updated_at: timestamp,
           documents: [],
           history: [historyEntry],
-        } as Client);
+        };
 
         const { error } = await supabase
           .from('clients')
-          .insert(clientRow);
+          .insert(newClient);
 
         if (error) throw error;
 

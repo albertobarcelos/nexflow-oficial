@@ -13,10 +13,12 @@ import { ClientNotes } from "@/components/client/ClientNotes";
 import { ClientFormHeader } from "@/components/client/ClientFormHeader";
 import { ClientFormActions } from "@/components/client/ClientFormActions";
 import { useClientForm } from "@/hooks/useClientForm";
+import { useToast } from "@/hooks/use-toast";
 import type { ClientDocument } from "@/types/database";
 
 export default function ClientForm() {
   const { id } = useParams();
+  const { toast } = useToast();
   
   const { data: clientData, isLoading } = useQuery({
     queryKey: ['client', id],
@@ -43,17 +45,20 @@ export default function ClientForm() {
     if (!id || !clientData) return;
 
     try {
-      const clientRow = mapClientToClientRow({
-        ...clientData,
-        documents: newDocuments,
-      });
-
       const { error } = await supabase
         .from('clients')
-        .update(clientRow)
+        .update({
+          documents: newDocuments,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id);
 
       if (error) throw error;
+
+      toast({
+        title: "Documentos atualizados",
+        description: "Os documentos foram atualizados com sucesso.",
+      });
     } catch (error) {
       console.error('Error updating documents:', error);
       toast({
@@ -91,6 +96,7 @@ export default function ClientForm() {
               </div>
 
               <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Licenças</h2>
                 <LicenseManager
                   clientId={id}
                   currentPlan={clientData?.plan || "free"}
