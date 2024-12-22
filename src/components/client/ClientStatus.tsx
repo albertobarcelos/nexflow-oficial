@@ -24,6 +24,7 @@ export function ClientStatus({ form }: ClientStatusProps) {
             <FormLabel>Status</FormLabel>
             <Select
               onValueChange={field.onChange}
+              value={field.value}
               defaultValue={field.value}
             >
               <FormControl>
@@ -49,6 +50,7 @@ export function ClientStatus({ form }: ClientStatusProps) {
             <FormLabel>Plano</FormLabel>
             <Select
               onValueChange={field.onChange}
+              value={field.value}
               defaultValue={field.value}
             >
               <FormControl>

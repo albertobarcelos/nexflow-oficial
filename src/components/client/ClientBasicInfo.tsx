@@ -48,7 +48,7 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
             <FormControl>
               <InputMask
                 mask={field.value?.length <= 11 ? "999.999.999-99" : "99.999.999/9999-99"}
-                value={field.value}
+                value={field.value || ''}
                 onChange={field.onChange}
               >
                 {(inputProps: any) => (
@@ -96,7 +96,15 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
           <FormItem>
             <FormLabel>Telefone</FormLabel>
             <FormControl>
-              <Input {...field} />
+              <InputMask
+                mask="(99) 99999-9999"
+                value={field.value || ''}
+                onChange={field.onChange}
+              >
+                {(inputProps: any) => (
+                  <Input {...inputProps} placeholder="(00) 00000-0000" />
+                )}
+              </InputMask>
             </FormControl>
             <FormMessage />
           </FormItem>

@@ -3,22 +3,26 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CollaboratorsListProps {
-  clientId: string;
+  client_id: string;
 }
 
-export function CollaboratorsList({ clientId }: CollaboratorsListProps) {
-  const { data: collaborators } = useQuery({
-    queryKey: ['collaborators', clientId],
+export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
+  const { data: collaborators, isLoading } = useQuery({
+    queryKey: ['collaborators', client_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('collaborators')
         .select('*')
-        .eq('client_id', clientId);
+        .eq('client_id', client_id);
 
       if (error) throw error;
       return data;
     },
   });
+
+  if (isLoading) {
+    return <div className="p-4">Carregando colaboradores...</div>;
+  }
 
   return (
     <div className="rounded-md border">
