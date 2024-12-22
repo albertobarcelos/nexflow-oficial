@@ -24,7 +24,33 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
 
   const handleAddCollaborator = async (data: CollaboratorFormData & { license_id: string }) => {
     try {
-      // Create collaborator with a temporary auth_user_id that will be updated when they accept the invitation
+      // Get the current number of collaborators for this license
+      const { data: existingCollaborators, error: countError } = await supabase
+        .from('collaborators')
+        .select('id')
+        .eq('license_id', data.license_id);
+
+      if (countError) throw countError;
+
+      // Get the license to check user limit
+      const { data: license, error: licenseError } = await supabase
+        .from('licenses')
+        .select('user_limit')
+        .eq('id', data.license_id)
+        .single();
+
+      if (licenseError) throw licenseError;
+
+      if (existingCollaborators.length >= license.user_limit) {
+        toast({
+          title: "Limite excedido",
+          description: `Esta licença permite apenas ${license.user_limit} colaboradores.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create collaborator with role-based permissions
       const { error: collaboratorError } = await supabase
         .from('collaborators')
         .insert({
@@ -33,8 +59,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
           name: data.name,
           email: data.email,
           role: data.role,
-          permissions: [],
-          // Use a temporary auth_user_id that will be updated when the user accepts the invitation
+          permissions: getRolePermissions(data.role),
           auth_user_id: `pending_${Date.now()}`,
         });
 
