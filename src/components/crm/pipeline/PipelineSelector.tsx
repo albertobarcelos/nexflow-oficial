@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, CircleMinus } from "lucide-react";
 
 export function PipelineSelector({ onSelect }: { onSelect: (pipelineId: string) => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: pipelines } = useQuery({
+  const { data: pipelines, isLoading } = useQuery({
     queryKey: ['pipelines'],
     queryFn: async () => {
       const { data: collaborator } = await supabase
@@ -27,43 +27,50 @@ export function PipelineSelector({ onSelect }: { onSelect: (pipelineId: string) 
     }
   });
 
-  return (
-    <div className="mb-4">
-      <Button
-        variant="outline"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full justify-between"
-      >
-        Selecionar Pipeline
-        {isOpen ? (
-          <ChevronUp className="h-4 w-4 ml-2" />
-        ) : (
-          <ChevronDown className="h-4 w-4 ml-2" />
-        )}
-      </Button>
+  if (isLoading) {
+    return (
+      <div className="px-2 py-1 text-muted-foreground flex items-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Carregando...
+      </div>
+    );
+  }
 
+  if (!pipelines?.length) {
+    return (
+      <div className="px-2 py-1 text-muted-foreground flex items-center gap-2">
+        <CircleMinus className="h-4 w-4" />
+        Nenhum pipeline disponível
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
       {isOpen && (
-        <div className="mt-2 border rounded-lg divide-y">
-          {pipelines?.map((pipeline) => (
-            <Button
-              key={pipeline.id}
-              variant="ghost"
-              className="w-full justify-start p-4 h-auto"
-              onClick={() => {
-                onSelect(pipeline.id);
-                setIsOpen(false);
-              }}
-            >
-              <div>
-                <h3 className="font-medium text-left">{pipeline.name}</h3>
-                {pipeline.description && (
-                  <p className="text-sm text-muted-foreground text-left">
-                    {pipeline.description}
-                  </p>
-                )}
-              </div>
-            </Button>
-          ))}
+        <div className="absolute inset-x-0 top-0 mt-1 z-50">
+          <div className="bg-popover border rounded-md shadow-md overflow-hidden">
+            {pipelines.map((pipeline) => (
+              <Button
+                key={pipeline.id}
+                variant="ghost"
+                className="w-full justify-start px-3 py-2 h-auto text-left"
+                onClick={() => {
+                  onSelect(pipeline.id);
+                  setIsOpen(false);
+                }}
+              >
+                <div>
+                  <div className="font-medium">{pipeline.name}</div>
+                  {pipeline.description && (
+                    <div className="text-sm text-muted-foreground">
+                      {pipeline.description}
+                    </div>
+                  )}
+                </div>
+              </Button>
+            ))}
+          </div>
         </div>
       )}
     </div>
