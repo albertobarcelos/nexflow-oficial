@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Form } from "@/components/ui/form";
@@ -19,6 +19,7 @@ import type { ClientDocument } from "@/types/database";
 export default function ClientForm() {
   const { id } = useParams();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const { data: clientData, isLoading } = useQuery({
@@ -37,7 +38,19 @@ export default function ClientForm() {
     enabled: !!id,
   });
 
-  const { form, onSubmit } = useClientForm(clientData);
+  const { form, onSubmit: originalOnSubmit } = useClientForm(clientData);
+
+  // Wrap the original onSubmit to invalidate queries after successful submission
+  const onSubmit = async (values: any) => {
+    await originalOnSubmit(values);
+    // Invalidate both the single client query and the clients list query
+    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    if (id) {
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
+    }
+    // Navigate back to clients list after successful submission
+    navigate('/admin/clients');
+  };
 
   // Reset form when client data changes
   useEffect(() => {
