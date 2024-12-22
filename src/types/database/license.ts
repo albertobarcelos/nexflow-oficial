@@ -7,4 +7,5 @@ export interface License {
   status: 'active' | 'suspended' | 'expired';
   created_at: string;
   updated_at: string;
+  user_limit: number;
 }

@@ -262,6 +262,7 @@ export type Database = {
           subscription_id: string | null
           type: Database["public"]["Enums"]["plan_type"]
           updated_at: string
+          user_limit: number
         }
         Insert: {
           cancel_at_period_end?: boolean | null
@@ -280,6 +281,7 @@ export type Database = {
           subscription_id?: string | null
           type?: Database["public"]["Enums"]["plan_type"]
           updated_at?: string
+          user_limit?: number
         }
         Update: {
           cancel_at_period_end?: boolean | null
@@ -298,6 +300,7 @@ export type Database = {
           subscription_id?: string | null
           type?: Database["public"]["Enums"]["plan_type"]
           updated_at?: string
+          user_limit?: number
         }
         Relationships: [
           {

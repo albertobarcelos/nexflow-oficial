@@ -69,7 +69,7 @@ export function LicenseManager({ clientId, currentPlan }: LicenseManagerProps) {
           expiration_date: expirationDate.toISOString(),
           status: 'active',
           user_limit: userLimit
-        } as License);
+        });
 
       if (error) throw error;
 

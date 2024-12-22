@@ -20,7 +20,7 @@ interface AddCollaboratorFormProps {
 export function AddCollaboratorForm({ clientId, onSuccess }: AddCollaboratorFormProps) {
   const [newCollaboratorEmail, setNewCollaboratorEmail] = useState("");
   const [newCollaboratorName, setNewCollaboratorName] = useState("");
-  const [newCollaboratorRole, setNewCollaboratorRole] = useState<string>("closer");
+  const [newCollaboratorRole, setNewCollaboratorRole] = useState<"closer" | "partnership_director" | "partner">("closer");
   const { toast } = useToast();
 
   const addCollaborator = async () => {
@@ -87,7 +87,7 @@ export function AddCollaboratorForm({ clientId, onSuccess }: AddCollaboratorForm
         <Label htmlFor="role">Função</Label>
         <Select
           value={newCollaboratorRole}
-          onValueChange={setNewCollaboratorRole}
+          onValueChange={(value: "closer" | "partnership_director" | "partner") => setNewCollaboratorRole(value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Selecione uma função" />
