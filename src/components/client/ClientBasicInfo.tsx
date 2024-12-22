@@ -51,10 +51,14 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
             <FormControl>
               <InputMask
                 mask={isCPF ? "999.999.999-99" : "99.999.999/9999-99"}
-                value={field.value}
+                value={field.value || ''}
                 onChange={(e) => {
                   const value = e.target.value.replace(/[^\d]/g, '');
-                  field.onChange(value);
+                  if (value.length <= 11) {
+                    field.onChange(value);
+                  } else if (value.length <= 14) {
+                    field.onChange(value);
+                  }
                 }}
               >
                 {(inputProps: any) => (
