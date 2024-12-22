@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MinusCircle, PlusCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface UserLimitControlProps {
   userLimit: number;
@@ -11,27 +11,23 @@ interface UserLimitControlProps {
 }
 
 export function UserLimitControl({ userLimit, onUpdateLimit, onSave }: UserLimitControlProps) {
-  const [isUpdating, setIsUpdating] = useState(false);
   const [tempLimit, setTempLimit] = useState(userLimit);
 
+  useEffect(() => {
+    setTempLimit(userLimit);
+  }, [userLimit]);
+
   const handleIncrement = () => {
-    setTempLimit(tempLimit + 1);
-    onUpdateLimit(tempLimit + 1);
+    const newLimit = tempLimit + 1;
+    setTempLimit(newLimit);
+    onUpdateLimit(newLimit);
   };
 
   const handleDecrement = () => {
     if (tempLimit > 3) {
-      setTempLimit(tempLimit - 1);
-      onUpdateLimit(tempLimit - 1);
-    }
-  };
-
-  const handleSave = async () => {
-    setIsUpdating(true);
-    try {
-      await onSave(tempLimit);
-    } finally {
-      setIsUpdating(false);
+      const newLimit = tempLimit - 1;
+      setTempLimit(newLimit);
+      onUpdateLimit(newLimit);
     }
   };
 
@@ -61,12 +57,6 @@ export function UserLimitControl({ userLimit, onUpdateLimit, onSave }: UserLimit
           type="button"
         >
           <PlusCircle className="h-4 w-4" />
-        </Button>
-        <Button 
-          onClick={handleSave}
-          disabled={isUpdating || tempLimit === userLimit}
-        >
-          {isUpdating ? "Atualizando..." : "Atualizar"}
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">
