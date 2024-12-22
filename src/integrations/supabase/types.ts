@@ -376,7 +376,9 @@ export type Database = {
           lead_id: string | null
           metadata: Json
           notes: string | null
+          pipeline_id: string | null
           probability: number | null
+          stage_id: string | null
           status: string
           title: string
           updated_at: string
@@ -394,7 +396,9 @@ export type Database = {
           lead_id?: string | null
           metadata?: Json
           notes?: string | null
+          pipeline_id?: string | null
           probability?: number | null
+          stage_id?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -412,7 +416,9 @@ export type Database = {
           lead_id?: string | null
           metadata?: Json
           notes?: string | null
+          pipeline_id?: string | null
           probability?: number | null
+          stage_id?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -447,6 +453,20 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "opportunities_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunities_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
         ]
       }
       partners: {
@@ -475,6 +495,82 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pipeline_configs: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_configs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          order_index: number
+          pipeline_id: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          order_index: number
+          pipeline_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          order_index?: number
+          pipeline_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stages_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reports: {
         Row: {
