@@ -30,12 +30,14 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
     const { collaboratorId, name, email, inviteUrl }: InviteRequest = await req.json();
+    console.log("Received invite request:", { collaboratorId, name, email, inviteUrl });
 
     // Generate invite token and save it
     const token = crypto.randomUUID();
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour expiration
 
+    console.log("Creating invite with token:", token);
     const { error: inviteError } = await supabase
       .from('collaborator_invites')
       .insert({
@@ -49,6 +51,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("Failed to create invite");
     }
 
+    if (!RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
+    }
+
+    console.log("Sending email via Resend");
     // Send email using Resend
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -73,8 +80,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!emailResponse.ok) {
       const error = await emailResponse.text();
+      console.error("Error sending email:", error);
       throw new Error(`Failed to send email: ${error}`);
     }
+
+    const emailResult = await emailResponse.json();
+    console.log("Email sent successfully:", emailResult);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

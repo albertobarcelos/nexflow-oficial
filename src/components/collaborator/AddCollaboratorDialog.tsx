@@ -55,7 +55,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
       const pendingAuthId = uuidv4();
 
       // Create collaborator with role-based permissions
-      const { error: collaboratorError } = await supabase
+      const { data: newCollaborator, error: collaboratorError } = await supabase
         .from('collaborators')
         .insert({
           client_id: clientId,
@@ -65,14 +65,16 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
           role: data.role,
           permissions: getRolePermissions(data.role),
           auth_user_id: pendingAuthId,
-        });
+        })
+        .select()
+        .single();
 
       if (collaboratorError) throw collaboratorError;
 
       // Send invitation email
       const { error: inviteError } = await supabase.functions.invoke('send-invite', {
         body: {
-          collaboratorId: data.license_id,
+          collaboratorId: newCollaborator.id,
           name: data.name,
           email: data.email,
           inviteUrl: `${window.location.origin}/collaborator/set-password`,
