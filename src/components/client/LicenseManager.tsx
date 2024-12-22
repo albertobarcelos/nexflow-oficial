@@ -43,7 +43,7 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
         .from('licenses')
         .insert({
           client_id: clientId,
-          type: currentPlan as "free" | "premium",
+          type: currentPlan,
           expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           user_limit: 3,
         })
@@ -111,7 +111,7 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
           <h3 className="text-lg font-semibold">Colaboradores</h3>
           <AddCollaboratorDialog clientId={clientId} onSuccess={() => {}} />
         </div>
-        <CollaboratorsList clientId={clientId} />
+        <CollaboratorsList client_id={clientId} />
       </div>
     </div>
   );
