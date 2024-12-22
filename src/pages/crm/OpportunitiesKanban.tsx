@@ -36,6 +36,7 @@ export default function OpportunitiesKanban() {
     queryFn: async () => {
       if (!selectedPipelineId) return;
 
+      // Primeiro, busca os estágios do pipeline
       const { data: stages } = await supabase
         .from('pipeline_stages')
         .select('*')
@@ -44,11 +45,13 @@ export default function OpportunitiesKanban() {
 
       if (!stages) return;
 
+      // Depois, busca as oportunidades do pipeline
       const { data: opportunities } = await supabase
         .from('opportunities')
         .select('*')
         .eq('pipeline_id', selectedPipelineId);
 
+      // Cria as colunas com os estágios, mesmo que não haja oportunidades
       const newColumns = stages.map(stage => ({
         id: stage.id,
         title: stage.name,
@@ -157,6 +160,11 @@ export default function OpportunitiesKanban() {
                     className={`w-2 h-2 rounded-full mr-2 bg-${column.color}-500`}
                   />
                   {column.title}
+                  {column.opportunities.length > 0 && (
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      ({column.opportunities.length})
+                    </span>
+                  )}
                 </h3>
                 <Droppable droppableId={column.id}>
                   {(provided) => (
