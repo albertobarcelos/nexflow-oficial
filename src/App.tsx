@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import AdminLayout from "./layouts/AdminLayout";
+import Settings from "./pages/crm/Settings";
 
 // Lazy load components
 const AdminLogin = React.lazy(() => import("./pages/admin/AdminLogin"));
@@ -19,7 +20,6 @@ const ClientForm = React.lazy(() => import("./pages/admin/ClientForm"));
 const Licenses = React.lazy(() => import("./pages/admin/Licenses"));
 const Reports = React.lazy(() => import("./pages/admin/Reports"));
 const Analytics = React.lazy(() => import("./pages/admin/Analytics"));
-const Settings = React.lazy(() => import("./pages/admin/Settings"));
 const Users = React.lazy(() => import("./pages/admin/Users"));
 const CRMLayout = React.lazy(() => import("./layouts/CRMLayout"));
 const OpportunitiesKanban = React.lazy(() => import("./pages/crm/OpportunitiesKanban"));
