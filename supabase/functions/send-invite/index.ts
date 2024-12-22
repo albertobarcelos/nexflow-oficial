@@ -64,7 +64,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "Portal CRM <noreply@crm.lovable.dev>",
+        from: "Portal CRM <noreply@ip.nexsyn.com.br>",
         to: [email],
         subject: "Convite para o Portal CRM",
         html: `
