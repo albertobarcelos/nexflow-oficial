@@ -37,7 +37,7 @@ export function PipelineSelector({ onSelect }: { onSelect: (pipelineId: string) 
     return (
       <div className="px-2 py-1 text-muted-foreground flex items-center gap-2">
         <CircleMinus className="h-4 w-4" />
-        Nenhum Disponível
+        Nenhum Pipeline Disponível
       </div>
     );
   }

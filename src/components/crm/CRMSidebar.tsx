@@ -91,10 +91,13 @@ export function CRMSidebar() {
 
   const handleMenuClick = async (href: string, showSelector: boolean) => {
     if (showSelector) {
-      if (pipelines?.length) {
+      if (pipelines?.length === 1) {
+        // Se houver apenas um pipeline, navega diretamente para ele
         navigate(`/crm/opportunities/${pipelines[0].id}`);
+      } else if (pipelines?.length > 1) {
+        // Se houver múltiplos pipelines, alterna a visibilidade do seletor
+        setShowPipelineSelector(!showPipelineSelector);
       }
-      setShowPipelineSelector(!showPipelineSelector);
       return;
     }
     navigate(href);
@@ -129,7 +132,7 @@ export function CRMSidebar() {
                   isActive={isActive(item.href)}
                   onClick={() => handleMenuClick(item.href, item.showSelector)}
                 />
-                {item.showSelector && showPipelineSelector && (
+                {item.showSelector && showPipelineSelector && pipelines?.length > 1 && (
                   <PipelineSelector 
                     onSelect={(id) => {
                       navigate(`/crm/opportunities/${id}`);
