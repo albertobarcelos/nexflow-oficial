@@ -119,6 +119,7 @@ export type Database = {
           email: string
           id: string
           last_login_at: string | null
+          license_id: string
           name: string
           permissions: Json
           role: Database["public"]["Enums"]["collaborator_role"]
@@ -131,6 +132,7 @@ export type Database = {
           email: string
           id?: string
           last_login_at?: string | null
+          license_id: string
           name: string
           permissions?: Json
           role?: Database["public"]["Enums"]["collaborator_role"]
@@ -143,6 +145,7 @@ export type Database = {
           email?: string
           id?: string
           last_login_at?: string | null
+          license_id?: string
           name?: string
           permissions?: Json
           role?: Database["public"]["Enums"]["collaborator_role"]
@@ -154,6 +157,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaborators_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "licenses"
             referencedColumns: ["id"]
           },
         ]
