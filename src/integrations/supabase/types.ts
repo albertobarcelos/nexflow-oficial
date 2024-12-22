@@ -118,7 +118,7 @@ export type Database = {
           last_login_at: string | null
           name: string
           permissions: Json
-          role: string
+          role: Database["public"]["Enums"]["collaborator_role"]
           updated_at: string
         }
         Insert: {
@@ -130,7 +130,7 @@ export type Database = {
           last_login_at?: string | null
           name: string
           permissions?: Json
-          role?: string
+          role?: Database["public"]["Enums"]["collaborator_role"]
           updated_at?: string
         }
         Update: {
@@ -142,7 +142,7 @@ export type Database = {
           last_login_at?: string | null
           name?: string
           permissions?: Json
-          role?: string
+          role?: Database["public"]["Enums"]["collaborator_role"]
           updated_at?: string
         }
         Relationships: [
@@ -578,6 +578,11 @@ export type Database = {
     Enums: {
       admin_access_level: "general" | "limited"
       client_status: "active" | "inactive"
+      collaborator_role:
+        | "administrator"
+        | "closer"
+        | "partnership_director"
+        | "partner"
       lead_source: "partner_portal" | "manual"
       lead_status: "new" | "in_progress" | "closed"
       license_status: "active" | "suspended" | "expired"
