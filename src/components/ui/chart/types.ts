@@ -1,4 +1,5 @@
-import * as RechartsPrimitive from "recharts";
+import * as React from "react";
+import { TooltipProps } from "recharts";
 
 export type ChartConfig = {
   [k in string]: {
@@ -15,7 +16,7 @@ export type ChartContextProps = {
 };
 
 export type ChartTooltipContentProps = React.ComponentProps<"div"> &
-  Pick<RechartsPrimitive.TooltipProps, "payload" | "active"> & {
+  Pick<TooltipProps<any, any>, "payload" | "active"> & {
     hideLabel?: boolean;
     hideIndicator?: boolean;
     indicator?: "line" | "dot" | "dashed";

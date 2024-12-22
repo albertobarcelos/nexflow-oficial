@@ -90,7 +90,7 @@ export const ChartTooltipContent = React.forwardRef<
                 key={item.dataKey}
                 className={cn(
                   "flex w-full flex-wrap items-stretch gap-2 [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground",
-                  indicator === "dot" && "items-center"
+                  { "items-center": indicator === "dot" }
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
@@ -102,20 +102,19 @@ export const ChartTooltipContent = React.forwardRef<
                     ) : (
                       !hideIndicator && (
                         <div
-                          className={cn(
-                            "shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]",
-                            {
-                              "h-2.5 w-2.5": indicator === "dot",
-                              "w-1": indicator === "line",
-                              "w-0 border-[1.5px] border-dashed bg-transparent":
-                                indicator === "dashed",
-                              "my-0.5": nestLabel && indicator === "dashed",
-                            }
-                          )}
+                          className={cn("shrink-0 rounded-[2px]", {
+                            "h-2.5 w-2.5": indicator === "dot",
+                            "w-1": indicator === "line",
+                            "w-0 border-[1.5px] border-dashed bg-transparent":
+                              indicator === "dashed",
+                            "my-0.5": nestLabel && indicator === "dashed",
+                          })}
                           style={
                             {
                               "--color-bg": indicatorColor,
                               "--color-border": indicatorColor,
+                              backgroundColor: "var(--color-bg)",
+                              borderColor: "var(--color-border)",
                             } as React.CSSProperties
                           }
                         />
