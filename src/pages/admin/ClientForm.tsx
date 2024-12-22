@@ -48,7 +48,13 @@ export default function ClientForm() {
       const { error } = await supabase
         .from('clients')
         .update({
-          documents: newDocuments,
+          documents: newDocuments.map(doc => ({
+            name: doc.name,
+            path: doc.path,
+            type: doc.type,
+            size: doc.size,
+            uploadedAt: doc.uploadedAt
+          })),
           updated_at: new Date().toISOString()
         })
         .eq('id', id);
@@ -59,6 +65,8 @@ export default function ClientForm() {
         title: "Documentos atualizados",
         description: "Os documentos foram atualizados com sucesso.",
       });
+
+      onDocumentsUpdate(newDocuments);
     } catch (error) {
       console.error('Error updating documents:', error);
       toast({
