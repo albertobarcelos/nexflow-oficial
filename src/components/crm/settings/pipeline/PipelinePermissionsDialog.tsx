@@ -8,7 +8,9 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-const ROLES = [
+type CollaboratorRole = "administrator" | "closer" | "partnership_director" | "partner";
+
+const ROLES: { id: CollaboratorRole; label: string }[] = [
   { id: "administrator", label: "Administrador" },
   { id: "closer", label: "Vendedor" },
   { id: "partnership_director", label: "Diretor de Parcerias" },
@@ -19,7 +21,7 @@ type PipelinePermissionsDialogProps = {
   pipeline: {
     id: string;
     name: string;
-    allowed_roles?: string[];
+    allowed_roles?: CollaboratorRole[];
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,14 +32,14 @@ export function PipelinePermissionsDialog({
   open,
   onOpenChange,
 }: PipelinePermissionsDialogProps) {
-  const [selectedRoles, setSelectedRoles] = useState<string[]>(
+  const [selectedRoles, setSelectedRoles] = useState<CollaboratorRole[]>(
     pipeline.allowed_roles || []
   );
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const updatePermissionsMutation = useMutation({
-    mutationFn: async (roles: string[]) => {
+    mutationFn: async (roles: CollaboratorRole[]) => {
       const { error } = await supabase
         .from('pipeline_configs')
         .update({ allowed_roles: roles })
@@ -75,7 +77,7 @@ export function PipelinePermissionsDialog({
     updatePermissionsMutation.mutate(selectedRoles);
   };
 
-  const toggleRole = (roleId: string) => {
+  const toggleRole = (roleId: CollaboratorRole) => {
     setSelectedRoles(prev =>
       prev.includes(roleId)
         ? prev.filter(r => r !== roleId)
