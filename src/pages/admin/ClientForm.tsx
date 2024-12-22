@@ -128,6 +128,8 @@ export default function ClientForm() {
                 <LicenseManager
                   clientId={id}
                   currentPlan={clientData?.plan || "free"}
+                  clientName={clientData?.name || ""}
+                  clientEmail={clientData?.email || ""}
                 />
               </div>
             </>

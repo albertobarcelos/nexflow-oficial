@@ -20,9 +20,11 @@ import { CollaboratorsList } from "./license/CollaboratorsList";
 interface LicenseManagerProps {
   clientId: string;
   currentPlan: "free" | "premium";
+  clientName: string;
+  clientEmail: string;
 }
 
-export function LicenseManager({ clientId, currentPlan }: LicenseManagerProps) {
+export function LicenseManager({ clientId, currentPlan, clientName, clientEmail }: LicenseManagerProps) {
   const [isCreating, setIsCreating] = useState(false);
   const [isAddingCollaborator, setIsAddingCollaborator] = useState(false);
   const [userLimit, setUserLimit] = useState(3);
@@ -64,7 +66,8 @@ export function LicenseManager({ clientId, currentPlan }: LicenseManagerProps) {
       const expirationDate = new Date();
       expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
-      const { error } = await supabase
+      // First create the license
+      const { data: licenseData, error: licenseError } = await supabase
         .from('licenses')
         .insert({
           client_id: clientId,
@@ -72,16 +75,46 @@ export function LicenseManager({ clientId, currentPlan }: LicenseManagerProps) {
           expiration_date: expirationDate.toISOString(),
           status: 'active',
           user_limit: userLimit
+        })
+        .select()
+        .single();
+
+      if (licenseError) throw licenseError;
+
+      // Then create the admin user account
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: clientEmail,
+        password: Math.random().toString(36).slice(-8), // Random password
+        options: {
+          data: {
+            name: clientName,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      // Finally create the collaborator record
+      const { error: collaboratorError } = await supabase
+        .from('collaborators')
+        .insert({
+          auth_user_id: authData.user!.id,
+          client_id: clientId,
+          name: clientName,
+          email: clientEmail,
+          role: 'administrator',
+          permissions: ['*'] // Full permissions
         });
 
-      if (error) throw error;
+      if (collaboratorError) throw collaboratorError;
 
       toast({
         title: "Licença criada",
-        description: "A licença foi criada com sucesso.",
+        description: "A licença foi criada com sucesso e o usuário administrador foi configurado.",
       });
       
       refetchLicense();
+      refetchCollaborators();
     } catch (error) {
       console.error('Error creating license:', error);
       toast({

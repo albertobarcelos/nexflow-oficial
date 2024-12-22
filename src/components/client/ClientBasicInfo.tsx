@@ -2,6 +2,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
 import { ClientFormData } from "@/lib/validations/client";
+import InputMask from "react-input-mask";
 
 interface ClientBasicInfoProps {
   form: UseFormReturn<ClientFormData>;
@@ -32,6 +33,28 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
             <FormLabel>Email</FormLabel>
             <FormControl>
               <Input type="email" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="tax_id"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>CNPJ/CPF</FormLabel>
+            <FormControl>
+              <InputMask
+                mask={field.value?.length <= 11 ? "999.999.999-99" : "99.999.999/9999-99"}
+                value={field.value}
+                onChange={field.onChange}
+              >
+                {(inputProps: any) => (
+                  <Input {...inputProps} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+                )}
+              </InputMask>
             </FormControl>
             <FormMessage />
           </FormItem>

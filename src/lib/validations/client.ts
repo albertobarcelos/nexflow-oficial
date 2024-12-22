@@ -14,6 +14,7 @@ export const clientSchema = z.object({
   notes: z.string().optional(),
   status: z.enum(["active", "inactive"]).default("active"),
   plan: z.enum(["free", "premium"]).default("free"),
+  tax_id: z.string().min(11, "CPF/CNPJ inválido"),
 });
 
 export type ClientFormData = z.infer<typeof clientSchema>;

@@ -60,6 +60,7 @@ export type Database = {
           postal_code: string | null
           state: string | null
           status: Database["public"]["Enums"]["client_status"]
+          tax_id: string
           updated_at: string
         }
         Insert: {
@@ -82,6 +83,7 @@ export type Database = {
           postal_code?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["client_status"]
+          tax_id: string
           updated_at?: string
         }
         Update: {
@@ -104,6 +106,7 @@ export type Database = {
           postal_code?: string | null
           state?: string | null
           status?: Database["public"]["Enums"]["client_status"]
+          tax_id?: string
           updated_at?: string
         }
         Relationships: []
