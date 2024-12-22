@@ -1,12 +1,9 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Loader2, CircleMinus } from "lucide-react";
+import { Loader2, CircleMinus } from "lucide-react";
 
 export function PipelineSelector({ onSelect }: { onSelect: (pipelineId: string) => void }) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const { data: pipelines, isLoading } = useQuery({
     queryKey: ['pipelines'],
     queryFn: async () => {
@@ -46,47 +43,18 @@ export function PipelineSelector({ onSelect }: { onSelect: (pipelineId: string) 
   }
 
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-full justify-between px-2 py-1"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <span>Selecionar Pipeline</span>
-        {isOpen ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
-      </Button>
-
-      {isOpen && (
-        <div className="absolute inset-x-0 top-0 mt-1 z-50">
-          <div className="bg-popover border rounded-md shadow-md overflow-hidden">
-            {pipelines.map((pipeline) => (
-              <Button
-                key={pipeline.id}
-                variant="ghost"
-                className="w-full justify-start px-3 py-2 h-auto text-left"
-                onClick={() => {
-                  onSelect(pipeline.id);
-                  setIsOpen(false);
-                }}
-              >
-                <div>
-                  <div className="font-medium">{pipeline.name}</div>
-                  {pipeline.description && (
-                    <div className="text-sm text-muted-foreground">
-                      {pipeline.description}
-                    </div>
-                  )}
-                </div>
-              </Button>
-            ))}
-          </div>
-        </div>
-      )}
+    <div className="space-y-1">
+      {pipelines.map((pipeline) => (
+        <Button
+          key={pipeline.id}
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start pl-8 h-8 text-sm"
+          onClick={() => onSelect(pipeline.id)}
+        >
+          {pipeline.name}
+        </Button>
+      ))}
     </div>
   );
 }
