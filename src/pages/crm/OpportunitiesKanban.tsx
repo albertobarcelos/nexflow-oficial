@@ -18,7 +18,7 @@ export default function OpportunitiesKanban() {
     queryFn: async () => {
       if (!selectedPipelineId) return;
 
-      // Fetch stages with their opportunities
+      // Fetch stages first
       const { data: stages, error: stagesError } = await supabase
         .from('pipeline_stages')
         .select('*')
@@ -36,7 +36,7 @@ export default function OpportunitiesKanban() {
 
       if (!stages) return;
 
-      // Fetch opportunities with their categories
+      // Then fetch opportunities
       const { data: opportunities, error: oppsError } = await supabase
         .from('opportunities')
         .select(`
@@ -130,32 +130,36 @@ export default function OpportunitiesKanban() {
     }
   };
 
-  if (isLoadingStages) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       <KanbanHeader onPipelineSelect={setSelectedPipelineId} />
 
-      {selectedPipelineId ? (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4">
-            {columns.map(column => (
-              <KanbanColumn
-                key={column.id}
-                id={column.id}
-                title={column.title}
-                color={column.color}
-                opportunities={column.opportunities}
-              />
-            ))}
-          </div>
-        </DragDropContext>
+      {isLoadingStages ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : selectedPipelineId ? (
+        columns.length > 0 ? (
+          <DragDropContext onDragEnd={onDragEnd}>
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {columns.map(column => (
+                <KanbanColumn
+                  key={column.id}
+                  id={column.id}
+                  title={column.title}
+                  color={column.color}
+                  opportunities={column.opportunities}
+                />
+              ))}
+            </div>
+          </DragDropContext>
+        ) : (
+          <Alert>
+            <AlertDescription>
+              Nenhuma etapa configurada para este pipeline. Configure as etapas nas configurações.
+            </AlertDescription>
+          </Alert>
+        )
       ) : (
         <div className="text-center py-8 text-muted-foreground">
           Selecione um pipeline para visualizar as oportunidades
