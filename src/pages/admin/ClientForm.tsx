@@ -65,8 +65,6 @@ export default function ClientForm() {
         title: "Documentos atualizados",
         description: "Os documentos foram atualizados com sucesso.",
       });
-
-      onDocumentsUpdate(newDocuments);
     } catch (error) {
       console.error('Error updating documents:', error);
       toast({

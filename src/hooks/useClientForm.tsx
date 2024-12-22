@@ -72,11 +72,21 @@ export function useClientForm(clientData?: Client | null) {
         const { error } = await supabase
           .from('clients')
           .insert({
-            ...formData,
+            name: formData.name,
+            email: formData.email,
+            company_name: formData.company_name,
+            contact_name: formData.contact_name,
+            phone: formData.phone,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            postal_code: formData.postal_code,
+            country: formData.country,
+            notes: formData.notes,
+            status: formData.status,
+            plan: formData.plan,
             documents: [],
-            history: [historyEntry],
-            email: formData.email, // Explicitly include required fields
-            company_name: formData.company_name
+            history: [historyEntry]
           });
 
         if (error) throw error;

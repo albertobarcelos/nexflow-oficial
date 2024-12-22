@@ -44,7 +44,7 @@ const menuItems = [
 export function CRMSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const sidebar = useSidebar();
+  const { state, setOpen, isMobile } = useSidebar();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -56,15 +56,15 @@ export function CRMSidebar() {
       <div
         className={cn(
           "fixed inset-0 z-20 bg-black/80 lg:hidden",
-          sidebar?.isCollapsed ? "hidden" : "block"
+          state === "expanded" ? "block" : "hidden"
         )}
-        onClick={() => sidebar?.setIsCollapsed(true)}
+        onClick={() => setOpen(false)}
       />
 
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-20 flex h-screen w-64 flex-col bg-white transition-transform duration-300 lg:static lg:translate-x-0 dark:bg-gray-900",
-          sidebar?.isCollapsed ? "-translate-x-full" : "translate-x-0"
+          state === "expanded" ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex h-14 items-center justify-between px-4 border-b">
@@ -73,7 +73,7 @@ export function CRMSidebar() {
             variant="ghost"
             size="icon"
             className="lg:hidden"
-            onClick={() => sidebar?.setIsCollapsed(true)}
+            onClick={() => setOpen(false)}
           >
             <Menu className="h-6 w-6" />
           </Button>
@@ -111,7 +111,7 @@ export function CRMSidebar() {
         variant="ghost"
         size="icon"
         className="fixed top-3 left-4 z-30 lg:hidden"
-        onClick={() => sidebar?.setIsCollapsed(!sidebar?.isCollapsed)}
+        onClick={() => setOpen(!state === "expanded")}
       >
         <Menu className="h-6 w-6" />
       </Button>
