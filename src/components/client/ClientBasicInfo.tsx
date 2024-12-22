@@ -10,7 +10,7 @@ interface ClientBasicInfoProps {
 
 export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
   const tax_id = form.watch('tax_id');
-  const isCPF = tax_id?.length <= 11;
+  const isCPF = tax_id && tax_id.replace(/[^\d]/g, '').length <= 11;
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -52,7 +52,10 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
               <InputMask
                 mask={isCPF ? "999.999.999-99" : "99.999.999/9999-99"}
                 value={field.value || ''}
-                onChange={field.onChange}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^\d]/g, '');
+                  field.onChange(value);
+                }}
               >
                 {(inputProps: any) => (
                   <Input {...inputProps} placeholder="000.000.000-00 ou 00.000.000/0000-00" />
