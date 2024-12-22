@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   Users,
-  Target,
+  Kanban,
   CheckSquare,
   BarChart,
   Settings,
@@ -26,8 +26,8 @@ const menuItems = [
     href: "/crm/leads",
   },
   {
-    title: "Oportunidades",
-    icon: Target,
+    title: "Pipelines",
+    icon: Kanban,
     href: "/crm/opportunities",
   },
   {
