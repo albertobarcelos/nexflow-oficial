@@ -25,24 +25,22 @@ export function KanbanColumn({ id, title, color, opportunities }: KanbanColumnPr
   const navigate = useNavigate();
 
   return (
-    <Card className={`w-80 shrink-0 border-t-4 border-t-${color}-500 bg-muted/50`}>
-      <CardHeader className="p-4">
+    <Card className="w-80 shrink-0 bg-white shadow-sm">
+      <CardHeader className={`p-4 border-t-4 border-t-${color}-500 bg-${color}-50`}>
         <CardTitle className="text-sm font-medium flex items-center justify-between">
           <span>{title}</span>
-          {opportunities.length > 0 && (
-            <span className="text-muted-foreground text-xs">
-              ({opportunities.length})
-            </span>
-          )}
+          <span className="text-muted-foreground text-xs">
+            ({opportunities.length})
+          </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-2">
+      <CardContent className="p-2 bg-muted/30 min-h-[calc(100vh-12rem)]">
         <Droppable droppableId={id}>
           {(provided) => (
             <div
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="space-y-2 min-h-[200px]"
+              className="space-y-2"
             >
               {opportunities.map((opportunity, index) => (
                 <Draggable

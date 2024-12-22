@@ -123,16 +123,16 @@ export default function OpportunitiesKanban() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col">
       <KanbanHeader />
 
       {isLoadingStages ? (
-        <div className="flex items-center justify-center h-64">
+        <div className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : columns.length > 0 ? (
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-4">
+          <div className="flex-1 flex gap-4 overflow-x-auto p-4 pb-8">
             {columns.map(column => (
               <KanbanColumn
                 key={column.id}

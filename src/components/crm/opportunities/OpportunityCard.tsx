@@ -23,7 +23,7 @@ export function OpportunityCard({ opportunity, provided, onClick }: OpportunityC
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
-      className="cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-shadow"
+      className="bg-white border shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
       onClick={onClick}
     >
       <CardContent className="p-4 space-y-2">
@@ -34,14 +34,14 @@ export function OpportunityCard({ opportunity, provided, onClick }: OpportunityC
             {opportunity.category.name}
           </Badge>
         )}
-        <h4 className="font-medium">{opportunity.title}</h4>
+        <h4 className="font-medium text-sm">{opportunity.title}</h4>
         {opportunity.value && (
           <p className="text-lg font-semibold text-green-600">
             {formatCurrency(opportunity.value)}
           </p>
         )}
         {opportunity.expected_close_date && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Previsão: {new Date(opportunity.expected_close_date).toLocaleDateString('pt-BR')}
           </p>
         )}
