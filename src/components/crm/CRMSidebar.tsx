@@ -51,6 +51,13 @@ export function CRMSidebar() {
     navigate("/crm/login");
   };
 
+  const isActive = (href: string) => {
+    if (href === '/crm/opportunities') {
+      return location.pathname.startsWith(href);
+    }
+    return location.pathname === href;
+  };
+
   return (
     <>
       <div
@@ -84,7 +91,7 @@ export function CRMSidebar() {
             {menuItems.map((item) => (
               <Button
                 key={item.href}
-                variant={location.pathname === item.href ? "secondary" : "ghost"}
+                variant={isActive(item.href) ? "secondary" : "ghost"}
                 className="w-full justify-start gap-2"
                 onClick={() => navigate(item.href)}
               >

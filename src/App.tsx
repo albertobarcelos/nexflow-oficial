@@ -22,8 +22,10 @@ const Analytics = React.lazy(() => import("./pages/admin/Analytics"));
 const Settings = React.lazy(() => import("./pages/admin/Settings"));
 const Users = React.lazy(() => import("./pages/admin/Users"));
 const CRMLayout = React.lazy(() => import("./layouts/CRMLayout"));
+const OpportunitiesKanban = React.lazy(() => import("./pages/crm/OpportunitiesKanban"));
+const OpportunitiesList = React.lazy(() => import("./pages/crm/OpportunitiesList"));
+const OpportunityDetails = React.lazy(() => import("./pages/crm/OpportunityDetails"));
 
-// Loading component
 const LoadingPage = () => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -109,6 +111,21 @@ const App = () => (
               <Route path="dashboard" element={
                 <Suspense fallback={<LoadingPage />}>
                   <CRMDashboard />
+                </Suspense>
+              } />
+              <Route path="opportunities" element={
+                <Suspense fallback={<LoadingPage />}>
+                  <OpportunitiesKanban />
+                </Suspense>
+              } />
+              <Route path="opportunities/list" element={
+                <Suspense fallback={<LoadingPage />}>
+                  <OpportunitiesList />
+                </Suspense>
+              } />
+              <Route path="opportunities/:id" element={
+                <Suspense fallback={<LoadingPage />}>
+                  <OpportunityDetails />
                 </Suspense>
               } />
             </Route>
