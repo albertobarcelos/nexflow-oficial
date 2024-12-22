@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Form } from "@/components/ui/form";
 import { mapClientRowToClient } from "@/types/database";
 import { DocumentUpload } from "@/components/client/DocumentUpload";
+import { LicenseManager } from "@/components/client/LicenseManager";
 import { ClientBasicInfo } from "@/components/client/ClientBasicInfo";
 import { ClientAddress } from "@/components/client/ClientAddress";
 import { ClientStatus } from "@/components/client/ClientStatus";
@@ -114,6 +115,14 @@ export default function ClientForm() {
                   clientId={id}
                   documents={clientData?.documents || []}
                   onDocumentsUpdate={handleDocumentsUpdate}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Licenças</h2>
+                <LicenseManager
+                  clientId={id}
+                  currentPlan={clientData?.plan || "free"}
                 />
               </div>
             </>
