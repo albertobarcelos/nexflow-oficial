@@ -9,6 +9,7 @@ import {
   Target,
   CheckSquare,
   BarChart,
+  Settings,
   LogOut,
   Menu,
 } from "lucide-react";
@@ -38,6 +39,11 @@ const menuItems = [
     title: "Relatórios",
     icon: BarChart,
     href: "/crm/reports",
+  },
+  {
+    title: "Configurações",
+    icon: Settings,
+    href: "/crm/settings",
   },
 ];
 
