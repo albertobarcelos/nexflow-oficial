@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Form } from "@/components/ui/form";
 import { mapClientRowToClient } from "@/types/database";
@@ -19,6 +19,7 @@ import type { ClientDocument } from "@/types/database";
 export default function ClientForm() {
   const { id } = useParams();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const { data: clientData, isLoading } = useQuery({
     queryKey: ['client', id],
@@ -38,6 +39,7 @@ export default function ClientForm() {
 
   const { form, onSubmit } = useClientForm(clientData);
 
+  // Reset form when client data changes
   useEffect(() => {
     if (clientData) {
       form.reset({
@@ -77,6 +79,9 @@ export default function ClientForm() {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Invalidate the client query to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['client', id] });
 
       toast({
         title: "Documentos atualizados",

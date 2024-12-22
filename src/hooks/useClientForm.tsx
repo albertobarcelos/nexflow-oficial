@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { clientSchema, type ClientFormData } from "@/lib/validations/client";
@@ -9,6 +10,7 @@ import { Client, mapClientRowToClient, mapClientToClientRow } from "@/types/data
 export function useClientForm(clientData?: Client | null) {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
@@ -64,6 +66,10 @@ export function useClientForm(clientData?: Client | null) {
             .eq('id', clientData.id);
 
           if (error) throw error;
+
+          // Invalidate queries to refresh data
+          queryClient.invalidateQueries({ queryKey: ['client', clientData.id] });
+          queryClient.invalidateQueries({ queryKey: ['clients'] });
 
           toast({
             title: "Cliente atualizado",
