@@ -34,9 +34,24 @@ export function AddCollaboratorForm({ clientId, onSuccess }: AddCollaboratorForm
     }
 
     try {
-      const { error } = await supabase
+      // Primeiro criar o usuário no auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newCollaboratorEmail,
+        password: Math.random().toString(36).slice(-8), // Senha aleatória
+        options: {
+          data: {
+            name: newCollaboratorName,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+
+      // Depois criar o registro do colaborador
+      const { error: collaboratorError } = await supabase
         .from('collaborators')
         .insert({
+          auth_user_id: authData.user!.id,
           client_id: clientId,
           name: newCollaboratorName,
           email: newCollaboratorEmail,
@@ -44,7 +59,7 @@ export function AddCollaboratorForm({ clientId, onSuccess }: AddCollaboratorForm
           permissions: []
         });
 
-      if (error) throw error;
+      if (collaboratorError) throw collaboratorError;
 
       toast({
         title: "Colaborador adicionado",
