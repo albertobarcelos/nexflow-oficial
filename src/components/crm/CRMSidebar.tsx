@@ -14,6 +14,7 @@ import {
   Menu,
 } from "lucide-react";
 import { PipelineSelector } from "./pipeline/PipelineSelector";
+import { useState } from "react";
 
 const menuItems = [
   {
@@ -53,6 +54,7 @@ export function CRMSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { state, setOpen, isMobile } = useSidebar();
+  const [showPipelineSelector, setShowPipelineSelector] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -68,7 +70,7 @@ export function CRMSidebar() {
 
   const handleMenuClick = (href: string, showSelector: boolean) => {
     if (showSelector) {
-      // Don't navigate if it's the Pipelines menu item
+      setShowPipelineSelector(!showPipelineSelector);
       return;
     }
     navigate(href);
@@ -76,6 +78,7 @@ export function CRMSidebar() {
 
   const handlePipelineSelect = (pipelineId: string) => {
     navigate(`/crm/opportunities/${pipelineId}`);
+    setShowPipelineSelector(false);
   };
 
   return (
@@ -118,7 +121,7 @@ export function CRMSidebar() {
                   <item.icon className="h-5 w-5" />
                   {item.title}
                 </Button>
-                {item.showSelector && (
+                {item.showSelector && showPipelineSelector && (
                   <PipelineSelector onSelect={handlePipelineSelect} />
                 )}
               </div>
