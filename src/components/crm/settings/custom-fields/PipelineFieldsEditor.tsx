@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { Droppable } from "@hello-pangea/dnd";
+import { Droppable, DroppableProvided, DroppableStateSnapshot } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
+import { CustomField } from "./types";
 
 interface PipelineFieldsEditorProps {
   onChange: () => void;
@@ -22,7 +23,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
   const [selectedPipeline, setSelectedPipeline] = useState<string>();
   const [fieldsCount, setFieldsCount] = useState<number>(0);
 
-  const { data: pipelines, isLoading } = useQuery({
+  const { data: pipelines, isLoading: isPipelinesLoading } = useQuery({
     queryKey: ['pipeline_configs'],
     queryFn: async () => {
       const { data: collaborator } = await supabase
@@ -51,7 +52,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
     }
   });
 
-  const { data: customFields } = useQuery({
+  const { data: customFields, isLoading: isFieldsLoading } = useQuery({
     queryKey: ['custom_fields', selectedPipeline],
     enabled: !!selectedPipeline,
     queryFn: async () => {
@@ -59,12 +60,14 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
         .from('custom_fields')
         .select('*')
         .eq('pipeline_id', selectedPipeline)
-        .order('created_at', { ascending: true });
+        .order('order_index', { ascending: true });
 
       setFieldsCount(data?.length || 0);
-      return data;
+      return data as CustomField[];
     }
   });
+
+  const isLoading = isPipelinesLoading || isFieldsLoading;
 
   if (isLoading) {
     return (
@@ -88,6 +91,40 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
   }
 
   const selectedPipelineData = pipelines?.find(p => p.id === selectedPipeline);
+
+  const handleDrop = async (result: any) => {
+    if (!result.destination || !selectedPipeline) return;
+
+    const { draggableId, destination } = result;
+    const stageId = destination.droppableId;
+
+    // Get the field type from the draggableId
+    const fieldType = draggableId;
+
+    // Insert the new field
+    const { data: collaborator } = await supabase
+      .from('collaborators')
+      .select('client_id')
+      .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+      .single();
+
+    if (!collaborator) return;
+
+    const { error } = await supabase
+      .from('custom_fields')
+      .insert({
+        client_id: collaborator.client_id,
+        pipeline_id: selectedPipeline,
+        stage_id: stageId,
+        field_type: fieldType,
+        name: `Novo campo ${fieldType}`,
+        order_index: customFields?.length || 0,
+      });
+
+    if (!error) {
+      onChange();
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -128,7 +165,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
             {selectedPipelineData.pipeline_stages.map((stage) => (
               <TabsContent key={stage.id} value={stage.id}>
                 <Droppable droppableId={stage.id}>
-                  {(provided, snapshot) => (
+                  {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
@@ -136,6 +173,12 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
                         snapshot.isDraggingOver ? "bg-muted" : ""
                       }`}
                     >
+                      {customFields?.filter(field => field.stage_id === stage.id)
+                        .map((field, index) => (
+                          <div key={field.id} className="p-2 mb-2 bg-white rounded border">
+                            {field.name}
+                          </div>
+                        ))}
                       <div className="text-center text-muted-foreground">
                         Arraste campos aqui ou clique para adicionar
                       </div>

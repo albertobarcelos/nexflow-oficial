@@ -4,7 +4,7 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export type Database = {
   public: {
@@ -66,7 +66,7 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
-          company_name?: string
+          company_name: string
           contact_name?: string | null
           country?: string | null
           created_at?: string
@@ -202,6 +202,73 @@ export type Database = {
             columns: ["license_id"]
             isOneToOne: false
             referencedRelation: "licenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_fields: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          field_type: Database["public"]["Enums"]["field_type"]
+          id: string
+          is_required: boolean | null
+          name: string
+          options: Json | null
+          order_index: number
+          pipeline_id: string
+          stage_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          field_type: Database["public"]["Enums"]["field_type"]
+          id?: string
+          is_required?: boolean | null
+          name: string
+          options?: Json | null
+          order_index: number
+          pipeline_id: string
+          stage_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          field_type?: Database["public"]["Enums"]["field_type"]
+          id?: string
+          is_required?: boolean | null
+          name?: string
+          options?: Json | null
+          order_index?: number
+          pipeline_id?: string
+          stage_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_fields_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_fields_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_fields_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -693,7 +760,7 @@ export type Database = {
           generated_at?: string
           id?: string
           metadata?: Json | null
-          title?: string
+          title: string
           type: Database["public"]["Enums"]["report_type"]
           updated_at?: string
         }
@@ -769,7 +836,7 @@ export type Database = {
           opportunity_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
-          title?: string
+          title: string
           updated_at?: string
         }
         Relationships: [
@@ -825,6 +892,26 @@ export type Database = {
         | "closer"
         | "partnership_director"
         | "partner"
+      field_type:
+        | "short_text"
+        | "long_text"
+        | "dynamic_content"
+        | "attachment"
+        | "checkbox"
+        | "responsible"
+        | "date"
+        | "datetime"
+        | "due_date"
+        | "tags"
+        | "email"
+        | "phone"
+        | "list"
+        | "single_select"
+        | "time"
+        | "numeric"
+        | "currency"
+        | "documents"
+        | "id"
       lead_source: "partner_portal" | "manual"
       lead_status: "new" | "in_progress" | "closed"
       license_status: "active" | "suspended" | "expired"
