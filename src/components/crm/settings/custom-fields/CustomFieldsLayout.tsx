@@ -6,10 +6,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { CustomField } from "./types";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { CustomField, FieldType } from "./types";
+import { EditFieldDialog } from "./components/EditFieldDialog";
 
 export function CustomFieldsLayout() {
   const { toast } = useToast();
@@ -17,16 +15,30 @@ export function CustomFieldsLayout() {
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [clientId, setClientId] = useState<string>("");
 
-  const handleSave = async () => {
-    try {
+  useEffect(() => {
+    const fetchClientId = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('auth_user_id', user.id)
         .single();
 
-      if (!collaborator) throw new Error('Collaborator not found');
+      if (collaborator) {
+        setClientId(collaborator.client_id);
+      }
+    };
+
+    fetchClientId();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      if (!clientId) throw new Error('Client ID not found');
 
       // Inserir todos os campos staged no Supabase
       for (const stageId in stagedFields) {
@@ -36,7 +48,8 @@ export function CustomFieldsLayout() {
             .from('custom_fields')
             .insert({
               ...field,
-              client_id: collaborator.client_id
+              client_id: clientId,
+              field_type: field.field_type as FieldType
             });
           
           if (error) throw error;
@@ -71,7 +84,7 @@ export function CustomFieldsLayout() {
   const onDragEnd = (result: any) => {
     const { destination, source, draggableId } = result;
 
-    if (!destination) return;
+    if (!destination || !clientId) return;
 
     if (
       destination.droppableId === source.droppableId &&
@@ -87,12 +100,12 @@ export function CustomFieldsLayout() {
       
       const newField: CustomField = {
         id: `temp-${Date.now()}`,
-        field_type: draggableId,
+        client_id: clientId,
+        field_type: draggableId as FieldType,
         name: `Novo campo ${draggableId}`,
         order_index: destination.index,
         stage_id: stageId,
         pipeline_id: '',
-        client_id: '',
         options: []
       };
 
@@ -114,16 +127,16 @@ export function CustomFieldsLayout() {
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveFieldEdit = () => {
-    if (!editingField) return;
+  const handleSaveFieldEdit = (editedField: CustomField) => {
+    if (!editedField) return;
 
     setStagedFields(prev => {
       const newStagedFields = { ...prev };
-      const stageFields = newStagedFields[editingField.stage_id || ''] || [];
-      const fieldIndex = stageFields.findIndex(f => f.id === editingField.id);
+      const stageFields = newStagedFields[editedField.stage_id || ''] || [];
+      const fieldIndex = stageFields.findIndex(f => f.id === editedField.id);
 
       if (fieldIndex !== -1) {
-        stageFields[fieldIndex] = editingField;
+        stageFields[fieldIndex] = editedField;
       }
 
       return newStagedFields;
@@ -167,48 +180,12 @@ export function CustomFieldsLayout() {
         </div>
       </DragDropContext>
 
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Campo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="fieldName">Nome do Campo</Label>
-              <Input
-                id="fieldName"
-                value={editingField?.name || ''}
-                onChange={(e) => setEditingField(prev => prev ? { ...prev, name: e.target.value } : null)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fieldDescription">Descrição</Label>
-              <Input
-                id="fieldDescription"
-                value={editingField?.description || ''}
-                onChange={(e) => setEditingField(prev => prev ? { ...prev, description: e.target.value } : null)}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="isRequired">Campo Obrigatório</Label>
-              <input
-                type="checkbox"
-                id="isRequired"
-                checked={editingField?.is_required || false}
-                onChange={(e) => setEditingField(prev => prev ? { ...prev, is_required: e.target.checked } : null)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveFieldEdit}>
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditFieldDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        field={editingField}
+        onSave={handleSaveFieldEdit}
+      />
     </div>
   );
 }

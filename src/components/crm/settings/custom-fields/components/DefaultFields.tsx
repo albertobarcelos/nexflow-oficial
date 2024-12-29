@@ -3,6 +3,7 @@ import { CustomField } from "../types";
 export const defaultFields: CustomField[] = [
   {
     id: "title",
+    client_id: "", // Será preenchido dinamicamente
     name: "Título",
     field_type: "short_text",
     description: "Título da oportunidade",
@@ -12,6 +13,7 @@ export const defaultFields: CustomField[] = [
   },
   {
     id: "value",
+    client_id: "", // Será preenchido dinamicamente
     name: "Valor",
     field_type: "currency",
     description: "Valor da oportunidade",
