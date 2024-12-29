@@ -4,20 +4,19 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { CustomField } from "./types";
 import { defaultFields } from "./components/DefaultFields";
 import { StageTabContent } from "./components/StageTabContent";
 import { PipelineSelector } from "./components/PipelineSelector";
 
 interface PipelineFieldsEditorProps {
+  stagedFields: Record<string, CustomField[]>;
   onChange: () => void;
 }
 
-export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
+export function PipelineFieldsEditor({ stagedFields, onChange }: PipelineFieldsEditorProps) {
   const [selectedPipeline, setSelectedPipeline] = useState<string>();
   const [fieldsCount, setFieldsCount] = useState<number>(0);
-  const { toast } = useToast();
 
   const { data: pipelines, isLoading: isPipelinesLoading } = useQuery({
     queryKey: ['pipeline_configs'],
@@ -57,56 +56,18 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
         .eq('pipeline_id', selectedPipeline)
         .order('order_index', { ascending: true });
 
-      setFieldsCount((data?.length || 0) + defaultFields.length);
       return data as CustomField[];
     }
   });
 
-  const handleDrop = async (result: any) => {
-    if (!result.destination) return;
-
-    const { draggableId, destination } = result;
-    const stageId = destination.droppableId;
-
-    try {
-      const { data: collaborator } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!collaborator) return;
-
-      const { error } = await supabase
-        .from('custom_fields')
-        .insert({
-          client_id: collaborator.client_id,
-          pipeline_id: selectedPipeline,
-          stage_id: stageId,
-          field_type: draggableId,
-          name: `Novo campo ${draggableId}`,
-          order_index: customFields?.length || 0,
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Campo adicionado",
-        description: "O campo foi adicionado com sucesso à etapa.",
-      });
-      
-      onChange();
-    } catch (error) {
-      console.error('Error adding custom field:', error);
-      toast({
-        title: "Erro ao adicionar campo",
-        description: "Não foi possível adicionar o campo. Tente novamente.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const selectedPipelineData = pipelines?.find(p => p.id === selectedPipeline);
+
+  // Combina os campos existentes com os campos staged
+  const getFieldsForStage = (stageId: string) => {
+    const existingFields = customFields?.filter(field => field.stage_id === stageId) || [];
+    const stagedFieldsForStage = stagedFields[stageId] || [];
+    return [...existingFields, ...stagedFieldsForStage];
+  };
 
   return (
     <div className="space-y-4">
@@ -139,7 +100,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
                   stageId={stage.id}
                   fields={[
                     ...(index === 0 ? defaultFields : []),
-                    ...(customFields?.filter(field => field.stage_id === stage.id) || [])
+                    ...getFieldsForStage(stage.id)
                   ]}
                   isFirstStage={index === 0}
                 />

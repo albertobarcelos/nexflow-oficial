@@ -16,6 +16,7 @@ export function StageDropZone({ stageId, fields }: StageDropZoneProps) {
           className={`min-h-[400px] p-4 rounded-lg transition-colors ${
             snapshot.isDraggingOver ? "bg-muted/50 border-2 border-dashed border-primary" : "bg-muted/10"
           }`}
+          style={{ maxHeight: "400px", overflowY: "auto" }}
         >
           {fields?.map((field, index) => (
             <div 
