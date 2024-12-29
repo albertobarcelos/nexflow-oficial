@@ -14,8 +14,8 @@ import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CustomField } from "./types";
 import { useToast } from "@/hooks/use-toast";
-import { StageDropZone } from "./components/StageDropZone";
 import { defaultFields } from "./components/DefaultFields";
+import { StageTabContent } from "./components/StageTabContent";
 
 interface PipelineFieldsEditorProps {
   onChange: () => void;
@@ -78,7 +78,6 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
       const { draggableId, destination } = result;
       const stageId = destination.droppableId;
 
-      // Get client_id
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
@@ -174,7 +173,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
       </div>
 
       {selectedPipelineData && (
-        <Card className="p-4">
+        <Card className="overflow-hidden">
           <Tabs defaultValue={selectedPipelineData.pipeline_stages[0]?.id}>
             <TabsList className="w-full justify-start">
               {selectedPipelineData.pipeline_stages
@@ -185,15 +184,15 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
                   </TabsTrigger>
                 ))}
             </TabsList>
-            {selectedPipelineData.pipeline_stages.map((stage) => (
-              <TabsContent key={stage.id} value={stage.id}>
-                <StageDropZone
+            {selectedPipelineData.pipeline_stages.map((stage, index) => (
+              <TabsContent key={stage.id} value={stage.id} className="m-0">
+                <StageTabContent
                   stageId={stage.id}
                   fields={[
-                    ...(stage.order_index === 0 ? defaultFields : []),
+                    ...(index === 0 ? defaultFields : []),
                     ...(customFields?.filter(field => field.stage_id === stage.id) || [])
                   ]}
-                  isDraggingOver={false}
+                  isFirstStage={index === 0}
                 />
               </TabsContent>
             ))}
