@@ -11,10 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { Droppable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { CustomField } from "./types";
 import { useToast } from "@/hooks/use-toast";
+import { StageDropZone } from "./components/StageDropZone";
+import { defaultFields } from "./components/DefaultFields";
 
 interface PipelineFieldsEditorProps {
   onChange: () => void;
@@ -65,7 +66,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
         .eq('pipeline_id', selectedPipeline)
         .order('order_index', { ascending: true });
 
-      setFieldsCount(data?.length || 0);
+      setFieldsCount((data?.length || 0) + defaultFields.length);
       return data as CustomField[];
     }
   });
@@ -76,9 +77,6 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
     try {
       const { draggableId, destination } = result;
       const stageId = destination.droppableId;
-
-      // Get the field type from the draggableId
-      const fieldType = draggableId;
 
       // Get client_id
       const { data: collaborator } = await supabase
@@ -95,8 +93,8 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
           client_id: collaborator.client_id,
           pipeline_id: selectedPipeline,
           stage_id: stageId,
-          field_type: fieldType,
-          name: `Novo campo ${fieldType}`,
+          field_type: draggableId,
+          name: `Novo campo ${draggableId}`,
           order_index: customFields?.length || 0,
         });
 
@@ -189,28 +187,14 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
             </TabsList>
             {selectedPipelineData.pipeline_stages.map((stage) => (
               <TabsContent key={stage.id} value={stage.id}>
-                <Droppable droppableId={stage.id}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`min-h-[500px] p-4 rounded-lg transition-colors ${
-                        snapshot.isDraggingOver ? "bg-muted" : ""
-                      }`}
-                    >
-                      {customFields?.filter(field => field.stage_id === stage.id)
-                        .map((field, index) => (
-                          <div key={field.id} className="p-2 mb-2 bg-white rounded border">
-                            {field.name}
-                          </div>
-                        ))}
-                      <div className="text-center text-muted-foreground">
-                        Arraste campos aqui ou clique para adicionar
-                      </div>
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
+                <StageDropZone
+                  stageId={stage.id}
+                  fields={[
+                    ...(stage.order_index === 0 ? defaultFields : []),
+                    ...(customFields?.filter(field => field.stage_id === stage.id) || [])
+                  ]}
+                  isDraggingOver={false}
+                />
               </TabsContent>
             ))}
           </Tabs>
