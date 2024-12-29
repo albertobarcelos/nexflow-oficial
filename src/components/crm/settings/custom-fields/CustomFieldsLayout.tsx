@@ -173,7 +173,7 @@ export function CustomFieldsLayout() {
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="grid grid-cols-[300px_1fr] gap-6">
-          <FieldTypesSidebar />
+          <FieldTypesSidebar onFieldAdd={() => {}} />
           <PipelineFieldsEditor 
             stagedFields={stagedFields}
             onChange={() => setHasChanges(true)}

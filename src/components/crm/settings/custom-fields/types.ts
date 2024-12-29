@@ -43,5 +43,5 @@ export interface FieldTypesSidebarProps {
 export interface PipelineFieldsEditorProps {
   stagedFields: Record<string, CustomField[]>;
   onChange: () => void;
-  onEditField?: (field: CustomField) => void;
+  onEditField: (field: CustomField) => void;
 }
