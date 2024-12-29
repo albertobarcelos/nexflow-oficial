@@ -24,8 +24,8 @@ export type FieldType =
 export interface CustomField {
   id: string;
   client_id: string;
-  pipeline_id?: string;
-  stage_id?: string;
+  pipeline_id: string;
+  stage_id: string;
   name: string;
   field_type: FieldType;
   description?: string | null;

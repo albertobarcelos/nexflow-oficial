@@ -49,7 +49,9 @@ export function CustomFieldsLayout() {
             .insert({
               ...field,
               client_id: clientId,
-              field_type: field.field_type as FieldType
+              pipeline_id: field.pipeline_id,
+              stage_id: field.stage_id,
+              field_type: field.field_type
             });
           
           if (error) throw error;
@@ -132,7 +134,7 @@ export function CustomFieldsLayout() {
 
     setStagedFields(prev => {
       const newStagedFields = { ...prev };
-      const stageFields = newStagedFields[editedField.stage_id || ''] || [];
+      const stageFields = newStagedFields[editedField.stage_id] || [];
       const fieldIndex = stageFields.findIndex(f => f.id === editedField.id);
 
       if (fieldIndex !== -1) {
