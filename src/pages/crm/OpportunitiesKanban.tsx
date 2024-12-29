@@ -53,7 +53,7 @@ export default function OpportunitiesKanban() {
             name,
             color
           ),
-          assigned_collaborator:collaborators(
+          assigned_collaborator:collaborators!opportunities_assigned_to_fkey(
             name,
             auth_user_id
           )
