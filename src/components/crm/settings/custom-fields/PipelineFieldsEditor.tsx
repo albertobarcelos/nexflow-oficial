@@ -8,12 +8,13 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { Droppable, DroppableProvided, DroppableStateSnapshot } from "@hello-pangea/dnd";
+import { Droppable } from "@hello-pangea/dnd";
 import { Badge } from "@/components/ui/badge";
 import { CustomField } from "./types";
+import { useToast } from "@/hooks/use-toast";
 
 interface PipelineFieldsEditorProps {
   onChange: () => void;
@@ -22,6 +23,8 @@ interface PipelineFieldsEditorProps {
 export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
   const [selectedPipeline, setSelectedPipeline] = useState<string>();
   const [fieldsCount, setFieldsCount] = useState<number>(0);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: pipelines, isLoading: isPipelinesLoading } = useQuery({
     queryKey: ['pipeline_configs'],
@@ -67,6 +70,62 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
     }
   });
 
+  const handleDrop = async (result: any) => {
+    if (!result.destination || !selectedPipeline) return;
+
+    try {
+      const { draggableId, destination } = result;
+      const stageId = destination.droppableId;
+
+      // Get the field type from the draggableId
+      const fieldType = draggableId;
+
+      // Get client_id
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!collaborator) return;
+
+      const { error } = await supabase
+        .from('custom_fields')
+        .insert({
+          client_id: collaborator.client_id,
+          pipeline_id: selectedPipeline,
+          stage_id: stageId,
+          field_type: fieldType,
+          name: `Novo campo ${fieldType}`,
+          order_index: customFields?.length || 0,
+        });
+
+      if (error) {
+        toast({
+          title: "Erro ao adicionar campo",
+          description: "Não foi possível adicionar o campo. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['custom_fields', selectedPipeline] });
+      onChange();
+      
+      toast({
+        title: "Campo adicionado",
+        description: "O campo foi adicionado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error adding custom field:', error);
+      toast({
+        title: "Erro ao adicionar campo",
+        description: "Ocorreu um erro ao adicionar o campo.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const isLoading = isPipelinesLoading || isFieldsLoading;
 
   if (isLoading) {
@@ -91,40 +150,6 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
   }
 
   const selectedPipelineData = pipelines?.find(p => p.id === selectedPipeline);
-
-  const handleDrop = async (result: any) => {
-    if (!result.destination || !selectedPipeline) return;
-
-    const { draggableId, destination } = result;
-    const stageId = destination.droppableId;
-
-    // Get the field type from the draggableId
-    const fieldType = draggableId;
-
-    // Insert the new field
-    const { data: collaborator } = await supabase
-      .from('collaborators')
-      .select('client_id')
-      .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-      .single();
-
-    if (!collaborator) return;
-
-    const { error } = await supabase
-      .from('custom_fields')
-      .insert({
-        client_id: collaborator.client_id,
-        pipeline_id: selectedPipeline,
-        stage_id: stageId,
-        field_type: fieldType,
-        name: `Novo campo ${fieldType}`,
-        order_index: customFields?.length || 0,
-      });
-
-    if (!error) {
-      onChange();
-    }
-  };
 
   return (
     <div className="space-y-4">
@@ -165,7 +190,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
             {selectedPipelineData.pipeline_stages.map((stage) => (
               <TabsContent key={stage.id} value={stage.id}>
                 <Droppable droppableId={stage.id}>
-                  {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
+                  {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
