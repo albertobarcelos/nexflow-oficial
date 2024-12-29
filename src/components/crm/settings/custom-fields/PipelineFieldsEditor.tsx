@@ -1,21 +1,14 @@
 import { useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CustomField } from "./types";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { CustomField } from "./types";
 import { defaultFields } from "./components/DefaultFields";
 import { StageTabContent } from "./components/StageTabContent";
+import { PipelineSelector } from "./components/PipelineSelector";
 
 interface PipelineFieldsEditorProps {
   onChange: () => void;
@@ -25,7 +18,6 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
   const [selectedPipeline, setSelectedPipeline] = useState<string>();
   const [fieldsCount, setFieldsCount] = useState<number>(0);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: pipelines, isLoading: isPipelinesLoading } = useQuery({
     queryKey: ['pipeline_configs'],
@@ -41,8 +33,7 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
       const { data } = await supabase
         .from('pipeline_configs')
         .select(`
-          id,
-          name,
+          *,
           pipeline_stages (
             id,
             name,
@@ -72,12 +63,12 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
   });
 
   const handleDrop = async (result: any) => {
-    if (!result.destination || !selectedPipeline) return;
+    if (!result.destination) return;
+
+    const { draggableId, destination } = result;
+    const stageId = destination.droppableId;
 
     try {
-      const { draggableId, destination } = result;
-      const stageId = destination.droppableId;
-
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
@@ -97,76 +88,34 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
           order_index: customFields?.length || 0,
         });
 
-      if (error) {
-        toast({
-          title: "Erro ao adicionar campo",
-          description: "Não foi possível adicionar o campo. Tente novamente.",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ['custom_fields', selectedPipeline] });
-      onChange();
-      
       toast({
         title: "Campo adicionado",
-        description: "O campo foi adicionado com sucesso.",
+        description: "O campo foi adicionado com sucesso à etapa.",
       });
+      
+      onChange();
     } catch (error) {
       console.error('Error adding custom field:', error);
       toast({
         title: "Erro ao adicionar campo",
-        description: "Ocorreu um erro ao adicionar o campo.",
+        description: "Não foi possível adicionar o campo. Tente novamente.",
         variant: "destructive",
       });
     }
   };
-
-  const isLoading = isPipelinesLoading || isFieldsLoading;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-250px)]">
-        <Loader2 className="w-6 h-6 animate-spin" />
-      </div>
-    );
-  }
-
-  if (!pipelines?.length) {
-    return (
-      <Card className="p-6">
-        <div className="text-center">
-          <h3 className="font-medium text-lg">Nenhum Pipeline Encontrado</h3>
-          <p className="text-muted-foreground">
-            Crie um pipeline primeiro para começar a personalizar os campos.
-          </p>
-        </div>
-      </Card>
-    );
-  }
 
   const selectedPipelineData = pipelines?.find(p => p.id === selectedPipeline);
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <Select
-          value={selectedPipeline}
-          onValueChange={setSelectedPipeline}
-        >
-          <SelectTrigger className="w-[300px]">
-            <SelectValue placeholder="Selecione um pipeline" />
-          </SelectTrigger>
-          <SelectContent>
-            {pipelines?.map((pipeline) => (
-              <SelectItem key={pipeline.id} value={pipeline.id}>
-                {pipeline.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
+        <PipelineSelector
+          pipelines={pipelines || []}
+          selectedPipeline={selectedPipeline}
+          onPipelineChange={setSelectedPipeline}
+        />
         <Badge variant="secondary">
           {fieldsCount} campos utilizados
         </Badge>

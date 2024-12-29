@@ -4,18 +4,17 @@ import { CustomField } from "../types";
 interface StageDropZoneProps {
   stageId: string;
   fields: CustomField[];
-  isDraggingOver: boolean;
 }
 
-export function StageDropZone({ stageId, fields, isDraggingOver }: StageDropZoneProps) {
+export function StageDropZone({ stageId, fields }: StageDropZoneProps) {
   return (
     <Droppable droppableId={stageId}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={`min-h-[500px] p-4 rounded-lg transition-colors ${
-            snapshot.isDraggingOver ? "bg-muted/50" : "bg-muted/10"
+          className={`min-h-[400px] p-4 rounded-lg transition-colors ${
+            snapshot.isDraggingOver ? "bg-muted/50 border-2 border-dashed border-primary" : "bg-muted/10"
           }`}
         >
           {fields?.map((field, index) => (

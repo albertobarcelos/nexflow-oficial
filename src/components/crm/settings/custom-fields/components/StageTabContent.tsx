@@ -7,13 +7,12 @@ interface StageTabContentProps {
   isFirstStage: boolean;
 }
 
-export function StageTabContent({ stageId, fields, isFirstStage }: StageTabContentProps) {
+export function StageTabContent({ stageId, fields }: StageTabContentProps) {
   return (
-    <div className="h-[calc(100vh-400px)]">
+    <div className="h-[500px] overflow-hidden">
       <StageDropZone
         stageId={stageId}
         fields={fields}
-        isDraggingOver={false}
       />
     </div>
   );
