@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext } from '@hello-pangea/dnd';
 import { FieldTypesSidebar } from "./FieldTypesSidebar";
 import { PipelineFieldsEditor } from "./PipelineFieldsEditor";
@@ -7,21 +7,37 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { CustomField } from "./types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function CustomFieldsLayout() {
   const { toast } = useToast();
   const [hasChanges, setHasChanges] = useState(false);
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
+  const [editingField, setEditingField] = useState<CustomField | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const handleSave = async () => {
     try {
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!collaborator) throw new Error('Collaborator not found');
+
       // Inserir todos os campos staged no Supabase
       for (const stageId in stagedFields) {
         const fields = stagedFields[stageId];
         for (const field of fields) {
           const { error } = await supabase
             .from('custom_fields')
-            .insert(field);
+            .insert({
+              ...field,
+              client_id: collaborator.client_id
+            });
           
           if (error) throw error;
         }
@@ -57,7 +73,6 @@ export function CustomFieldsLayout() {
 
     if (!destination) return;
 
-    // Se o destino for o mesmo que a origem, não faz nada
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
@@ -67,23 +82,23 @@ export function CustomFieldsLayout() {
 
     const stageId = destination.droppableId;
     
-    // Atualiza o estado local com o novo campo
     setStagedFields(prev => {
       const stageFields = [...(prev[stageId] || [])];
       
-      // Adiciona o novo campo no índice correto
       const newField: CustomField = {
-        id: `temp-${Date.now()}`, // ID temporário
+        id: `temp-${Date.now()}`,
         field_type: draggableId,
         name: `Novo campo ${draggableId}`,
         order_index: destination.index,
         stage_id: stageId,
-        pipeline_id: '', // Será preenchido ao salvar
-        client_id: '', // Será preenchido ao salvar
+        pipeline_id: '',
+        client_id: '',
         options: []
       };
 
       stageFields.splice(destination.index, 0, newField);
+      setEditingField(newField);
+      setIsEditDialogOpen(true);
 
       return {
         ...prev,
@@ -92,6 +107,30 @@ export function CustomFieldsLayout() {
     });
 
     setHasChanges(true);
+  };
+
+  const handleEditField = (field: CustomField) => {
+    setEditingField(field);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveFieldEdit = () => {
+    if (!editingField) return;
+
+    setStagedFields(prev => {
+      const newStagedFields = { ...prev };
+      const stageFields = newStagedFields[editingField.stage_id || ''] || [];
+      const fieldIndex = stageFields.findIndex(f => f.id === editingField.id);
+
+      if (fieldIndex !== -1) {
+        stageFields[fieldIndex] = editingField;
+      }
+
+      return newStagedFields;
+    });
+
+    setIsEditDialogOpen(false);
+    setEditingField(null);
   };
 
   return (
@@ -122,10 +161,54 @@ export function CustomFieldsLayout() {
           <FieldTypesSidebar />
           <PipelineFieldsEditor 
             stagedFields={stagedFields}
-            onChange={() => setHasChanges(true)} 
+            onChange={() => setHasChanges(true)}
+            onEditField={handleEditField}
           />
         </div>
       </DragDropContext>
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Campo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="fieldName">Nome do Campo</Label>
+              <Input
+                id="fieldName"
+                value={editingField?.name || ''}
+                onChange={(e) => setEditingField(prev => prev ? { ...prev, name: e.target.value } : null)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fieldDescription">Descrição</Label>
+              <Input
+                id="fieldDescription"
+                value={editingField?.description || ''}
+                onChange={(e) => setEditingField(prev => prev ? { ...prev, description: e.target.value } : null)}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="isRequired">Campo Obrigatório</Label>
+              <input
+                type="checkbox"
+                id="isRequired"
+                checked={editingField?.is_required || false}
+                onChange={(e) => setEditingField(prev => prev ? { ...prev, is_required: e.target.checked } : null)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveFieldEdit}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

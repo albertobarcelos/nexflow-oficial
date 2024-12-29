@@ -2,7 +2,7 @@ import { Json } from "@/types/database/json";
 
 export interface CustomField {
   id: string;
-  client_id?: string;
+  client_id: string;
   pipeline_id?: string;
   stage_id?: string;
   name: string;
@@ -13,4 +13,15 @@ export interface CustomField {
   options: any[];
   created_at?: string;
   updated_at?: string;
+}
+
+export type FieldType = {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+};
+
+export interface FieldTypesSidebarProps {
+  onFieldAdd?: (fieldType: FieldType) => void;
 }
