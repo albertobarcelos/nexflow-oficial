@@ -6,26 +6,15 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useParams } from "react-router-dom";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { CustomField } from "../settings/custom-fields/types";
-
-type FormData = {
-  title: string;
-  value: string;
-  customFields: Record<string, any>;
-};
+import { CustomFieldRenderer } from "./CustomFieldRenderer";
+import { OpportunityFormData } from "./types";
 
 export function NewOpportunityForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { pipelineId } = useParams();
-  const { register, handleSubmit, reset, setValue } = useForm<FormData>();
+  const { register, handleSubmit, reset, setValue, watch } = useForm<OpportunityFormData>();
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
 
   useEffect(() => {
@@ -52,7 +41,9 @@ export function NewOpportunityForm() {
           .eq('stage_id', firstStage.id)
           .order('order_index');
 
-        setCustomFields(fields || []);
+        if (fields) {
+          setCustomFields(fields as CustomField[]);
+        }
       } catch (error) {
         console.error('Error loading custom fields:', error);
       }
@@ -61,7 +52,7 @@ export function NewOpportunityForm() {
     loadCustomFields();
   }, [pipelineId]);
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: OpportunityFormData) => {
     try {
       setIsSubmitting(true);
 
@@ -115,73 +106,6 @@ export function NewOpportunityForm() {
     }
   };
 
-  const renderCustomField = (field: CustomField) => {
-    switch (field.field_type) {
-      case 'short_text':
-        return (
-          <Input
-            id={field.id}
-            {...register(`customFields.${field.id}`)}
-            placeholder={`Digite ${field.name.toLowerCase()}`}
-          />
-        );
-      
-      case 'long_text':
-        return (
-          <Textarea
-            id={field.id}
-            {...register(`customFields.${field.id}`)}
-            placeholder={`Digite ${field.name.toLowerCase()}`}
-          />
-        );
-
-      case 'checkbox':
-        return (
-          <Checkbox
-            id={field.id}
-            onCheckedChange={(checked) => {
-              setValue(`customFields.${field.id}`, checked);
-            }}
-          />
-        );
-
-      case 'date':
-        return (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !register(`customFields.${field.id}`).value && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {register(`customFields.${field.id}`).value ? (
-                  format(register(`customFields.${field.id}`).value, "PPP")
-                ) : (
-                  <span>Selecione uma data</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={register(`customFields.${field.id}`).value}
-                onSelect={(date) => setValue(`customFields.${field.id}`, date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        );
-
-      // Adicione mais casos conforme necessário para outros tipos de campo
-      
-      default:
-        return <Input id={field.id} {...register(`customFields.${field.id}`)} />;
-    }
-  };
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="space-y-2">
@@ -205,16 +129,13 @@ export function NewOpportunityForm() {
       </div>
 
       {customFields.map((field) => (
-        <div key={field.id} className="space-y-2">
-          <Label htmlFor={field.id}>
-            {field.name}
-            {field.is_required && <span className="text-red-500 ml-1">*</span>}
-          </Label>
-          {renderCustomField(field)}
-          {field.description && (
-            <p className="text-sm text-muted-foreground">{field.description}</p>
-          )}
-        </div>
+        <CustomFieldRenderer
+          key={field.id}
+          field={field}
+          register={register}
+          setValue={setValue}
+          watch={watch}
+        />
       ))}
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>
