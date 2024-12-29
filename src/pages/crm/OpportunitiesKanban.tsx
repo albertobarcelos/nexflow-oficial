@@ -49,11 +49,11 @@ export default function OpportunitiesKanban() {
         .from('opportunities')
         .select(`
           *,
-          category:category_id (
+          category:opportunity_categories!opportunity_categories_id_fkey (
             name,
             color
           ),
-          assigned_collaborator:assigned_to (
+          assigned_collaborator:collaborators!opportunities_assigned_to_fkey (
             name,
             auth_user_id
           )
