@@ -49,11 +49,11 @@ export default function OpportunitiesKanban() {
         .from('opportunities')
         .select(`
           *,
-          category:opportunity_categories!opportunity_categories_id_fkey (
+          category:opportunity_categories(
             name,
             color
           ),
-          assigned_collaborator:collaborators!opportunities_assigned_to_fkey (
+          assigned_collaborator:collaborators(
             name,
             auth_user_id
           )
@@ -75,9 +75,12 @@ export default function OpportunitiesKanban() {
         ...opp,
         assigned_to: opp.assigned_collaborator ? {
           name: opp.assigned_collaborator.name,
-          // You might want to add avatar_url logic here if needed
           avatar_url: undefined
         } : undefined,
+        category: opp.category ? {
+          name: opp.category.name,
+          color: opp.category.color
+        } : undefined
       }));
 
       // Create columns with stages and their opportunities
