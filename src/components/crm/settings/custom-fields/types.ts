@@ -1,5 +1,7 @@
 import { Json } from "@/types/database/json";
 
+export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
+
 export type FieldType =
   | "short_text"
   | "long_text"
@@ -21,6 +23,15 @@ export type FieldType =
   | "documents"
   | "id";
 
+export interface FieldTypeInfo {
+  id: FieldType;
+  name: string;
+  description: string;
+  category: FieldCategory;
+  icon: React.ReactNode;
+  validation?: (value: any) => boolean | string;
+}
+
 export interface CustomField {
   id: string;
   client_id: string;
@@ -34,14 +45,38 @@ export interface CustomField {
   options: any[];
   created_at?: string;
   updated_at?: string;
+  history?: FieldHistory[];
+}
+
+export interface FieldHistory {
+  timestamp: string;
+  action: "created" | "updated" | "deleted";
+  changes?: {
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
+  user_id: string;
+}
+
+export interface FieldTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  fields: Partial<CustomField>[];
 }
 
 export interface FieldTypesSidebarProps {
   onFieldAdd?: (fieldType: FieldType) => void;
+  searchTerm?: string;
+  selectedCategory?: FieldCategory;
 }
 
 export interface PipelineFieldsEditorProps {
   stagedFields: Record<string, CustomField[]>;
   onChange: () => void;
   onEditField: (field: CustomField) => void;
+  onDuplicate?: (field: CustomField) => void;
+  onReorder?: (stageId: string, fields: CustomField[]) => void;
 }

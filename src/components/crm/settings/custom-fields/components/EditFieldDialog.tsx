@@ -1,84 +1,113 @@
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { CustomField } from "../types";
-import { useState } from "react";
+import { CustomField, FieldType } from "../types";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User } from "lucide-react";
+import { User, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CustomFieldRenderer } from "@/components/crm/opportunities/CustomFieldRenderer";
+import { useForm } from "react-hook-form";
 
 interface EditFieldDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   field: CustomField | null;
   onSave: (field: CustomField) => void;
+  onDuplicate?: (field: CustomField) => void;
 }
 
-export function EditFieldDialog({ open, onOpenChange, field, onSave }: EditFieldDialogProps) {
+export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate }: EditFieldDialogProps) {
   const [editingField, setEditingField] = useState<CustomField | null>(field);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const form = useForm();
+
+  useEffect(() => {
+    setEditingField(field);
+  }, [field]);
+
+  const validateField = (field: CustomField): boolean => {
+    if (!field.name.trim()) {
+      setValidationError("O nome do campo é obrigatório");
+      return false;
+    }
+
+    switch (field.field_type) {
+      case "email":
+        if (field.is_required) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(field.name)) {
+            setValidationError("Formato de email inválido");
+            return false;
+          }
+        }
+        break;
+      case "phone":
+        if (field.is_required) {
+          const phoneRegex = /^\+?[\d\s-()]+$/;
+          if (!phoneRegex.test(field.name)) {
+            setValidationError("Formato de telefone inválido");
+            return false;
+          }
+        }
+        break;
+      case "numeric":
+        if (field.is_required) {
+          const numericRegex = /^\d+$/;
+          if (!numericRegex.test(field.name)) {
+            setValidationError("Apenas números são permitidos");
+            return false;
+          }
+        }
+        break;
+      // Adicione mais validações específicas para outros tipos de campo
+    }
+
+    setValidationError(null);
+    return true;
+  };
 
   const handleSave = () => {
-    if (editingField) {
-      onSave(editingField);
+    if (editingField && validateField(editingField)) {
+      // Adicionar entrada no histórico
+      const history = editingField.history || [];
+      history.push({
+        timestamp: new Date().toISOString(),
+        action: "updated",
+        changes: [
+          {
+            field: "name",
+            oldValue: field?.name,
+            newValue: editingField.name
+          }
+        ],
+        user_id: "current_user_id" // Substituir pelo ID do usuário atual
+      });
+
+      onSave({ ...editingField, history });
     }
   };
 
-  const renderFieldPreview = () => {
-    if (!editingField) return null;
-
-    switch (editingField.field_type) {
-      case 'short_text':
-        return <Input placeholder={editingField.name} disabled />;
-      case 'long_text':
-        return <Textarea placeholder={editingField.name} disabled />;
-      case 'checkbox':
-        return <Checkbox disabled />;
-      case 'date':
-        return <Calendar mode="single" disabled />;
-      case 'datetime':
-        return (
-          <div className="flex gap-2">
-            <Calendar mode="single" disabled />
-            <Input type="time" disabled />
-          </div>
-        );
-      case 'time':
-        return <Input type="time" disabled />;
-      case 'numeric':
-        return <Input type="number" placeholder="0" disabled />;
-      case 'currency':
-        return <Input type="number" placeholder="R$ 0,00" disabled />;
-      case 'email':
-        return <Input type="email" placeholder="email@exemplo.com" disabled />;
-      case 'phone':
-        return <Input type="tel" placeholder="(00) 00000-0000" disabled />;
-      case 'single_select':
-        return (
-          <Select disabled>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione uma opção" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="option1">Opção 1</SelectItem>
-              <SelectItem value="option2">Opção 2</SelectItem>
-            </SelectContent>
-          </Select>
-        );
-      case 'responsible':
-        return (
-          <div className="flex items-center gap-2 p-2 border rounded">
-            <User className="w-4 h-4" />
-            <span className="text-sm text-muted-foreground">Selecionar responsável</span>
-          </div>
-        );
-      default:
-        return <Input placeholder={editingField.name} disabled />;
+  const handleDuplicate = () => {
+    if (editingField && onDuplicate) {
+      const duplicatedField = {
+        ...editingField,
+        id: `temp-${Date.now()}`,
+        name: `${editingField.name} (cópia)`,
+        history: [{
+          timestamp: new Date().toISOString(),
+          action: "created",
+          user_id: "current_user_id" // Substituir pelo ID do usuário atual
+        }]
+      };
+      onDuplicate(duplicatedField);
     }
   };
 
@@ -114,22 +143,55 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave }: EditField
               />
               <Label htmlFor="isRequired">Campo Obrigatório</Label>
             </div>
+
+            {validationError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{validationError}</AlertDescription>
+              </Alert>
+            )}
+
+            {editingField?.history && editingField.history.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-2">Histórico de Alterações</h4>
+                <div className="space-y-2">
+                  {editingField.history.map((entry, index) => (
+                    <div key={index} className="text-sm text-muted-foreground">
+                      {new Date(entry.timestamp).toLocaleString()}: {entry.action}
+                      {entry.changes?.map((change, idx) => (
+                        <div key={idx} className="ml-2">
+                          {change.field}: {change.oldValue} → {change.newValue}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="space-y-4">
             <Card className="p-4">
               <h3 className="text-sm font-medium mb-2">Pré-visualização</h3>
               <Separator className="my-2" />
               <div className="space-y-2">
-                <Label>{editingField?.name || 'Campo sem nome'}</Label>
-                {renderFieldPreview()}
-                {editingField?.description && (
-                  <p className="text-xs text-muted-foreground">{editingField.description}</p>
+                {editingField && (
+                  <CustomFieldRenderer
+                    field={editingField}
+                    register={form.register}
+                    setValue={form.setValue}
+                    watch={form.watch}
+                  />
                 )}
               </div>
             </Card>
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2">
+          {onDuplicate && (
+            <Button variant="outline" onClick={handleDuplicate}>
+              Duplicar Campo
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
