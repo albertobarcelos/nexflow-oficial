@@ -103,7 +103,7 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
         name: `${editingField.name} (cópia)`,
         history: [{
           timestamp: new Date().toISOString(),
-          action: "created",
+          action: "created" as const,
           user_id: "current_user_id" // Substituir pelo ID do usuário atual
         }]
       };
