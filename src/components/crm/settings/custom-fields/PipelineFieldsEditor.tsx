@@ -12,9 +12,10 @@ import { PipelineSelector } from "./components/PipelineSelector";
 interface PipelineFieldsEditorProps {
   stagedFields: Record<string, CustomField[]>;
   onChange: () => void;
+  onEditField: (field: CustomField) => void;
 }
 
-export function PipelineFieldsEditor({ stagedFields, onChange }: PipelineFieldsEditorProps) {
+export function PipelineFieldsEditor({ stagedFields, onChange, onEditField }: PipelineFieldsEditorProps) {
   const [selectedPipeline, setSelectedPipeline] = useState<string>();
   const [fieldsCount, setFieldsCount] = useState<number>(0);
 
@@ -103,6 +104,7 @@ export function PipelineFieldsEditor({ stagedFields, onChange }: PipelineFieldsE
                     ...getFieldsForStage(stage.id)
                   ]}
                   isFirstStage={index === 0}
+                  onEditField={onEditField}
                 />
               </TabsContent>
             ))}
