@@ -3,8 +3,9 @@ import { Card } from "@/components/ui/card";
 import { 
   Type, AlignLeft, FileText, Paperclip, CheckSquare, 
   User, Calendar, Clock, Tag, Mail, Phone, List, 
-  Radio, Timer, Hash, DollarSign, File, Id 
+  Radio, Timer, Hash, DollarSign, File, Fingerprint 
 } from "lucide-react";
+import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 
 type FieldType = {
   id: string;
@@ -126,43 +127,61 @@ const fieldTypes: FieldType[] = [
     id: "id",
     name: "ID",
     description: "Identificador único",
-    icon: <Id className="w-4 h-4" />,
+    icon: <Fingerprint className="w-4 h-4" />,
   },
 ];
 
 interface FieldTypesSidebarProps {
-  onFieldAdd: () => void;
+  onFieldAdd: (fieldType: FieldType) => void;
 }
 
 export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
   return (
     <Card className="p-4">
       <h2 className="text-lg font-semibold mb-4">Tipos de Campo</h2>
-      <ScrollArea className="h-[calc(100vh-250px)]">
-        <div className="space-y-2">
-          {fieldTypes.map((fieldType) => (
-            <div
-              key={fieldType.id}
-              className="p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
-              onClick={onFieldAdd}
-              role="button"
-              tabIndex={0}
+      <Droppable droppableId="field-types" isDropDisabled={true}>
+        {(provided) => (
+          <ScrollArea className="h-[calc(100vh-250px)]">
+            <div 
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="space-y-2"
             >
-              <div className="flex items-center gap-3">
-                <div className="text-muted-foreground">
-                  {fieldType.icon}
-                </div>
-                <div>
-                  <h3 className="font-medium text-sm">{fieldType.name}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {fieldType.description}
-                  </p>
-                </div>
-              </div>
+              {fieldTypes.map((fieldType, index) => (
+                <Draggable 
+                  key={fieldType.id} 
+                  draggableId={fieldType.id} 
+                  index={index}
+                >
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={`p-3 rounded-lg hover:bg-muted cursor-grab transition-colors ${
+                        snapshot.isDragging ? "bg-muted" : ""
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-muted-foreground">
+                          {fieldType.icon}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-sm">{fieldType.name}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {fieldType.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
             </div>
-          ))}
-        </div>
-      </ScrollArea>
+          </ScrollArea>
+        )}
+      </Droppable>
     </Card>
   );
 }

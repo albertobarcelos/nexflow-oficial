@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Droppable } from "@hello-pangea/dnd";
+import { Badge } from "@/components/ui/badge";
 
 interface PipelineFieldsEditorProps {
   onChange: () => void;
@@ -18,6 +20,7 @@ interface PipelineFieldsEditorProps {
 
 export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
   const [selectedPipeline, setSelectedPipeline] = useState<string>();
+  const [fieldsCount, setFieldsCount] = useState<number>(0);
 
   const { data: pipelines, isLoading } = useQuery({
     queryKey: ['pipeline_configs'],
@@ -48,6 +51,21 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
     }
   });
 
+  const { data: customFields } = useQuery({
+    queryKey: ['custom_fields', selectedPipeline],
+    enabled: !!selectedPipeline,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('custom_fields')
+        .select('*')
+        .eq('pipeline_id', selectedPipeline)
+        .order('created_at', { ascending: true });
+
+      setFieldsCount(data?.length || 0);
+      return data;
+    }
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-250px)]">
@@ -73,21 +91,27 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
 
   return (
     <div className="space-y-4">
-      <Select
-        value={selectedPipeline}
-        onValueChange={setSelectedPipeline}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Selecione um pipeline" />
-        </SelectTrigger>
-        <SelectContent>
-          {pipelines?.map((pipeline) => (
-            <SelectItem key={pipeline.id} value={pipeline.id}>
-              {pipeline.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className="flex justify-between items-center">
+        <Select
+          value={selectedPipeline}
+          onValueChange={setSelectedPipeline}
+        >
+          <SelectTrigger className="w-[300px]">
+            <SelectValue placeholder="Selecione um pipeline" />
+          </SelectTrigger>
+          <SelectContent>
+            {pipelines?.map((pipeline) => (
+              <SelectItem key={pipeline.id} value={pipeline.id}>
+                {pipeline.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Badge variant="secondary">
+          {fieldsCount} campos utilizados
+        </Badge>
+      </div>
 
       {selectedPipelineData && (
         <Card className="p-4">
@@ -103,11 +127,22 @@ export function PipelineFieldsEditor({ onChange }: PipelineFieldsEditorProps) {
             </TabsList>
             {selectedPipelineData.pipeline_stages.map((stage) => (
               <TabsContent key={stage.id} value={stage.id}>
-                <div className="min-h-[500px] p-4">
-                  <div className="text-center text-muted-foreground">
-                    Arraste campos aqui ou clique para adicionar
-                  </div>
-                </div>
+                <Droppable droppableId={stage.id}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`min-h-[500px] p-4 rounded-lg transition-colors ${
+                        snapshot.isDraggingOver ? "bg-muted" : ""
+                      }`}
+                    >
+                      <div className="text-center text-muted-foreground">
+                        Arraste campos aqui ou clique para adicionar
+                      </div>
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
               </TabsContent>
             ))}
           </Tabs>
