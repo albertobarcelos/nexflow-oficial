@@ -1,7 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { OpportunityCard } from "./OpportunityCard";
 import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type Opportunity = {
   id: string;
@@ -11,6 +13,10 @@ type Opportunity = {
   category?: {
     name: string;
     color: string;
+  } | null;
+  assigned_to?: {
+    name: string;
+    avatar_url?: string;
   } | null;
 };
 
@@ -25,16 +31,19 @@ export function KanbanColumn({ id, title, color, opportunities }: KanbanColumnPr
   const navigate = useNavigate();
 
   return (
-    <Card className="w-80 shrink-0 bg-white shadow-sm">
-      <CardHeader className={`p-4 border-t-4 border-t-${color}-500 bg-${color}-50`}>
-        <CardTitle className="text-sm font-medium flex items-center justify-between">
-          <span>{title}</span>
+    <Card className="w-[278px] shrink-0 bg-white shadow-sm">
+      <CardHeader className={`h-[35px] p-2 border-t-4 border-t-${color}-500 bg-${color}-50 flex flex-row items-center justify-between`}>
+        <div className="flex items-center space-x-2">
+          <span className="text-sm font-medium">{title}</span>
           <span className="text-muted-foreground text-xs">
             ({opportunities.length})
           </span>
-        </CardTitle>
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+          <Plus className="h-4 w-4" />
+        </Button>
       </CardHeader>
-      <CardContent className="p-2 bg-muted/30 min-h-[calc(100vh-12rem)]">
+      <CardContent className="p-2 bg-muted/30 h-[723px] overflow-y-auto">
         <Droppable droppableId={id}>
           {(provided) => (
             <div
