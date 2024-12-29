@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DragDropContext } from '@hello-pangea/dnd';
 import { FieldTypesSidebar } from "./FieldTypesSidebar";
 import { PipelineFieldsEditor } from "./PipelineFieldsEditor";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,11 @@ export function CustomFieldsLayout() {
     setHasChanges(false);
   };
 
+  const onDragEnd = (result: any) => {
+    if (!result.destination) return;
+    setHasChanges(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -48,10 +54,12 @@ export function CustomFieldsLayout() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[300px_1fr] gap-6">
-        <FieldTypesSidebar onFieldAdd={() => setHasChanges(true)} />
-        <PipelineFieldsEditor onChange={() => setHasChanges(true)} />
-      </div>
+      <DragDropContext onDragEnd={onDragEnd}>
+        <div className="grid grid-cols-[300px_1fr] gap-6">
+          <FieldTypesSidebar onFieldAdd={() => setHasChanges(true)} />
+          <PipelineFieldsEditor onChange={() => setHasChanges(true)} />
+        </div>
+      </DragDropContext>
     </div>
   );
 }

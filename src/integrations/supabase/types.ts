@@ -4,7 +4,7 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
 export type Database = {
   public: {
@@ -66,7 +66,7 @@ export type Database = {
         Insert: {
           address?: string | null
           city?: string | null
-          company_name: string
+          company_name?: string
           contact_name?: string | null
           country?: string | null
           created_at?: string
@@ -760,7 +760,7 @@ export type Database = {
           generated_at?: string
           id?: string
           metadata?: Json | null
-          title: string
+          title?: string
           type: Database["public"]["Enums"]["report_type"]
           updated_at?: string
         }
@@ -836,7 +836,7 @@ export type Database = {
           opportunity_id?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
-          title: string
+          title?: string
           updated_at?: string
         }
         Relationships: [

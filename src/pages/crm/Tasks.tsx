@@ -106,7 +106,10 @@ export default function Tasks() {
     try {
       const { error } = await supabase
         .from('tasks')
-        .update({ status: destination.droppableId })
+        .update({ 
+          status: destination.droppableId,
+          title: task.title // Adicionando o título para satisfazer a tipagem
+        })
         .eq('id', draggableId);
 
       if (error) throw error;
