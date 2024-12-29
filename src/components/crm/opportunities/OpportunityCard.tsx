@@ -51,41 +51,9 @@ export function OpportunityCard({ opportunity, provided, onClick }: OpportunityC
       <CardContent className="p-4 space-y-3">
         <div className="flex justify-between items-start">
           <h4 className="font-medium text-sm flex-1">{opportunity.title}</h4>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                <Settings2 className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Campos Visíveis</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={visibleFields.value}
-                onCheckedChange={(checked) =>
-                  setVisibleFields((prev) => ({ ...prev, value: checked }))
-                }
-              >
-                Valor
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={visibleFields.date}
-                onCheckedChange={(checked) =>
-                  setVisibleFields((prev) => ({ ...prev, date: checked }))
-                }
-              >
-                Data Prevista
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={visibleFields.category}
-                onCheckedChange={(checked) =>
-                  setVisibleFields((prev) => ({ ...prev, category: checked }))
-                }
-              >
-                Categoria
-              </DropdownMenuCheckboxItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+            <Settings2 className="h-4 w-4" />
+          </Button>
         </div>
 
         {opportunity.category && visibleFields.category && (

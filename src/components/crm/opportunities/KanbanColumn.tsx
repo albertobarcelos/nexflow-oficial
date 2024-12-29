@@ -43,7 +43,7 @@ export function KanbanColumn({ id, title, color, opportunities }: KanbanColumnPr
           <Plus className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent className="p-2 bg-muted/30 h-[723px] overflow-y-auto">
+      <CardContent className="p-2 bg-muted/30 h-[723px] overflow-y-auto mt-2">
         <Droppable droppableId={id}>
           {(provided) => (
             <div
