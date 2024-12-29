@@ -44,7 +44,7 @@ export default function OpportunitiesKanban() {
 
       if (!stages?.length) return [];
 
-      // Then fetch opportunities
+      // Then fetch opportunities with assigned collaborator data
       const { data: opportunities, error: oppsError } = await supabase
         .from('opportunities')
         .select(`
@@ -52,6 +52,10 @@ export default function OpportunitiesKanban() {
           category:category_id (
             name,
             color
+          ),
+          assigned_collaborator:assigned_to (
+            name,
+            auth_user_id
           )
         `)
         .eq('pipeline_id', pipelineId)
@@ -66,12 +70,22 @@ export default function OpportunitiesKanban() {
         return [];
       }
 
+      // Transform opportunities to match the expected type
+      const transformedOpportunities = opportunities?.map(opp => ({
+        ...opp,
+        assigned_to: opp.assigned_collaborator ? {
+          name: opp.assigned_collaborator.name,
+          // You might want to add avatar_url logic here if needed
+          avatar_url: undefined
+        } : undefined,
+      }));
+
       // Create columns with stages and their opportunities
       return stages.map(stage => ({
         id: stage.id,
         title: stage.name,
         color: stage.color,
-        opportunities: opportunities?.filter(opp => opp.stage_id === stage.id) || []
+        opportunities: transformedOpportunities?.filter(opp => opp.stage_id === stage.id) || []
       }));
     },
     enabled: !!pipelineId
