@@ -115,18 +115,25 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
 
         if (entityError) throw entityError;
 
-        // Atualizar campos existentes e adicionar novos
+        // Processar campos existentes e novos
         for (const field of fields) {
-          if (field.id.includes('temp-')) {
+          if (!field.id || field.id.includes('temp-')) {
             // Novo campo
             const { error: fieldError } = await supabase
               .from('entity_fields')
               .insert({
                 ...field,
+                id: undefined, // Remover ID temporário
                 entity_id: entityToEdit.id,
-                client_id: collaborator.client_id
+                client_id: collaborator.client_id,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
               });
-            if (fieldError) throw fieldError;
+            
+            if (fieldError) {
+              console.error('Error inserting field:', fieldError);
+              throw fieldError;
+            }
           } else {
             // Campo existente
             const { error: fieldError } = await supabase
@@ -138,10 +145,15 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
                 order_index: field.order_index,
                 validation_rules: field.validation_rules,
                 related_entity_id: field.related_entity_id,
-                relationship_type: field.relationship_type
+                relationship_type: field.relationship_type,
+                updated_at: new Date().toISOString()
               })
               .eq('id', field.id);
-            if (fieldError) throw fieldError;
+            
+            if (fieldError) {
+              console.error('Error updating field:', fieldError);
+              throw fieldError;
+            }
           }
         }
 
@@ -166,18 +178,24 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
         if (entityError) throw entityError;
 
         if (fields.length > 0) {
+          const fieldsToInsert = fields.map((field, index) => ({
+            ...field,
+            id: undefined, // Remover ID temporário
+            entity_id: entity.id,
+            client_id: collaborator.client_id,
+            order_index: index,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }));
+
           const { error: fieldsError } = await supabase
             .from('entity_fields')
-            .insert(
-              fields.map((field, index) => ({
-                ...field,
-                entity_id: entity.id,
-                client_id: collaborator.client_id,
-                order_index: index
-              }))
-            );
+            .insert(fieldsToInsert);
 
-          if (fieldsError) throw fieldsError;
+          if (fieldsError) {
+            console.error('Error inserting fields:', fieldsError);
+            throw fieldsError;
+          }
         }
 
         toast({
