@@ -3,13 +3,12 @@ import {
   ReactFlow,
   Background,
   Controls,
-  Node,
-  Edge,
   Connection,
-  ConnectionMode,
+  Edge,
+  Node,
   useNodesState,
   useEdgesState,
-  NodeTypes,
+  ConnectionMode,
   Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -22,15 +21,17 @@ import { Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-const nodeTypes: NodeTypes = {
+const nodeTypes = {
   entity: EntityNode,
 };
 
 const defaultViewport = { x: 0, y: 0, zoom: 0.7 };
 
+type CustomNode = Node<Entity>;
+
 export function EntityRelationshipDiagram() {
   const { entities, relationships, isLoading, refetch } = useEntities();
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Entity>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
@@ -39,7 +40,7 @@ export function EntityRelationshipDiagram() {
     if (!entities) return;
 
     // Transform entities into nodes with proper spacing
-    const newNodes: Node[] = entities.map((entity, index) => ({
+    const newNodes: CustomNode[] = entities.map((entity, index) => ({
       id: entity.id,
       type: 'entity',
       position: { 
@@ -91,11 +92,15 @@ export function EntityRelationshipDiagram() {
 
   const handleSaveChanges = async () => {
     try {
+      // Get client_id from the first entity (all entities belong to same client)
+      const clientId = entities?.[0]?.client_id;
+      if (!clientId) throw new Error("Client ID not found");
+
       // Delete existing relationships
       await supabase
         .from('entity_relationships')
         .delete()
-        .neq('id', 'placeholder');
+        .eq('client_id', clientId);
 
       // Insert new relationships based on edges
       const { error } = await supabase
@@ -106,6 +111,7 @@ export function EntityRelationshipDiagram() {
             target_entity_id: edge.target,
             type: edge.data?.type || 'one_to_many',
             name: edge.label || 'Relacionamento',
+            client_id: clientId
           }))
         );
 
@@ -137,7 +143,11 @@ export function EntityRelationshipDiagram() {
   }, []);
 
   if (isLoading) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
   }
 
   return (
