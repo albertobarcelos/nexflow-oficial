@@ -9,33 +9,46 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import EntityNode from './EntityNode';
+import EntityNodeContent from './diagram/EntityNodeContent';
 import { EntityDiagramProps } from '../types';
 
 const nodeTypes = {
-  entity: EntityNode,
+  entity: EntityNodeContent,
+};
+
+const getLayoutedElements = (nodes, edges, direction = 'LR') => {
+  const nodeWidth = 250;
+  const nodeHeight = 200;
+  const gapBetweenNodes = 100;
+
+  return nodes.map((node, index) => ({
+    ...node,
+    position: {
+      x: direction === 'LR' ? index * (nodeWidth + gapBetweenNodes) : index * 100,
+      y: direction === 'LR' ? 100 : index * (nodeHeight + gapBetweenNodes),
+    },
+  }));
 };
 
 export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-  // Transform entities into nodes
   useEffect(() => {
     if (!entities) return;
 
-    const newNodes = entities.map((entity, index) => ({
+    const newNodes = entities.map((entity) => ({
       id: entity.id,
       type: 'entity',
-      position: { x: 250 * index, y: 100 },
+      position: { x: 0, y: 0 },
       data: entity,
       draggable: true,
     }));
 
-    setNodes(newNodes);
+    const layoutedNodes = getLayoutedElements(newNodes, []);
+    setNodes(layoutedNodes);
   }, [entities, setNodes]);
 
-  // Transform relationships into edges
   useEffect(() => {
     if (!relationships) return;
 
@@ -46,14 +59,12 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
       label: rel.name,
       type: 'smoothstep',
       animated: true,
+      style: { stroke: '#4A90E2', strokeWidth: 2 },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 20,
         height: 20,
-      },
-      style: { 
-        strokeWidth: 2,
-        stroke: '#4A90E2' 
+        color: '#4A90E2',
       },
     }));
 
@@ -78,6 +89,15 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
         nodeTypes={nodeTypes}
         fitView
         className="bg-background"
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          animated: true,
+          style: { stroke: '#4A90E2', strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            color: '#4A90E2',
+          },
+        }}
       >
         <Background />
         <Controls />

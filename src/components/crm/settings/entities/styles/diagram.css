@@ -1,0 +1,54 @@
+.react-flow__node {
+  border: none;
+  border-radius: 8px;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #4A90E2;
+  border: 2px solid white;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__edge-text {
+  font-size: 12px;
+  fill: #64748b;
+}
+
+.react-flow__controls {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__controls button {
+  background-color: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 8px;
+}
+
+.react-flow__controls button:hover {
+  background-color: #f8fafc;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 3;
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+}
