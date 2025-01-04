@@ -145,12 +145,6 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
       if (onSuccess) onSuccess();
       onOpenChange(false);
       
-      toast({
-        title: entityToEdit ? "Entidade atualizada" : "Entidade criada",
-        description: entityToEdit ? 
-          "A entidade foi atualizada com sucesso." : 
-          "A entidade foi criada com sucesso."
-      });
     } catch (error) {
       console.error('Error saving entity:', error);
       toast({
@@ -215,13 +209,12 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
           </form>
         </ScrollArea>
 
-        <div className="border-t p-4 mt-auto">
-          <EntityFormFooter
-            isLoading={isLoading}
-            onCancel={handleCancel}
-            entityToEdit={entityToEdit}
-          />
-        </div>
+        <EntityFormFooter
+          isLoading={isLoading}
+          onCancel={handleCancel}
+          onSubmit={handleSubmit}
+          entityToEdit={entityToEdit}
+        />
       </DialogContent>
     </Dialog>
   );
