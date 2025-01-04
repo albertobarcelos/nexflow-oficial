@@ -14,7 +14,8 @@ export function EntityFieldEditor({ fields, onChange, currentEntityId, entities 
       client_id: "", // Será preenchido no backend
       entity_id: "", // Será preenchido no backend
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      validation_rules: {}
     };
     
     onChange([...fields, newField]);

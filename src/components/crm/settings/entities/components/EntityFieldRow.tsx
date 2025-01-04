@@ -45,6 +45,17 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
     }
   };
 
+  const handleRelationshipTypeChange = (value: "one_to_many" | "many_to_many") => {
+    onChange({
+      ...field,
+      relationship_type: value,
+      validation_rules: {
+        ...field.validation_rules,
+        relationshipType: value
+      }
+    });
+  };
+
   return (
     <div className="flex items-center space-x-2">
       <Input
@@ -95,7 +106,7 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
 
           <Select
             value={field.relationship_type as "one_to_many" | "many_to_many"}
-            onValueChange={(value: "one_to_many" | "many_to_many") => onChange({ ...field, relationship_type: value })}
+            onValueChange={handleRelationshipTypeChange}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Tipo de relacionamento" />
