@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -27,11 +27,15 @@ const nodeTypes = {
 
 const defaultViewport = { x: 0, y: 0, zoom: 0.7 };
 
-type CustomNode = Node<Entity>;
+interface EntityNodeData extends Record<string, unknown> {
+  entity: Entity;
+}
+
+type CustomNode = Node<EntityNodeData>;
 
 export function EntityRelationshipDiagram() {
   const { entities, relationships, isLoading, refetch } = useEntities();
-  const [nodes, setNodes, onNodesChange] = useNodesState<Entity>([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<CustomNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [hasChanges, setHasChanges] = useState(false);
   const { toast } = useToast();
@@ -47,7 +51,10 @@ export function EntityRelationshipDiagram() {
         x: (index % 3) * 350, 
         y: Math.floor(index / 3) * 250 
       },
-      data: entity,
+      data: {
+        entity,
+        label: entity.name,
+      },
       draggable: true,
     }));
 
@@ -66,29 +73,6 @@ export function EntityRelationshipDiagram() {
     setNodes(newNodes);
     setEdges(newEdges);
   }, [entities, relationships, setNodes, setEdges]);
-
-  const onConnect = useCallback(async (params: Connection) => {
-    if (!params.source || !params.target) return;
-
-    const sourceEntity = entities?.find(e => e.id === params.source);
-    const targetEntity = entities?.find(e => e.id === params.target);
-
-    if (!sourceEntity || !targetEntity) return;
-
-    const newEdge: Edge = {
-      id: `${params.source}-${params.target}`,
-      source: params.source,
-      target: params.target,
-      label: `${sourceEntity.name} → ${targetEntity.name}`,
-      type: 'smoothstep',
-      animated: true,
-      style: { stroke: '#9E9E9E', strokeWidth: 2 },
-      data: { type: 'one_to_many' },
-    };
-
-    setEdges((eds) => [...eds, newEdge]);
-    setHasChanges(true);
-  }, [entities, setEdges]);
 
   const handleSaveChanges = async () => {
     try {
@@ -133,6 +117,11 @@ export function EntityRelationshipDiagram() {
       });
     }
   };
+
+  const onConnect = useCallback((params: Connection) => {
+    setEdges((eds) => [...eds, { ...params, type: 'smoothstep', animated: true }]);
+    setHasChanges(true);
+  }, [setEdges]);
 
   const onNodesDelete = useCallback(() => {
     setHasChanges(true);
