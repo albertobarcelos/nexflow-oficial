@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, List, Network } from "lucide-react";
 import { EntityList } from "./components/EntityList";
 import { CreateEntityDialog } from "./components/CreateEntityDialog";
 import { EntityDiagram } from "./components/EntityDiagram";
 import { useEntities } from "./hooks/useEntities";
 import { Entity } from "./types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function EntitiesSettings() {
   const { entities, refetch } = useEntities();
@@ -48,16 +49,33 @@ export function EntitiesSettings() {
         </Button>
       </div>
 
-      <EntityList
-        entities={entities}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">
+            <List className="h-4 w-4 mr-2" />
+            Lista
+          </TabsTrigger>
+          <TabsTrigger value="diagram">
+            <Network className="h-4 w-4 mr-2" />
+            Diagrama
+          </TabsTrigger>
+        </TabsList>
 
-      <EntityDiagram
-        entities={entities}
-        relationships={[]}
-      />
+        <TabsContent value="list">
+          <EntityList
+            entities={entities}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        </TabsContent>
+
+        <TabsContent value="diagram">
+          <EntityDiagram
+            entities={entities}
+            relationships={[]}
+          />
+        </TabsContent>
+      </Tabs>
 
       <CreateEntityDialog
         open={dialogOpen}
