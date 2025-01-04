@@ -36,14 +36,22 @@ export function useEntities() {
 
           if (fieldsError) throw fieldsError;
 
+          // Mapear os campos para o formato esperado
+          const mappedFields = (fields || []).map(field => ({
+            ...field,
+            type: field.field_type as EntityField['type'],
+            required: field.is_required,
+            options: field.options ? (field.options as string[]) : undefined
+          }));
+
           return {
             ...entity,
-            fields: fields || []
+            fields: mappedFields
           };
         })
       );
 
-      return entitiesWithFields;
+      return entitiesWithFields as Entity[];
     },
   });
 
