@@ -1,18 +1,33 @@
-import { Users } from "lucide-react";
+import { Users, Trash2, Edit2, Check, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CollaboratorsListProps {
   client_id: string;
 }
 
 export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
-  const { data: collaborators, isLoading } = useQuery({
+  const { toast } = useToast();
+  const { data: collaborators, isLoading, refetch } = useQuery({
     queryKey: ['collaborators', client_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('collaborators')
-        .select('*')
+        .select(`
+          *,
+          collaborator_invites (
+            used_at
+          )
+        `)
         .eq('client_id', client_id);
 
       if (error) {
@@ -25,15 +40,68 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
     enabled: !!client_id,
   });
 
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('collaborators')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Usuário removido",
+        description: "O usuário foi removido com sucesso.",
+      });
+
+      refetch();
+    } catch (error) {
+      console.error('Error deleting collaborator:', error);
+      toast({
+        title: "Erro ao remover usuário",
+        description: "Ocorreu um erro ao remover o usuário.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRoleChange = async (id: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('collaborators')
+        .update({ 
+          role: newRole,
+          permissions: getRolePermissions(newRole)
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Função atualizada",
+        description: "A função do usuário foi atualizada com sucesso.",
+      });
+
+      refetch();
+    } catch (error) {
+      console.error('Error updating role:', error);
+      toast({
+        title: "Erro ao atualizar função",
+        description: "Ocorreu um erro ao atualizar a função do usuário.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
-    return <div className="p-4">Carregando colaboradores...</div>;
+    return <div className="p-4">Carregando usuários...</div>;
   }
 
   return (
     <div className="rounded-md border">
       <div className="flex items-center p-4 border-b">
         <Users className="mr-2 h-4 w-4" />
-        <h4 className="font-medium">Colaboradores</h4>
+        <h4 className="font-medium">Usuários</h4>
       </div>
       <div className="divide-y">
         {collaborators?.map((collaborator) => (
@@ -41,18 +109,48 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
             <div>
               <p className="font-medium">{collaborator.name}</p>
               <p className="text-sm text-muted-foreground">{collaborator.email}</p>
+              <div className="flex items-center mt-1">
+                {collaborator.collaborator_invites?.[0]?.used_at ? (
+                  <span className="text-xs text-green-600 flex items-center">
+                    <Check className="h-3 w-3 mr-1" />
+                    Senha configurada
+                  </span>
+                ) : (
+                  <span className="text-xs text-orange-600 flex items-center">
+                    <X className="h-3 w-3 mr-1" />
+                    Aguardando configuração de senha
+                  </span>
+                )}
+              </div>
             </div>
-            <span className="text-sm bg-muted px-2 py-1 rounded-full">
-              {collaborator.role === 'closer' && 'Closer'}
-              {collaborator.role === 'partnership_director' && 'Diretor de Parcerias'}
-              {collaborator.role === 'partner' && 'Parceiro'}
-              {collaborator.role === 'administrator' && 'Administrador'}
-            </span>
+            <div className="flex items-center gap-2">
+              <Select
+                value={collaborator.role}
+                onValueChange={(value) => handleRoleChange(collaborator.id, value)}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="administrator">Administrador</SelectItem>
+                  <SelectItem value="closer">Closer</SelectItem>
+                  <SelectItem value="partnership_director">Diretor de Parcerias</SelectItem>
+                  <SelectItem value="partner">Parceiro</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDelete(collaborator.id)}
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
           </div>
         ))}
         {(!collaborators || collaborators.length === 0) && (
           <p className="p-4 text-sm text-muted-foreground">
-            Nenhum colaborador cadastrado
+            Nenhum usuário cadastrado
           </p>
         )}
       </div>

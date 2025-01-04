@@ -44,7 +44,6 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
         .insert({
           client_id: clientId,
           type: currentPlan,
-          expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           user_limit: 3,
         })
         .select()
@@ -108,7 +107,7 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
       />
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Colaboradores</h3>
+          <h3 className="text-lg font-semibold">Usuários</h3>
           <AddCollaboratorDialog clientId={clientId} onSuccess={() => {}} />
         </div>
         <CollaboratorsList client_id={clientId} />
