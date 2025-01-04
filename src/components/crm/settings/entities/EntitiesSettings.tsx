@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EntityDiagram } from "./components/EntityDiagram";
@@ -8,9 +8,21 @@ import { useEntities } from "./hooks/useEntities";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Entity } from "./types";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function EntitiesSettings() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [entityToDelete, setEntityToDelete] = useState<Entity | null>(null);
   const { entities, relationships, isLoading, refetch } = useEntities();
   const { toast } = useToast();
 
@@ -23,13 +35,54 @@ export function EntitiesSettings() {
   };
 
   const handleEditEntity = (entity: Entity) => {
-    console.log('Edit entity:', entity);
-    // Implement edit functionality
+    // Implementar edição posteriormente
+    toast({
+      title: "Edição de entidade",
+      description: "Funcionalidade em desenvolvimento.",
+      variant: "default",
+    });
   };
 
-  const handleDeleteEntity = (entity: Entity) => {
-    console.log('Delete entity:', entity);
-    // Implement delete functionality
+  const handleDeleteEntity = async (entity: Entity) => {
+    setEntityToDelete(entity);
+  };
+
+  const confirmDelete = async () => {
+    if (!entityToDelete) return;
+
+    try {
+      // Primeiro deletar os campos da entidade
+      const { error: fieldsError } = await supabase
+        .from('entity_fields')
+        .delete()
+        .eq('entity_id', entityToDelete.id);
+
+      if (fieldsError) throw fieldsError;
+
+      // Depois deletar a entidade
+      const { error: entityError } = await supabase
+        .from('custom_entities')
+        .delete()
+        .eq('id', entityToDelete.id);
+
+      if (entityError) throw entityError;
+
+      toast({
+        title: "Entidade excluída",
+        description: "A entidade foi excluída com sucesso.",
+      });
+
+      refetch();
+    } catch (error) {
+      console.error('Erro ao excluir entidade:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Ocorreu um erro ao excluir a entidade.",
+        variant: "destructive",
+      });
+    } finally {
+      setEntityToDelete(null);
+    }
   };
 
   return (
@@ -72,6 +125,24 @@ export function EntitiesSettings() {
         onOpenChange={setIsCreateDialogOpen}
         onSuccess={handleCreateSuccess}
       />
+
+      <AlertDialog open={!!entityToDelete} onOpenChange={() => setEntityToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a entidade "{entityToDelete?.name}"? 
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
