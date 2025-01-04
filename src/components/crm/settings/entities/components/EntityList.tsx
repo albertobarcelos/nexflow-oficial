@@ -14,7 +14,7 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
     if (onEdit) {
       onEdit({
         ...entity,
-        fields: entity.entity_fields
+        fields: entity.entity_fields || entity.fields
       });
     }
   };
@@ -24,6 +24,10 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
     if (onDelete) {
       onDelete(entity);
     }
+  };
+
+  const getFieldsCount = (entity: any) => {
+    return entity.entity_fields?.length || entity.fields?.length || 0;
   };
 
   return (
@@ -42,7 +46,7 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
             {entities?.map((entity) => (
               <tr key={entity.id} className="border-b">
                 <td className="p-4">{entity.name}</td>
-                <td className="p-4">{entity.entity_fields?.length || 0} campos</td>
+                <td className="p-4">{getFieldsCount(entity)} campos</td>
                 <td className="p-4">
                   {format(new Date(entity.created_at), 'dd/MM/yyyy')}
                 </td>

@@ -27,6 +27,7 @@ export interface Entity {
   icon_name?: string;
   color?: string;
   fields?: EntityField[];
+  entity_fields?: EntityField[]; // Add this to support both naming conventions
 }
 
 export interface EntityDiagramProps {
