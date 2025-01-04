@@ -12,7 +12,7 @@ import {
   Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { EntityNode } from './EntityNode';
+import EntityNode from './EntityNode';
 import { useEntities } from '../hooks/useEntities';
 import { cn } from '@/lib/utils';
 import { Entity } from '../types';

@@ -9,7 +9,7 @@ interface EntityNodeProps {
   };
 }
 
-function EntityNode({ data }: EntityNodeProps) {
+const EntityNode = ({ data }: EntityNodeProps) => {
   const { entity } = data;
   
   return (
@@ -27,6 +27,6 @@ function EntityNode({ data }: EntityNodeProps) {
       <Handle type="source" position={Position.Bottom} />
     </div>
   );
-}
+};
 
-export default memo(EntityNode);
+export default EntityNode;

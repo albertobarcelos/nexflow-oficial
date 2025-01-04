@@ -8,7 +8,7 @@ import {
   useEdgesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { EntityNode } from './EntityNode';
+import EntityNode from './EntityNode';
 import { EntityDiagramProps } from '../types';
 
 const nodeTypes = {
