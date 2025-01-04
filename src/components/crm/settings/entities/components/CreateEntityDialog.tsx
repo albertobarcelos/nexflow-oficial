@@ -92,6 +92,8 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
 
     setIsLoading(true);
     try {
+      console.log("Starting save operation...");
+      
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
@@ -101,7 +103,9 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
       if (!collaborator) throw new Error('Cliente não encontrado');
 
       if (entityToEdit) {
-        // Atualizar entidade existente
+        console.log("Updating existing entity...");
+        
+        // Update entity
         const { error: entityError } = await supabase
           .from('custom_entities')
           .update({
@@ -113,36 +117,50 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
           })
           .eq('id', entityToEdit.id);
 
-        if (entityError) throw entityError;
+        if (entityError) {
+          console.error('Entity update error:', entityError);
+          throw entityError;
+        }
 
-        // Processar campos existentes e novos
+        // Handle fields
         for (const field of fields) {
           if (!field.id || field.id.includes('temp-')) {
-            // Novo campo
+            console.log("Inserting new field:", field);
+            
             const { error: fieldError } = await supabase
               .from('entity_fields')
               .insert({
-                ...field,
-                id: undefined, // Remover ID temporário
+                name: field.name,
+                field_type: field.field_type,
+                description: field.description,
+                is_required: field.is_required,
+                order_index: field.order_index,
+                options: field.options,
+                validation_rules: field.validation_rules,
                 entity_id: entityToEdit.id,
                 client_id: collaborator.client_id,
+                related_entity_id: field.related_entity_id,
+                relationship_type: field.relationship_type,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               });
             
             if (fieldError) {
-              console.error('Error inserting field:', fieldError);
+              console.error('Field insert error:', fieldError);
               throw fieldError;
             }
           } else {
-            // Campo existente
+            console.log("Updating existing field:", field);
+            
             const { error: fieldError } = await supabase
               .from('entity_fields')
               .update({
                 name: field.name,
                 field_type: field.field_type,
+                description: field.description,
                 is_required: field.is_required,
                 order_index: field.order_index,
+                options: field.options,
                 validation_rules: field.validation_rules,
                 related_entity_id: field.related_entity_id,
                 relationship_type: field.relationship_type,
@@ -151,18 +169,15 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
               .eq('id', field.id);
             
             if (fieldError) {
-              console.error('Error updating field:', fieldError);
+              console.error('Field update error:', fieldError);
               throw fieldError;
             }
           }
         }
-
-        toast({
-          title: "Entidade atualizada",
-          description: "A entidade foi atualizada com sucesso."
-        });
       } else {
-        // Criar nova entidade
+        console.log("Creating new entity...");
+        
+        // Create new entity
         const { data: entity, error: entityError } = await supabase
           .from('custom_entities')
           .insert({
@@ -175,15 +190,26 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
           .select()
           .single();
 
-        if (entityError) throw entityError;
+        if (entityError) {
+          console.error('Entity creation error:', entityError);
+          throw entityError;
+        }
 
-        if (fields.length > 0) {
+        if (fields.length > 0 && entity) {
+          console.log("Creating fields for new entity:", fields);
+          
           const fieldsToInsert = fields.map((field, index) => ({
-            ...field,
-            id: undefined, // Remover ID temporário
+            name: field.name,
+            field_type: field.field_type,
+            description: field.description,
+            is_required: field.is_required,
+            order_index: index,
+            options: field.options,
+            validation_rules: field.validation_rules,
             entity_id: entity.id,
             client_id: collaborator.client_id,
-            order_index: index,
+            related_entity_id: field.related_entity_id,
+            relationship_type: field.relationship_type,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }));
@@ -193,16 +219,20 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
             .insert(fieldsToInsert);
 
           if (fieldsError) {
-            console.error('Error inserting fields:', fieldsError);
+            console.error('Fields creation error:', fieldsError);
             throw fieldsError;
           }
         }
-
-        toast({
-          title: "Entidade criada",
-          description: "A entidade foi criada com sucesso."
-        });
       }
+      
+      console.log("Save operation completed successfully");
+      
+      toast({
+        title: entityToEdit ? "Entidade atualizada" : "Entidade criada",
+        description: entityToEdit ? 
+          "A entidade foi atualizada com sucesso." : 
+          "A entidade foi criada com sucesso."
+      });
       
       await refetch();
       if (onSuccess) onSuccess();
