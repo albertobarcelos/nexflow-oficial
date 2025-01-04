@@ -49,7 +49,7 @@ export default function SetPassword() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("verify-invite", {
+      const { error } = await supabase.functions.invoke("verify-invite", {
         body: { token, password },
       });
 

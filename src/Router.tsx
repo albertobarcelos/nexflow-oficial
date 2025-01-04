@@ -17,6 +17,7 @@ import AdminUsers from "@/pages/admin/Users";
 import AdminAnalytics from "@/pages/admin/Analytics";
 import AdminSettings from "@/pages/admin/Settings";
 import Index from "@/pages/Index";
+import SetPassword from "@/pages/collaborator/SetPassword";
 
 export function Router() {
   return (
@@ -46,6 +47,9 @@ export function Router() {
         <Route path="tasks" element={<Tasks />} />
         <Route path="settings/*" element={<Settings />} />
       </Route>
+
+      {/* Collaborator Routes */}
+      <Route path="/collaborator/set-password" element={<SetPassword />} />
     </Routes>
   );
 }
