@@ -13,6 +13,8 @@ import {
   BarChart,
   Settings,
   Menu,
+  Building2,
+  Contact,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PipelineSelector } from "./pipeline/PipelineSelector";
@@ -20,39 +22,22 @@ import { SidebarMenuItem } from "./sidebar/SidebarMenuItem";
 import { SidebarLogoutButton } from "./sidebar/SidebarLogoutButton";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 
-const getMenuItems = (leadSingular: string, leadPlural: string) => [
-  {
-    title: "Dashboard",
-    icon: LayoutDashboard,
-    href: "/crm/dashboard",
-  },
-  {
-    title: leadPlural,
-    icon: Users,
-    href: "/crm/leads",
-  },
-  {
-    title: "Pipelines",
-    icon: Kanban,
-    href: "/crm/opportunities",
-    showSelector: true,
-  },
-  {
-    title: "Tarefas",
-    icon: CheckSquare,
-    href: "/crm/tasks",
-  },
-  {
-    title: "Relatórios",
-    icon: BarChart,
-    href: "/crm/reports",
-  },
-  {
-    title: "Configurações",
-    icon: Settings,
-    href: "/crm/settings",
-  },
-];
+type CustomEntity = {
+  id: string;
+  name: string;
+  template_name: string | null;
+};
+
+const getDefaultIcon = (templateName: string | null) => {
+  switch (templateName) {
+    case 'company':
+      return Building2;
+    case 'contact':
+      return Contact;
+    default:
+      return Users;
+  }
+};
 
 export function CRMSidebar() {
   const navigate = useNavigate();
@@ -60,10 +45,9 @@ export function CRMSidebar() {
   const { state, setOpen, isMobile } = useSidebar();
   const [showPipelineSelector, setShowPipelineSelector] = useState(false);
   const { leadSingular, leadPlural } = useEntityNames();
-  const menuItems = getMenuItems(leadSingular, leadPlural);
 
-  const { data: pipelines } = useQuery({
-    queryKey: ['pipelines'],
+  const { data: customEntities = [] } = useQuery({
+    queryKey: ['custom-entities'],
     queryFn: async () => {
       const { data: collaborator } = await supabase
         .from('collaborators')
@@ -73,14 +57,45 @@ export function CRMSidebar() {
 
       if (!collaborator) throw new Error('Collaborator not found');
 
-      const { data } = await supabase
-        .from('pipeline_configs')
+      const { data, error } = await supabase
+        .from('custom_entities')
         .select('*')
-        .eq('client_id', collaborator.client_id);
+        .eq('client_id', collaborator.client_id)
+        .order('created_at');
 
-      return data;
-    }
+      if (error) throw error;
+      return data as CustomEntity[];
+    },
   });
+
+  const baseMenuItems = [
+    {
+      title: "Dashboard",
+      icon: LayoutDashboard,
+      href: "/crm/dashboard",
+    },
+    {
+      title: "Pipelines",
+      icon: Kanban,
+      href: "/crm/opportunities",
+      showSelector: true,
+    },
+    {
+      title: "Tarefas",
+      icon: CheckSquare,
+      href: "/crm/tasks",
+    },
+    {
+      title: "Relatórios",
+      icon: BarChart,
+      href: "/crm/reports",
+    },
+    {
+      title: "Configurações",
+      icon: Settings,
+      href: "/crm/settings",
+    },
+  ];
 
   const isActive = (href: string) => {
     if (href === '/crm/opportunities') {
@@ -92,10 +107,8 @@ export function CRMSidebar() {
   const handleMenuClick = async (href: string, showSelector: boolean) => {
     if (showSelector) {
       if (pipelines?.length === 1) {
-        // Se houver apenas um pipeline, navega diretamente para ele
         navigate(`/crm/opportunities/${pipelines[0].id}`);
       } else if (pipelines?.length > 1) {
-        // Se houver múltiplos pipelines, alterna a visibilidade do seletor
         setShowPipelineSelector(!showPipelineSelector);
       }
       return;
@@ -123,7 +136,8 @@ export function CRMSidebar() {
 
         <div className="flex-1 overflow-auto">
           <nav className="flex-1 space-y-1 p-2">
-            {menuItems.map((item) => (
+            {/* Menu Principal */}
+            {baseMenuItems.map((item) => (
               <div key={item.href}>
                 <SidebarMenuItem
                   title={item.title}
@@ -141,6 +155,21 @@ export function CRMSidebar() {
                   />
                 )}
               </div>
+            ))}
+
+            {/* Divisor */}
+            <div className="my-4 border-t border-gray-200 dark:border-gray-700" />
+
+            {/* Entidades Customizadas */}
+            {customEntities.map((entity) => (
+              <SidebarMenuItem
+                key={entity.id}
+                title={entity.name}
+                href={`/crm/entities/${entity.id}`}
+                icon={getDefaultIcon(entity.template_name)}
+                isActive={location.pathname === `/crm/entities/${entity.id}`}
+                onClick={() => navigate(`/crm/entities/${entity.id}`)}
+              />
             ))}
           </nav>
         </div>
