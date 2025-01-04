@@ -1,49 +1,27 @@
-import { Json } from "@/types/database/json";
-
-export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
-
-export type FieldType =
+export type FieldType = 
   | "short_text"
   | "long_text"
-  | "dynamic_content"
-  | "attachment"
-  | "checkbox"
-  | "responsible"
-  | "date"
-  | "datetime"
-  | "due_date"
-  | "tags"
   | "email"
   | "phone"
-  | "list"
-  | "single_select"
-  | "time"
-  | "numeric"
   | "currency"
+  | "numeric"
   | "documents"
-  | "id";
+  | "attachment"
+  | "date"
+  | "datetime"
+  | "checkbox"
+  | "list";
 
 export interface FieldTypeInfo {
   id: FieldType;
   name: string;
   description: string;
+  icon: JSX.Element;
   category: FieldCategory;
-  icon: React.ReactNode;
-  validation?: (value: any) => boolean | string;
+  validation?: (value: any) => boolean;
 }
 
-export interface FieldChange {
-  field: string;
-  oldValue: any;
-  newValue: any;
-}
-
-export interface FieldHistory {
-  timestamp: string;
-  action: "created" | "updated" | "deleted";
-  changes?: FieldChange[];
-  user_id: string;
-}
+export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
 
 export interface CustomField {
   id: string;
@@ -51,34 +29,37 @@ export interface CustomField {
   pipeline_id: string;
   stage_id: string;
   name: string;
-  field_type: FieldType;
-  description?: string | null;
+  field_type: string;
+  description?: string;
   is_required?: boolean;
   order_index: number;
-  options: any[];
-  created_at?: string;
-  updated_at?: string;
+  options?: any[];
   history: FieldHistory[];
 }
 
-export interface FieldTemplate {
+export interface FieldHistory {
+  timestamp: string;
+  action: string;
+  user_id: string;
+}
+
+export interface EntityField {
   id: string;
+  entity_id: string;
+  client_id: string;
   name: string;
-  description: string;
-  category: string;
-  fields: Partial<CustomField>[];
+  field_type: string;
+  description?: string;
+  is_required?: boolean;
+  order_index: number;
+  options?: any[];
+  validation_rules?: Record<string, any>;
 }
 
-export interface FieldTypesSidebarProps {
-  onFieldAdd?: (fieldType: FieldType) => void;
-  searchTerm?: string;
-  selectedCategory?: FieldCategory;
-}
-
-export interface PipelineFieldsEditorProps {
-  stagedFields: Record<string, CustomField[]>;
-  onChange: () => void;
-  onEditField: (field: CustomField) => void;
-  onDuplicate: (field: CustomField) => void;
-  onReorder: (stageId: string, reorderedFields: CustomField[]) => void;
+export interface EntityFieldValue {
+  id: string;
+  entity_id: string;
+  field_id: string;
+  record_id: string;
+  value: any;
 }

@@ -1,87 +1,25 @@
-import { useState, useEffect } from "react";
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { FieldTypesSidebar } from "./FieldTypesSidebar";
-import { PipelineFieldsEditor } from "./PipelineFieldsEditor";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Save, Undo2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
+import { DropResult } from '@hello-pangea/dnd';
 import { CustomField, FieldType } from "./types";
 import { EditFieldDialog } from "./components/EditFieldDialog";
 import { FieldConfigurationManager } from "./components/FieldConfigurationManager";
+import { useCustomFields } from "./hooks/useCustomFields";
+import { CustomFieldsHeader } from "./components/CustomFieldsHeader";
+import { DragDropContainer } from "./components/DragDropContainer";
 
 export function CustomFieldsLayout() {
-  const { toast } = useToast();
-  const [hasChanges, setHasChanges] = useState(false);
-  const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
+  const {
+    hasChanges,
+    setHasChanges,
+    stagedFields,
+    setStagedFields,
+    clientId,
+    handleSave,
+    handleRevert
+  } = useCustomFields();
+
   const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [clientId, setClientId] = useState<string>("");
-
-  useEffect(() => {
-    const fetchClientId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: collaborator } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      if (collaborator) {
-        setClientId(collaborator.client_id);
-      }
-    };
-
-    fetchClientId();
-  }, []);
-
-  const handleSave = async () => {
-    try {
-      if (!clientId) throw new Error('Client ID not found');
-
-      for (const stageId in stagedFields) {
-        const fields = stagedFields[stageId];
-        for (const field of fields) {
-          const { error } = await supabase
-            .from('custom_fields')
-            .insert({
-              ...field,
-              client_id: clientId,
-              pipeline_id: field.pipeline_id,
-              stage_id: field.stage_id,
-              field_type: field.field_type
-            });
-          
-          if (error) throw error;
-        }
-      }
-
-      toast({
-        title: "Alterações salvas",
-        description: "Suas alterações foram salvas com sucesso.",
-      });
-      setHasChanges(false);
-      setStagedFields({});
-    } catch (error) {
-      console.error('Error saving custom fields:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar as alterações.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleRevert = () => {
-    setStagedFields({});
-    toast({
-      title: "Alterações revertidas",
-      description: "Suas alterações foram desfeitas.",
-    });
-    setHasChanges(false);
-  };
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -112,7 +50,7 @@ export function CustomFieldsLayout() {
         history: [{
           timestamp: new Date().toISOString(),
           action: "created",
-          user_id: "current_user_id" // Substituir pelo ID do usuário atual
+          user_id: "current_user_id"
         }]
       };
 
@@ -155,14 +93,14 @@ export function CustomFieldsLayout() {
   };
 
   const handleDuplicateField = (field: CustomField) => {
-    const duplicatedField: CustomField =  {
+    const duplicatedField: CustomField = {
       ...field,
       id: `temp-${Date.now()}`,
       name: `${field.name} (cópia)`,
       history: [{
         timestamp: new Date().toISOString(),
         action: "created",
-        user_id: "current_user_id" // Substituir pelo ID do usuário atual
+        user_id: "current_user_id"
       }]
     };
 
@@ -178,10 +116,6 @@ export function CustomFieldsLayout() {
     });
 
     setHasChanges(true);
-    toast({
-      title: "Campo duplicado",
-      description: "O campo foi duplicado com sucesso."
-    });
   };
 
   const handleReorderFields = (stageId: string, reorderedFields: CustomField[]) => {
@@ -196,7 +130,6 @@ export function CustomFieldsLayout() {
   };
 
   const handleImportConfiguration = (importedFields: CustomField[]) => {
-    // Agrupa os campos importados por stage_id
     const groupedFields = importedFields.reduce((acc, field) => {
       const stageFields = acc[field.stage_id] || [];
       return {
@@ -211,44 +144,25 @@ export function CustomFieldsLayout() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Personalização de Campos</h1>
-          <p className="text-muted-foreground">
-            Personalize os campos do seu CRM de acordo com suas necessidades
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {hasChanges && (
-            <Button variant="outline" onClick={handleRevert}>
-              <Undo2 className="w-4 h-4 mr-2" />
-              Reverter
-            </Button>
-          )}
-          <Button onClick={handleSave} disabled={!hasChanges}>
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Alterações
-          </Button>
-        </div>
-      </div>
+      <CustomFieldsHeader 
+        hasChanges={hasChanges}
+        onSave={handleSave}
+        onRevert={handleRevert}
+      />
 
       <FieldConfigurationManager
         fields={Object.values(stagedFields).flat()}
         onImport={handleImportConfiguration}
       />
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-[300px_1fr] gap-6">
-          <FieldTypesSidebar />
-          <PipelineFieldsEditor 
-            stagedFields={stagedFields}
-            onChange={() => setHasChanges(true)}
-            onEditField={handleEditField}
-            onDuplicate={handleDuplicateField}
-            onReorder={handleReorderFields}
-          />
-        </div>
-      </DragDropContext>
+      <DragDropContainer
+        stagedFields={stagedFields}
+        onDragEnd={onDragEnd}
+        onChange={() => setHasChanges(true)}
+        onEditField={handleEditField}
+        onDuplicate={handleDuplicateField}
+        onReorder={handleReorderFields}
+      />
 
       <EditFieldDialog
         open={isEditDialogOpen}

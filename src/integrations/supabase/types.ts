@@ -213,7 +213,9 @@ export type Database = {
           description: string | null
           fields: Json
           id: string
+          is_default: boolean | null
           name: string
+          template_name: string | null
           updated_at: string
         }
         Insert: {
@@ -222,7 +224,9 @@ export type Database = {
           description?: string | null
           fields?: Json
           id?: string
+          is_default?: boolean | null
           name: string
+          template_name?: string | null
           updated_at?: string
         }
         Update: {
@@ -231,7 +235,9 @@ export type Database = {
           description?: string | null
           fields?: Json
           id?: string
+          is_default?: boolean | null
           name?: string
+          template_name?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -241,6 +247,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_entities_template_name_fkey"
+            columns: ["template_name"]
+            isOneToOne: false
+            referencedRelation: "default_entity_templates"
+            referencedColumns: ["name"]
           },
         ]
       }
@@ -310,6 +323,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      default_entity_templates: {
+        Row: {
+          created_at: string
+          default_fields: Json
+          description: string | null
+          display_name: string
+          id: string
+          is_required: boolean | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_fields?: Json
+          description?: string | null
+          display_name: string
+          id?: string
+          is_required?: boolean | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_fields?: Json
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_required?: boolean | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       entity_field_values: {
         Row: {
@@ -1080,7 +1126,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_default_entities_for_client: {
+        Args: {
+          client_id: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       admin_access_level: "general" | "limited"
