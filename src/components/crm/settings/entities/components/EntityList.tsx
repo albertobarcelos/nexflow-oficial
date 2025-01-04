@@ -1,47 +1,57 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Edit, Trash } from "lucide-react";
-import { EntityListProps } from "../types";
+import { useEffect } from 'react';
+import { EntityListProps } from '../types';
+import { Button } from '@/components/ui/button';
+import { Pencil, Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
 
-export function EntityList({ entities }: EntityListProps) {
+export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
+  useEffect(() => {
+    console.log('Entities updated:', entities);
+  }, [entities]);
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Campos</TableHead>
-            <TableHead>Criado em</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entities.map((entity) => (
-            <TableRow key={entity.id}>
-              <TableCell className="font-medium">{entity.name}</TableCell>
-              <TableCell>{entity.fields.length} campos</TableCell>
-              <TableCell>{new Date(entity.created_at).toLocaleDateString()}</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
-                  <Button variant="ghost" size="icon">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon">
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-4">
+      <div className="rounded-md border">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="p-4 text-left">Nome</th>
+              <th className="p-4 text-left">Campos</th>
+              <th className="p-4 text-left">Criado em</th>
+              <th className="p-4 text-left">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entities?.map((entity) => (
+              <tr key={entity.id} className="border-b">
+                <td className="p-4">{entity.name}</td>
+                <td className="p-4">{entity.fields?.length || 0} campos</td>
+                <td className="p-4">
+                  {format(new Date(entity.created_at), 'dd/MM/yyyy')}
+                </td>
+                <td className="p-4">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit?.(entity)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete?.(entity)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

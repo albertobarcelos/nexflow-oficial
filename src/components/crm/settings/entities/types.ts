@@ -47,9 +47,39 @@ export interface EntityDiagramProps {
 
 export interface EntityListProps {
   entities: Entity[];
+  onEdit?: (entity: Entity) => void;
+  onDelete?: (entity: Entity) => void;
 }
 
 export interface CreateEntityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+export interface PipelineFieldsEditorProps {
+  stagedFields: Record<string, CustomField[]>;
+  onChange: () => void;
+  onEditField: (field: CustomField) => void;
+  onDuplicate: (field: CustomField) => void;
+  onReorder: (stageId: string, reorderedFields: CustomField[]) => void;
+}
+
+export interface CustomField {
+  id: string;
+  name: string;
+  field_type: string;
+  description?: string;
+  is_required?: boolean;
+  options?: string[];
+  stage_id: string;
+  pipeline_id: string;
+  order_index: number;
+  history: FieldHistory[];
+}
+
+interface FieldHistory {
+  timestamp: string;
+  action: string;
+  user_id: string;
 }

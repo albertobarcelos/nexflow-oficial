@@ -1,11 +1,9 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
   Connection,
-  Edge,
-  Node,
   useNodesState,
   useEdgesState,
 } from '@xyflow/react';
@@ -21,9 +19,39 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
+  // Transform entities into nodes
+  useEffect(() => {
+    if (!entities) return;
+
+    const newNodes = entities.map((entity, index) => ({
+      id: entity.id,
+      type: 'entity',
+      position: { x: 250 * index, y: 100 },
+      data: entity,
+    }));
+
+    setNodes(newNodes);
+  }, [entities, setNodes]);
+
+  // Transform relationships into edges
+  useEffect(() => {
+    if (!relationships) return;
+
+    const newEdges = relationships.map((rel) => ({
+      id: rel.id,
+      source: rel.source_entity_id,
+      target: rel.target_entity_id,
+      label: rel.name,
+      type: 'smoothstep',
+    }));
+
+    setEdges(newEdges);
+  }, [relationships, setEdges]);
+
   const onConnect = useCallback(
     (params: Connection) => {
       // Handle new connections between entities
+      console.log('New connection:', params);
     },
     []
   );
