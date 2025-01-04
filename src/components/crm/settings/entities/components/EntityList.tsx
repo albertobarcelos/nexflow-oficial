@@ -12,7 +12,10 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
   const handleEdit = (entity: any) => {
     console.log('Editing entity:', entity);
     if (onEdit) {
-      onEdit(entity);
+      onEdit({
+        ...entity,
+        fields: entity.entity_fields
+      });
     }
   };
 
@@ -39,7 +42,7 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
             {entities?.map((entity) => (
               <tr key={entity.id} className="border-b">
                 <td className="p-4">{entity.name}</td>
-                <td className="p-4">{entity.fields?.length || 0} campos</td>
+                <td className="p-4">{entity.entity_fields?.length || 0} campos</td>
                 <td className="p-4">
                   {format(new Date(entity.created_at), 'dd/MM/yyyy')}
                 </td>
