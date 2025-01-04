@@ -9,7 +9,7 @@ export function useEntityNames() {
         .from('collaborators')
         .select('client_id')
         .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+        .maybeSingle();
       return data;
     }
   });
@@ -23,7 +23,7 @@ export function useEntityNames() {
         .select('*')
         .eq('client_id', collaborator.client_id)
         .eq('entity_type', 'lead')
-        .single();
+        .maybeSingle();
       return data;
     }
   });
