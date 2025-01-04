@@ -57,12 +57,12 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
   };
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex flex-col md:flex-row items-start md:items-center gap-2 p-2 rounded-lg bg-background">
       <Input
         value={field.name}
         onChange={(e) => onChange({ ...field, name: e.target.value })}
         placeholder="Nome do Campo"
-        className="flex-1"
+        className="flex-1 min-w-[200px]"
       />
 
       <Select
@@ -122,7 +122,7 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
         </>
       )}
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-2 min-w-[140px]">
         <Switch
           checked={field.is_required}
           onCheckedChange={(checked) => onChange({ ...field, is_required: checked })}
@@ -130,7 +130,7 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
         <span className="text-sm">Obrigatório</span>
       </div>
 
-      <Button variant="ghost" size="icon" onClick={onRemove}>
+      <Button variant="ghost" size="icon" onClick={onRemove} className="shrink-0">
         <Trash className="h-4 w-4" />
       </Button>
     </div>

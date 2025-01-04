@@ -6,6 +6,7 @@ import {
   Connection,
   useNodesState,
   useEdgesState,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import EntityNode from './EntityNode';
@@ -45,6 +46,15 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
       label: rel.name,
       type: 'smoothstep',
       animated: true,
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 20,
+        height: 20,
+      },
+      style: { 
+        strokeWidth: 2,
+        stroke: '#4A90E2' 
+      },
     }));
 
     setEdges(newEdges);
@@ -67,6 +77,7 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        className="bg-background"
       >
         <Background />
         <Controls />

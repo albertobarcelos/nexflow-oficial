@@ -227,50 +227,54 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-4xl max-h-[90vh] w-full flex flex-col p-0 gap-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 px-6">
-          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
-            <EntityBasicInfo
-              singularName={formData.singularName}
-              pluralName={formData.pluralName}
-              description={formData.description}
-              onSingularNameChange={(value) => {
-                setFormData(prev => ({
-                  ...prev,
-                  singularName: value,
-                  pluralName: value ? value + 's' : ''
-                }));
-              }}
-              onPluralNameChange={(value) => setFormData(prev => ({ ...prev, pluralName: value }))}
-              onDescriptionChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
-            />
+        <ScrollArea className="flex-1 px-6 overflow-y-auto">
+          <div className="pr-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+              <EntityBasicInfo
+                singularName={formData.singularName}
+                pluralName={formData.pluralName}
+                description={formData.description}
+                onSingularNameChange={(value) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    singularName: value,
+                    pluralName: value ? value + 's' : ''
+                  }));
+                }}
+                onPluralNameChange={(value) => setFormData(prev => ({ ...prev, pluralName: value }))}
+                onDescriptionChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+              />
 
-            <EntityVisualConfig
-              selectedIcon={formData.selectedIcon}
-              selectedColor={formData.selectedColor}
-              onIconChange={(value) => setFormData(prev => ({ ...prev, selectedIcon: value }))}
-              onColorChange={(value) => setFormData(prev => ({ ...prev, selectedColor: value }))}
-            />
+              <EntityVisualConfig
+                selectedIcon={formData.selectedIcon}
+                selectedColor={formData.selectedColor}
+                onIconChange={(value) => setFormData(prev => ({ ...prev, selectedIcon: value }))}
+                onColorChange={(value) => setFormData(prev => ({ ...prev, selectedColor: value }))}
+              />
 
-            <EntityFormFields
-              fields={formData.fields}
-              setFields={(fields) => setFormData(prev => ({ ...prev, fields }))}
-              currentEntityId={entityToEdit?.id || formData.singularName}
-              entities={entities || []}
-            />
-          </form>
+              <EntityFormFields
+                fields={formData.fields}
+                setFields={(fields) => setFormData(prev => ({ ...prev, fields }))}
+                currentEntityId={entityToEdit?.id || formData.singularName}
+                entities={entities || []}
+              />
+            </form>
+          </div>
         </ScrollArea>
 
-        <EntityFormFooter
-          isLoading={isLoading}
-          onCancel={() => onOpenChange(false)}
-          onSubmit={handleSubmit}
-          entityToEdit={entityToEdit}
-        />
+        <div className="p-6 border-t mt-auto">
+          <EntityFormFooter
+            isLoading={isLoading}
+            onCancel={() => onOpenChange(false)}
+            onSubmit={handleSubmit}
+            entityToEdit={entityToEdit}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
