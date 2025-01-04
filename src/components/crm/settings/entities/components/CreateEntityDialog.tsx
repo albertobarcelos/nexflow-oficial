@@ -7,10 +7,12 @@ import { EntityBasicInfo } from "./form/EntityBasicInfo";
 import { EntityVisualConfig } from "./form/EntityVisualConfig";
 import { EntityFieldEditor } from "./EntityFieldEditor";
 import { ConfiguredFieldsTable } from "./ConfiguredFieldsTable";
+import { useEntities } from "../hooks/useEntities";
 import type { CreateEntityDialogProps } from "../types";
 
 export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEntityDialogProps) {
   const { toast } = useToast();
+  const { entities } = useEntities();
   const [isLoading, setIsLoading] = useState(false);
   const [singularName, setSingularName] = useState("");
   const [pluralName, setPluralName] = useState("");
@@ -129,8 +131,8 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
             <EntityFieldEditor 
               fields={fields} 
               onChange={setFields} 
-              currentEntityId={singularName} // Temporário até termos o ID real
-              entities={[]} // Será preenchido com as entidades existentes
+              currentEntityId={singularName}
+              entities={entities || []}
             />
             
             {fields.length > 0 && (
