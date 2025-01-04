@@ -12,6 +12,11 @@ export const defaultFields: CustomField[] = [
     is_required: true,
     order_index: 0,
     options: [],
+    history: [{
+      timestamp: new Date().toISOString(),
+      action: "created",
+      user_id: "system",
+    }]
   },
   {
     id: "value",
@@ -24,5 +29,10 @@ export const defaultFields: CustomField[] = [
     is_required: false,
     order_index: 1,
     options: [],
+    history: [{
+      timestamp: new Date().toISOString(),
+      action: "created",
+      user_id: "system",
+    }]
   }
 ];
