@@ -1,18 +1,49 @@
 import { CustomEntity } from "@/types/database/entity";
 
-export interface Entity extends CustomEntity {
-  fields: EntityField[];
-}
+export type EntityFieldType = 
+  | "text"
+  | "number"
+  | "date"
+  | "select"
+  | "checkbox"
+  | "email"
+  | "phone"
+  | "address";
 
 export interface EntityField {
   id: string;
   name: string;
-  field_type: string;
+  field_type: EntityFieldType;
+  type?: EntityFieldType; // Para compatibilidade com o código existente
   is_required: boolean;
+  required?: boolean; // Para compatibilidade com o código existente
   description?: string;
   order_index: number;
   options?: string[];
   validation_rules?: Record<string, any>;
+}
+
+export interface Entity extends CustomEntity {
+  fields: EntityField[];
+  icon_name: string;
+  color: string;
+}
+
+export interface EntityListProps {
+  entities: Entity[];
+  onEdit?: (entity: Entity) => void;
+  onDelete?: (entity: Entity) => void;
+}
+
+export interface CreateEntityDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+export interface EntityDiagramProps {
+  entities: Entity[];
+  relationships: EntityRelationship[];
 }
 
 export interface EntityRelationship {
@@ -23,7 +54,6 @@ export interface EntityRelationship {
   name: string;
 }
 
-export interface EntityDiagramProps {
-  entities: Entity[];
-  relationships: EntityRelationship[];
+export interface EntityNodeProps {
+  data: Entity;
 }

@@ -33,8 +33,8 @@ export function EntityFieldRow({ field, onChange, onRemove }: EntityFieldRowProp
       />
 
       <Select
-        value={field.type}
-        onValueChange={(value) => onChange({ ...field, type: value as EntityFieldType })}
+        value={field.field_type}
+        onValueChange={(value) => onChange({ ...field, field_type: value as EntityFieldType })}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue />
@@ -50,8 +50,8 @@ export function EntityFieldRow({ field, onChange, onRemove }: EntityFieldRowProp
 
       <div className="flex items-center space-x-2">
         <Switch
-          checked={field.required}
-          onCheckedChange={(checked) => onChange({ ...field, required: checked })}
+          checked={field.is_required}
+          onCheckedChange={(checked) => onChange({ ...field, is_required: checked })}
         />
         <span className="text-sm">Obrigatório</span>
       </div>

@@ -7,13 +7,15 @@ import ReactFlow, {
   ConnectionMode,
   useNodesState,
   useEdgesState,
+  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { EntityNode } from './EntityNode';
 import { useEntities } from '../hooks/useEntities';
 import { cn } from '@/lib/utils';
+import { Entity } from '../types';
 
-const nodeTypes = {
+const nodeTypes: NodeTypes = {
   entity: EntityNode,
 };
 
@@ -35,7 +37,7 @@ export function EntityRelationshipDiagram() {
         x: (index % 3) * 350, 
         y: Math.floor(index / 3) * 250 
       },
-      data: entity,
+      data: entity as unknown as Record<string, unknown>,
     }));
 
     // Transform relationships into edges with smooth curves
