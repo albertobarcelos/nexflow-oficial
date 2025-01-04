@@ -1,8 +1,10 @@
-import { Users, Trash2, Edit2, Check, X } from "lucide-react";
+import { Users, Trash2, Check, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { getRolePermissions } from "@/lib/utils/roles";
+import type { CollaboratorRole } from "@/lib/validations/collaborator";
 import {
   Select,
   SelectContent,
@@ -65,7 +67,7 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
     }
   };
 
-  const handleRoleChange = async (id: string, newRole: string) => {
+  const handleRoleChange = async (id: string, newRole: CollaboratorRole) => {
     try {
       const { error } = await supabase
         .from('collaborators')
@@ -126,7 +128,7 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
             <div className="flex items-center gap-2">
               <Select
                 value={collaborator.role}
-                onValueChange={(value) => handleRoleChange(collaborator.id, value)}
+                onValueChange={(value: CollaboratorRole) => handleRoleChange(collaborator.id, value)}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue />

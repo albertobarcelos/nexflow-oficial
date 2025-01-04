@@ -45,6 +45,8 @@ export function LicenseManager({ clientId, currentPlan, clientName, clientEmail 
           client_id: clientId,
           type: currentPlan,
           user_limit: 3,
+          expiration_date: null, // Não usamos mais data de expiração
+          status: 'active',
         })
         .select()
         .single();
