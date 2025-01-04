@@ -4,12 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { EntityBasicInfo } from "../form/EntityBasicInfo";
 import { EntityVisualConfig } from "../form/EntityVisualConfig";
-import { EntityFormFields } from "../form/EntityFormFields";
 import { EntityFormFooter } from "../form/EntityFormFooter";
 import { useEntities } from "../../hooks/useEntities";
 import { useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { CreateEntityDialogProps, EntityField } from "../../types";
+import type { CreateEntityDialogProps } from "../../types";
+import { EntityFieldEditor } from "../field-editor/EntityFieldEditor";
 
 export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
   const { toast } = useToast();
@@ -22,7 +22,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
     description: "",
     selectedIcon: "database",
     selectedColor: "#4A90E2",
-    fields: [] as EntityField[]
+    fields: []
   });
 
   useEffect(() => {
@@ -59,8 +59,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
     setIsLoading(true);
     try {
-      console.log("Starting save operation...");
-      
+      // Save logic
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
@@ -70,8 +69,6 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
       if (!collaborator) throw new Error('Cliente não encontrado');
 
       if (entityToEdit) {
-        console.log("Updating existing entity...");
-        
         // Update entity
         const { error: entityError } = await supabase
           .from('custom_entities')
@@ -85,12 +82,6 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
           .eq('id', entityToEdit.id);
 
         if (entityError) throw entityError;
-
-        // Get existing fields to compare
-        const { data: existingFields } = await supabase
-          .from('entity_fields')
-          .select('*')
-          .eq('entity_id', entityToEdit.id);
 
         // Handle fields
         for (const field of formData.fields) {
@@ -108,57 +99,14 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
             relationship_type: field.relationship_type || null
           };
 
-          const isNewField = !existingFields?.some(ef => ef.id === field.id);
-          
-          if (isNewField) {
-            console.log("Inserting new field:", fieldData);
-            const { error: insertError } = await supabase
-              .from('entity_fields')
-              .insert({
-                ...fieldData,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
+          const { error: fieldError } = await supabase
+            .from('entity_fields')
+            .upsert(fieldData);
 
-            if (insertError) {
-              console.error('Field insert error:', insertError);
-              throw insertError;
-            }
-          } else {
-            console.log("Updating existing field:", fieldData);
-            const { error: updateError } = await supabase
-              .from('entity_fields')
-              .update({
-                ...fieldData,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', field.id);
-
-            if (updateError) {
-              console.error('Field update error:', updateError);
-              throw updateError;
-            }
-          }
-        }
-
-        // Delete removed fields
-        if (existingFields) {
-          const currentFieldIds = formData.fields.map(f => f.id);
-          const fieldsToDelete = existingFields.filter(ef => !currentFieldIds.includes(ef.id));
-
-          if (fieldsToDelete.length > 0) {
-            console.log("Deleting fields:", fieldsToDelete.map(f => f.id));
-            const { error: deleteError } = await supabase
-              .from('entity_fields')
-              .delete()
-              .in('id', fieldsToDelete.map(f => f.id));
-
-            if (deleteError) throw deleteError;
-          }
+          if (fieldError) throw fieldError;
         }
       } else {
-        console.log("Creating new entity...");
-        
+        // Create new entity
         const { data: entity, error: entityError } = await supabase
           .from('custom_entities')
           .insert({
@@ -174,8 +122,6 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
         if (entityError) throw entityError;
 
         if (formData.fields.length > 0 && entity) {
-          console.log("Creating fields for new entity:", formData.fields);
-          
           const fieldsToInsert = formData.fields.map((field, index) => ({
             name: field.name,
             field_type: field.field_type,
@@ -232,7 +178,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 px-6 overflow-y-auto">
+        <ScrollArea className="flex-1 px-6">
           <div className="pr-4">
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
               <EntityBasicInfo
@@ -257,11 +203,11 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
                 onColorChange={(value) => setFormData(prev => ({ ...prev, selectedColor: value }))}
               />
 
-              <EntityFormFields
+              <EntityFieldEditor
                 fields={formData.fields}
-                setFields={(fields) => setFormData(prev => ({ ...prev, fields }))}
-                currentEntityId={entityToEdit?.id || formData.singularName}
                 entities={entities || []}
+                currentEntityId={entityToEdit?.id || formData.singularName}
+                onChange={(fields) => setFormData(prev => ({ ...prev, fields }))}
               />
             </form>
           </div>
