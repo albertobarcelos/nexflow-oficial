@@ -87,26 +87,34 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
         if (entityError) throw entityError;
 
+        // Get existing fields to compare
+        const { data: existingFields } = await supabase
+          .from('entity_fields')
+          .select('*')
+          .eq('entity_id', entityToEdit.id);
+
         // Handle fields
         for (const field of formData.fields) {
+          const fieldData = {
+            name: field.name,
+            field_type: field.field_type,
+            description: field.description,
+            is_required: field.is_required,
+            order_index: field.order_index,
+            options: field.options,
+            validation_rules: field.validation_rules,
+            entity_id: entityToEdit.id,
+            client_id: collaborator.client_id,
+            related_entity_id: field.related_entity_id,
+            relationship_type: field.relationship_type
+          };
+
           if (!field.id || field.id.includes('temp-')) {
             console.log("Inserting new field:", field);
             
             const { error: fieldError } = await supabase
               .from('entity_fields')
-              .insert({
-                name: field.name,
-                field_type: field.field_type,
-                description: field.description,
-                is_required: field.is_required,
-                order_index: field.order_index,
-                options: field.options,
-                validation_rules: field.validation_rules,
-                entity_id: entityToEdit.id,
-                client_id: collaborator.client_id,
-                related_entity_id: field.related_entity_id,
-                relationship_type: field.relationship_type
-              });
+              .insert(fieldData);
             
             if (fieldError) {
               console.error('Field insert error:', fieldError);
@@ -117,18 +125,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
             
             const { error: fieldError } = await supabase
               .from('entity_fields')
-              .update({
-                name: field.name,
-                field_type: field.field_type,
-                description: field.description,
-                is_required: field.is_required,
-                order_index: field.order_index,
-                options: field.options,
-                validation_rules: field.validation_rules,
-                related_entity_id: field.related_entity_id,
-                relationship_type: field.relationship_type,
-                updated_at: new Date().toISOString()
-              })
+              .update(fieldData)
               .eq('id', field.id);
             
             if (fieldError) {
@@ -139,17 +136,22 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
         }
 
         // Delete removed fields
-        const existingFieldIds = entityToEdit.fields?.map(f => f.id) || [];
-        const currentFieldIds = formData.fields.map(f => f.id).filter(id => !id.includes('temp-'));
-        const removedFieldIds = existingFieldIds.filter(id => !currentFieldIds.includes(id));
+        if (existingFields) {
+          const currentFieldIds = formData.fields
+            .map(f => f.id)
+            .filter(id => id && !id.includes('temp-'));
+          
+          const removedFields = existingFields
+            .filter(ef => !currentFieldIds.includes(ef.id));
 
-        if (removedFieldIds.length > 0) {
-          const { error: deleteError } = await supabase
-            .from('entity_fields')
-            .delete()
-            .in('id', removedFieldIds);
+          if (removedFields.length > 0) {
+            const { error: deleteError } = await supabase
+              .from('entity_fields')
+              .delete()
+              .in('id', removedFields.map(f => f.id));
 
-          if (deleteError) throw deleteError;
+            if (deleteError) throw deleteError;
+          }
         }
       } else {
         console.log("Creating new entity...");
@@ -209,7 +211,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
     } catch (error) {
       console.error('Error saving entity:', error);
       toast({
-        title: "Erro ao salvar entidade",
+        title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar a entidade. Tente novamente.",
         variant: "destructive"
       });
