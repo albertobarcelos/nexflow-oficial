@@ -4,7 +4,6 @@ import { TeamSettings } from "@/components/crm/settings/TeamSettings";
 import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
 import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
-import { EntityNamingSettings } from "@/components/crm/settings/EntityNamingSettings";
 
 export default function Settings() {
   return (
@@ -23,7 +22,6 @@ export default function Settings() {
           <TabsTrigger value="pipelines">Pipelines</TabsTrigger>
           <TabsTrigger value="fields">Campos Personalizados</TabsTrigger>
           <TabsTrigger value="notifications">Notificações</TabsTrigger>
-          <TabsTrigger value="naming">Nomenclatura</TabsTrigger>
         </TabsList>
 
         <TabsContent value="automations" className="space-y-4">
@@ -44,10 +42,6 @@ export default function Settings() {
 
         <TabsContent value="notifications" className="space-y-4">
           <NotificationSettings />
-        </TabsContent>
-
-        <TabsContent value="naming" className="space-y-4">
-          <EntityNamingSettings />
         </TabsContent>
       </Tabs>
     </div>

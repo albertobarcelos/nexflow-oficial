@@ -9,18 +9,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { CreateEntityDialogProps } from "../types";
 import { EntityFieldEditor } from "./EntityFieldEditor";
 
-export function CreateEntityDialog({ open, onOpenChange }: CreateEntityDialogProps) {
+export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEntityDialogProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
+  const [singularName, setSingularName] = useState("");
+  const [pluralName, setPluralName] = useState("");
   const [description, setDescription] = useState("");
   const [fields, setFields] = useState([]);
 
   const handleSubmit = async () => {
-    if (!name.trim()) {
+    if (!singularName.trim() || !pluralName.trim()) {
       toast({
-        title: "Nome obrigatório",
-        description: "Por favor, insira um nome para a entidade.",
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha os nomes singular e plural da entidade.",
         variant: "destructive"
       });
       return;
@@ -36,24 +38,57 @@ export function CreateEntityDialog({ open, onOpenChange }: CreateEntityDialogPro
 
       if (!collaborator) throw new Error('Cliente não encontrado');
 
-      const { error } = await supabase
+      // Criar a entidade
+      const { data: entity, error: entityError } = await supabase
         .from('custom_entities')
         .insert({
-          name,
+          name: singularName,
           description,
-          fields,
           client_id: collaborator.client_id
+        })
+        .select()
+        .single();
+
+      if (entityError) throw entityError;
+
+      // Salvar preferências de nomenclatura
+      const { error: namingError } = await supabase
+        .from('entity_naming_preferences')
+        .insert({
+          client_id: collaborator.client_id,
+          entity_type: entity.id,
+          singular_name: singularName,
+          plural_name: pluralName
         });
 
-      if (error) throw error;
+      if (namingError) throw namingError;
+
+      // Criar campos da entidade
+      if (fields.length > 0) {
+        const { error: fieldsError } = await supabase
+          .from('entity_fields')
+          .insert(
+            fields.map((field, index) => ({
+              ...field,
+              entity_id: entity.id,
+              client_id: collaborator.client_id,
+              order_index: index
+            }))
+          );
+
+        if (fieldsError) throw fieldsError;
+      }
 
       toast({
         title: "Entidade criada",
         description: "A entidade foi criada com sucesso."
       });
       
+      if (onSuccess) onSuccess();
       onOpenChange(false);
       setName("");
+      setSingularName("");
+      setPluralName("");
       setDescription("");
       setFields([]);
     } catch (error) {
@@ -76,14 +111,26 @@ export function CreateEntityDialog({ open, onOpenChange }: CreateEntityDialogPro
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome da Entidade</Label>
-            <Input 
-              id="name" 
-              placeholder="Ex: Parceiros" 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="singularName">Nome no Singular</Label>
+              <Input 
+                id="singularName" 
+                placeholder="Ex: Empresa" 
+                value={singularName}
+                onChange={(e) => setSingularName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pluralName">Nome no Plural</Label>
+              <Input 
+                id="pluralName" 
+                placeholder="Ex: Empresas" 
+                value={pluralName}
+                onChange={(e) => setPluralName(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
