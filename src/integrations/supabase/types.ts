@@ -209,8 +209,10 @@ export type Database = {
       custom_entities: {
         Row: {
           client_id: string
+          color: string | null
           created_at: string
           description: string | null
+          icon_name: string | null
           id: string
           is_default: boolean | null
           name: string
@@ -219,8 +221,10 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          color?: string | null
           created_at?: string
           description?: string | null
+          icon_name?: string | null
           id?: string
           is_default?: boolean | null
           name: string
@@ -229,8 +233,10 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          color?: string | null
           created_at?: string
           description?: string | null
+          icon_name?: string | null
           id?: string
           is_default?: boolean | null
           name?: string
