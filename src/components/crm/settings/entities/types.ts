@@ -21,6 +21,10 @@ export interface EntityField {
   order_index: number;
   options?: string[];
   validation_rules?: Record<string, any>;
+  client_id?: string;
+  entity_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface Entity extends CustomEntity {

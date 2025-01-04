@@ -13,7 +13,7 @@ export function useEntities() {
         .from("collaborators")
         .select("client_id")
         .eq("auth_user_id", user.user.id)
-        .single();
+        .maybeSingle();
 
       if (!collaborator) throw new Error("Collaborator not found");
 
@@ -36,17 +36,9 @@ export function useEntities() {
 
           if (fieldsError) throw fieldsError;
 
-          // Mapear os campos para o formato esperado
-          const mappedFields = (fields || []).map(field => ({
-            ...field,
-            type: field.field_type as EntityField['type'],
-            required: field.is_required,
-            options: field.options ? (field.options as string[]) : undefined
-          }));
-
           return {
             ...entity,
-            fields: mappedFields
+            fields: fields || []
           };
         })
       );
@@ -55,7 +47,7 @@ export function useEntities() {
     },
   });
 
-  const { data: relationships = [], isLoading: isLoadingRelationships, refetch: refetchRelationships } = useQuery({
+  const { data: relationships = [], isLoading: isLoadingRelationships } = useQuery({
     queryKey: ["entity_relationships"],
     queryFn: async () => {
       const { data: user } = await supabase.auth.getUser();
@@ -65,7 +57,7 @@ export function useEntities() {
         .from("collaborators")
         .select("client_id")
         .eq("auth_user_id", user.user.id)
-        .single();
+        .maybeSingle();
 
       if (!collaborator) throw new Error("Collaborator not found");
 
@@ -79,15 +71,10 @@ export function useEntities() {
     },
   });
 
-  const refetch = () => {
-    refetchEntities();
-    refetchRelationships();
-  };
-
   return {
     entities,
     relationships,
     isLoading: isLoadingEntities || isLoadingRelationships,
-    refetch
+    refetch: refetchEntities
   };
 }
