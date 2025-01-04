@@ -30,7 +30,7 @@ export default function Licenses() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, name')
+        .select('id, name, email')  // Adicionado email à consulta
         .order('name');
 
       if (error) throw error;
