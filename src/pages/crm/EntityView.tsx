@@ -1,26 +1,14 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Search, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Entity } from "@/components/crm/settings/entities/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
-
-// Components
 import { EntityViewHeader } from "./components/EntityViewHeader";
 import { EntityViewTable } from "./components/EntityViewTable";
 import { EntityViewSearch } from "./components/EntityViewSearch";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function EntityView() {
   const { id } = useParams();
@@ -33,7 +21,10 @@ export default function EntityView() {
       console.log("Fetching entity data for ID:", id);
       const { data: entityData, error: entityError } = await supabase
         .from("custom_entities")
-        .select("*, entity_fields(*)")
+        .select(`
+          *,
+          entity_fields!entity_fields_entity_id_fkey(*)
+        `)
         .eq("id", id)
         .maybeSingle();
 

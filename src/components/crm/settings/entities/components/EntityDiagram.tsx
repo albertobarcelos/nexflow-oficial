@@ -9,7 +9,7 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import EntityNodeContent from './EntityNodeContent';
+import EntityNodeContent from './diagram/EntityNodeContent';
 import { EntityDiagramProps } from '../types';
 
 const nodeTypes = {
