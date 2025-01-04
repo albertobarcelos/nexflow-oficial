@@ -3,12 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { Entity, EntityRelationship, EntityField } from "../types";
 
 export function useEntities() {
-  const { data: entities = [], isLoading: isLoadingEntities } = useQuery({
+  const { data: entities = [], isLoading: isLoadingEntities, refetch: refetchEntities } = useQuery({
     queryKey: ["entities"],
     queryFn: async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("Not authenticated");
+
+      const { data: collaborator } = await supabase
+        .from("collaborators")
+        .select("client_id")
+        .eq("auth_user_id", user.user.id)
+        .single();
+
+      if (!collaborator) throw new Error("Collaborator not found");
+
       const { data, error } = await supabase
         .from("custom_entities")
-        .select("*");
+        .select("*")
+        .eq("client_id", collaborator.client_id);
 
       if (error) throw error;
       
@@ -26,21 +38,39 @@ export function useEntities() {
     },
   });
 
-  const { data: relationships = [], isLoading: isLoadingRelationships } = useQuery({
+  const { data: relationships = [], isLoading: isLoadingRelationships, refetch: refetchRelationships } = useQuery({
     queryKey: ["entity_relationships"],
     queryFn: async () => {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error("Not authenticated");
+
+      const { data: collaborator } = await supabase
+        .from("collaborators")
+        .select("client_id")
+        .eq("auth_user_id", user.user.id)
+        .single();
+
+      if (!collaborator) throw new Error("Collaborator not found");
+
       const { data, error } = await supabase
         .from("entity_relationships")
-        .select("*");
+        .select("*")
+        .eq("client_id", collaborator.client_id);
 
       if (error) throw error;
       return (data || []) as EntityRelationship[];
     },
   });
 
+  const refetch = () => {
+    refetchEntities();
+    refetchRelationships();
+  };
+
   return {
     entities,
     relationships,
     isLoading: isLoadingEntities || isLoadingRelationships,
+    refetch
   };
 }
