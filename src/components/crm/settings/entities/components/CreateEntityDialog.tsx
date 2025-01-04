@@ -179,12 +179,6 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
       if (onSuccess) onSuccess();
       onOpenChange(false);
       
-      toast({
-        title: entityToEdit ? "Entidade atualizada" : "Entidade criada",
-        description: entityToEdit ? 
-          "A entidade foi atualizada com sucesso." : 
-          "A entidade foi criada com sucesso."
-      });
     } catch (error) {
       console.error('Error saving entity:', error);
       toast({
@@ -236,6 +230,7 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
           <EntityFormFooter
             isLoading={isLoading}
             onCancel={() => onOpenChange(false)}
+            onSubmit={handleSubmit}
             entityToEdit={entityToEdit}
           />
         </form>
