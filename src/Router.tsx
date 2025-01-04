@@ -18,6 +18,7 @@ import AdminAnalytics from "@/pages/admin/Analytics";
 import AdminSettings from "@/pages/admin/Settings";
 import Index from "@/pages/Index";
 import SetPassword from "@/pages/collaborator/SetPassword";
+import EntityView from "@/pages/crm/EntityView";
 
 export function Router() {
   return (
@@ -46,6 +47,7 @@ export function Router() {
         <Route path="opportunities/list" element={<OpportunitiesList />} />
         <Route path="tasks" element={<Tasks />} />
         <Route path="settings/*" element={<Settings />} />
+        <Route path="entities/:id" element={<EntityView />} />
       </Route>
 
       {/* Collaborator Routes */}
