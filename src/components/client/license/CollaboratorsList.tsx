@@ -1,5 +1,5 @@
 import { Users, Trash2, Check, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useEffect } from "react";
 
 interface CollaboratorsListProps {
   client_id: string;
@@ -19,7 +20,9 @@ interface CollaboratorsListProps {
 
 export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
   const { toast } = useToast();
-  const { data: collaborators, isLoading, refetch } = useQuery({
+  const queryClient = useQueryClient();
+  
+  const { data: collaborators, isLoading } = useQuery({
     queryKey: ['collaborators', client_id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -42,6 +45,30 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
     enabled: !!client_id,
   });
 
+  // Subscribe to real-time changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'collaborators',
+          filter: `client_id=eq.${client_id}`
+        },
+        () => {
+          // Invalidate and refetch when data changes
+          queryClient.invalidateQueries({ queryKey: ['collaborators', client_id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [client_id, queryClient]);
+
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase
@@ -56,7 +83,7 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
         description: "O usuário foi removido com sucesso.",
       });
 
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['collaborators', client_id] });
     } catch (error) {
       console.error('Error deleting collaborator:', error);
       toast({
@@ -84,7 +111,7 @@ export function CollaboratorsList({ client_id }: CollaboratorsListProps) {
         description: "A função do usuário foi atualizada com sucesso.",
       });
 
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ['collaborators', client_id] });
     } catch (error) {
       console.error('Error updating role:', error);
       toast({

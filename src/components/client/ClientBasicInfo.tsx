@@ -53,7 +53,7 @@ export function ClientBasicInfo({ form }: ClientBasicInfoProps) {
                 mask={isCPF ? "999.999.999-99" : "99.999.999/9999-99"}
                 value={field.value || ''}
                 onChange={(e) => {
-                  const value = e.target.value.replace(/[^\d]/g, '');
+                  const value = e.target.value;
                   field.onChange(value);
                 }}
               >
