@@ -252,47 +252,53 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pb-20">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] w-full flex flex-col p-0 gap-0">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
-          <EntityBasicInfo
-            singularName={singularName}
-            pluralName={pluralName}
-            description={description}
-            onSingularNameChange={(value) => {
-              setSingularName(value);
-              if (!pluralName) {
-                setPluralName(value + 's');
-              }
-            }}
-            onPluralNameChange={setPluralName}
-            onDescriptionChange={setDescription}
-          />
+        <div className="flex-1 px-6 overflow-y-auto">
+          <div className="pr-4">
+            <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+              <EntityBasicInfo
+                singularName={singularName}
+                pluralName={pluralName}
+                description={description}
+                onSingularNameChange={(value) => {
+                  setSingularName(value);
+                  if (!pluralName) {
+                    setPluralName(value + 's');
+                  }
+                }}
+                onPluralNameChange={setPluralName}
+                onDescriptionChange={setDescription}
+              />
 
-          <EntityVisualConfig
-            selectedIcon={selectedIcon}
-            selectedColor={selectedColor}
-            onIconChange={setSelectedIcon}
-            onColorChange={setSelectedColor}
-          />
+              <EntityVisualConfig
+                selectedIcon={selectedIcon}
+                selectedColor={selectedColor}
+                onIconChange={setSelectedIcon}
+                onColorChange={setSelectedColor}
+              />
 
-          <EntityFormFields
-            fields={fields}
-            setFields={setFields}
-            currentEntityId={entityToEdit?.id || singularName}
-            entities={entities || []}
-          />
+              <EntityFormFields
+                fields={fields}
+                setFields={setFields}
+                currentEntityId={entityToEdit?.id || singularName}
+                entities={entities || []}
+              />
+            </form>
+          </div>
+        </div>
 
+        <div className="p-6 border-t mt-auto">
           <EntityFormFooter
             isLoading={isLoading}
             onCancel={() => onOpenChange(false)}
             onSubmit={handleSubmit}
             entityToEdit={entityToEdit}
           />
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
