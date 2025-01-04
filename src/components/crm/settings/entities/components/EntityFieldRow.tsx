@@ -34,6 +34,17 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
   const isEntityField = field.field_type === "entity";
   const availableEntities = entities.filter(entity => entity.id !== currentEntityId);
 
+  const handleEntityChange = (entityId: string) => {
+    const selectedEntity = entities.find(e => e.id === entityId);
+    if (selectedEntity) {
+      onChange({
+        ...field,
+        related_entity_id: entityId,
+        name: `${selectedEntity.name} Relacionado`,
+      });
+    }
+  };
+
   return (
     <div className="flex items-center space-x-2">
       <Input
@@ -68,7 +79,7 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
         <>
           <Select
             value={field.related_entity_id}
-            onValueChange={(value) => onChange({ ...field, related_entity_id: value })}
+            onValueChange={handleEntityChange}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Selecione a entidade" />
