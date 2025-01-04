@@ -53,7 +53,7 @@ const defaultFields: EntityField[] = [
 
 export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
   const { toast } = useToast();
-  const { entities } = useEntities();
+  const { entities, refetch } = useEntities();
   const [isLoading, setIsLoading] = useState(false);
   const [singularName, setSingularName] = useState("");
   const [pluralName, setPluralName] = useState("");
@@ -144,6 +144,11 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
             if (fieldError) throw fieldError;
           }
         }
+
+        toast({
+          title: "Entidade atualizada",
+          description: "A entidade foi atualizada com sucesso."
+        });
       } else {
         // Criar nova entidade
         const { data: entity, error: entityError } = await supabase
@@ -174,8 +179,14 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
 
           if (fieldsError) throw fieldsError;
         }
+
+        toast({
+          title: "Entidade criada",
+          description: "A entidade foi criada com sucesso."
+        });
       }
       
+      await refetch();
       if (onSuccess) onSuccess();
       onOpenChange(false);
       
