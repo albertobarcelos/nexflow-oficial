@@ -311,6 +311,111 @@ export type Database = {
           },
         ]
       }
+      entity_field_values: {
+        Row: {
+          created_at: string
+          entity_id: string
+          field_id: string
+          id: string
+          record_id: string
+          updated_at: string
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          field_id: string
+          id?: string
+          record_id: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          field_id?: string
+          id?: string
+          record_id?: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_field_values_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "custom_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "entity_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_fields: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          entity_id: string
+          field_type: string
+          id: string
+          is_required: boolean | null
+          name: string
+          options: Json | null
+          order_index: number
+          updated_at: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          entity_id: string
+          field_type: string
+          id?: string
+          is_required?: boolean | null
+          name: string
+          options?: Json | null
+          order_index: number
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          entity_id?: string
+          field_type?: string
+          id?: string
+          is_required?: boolean | null
+          name?: string
+          options?: Json | null
+          order_index?: number
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_fields_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_fields_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "custom_entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_naming_preferences: {
         Row: {
           client_id: string
