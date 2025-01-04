@@ -12,7 +12,6 @@ import { EntityFieldEditor } from "./EntityFieldEditor";
 export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEntityDialogProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [name, setName] = useState("");
   const [singularName, setSingularName] = useState("");
   const [pluralName, setPluralName] = useState("");
   const [description, setDescription] = useState("");
@@ -86,7 +85,6 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
       
       if (onSuccess) onSuccess();
       onOpenChange(false);
-      setName("");
       setSingularName("");
       setPluralName("");
       setDescription("");

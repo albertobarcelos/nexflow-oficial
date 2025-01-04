@@ -6,24 +6,24 @@ export function CustomFieldsSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Personalização de Campos</h1>
+        <h1 className="text-2xl font-bold">Personalização</h1>
         <p className="text-muted-foreground">
-          Personalize os campos e entidades do seu CRM de acordo com suas necessidades
+          Personalize as entidades e campos do seu CRM de acordo com suas necessidades
         </p>
       </div>
 
-      <Tabs defaultValue="fields" className="space-y-4">
+      <Tabs defaultValue="entities" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="entities">Entidades</TabsTrigger>
           <TabsTrigger value="fields">Campos Personalizados</TabsTrigger>
-          <TabsTrigger value="entities">Entidades Personalizadas</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="fields">
-          <CustomFieldsLayout />
-        </TabsContent>
         
         <TabsContent value="entities">
           <EntitiesSettings />
+        </TabsContent>
+        
+        <TabsContent value="fields">
+          <CustomFieldsLayout />
         </TabsContent>
       </Tabs>
     </div>
