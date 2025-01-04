@@ -10,10 +10,12 @@ import { useEntities } from "../../hooks/useEntities";
 import { defaultEntityFields } from "../form/defaultEntityFields";
 import type { CreateEntityDialogProps, EntityField } from "../../types";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
   const { toast } = useToast();
-  const { entities } = useEntities();
+  const { entities, refetch } = useEntities();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     singularName: "",
@@ -58,6 +60,8 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
     setIsLoading(true);
     try {
+      console.log("Starting save operation...");
+      
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
@@ -67,7 +71,9 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
       if (!collaborator) throw new Error('Cliente não encontrado');
 
       if (entityToEdit) {
-        // Atualizar entidade existente
+        console.log("Updating existing entity...");
+        
+        // Update entity
         const { error: entityError } = await supabase
           .from('custom_entities')
           .update({
@@ -81,37 +87,73 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
         if (entityError) throw entityError;
 
-        // Atualizar campos existentes e adicionar novos
+        // Handle fields
         for (const field of formData.fields) {
-          if (field.id.includes('temp-')) {
-            // Novo campo
+          if (!field.id || field.id.includes('temp-')) {
+            console.log("Inserting new field:", field);
+            
             const { error: fieldError } = await supabase
               .from('entity_fields')
               .insert({
-                ...field,
+                name: field.name,
+                field_type: field.field_type,
+                description: field.description,
+                is_required: field.is_required,
+                order_index: field.order_index,
+                options: field.options,
+                validation_rules: field.validation_rules,
                 entity_id: entityToEdit.id,
-                client_id: collaborator.client_id
+                client_id: collaborator.client_id,
+                related_entity_id: field.related_entity_id,
+                relationship_type: field.relationship_type
               });
-            if (fieldError) throw fieldError;
+            
+            if (fieldError) {
+              console.error('Field insert error:', fieldError);
+              throw fieldError;
+            }
           } else {
-            // Campo existente
+            console.log("Updating existing field:", field);
+            
             const { error: fieldError } = await supabase
               .from('entity_fields')
               .update({
                 name: field.name,
                 field_type: field.field_type,
+                description: field.description,
                 is_required: field.is_required,
                 order_index: field.order_index,
+                options: field.options,
                 validation_rules: field.validation_rules,
                 related_entity_id: field.related_entity_id,
-                relationship_type: field.relationship_type
+                relationship_type: field.relationship_type,
+                updated_at: new Date().toISOString()
               })
               .eq('id', field.id);
-            if (fieldError) throw fieldError;
+            
+            if (fieldError) {
+              console.error('Field update error:', fieldError);
+              throw fieldError;
+            }
           }
         }
+
+        // Delete removed fields
+        const existingFieldIds = entityToEdit.fields?.map(f => f.id) || [];
+        const currentFieldIds = formData.fields.map(f => f.id).filter(id => !id.includes('temp-'));
+        const removedFieldIds = existingFieldIds.filter(id => !currentFieldIds.includes(id));
+
+        if (removedFieldIds.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('entity_fields')
+            .delete()
+            .in('id', removedFieldIds);
+
+          if (deleteError) throw deleteError;
+        }
       } else {
-        // Criar nova entidade
+        console.log("Creating new entity...");
+        
         const { data: entity, error: entityError } = await supabase
           .from('custom_entities')
           .insert({
@@ -126,21 +168,40 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
         if (entityError) throw entityError;
 
-        if (formData.fields.length > 0) {
+        if (formData.fields.length > 0 && entity) {
+          console.log("Creating fields for new entity:", formData.fields);
+          
+          const fieldsToInsert = formData.fields.map((field, index) => ({
+            name: field.name,
+            field_type: field.field_type,
+            description: field.description,
+            is_required: field.is_required,
+            order_index: index,
+            options: field.options,
+            validation_rules: field.validation_rules,
+            entity_id: entity.id,
+            client_id: collaborator.client_id,
+            related_entity_id: field.related_entity_id,
+            relationship_type: field.relationship_type
+          }));
+
           const { error: fieldsError } = await supabase
             .from('entity_fields')
-            .insert(
-              formData.fields.map((field, index) => ({
-                ...field,
-                entity_id: entity.id,
-                client_id: collaborator.client_id,
-                order_index: index
-              }))
-            );
+            .insert(fieldsToInsert);
 
           if (fieldsError) throw fieldsError;
         }
       }
+
+      await queryClient.invalidateQueries({ queryKey: ['entities'] });
+      await refetch();
+      
+      toast({
+        title: entityToEdit ? "Entidade atualizada" : "Entidade criada",
+        description: entityToEdit ? 
+          "A entidade foi atualizada com sucesso." : 
+          "A entidade foi criada com sucesso."
+      });
       
       if (onSuccess) onSuccess();
       onOpenChange(false);
