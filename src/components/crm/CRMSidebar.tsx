@@ -46,17 +46,40 @@ export function CRMSidebar() {
   const [showPipelineSelector, setShowPipelineSelector] = useState(false);
   const { leadSingular, leadPlural } = useEntityNames();
 
-  const { data: customEntities = [] } = useQuery({
-    queryKey: ['custom-entities'],
+  const { data: collaborator } = useQuery({
+    queryKey: ['current-collaborator'],
     queryFn: async () => {
-      const { data: collaborator } = await supabase
+      const { data, error } = await supabase
         .from('collaborators')
         .select('client_id')
         .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
         .single();
 
-      if (!collaborator) throw new Error('Collaborator not found');
+      if (error) throw error;
+      if (!data) throw new Error('Collaborator not found');
+      
+      return data;
+    },
+  });
 
+  const { data: pipelines = [] } = useQuery({
+    queryKey: ['pipelines', collaborator?.client_id],
+    enabled: !!collaborator?.client_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pipeline_configs')
+        .select('*')
+        .eq('client_id', collaborator.client_id);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: customEntities = [] } = useQuery({
+    queryKey: ['custom-entities', collaborator?.client_id],
+    enabled: !!collaborator?.client_id,
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('custom_entities')
         .select('*')
@@ -167,7 +190,7 @@ export function CRMSidebar() {
                 title={entity.name}
                 href={`/crm/entities/${entity.id}`}
                 icon={getDefaultIcon(entity.template_name)}
-                isActive={location.pathname === `/crm/entities/${entity.id}`}
+                isActive={location.pathname === `//crm/entities/${entity.id}`}
                 onClick={() => navigate(`/crm/entities/${entity.id}`)}
               />
             ))}
