@@ -2,142 +2,19 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Menu } from "lucide-react";
 import { useEntityNames } from "@/hooks/useEntityNames";
-import { useQuery } from "@tanstack/react-query";
-import {
-  LayoutDashboard,
-  Users,
-  Kanban,
-  CheckSquare,
-  BarChart,
-  Settings,
-  Menu,
-  Building2,
-  Contact,
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { PipelineSelector } from "./pipeline/PipelineSelector";
-import { SidebarMenuItem } from "./sidebar/SidebarMenuItem";
-import { SidebarLogoutButton } from "./sidebar/SidebarLogoutButton";
+import { useSidebarData } from "@/hooks/useSidebarData";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
-
-type CustomEntity = {
-  id: string;
-  name: string;
-  template_name: string | null;
-};
-
-const getDefaultIcon = (templateName: string | null) => {
-  switch (templateName) {
-    case 'company':
-      return Building2;
-    case 'contact':
-      return Contact;
-    default:
-      return Users;
-  }
-};
+import { MainMenuItems } from "./sidebar/MainMenuItems";
+import { CustomEntitiesMenu } from "./sidebar/CustomEntitiesMenu";
+import { SidebarLogoutButton } from "./sidebar/SidebarLogoutButton";
 
 export function CRMSidebar() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { state, setOpen, isMobile } = useSidebar();
   const [showPipelineSelector, setShowPipelineSelector] = useState(false);
   const { leadSingular, leadPlural } = useEntityNames();
-
-  const { data: collaborator } = useQuery({
-    queryKey: ['current-collaborator'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error('Collaborator not found');
-      
-      return data;
-    },
-  });
-
-  const { data: pipelines = [] } = useQuery({
-    queryKey: ['pipelines', collaborator?.client_id],
-    enabled: !!collaborator?.client_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('pipeline_configs')
-        .select('*')
-        .eq('client_id', collaborator.client_id);
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: customEntities = [] } = useQuery({
-    queryKey: ['custom-entities', collaborator?.client_id],
-    enabled: !!collaborator?.client_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('custom_entities')
-        .select('*')
-        .eq('client_id', collaborator.client_id)
-        .order('created_at');
-
-      if (error) throw error;
-      return data as CustomEntity[];
-    },
-  });
-
-  const baseMenuItems = [
-    {
-      title: "Dashboard",
-      icon: LayoutDashboard,
-      href: "/crm/dashboard",
-    },
-    {
-      title: "Pipelines",
-      icon: Kanban,
-      href: "/crm/opportunities",
-      showSelector: true,
-    },
-    {
-      title: "Tarefas",
-      icon: CheckSquare,
-      href: "/crm/tasks",
-    },
-    {
-      title: "Relatórios",
-      icon: BarChart,
-      href: "/crm/reports",
-    },
-    {
-      title: "Configurações",
-      icon: Settings,
-      href: "/crm/settings",
-    },
-  ];
-
-  const isActive = (href: string) => {
-    if (href === '/crm/opportunities') {
-      return location.pathname.startsWith(href);
-    }
-    return location.pathname === href;
-  };
-
-  const handleMenuClick = async (href: string, showSelector: boolean) => {
-    if (showSelector) {
-      if (pipelines?.length === 1) {
-        navigate(`/crm/opportunities/${pipelines[0].id}`);
-      } else if (pipelines?.length > 1) {
-        setShowPipelineSelector(!showPipelineSelector);
-      }
-      return;
-    }
-    navigate(href);
-  };
+  const { pipelines = [], customEntities = [] } = useSidebarData();
 
   return (
     <>
@@ -159,41 +36,15 @@ export function CRMSidebar() {
 
         <div className="flex-1 overflow-auto">
           <nav className="flex-1 space-y-1 p-2">
-            {/* Menu Principal */}
-            {baseMenuItems.map((item) => (
-              <div key={item.href}>
-                <SidebarMenuItem
-                  title={item.title}
-                  href={item.href}
-                  icon={item.icon}
-                  isActive={isActive(item.href)}
-                  onClick={() => handleMenuClick(item.href, item.showSelector)}
-                />
-                {item.showSelector && showPipelineSelector && pipelines?.length > 1 && (
-                  <PipelineSelector 
-                    onSelect={(id) => {
-                      navigate(`/crm/opportunities/${id}`);
-                      setShowPipelineSelector(false);
-                    }} 
-                  />
-                )}
-              </div>
-            ))}
+            <MainMenuItems 
+              showPipelineSelector={showPipelineSelector}
+              setShowPipelineSelector={setShowPipelineSelector}
+              pipelines={pipelines}
+            />
 
-            {/* Divisor */}
             <div className="my-4 border-t border-gray-200 dark:border-gray-700" />
 
-            {/* Entidades Customizadas */}
-            {customEntities.map((entity) => (
-              <SidebarMenuItem
-                key={entity.id}
-                title={entity.name}
-                href={`/crm/entities/${entity.id}`}
-                icon={getDefaultIcon(entity.template_name)}
-                isActive={location.pathname === `//crm/entities/${entity.id}`}
-                onClick={() => navigate(`/crm/entities/${entity.id}`)}
-              />
-            ))}
+            <CustomEntitiesMenu entities={customEntities} />
           </nav>
         </div>
 
