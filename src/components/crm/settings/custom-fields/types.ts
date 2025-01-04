@@ -1,3 +1,5 @@
+import { Json } from "@/types/database/json";
+
 export type FieldType = 
   | "short_text"
   | "long_text"
@@ -14,6 +16,8 @@ export type FieldType =
   | "single_select"
   | "time";
 
+export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
+
 export interface FieldTypeInfo {
   id: FieldType;
   name: string;
@@ -22,8 +26,6 @@ export interface FieldTypeInfo {
   category: FieldCategory;
   validation?: (value: any) => boolean;
 }
-
-export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
 
 export interface FieldHistory {
   timestamp: string;
@@ -46,8 +48,22 @@ export interface CustomField {
   description?: string;
   is_required?: boolean;
   order_index: number;
-  options?: any[];
-  history: FieldHistory[];
+  options?: Json[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EntityField {
+  id: string;
+  entity_id: string;
+  client_id: string;
+  name: string;
+  field_type: string;
+  description?: string;
+  is_required?: boolean;
+  order_index: number;
+  options?: Json[];
+  validation_rules?: Json;
   created_at: string;
   updated_at: string;
 }

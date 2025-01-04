@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CustomField, FieldType } from "../types";
+import { CustomField, EntityField } from "../types";
 
 export function useCustomFields() {
   const { toast } = useToast();
@@ -36,13 +36,16 @@ export function useCustomFields() {
         const fields = stagedFields[stageId];
         for (const field of fields) {
           const { error } = await supabase
-            .from('custom_fields')
+            .from('entity_fields')
             .insert({
-              ...field,
               client_id: clientId,
-              field_type: field.field_type as FieldType,
-              pipeline_id: field.pipeline_id,
-              stage_id: field.stage_id
+              entity_id: field.pipeline_id, // Usando pipeline_id como entity_id temporariamente
+              name: field.name,
+              field_type: field.field_type,
+              description: field.description,
+              is_required: field.is_required,
+              order_index: field.order_index,
+              options: field.options
             });
           
           if (error) throw error;

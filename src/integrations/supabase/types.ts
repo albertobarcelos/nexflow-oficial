@@ -211,7 +211,6 @@ export type Database = {
           client_id: string
           created_at: string
           description: string | null
-          fields: Json
           id: string
           is_default: boolean | null
           name: string
@@ -222,7 +221,6 @@ export type Database = {
           client_id: string
           created_at?: string
           description?: string | null
-          fields?: Json
           id?: string
           is_default?: boolean | null
           name: string
@@ -233,7 +231,6 @@ export type Database = {
           client_id?: string
           created_at?: string
           description?: string | null
-          fields?: Json
           id?: string
           is_default?: boolean | null
           name?: string
@@ -256,6 +253,42 @@ export type Database = {
             referencedColumns: ["name"]
           },
         ]
+      }
+      custom_entities_backup: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          description: string | null
+          fields: Json | null
+          id: string | null
+          is_default: boolean | null
+          name: string | null
+          template_name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          fields?: Json | null
+          id?: string | null
+          is_default?: boolean | null
+          name?: string | null
+          template_name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          fields?: Json | null
+          id?: string | null
+          is_default?: boolean | null
+          name?: string | null
+          template_name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       custom_fields: {
         Row: {
@@ -461,6 +494,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      entity_fields_backup: {
+        Row: {
+          client_id: string | null
+          created_at: string | null
+          description: string | null
+          entity_id: string | null
+          field_type: string | null
+          id: string | null
+          is_required: boolean | null
+          name: string | null
+          options: Json | null
+          order_index: number | null
+          updated_at: string | null
+          validation_rules: Json | null
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          field_type?: string | null
+          id?: string | null
+          is_required?: boolean | null
+          name?: string | null
+          options?: Json | null
+          order_index?: number | null
+          updated_at?: string | null
+          validation_rules?: Json | null
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          entity_id?: string | null
+          field_type?: string | null
+          id?: string | null
+          is_required?: boolean | null
+          name?: string | null
+          options?: Json | null
+          order_index?: number | null
+          updated_at?: string | null
+          validation_rules?: Json | null
+        }
+        Relationships: []
       }
       entity_naming_preferences: {
         Row: {
