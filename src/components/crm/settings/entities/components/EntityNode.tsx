@@ -38,7 +38,11 @@ const EntityNodeComponent = ({ data }: EntityNodeProps) => {
       transition={{ duration: 0.3 }}
     >
       <Card className="w-[300px] shadow-lg border-2" style={{ borderColor: data.color }}>
-        <Handle type="target" position={Position.Left} className="w-3 h-3 bg-muted-foreground" />
+        <Handle 
+          type="target" 
+          position={Position.Left} 
+          className="w-3 h-3 bg-muted-foreground"
+        />
         
         <div className="p-4 border-b flex items-center gap-3">
           <div className="p-2 rounded-full bg-muted" style={{ color: data.color }}>
@@ -62,7 +66,7 @@ const EntityNodeComponent = ({ data }: EntityNodeProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.fields.map((field: EntityField) => {
+              {data.fields?.map((field: EntityField) => {
                 const FieldIcon = fieldTypeIcons[field.field_type] || Type;
                 return (
                   <TableRow key={field.id}>
@@ -83,7 +87,11 @@ const EntityNodeComponent = ({ data }: EntityNodeProps) => {
           </Table>
         </div>
 
-        <Handle type="source" position={Position.Right} className="w-3 h-3 bg-muted-foreground" />
+        <Handle 
+          type="source" 
+          position={Position.Right} 
+          className="w-3 h-3 bg-muted-foreground"
+        />
       </Card>
     </motion.div>
   );

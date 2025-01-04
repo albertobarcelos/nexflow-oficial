@@ -396,6 +396,41 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_field_relationships: {
+        Row: {
+          created_at: string
+          id: string
+          source_field_id: string
+          source_record_id: string
+          target_record_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          source_field_id: string
+          source_record_id: string
+          target_record_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          source_field_id?: string
+          source_record_id?: string
+          target_record_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_field_relationships_source_field_id_fkey"
+            columns: ["source_field_id"]
+            isOneToOne: false
+            referencedRelation: "entity_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_field_values: {
         Row: {
           created_at: string
@@ -453,6 +488,8 @@ export type Database = {
           name: string
           options: Json | null
           order_index: number
+          related_entity_id: string | null
+          relationship_type: string | null
           updated_at: string
           validation_rules: Json | null
         }
@@ -467,6 +504,8 @@ export type Database = {
           name: string
           options?: Json | null
           order_index: number
+          related_entity_id?: string | null
+          relationship_type?: string | null
           updated_at?: string
           validation_rules?: Json | null
         }
@@ -481,6 +520,8 @@ export type Database = {
           name?: string
           options?: Json | null
           order_index?: number
+          related_entity_id?: string | null
+          relationship_type?: string | null
           updated_at?: string
           validation_rules?: Json | null
         }
@@ -495,6 +536,13 @@ export type Database = {
           {
             foreignKeyName: "entity_fields_entity_id_fkey"
             columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "custom_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_fields_related_entity_id_fkey"
+            columns: ["related_entity_id"]
             isOneToOne: false
             referencedRelation: "custom_entities"
             referencedColumns: ["id"]
