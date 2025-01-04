@@ -109,11 +109,16 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
             relationship_type: field.relationship_type || null
           };
 
+          // Check if field is new (has a temporary ID) or existing
           if (!field.id || field.id.includes('temp-')) {
             console.log("Inserting new field:", fieldData);
             const { error: insertError } = await supabase
               .from('entity_fields')
-              .insert(fieldData);
+              .insert({
+                ...fieldData,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              });
 
             if (insertError) {
               console.error('Field insert error:', insertError);
@@ -123,7 +128,10 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
             console.log("Updating existing field:", fieldData);
             const { error: updateError } = await supabase
               .from('entity_fields')
-              .update(fieldData)
+              .update({
+                ...fieldData,
+                updated_at: new Date().toISOString()
+              })
               .eq('id', field.id);
 
             if (updateError) {
@@ -182,7 +190,9 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
             entity_id: entity.id,
             client_id: collaborator.client_id,
             related_entity_id: field.related_entity_id || null,
-            relationship_type: field.relationship_type || null
+            relationship_type: field.relationship_type || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           }));
 
           const { error: fieldsError } = await supabase
