@@ -10,15 +10,21 @@ interface EntityFieldEditorProps {
 
 export function EntityFieldEditor({ fields, onChange }: EntityFieldEditorProps) {
   const addField = () => {
-    onChange([
-      ...fields,
-      {
-        id: `field-${Date.now()}`,
-        name: "",
-        type: "text",
-        required: false,
-      },
-    ]);
+    const newField: EntityField = {
+      id: `field-${Date.now()}`,
+      name: "",
+      type: "text",
+      required: false,
+      field_type: "text",
+      order_index: fields.length,
+      client_id: "", // Será preenchido no backend
+      entity_id: "", // Será preenchido no backend
+      is_required: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    onChange([...fields, newField]);
   };
 
   const updateField = (index: number, field: EntityField) => {
