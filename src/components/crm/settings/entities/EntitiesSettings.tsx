@@ -22,6 +22,7 @@ import {
 
 export function EntitiesSettings() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [entityToEdit, setEntityToEdit] = useState<Entity | null>(null);
   const [entityToDelete, setEntityToDelete] = useState<Entity | null>(null);
   const { entities, relationships, isLoading, refetch } = useEntities();
   const { toast } = useToast();
@@ -34,13 +35,16 @@ export function EntitiesSettings() {
     });
   };
 
-  const handleEditEntity = (entity: Entity) => {
-    // Implementar edição posteriormente
+  const handleEditSuccess = () => {
+    refetch();
     toast({
-      title: "Edição de entidade",
-      description: "Funcionalidade em desenvolvimento.",
-      variant: "default",
+      title: "Entidade atualizada",
+      description: "A entidade foi atualizada com sucesso.",
     });
+  };
+
+  const handleEditEntity = (entity: Entity) => {
+    setEntityToEdit(entity);
   };
 
   const handleDeleteEntity = async (entity: Entity) => {
@@ -121,9 +125,15 @@ export function EntitiesSettings() {
       </Tabs>
 
       <CreateEntityDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onSuccess={handleCreateSuccess}
+        open={isCreateDialogOpen || !!entityToEdit}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateDialogOpen(false);
+            setEntityToEdit(null);
+          }
+        }}
+        onSuccess={entityToEdit ? handleEditSuccess : handleCreateSuccess}
+        entityToEdit={entityToEdit}
       />
 
       <AlertDialog open={!!entityToDelete} onOpenChange={() => setEntityToDelete(null)}>

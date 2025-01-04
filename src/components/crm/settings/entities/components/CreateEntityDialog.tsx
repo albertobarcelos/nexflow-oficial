@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,7 @@ import { ConfiguredFieldsTable } from "./ConfiguredFieldsTable";
 import { useEntities } from "../hooks/useEntities";
 import type { CreateEntityDialogProps } from "../types";
 
-export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEntityDialogProps) {
+export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
   const { toast } = useToast();
   const { entities } = useEntities();
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +20,24 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
   const [fields, setFields] = useState([]);
   const [selectedIcon, setSelectedIcon] = useState("database");
   const [selectedColor, setSelectedColor] = useState("#4A90E2");
+
+  useEffect(() => {
+    if (entityToEdit) {
+      setSingularName(entityToEdit.name);
+      setPluralName(entityToEdit.name + 's'); // Simplificado para exemplo
+      setDescription(entityToEdit.description || "");
+      setSelectedIcon(entityToEdit.icon_name || "database");
+      setSelectedColor(entityToEdit.color || "#4A90E2");
+      setFields(entityToEdit.fields || []);
+    } else {
+      setSingularName("");
+      setPluralName("");
+      setDescription("");
+      setSelectedIcon("database");
+      setSelectedColor("#4A90E2");
+      setFields([]);
+    }
+  }, [entityToEdit]);
 
   const handleSubmit = async () => {
     if (!singularName.trim()) {
@@ -41,55 +59,91 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
 
       if (!collaborator) throw new Error('Cliente não encontrado');
 
-      // Criar a entidade
-      const { data: entity, error: entityError } = await supabase
-        .from('custom_entities')
-        .insert({
-          name: singularName,
-          description,
-          client_id: collaborator.client_id,
-          icon_name: selectedIcon,
-          color: selectedColor
-        })
-        .select()
-        .single();
+      if (entityToEdit) {
+        // Atualizar entidade existente
+        const { error: entityError } = await supabase
+          .from('custom_entities')
+          .update({
+            name: singularName,
+            description,
+            icon_name: selectedIcon,
+            color: selectedColor,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', entityToEdit.id);
 
-      if (entityError) throw entityError;
+        if (entityError) throw entityError;
 
-      // Criar campos da entidade
-      if (fields.length > 0) {
-        const { error: fieldsError } = await supabase
-          .from('entity_fields')
-          .insert(
-            fields.map((field, index) => ({
-              ...field,
-              entity_id: entity.id,
-              client_id: collaborator.client_id,
-              order_index: index
-            }))
-          );
+        // Atualizar campos existentes e adicionar novos
+        for (const field of fields) {
+          if (field.id.includes('temp-')) {
+            // Novo campo
+            const { error: fieldError } = await supabase
+              .from('entity_fields')
+              .insert({
+                ...field,
+                entity_id: entityToEdit.id,
+                client_id: collaborator.client_id
+              });
+            if (fieldError) throw fieldError;
+          } else {
+            // Campo existente
+            const { error: fieldError } = await supabase
+              .from('entity_fields')
+              .update(field)
+              .eq('id', field.id);
+            if (fieldError) throw fieldError;
+          }
+        }
 
-        if (fieldsError) throw fieldsError;
+        toast({
+          title: "Entidade atualizada",
+          description: "A entidade foi atualizada com sucesso."
+        });
+      } else {
+        // Criar nova entidade
+        const { data: entity, error: entityError } = await supabase
+          .from('custom_entities')
+          .insert({
+            name: singularName,
+            description,
+            client_id: collaborator.client_id,
+            icon_name: selectedIcon,
+            color: selectedColor
+          })
+          .select()
+          .single();
+
+        if (entityError) throw entityError;
+
+        if (fields.length > 0) {
+          const { error: fieldsError } = await supabase
+            .from('entity_fields')
+            .insert(
+              fields.map((field, index) => ({
+                ...field,
+                entity_id: entity.id,
+                client_id: collaborator.client_id,
+                order_index: index
+              }))
+            );
+
+          if (fieldsError) throw fieldsError;
+        }
+
+        toast({
+          title: "Entidade criada",
+          description: "A entidade foi criada com sucesso."
+        });
       }
-
-      toast({
-        title: "Entidade criada",
-        description: "A entidade foi criada com sucesso."
-      });
       
       if (onSuccess) onSuccess();
       onOpenChange(false);
-      setSingularName("");
-      setPluralName("");
-      setDescription("");
-      setFields([]);
-      setSelectedIcon("database");
-      setSelectedColor("#4A90E2");
     } catch (error) {
-      console.error('Error creating entity:', error);
+      console.error('Error saving entity:', error);
       toast({
-        title: "Erro ao criar entidade",
-        description: "Ocorreu um erro ao criar a entidade. Tente novamente.",
+        title: "Erro ao salvar entidade",
+        description: "Ocorreu um erro ao salvar a entidade. Tente novamente.",
         variant: "destructive"
       });
     } finally {
@@ -101,7 +155,7 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Nova Entidade</DialogTitle>
+          <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6">
@@ -131,7 +185,7 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
             <EntityFieldEditor 
               fields={fields} 
               onChange={setFields} 
-              currentEntityId={singularName}
+              currentEntityId={entityToEdit?.id || singularName}
               entities={entities || []}
             />
             
@@ -155,7 +209,7 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
               onClick={handleSubmit}
               disabled={isLoading}
             >
-              {isLoading ? "Criando..." : "Criar Entidade"}
+              {isLoading ? "Salvando..." : entityToEdit ? "Salvar Alterações" : "Criar Entidade"}
             </Button>
           </DialogFooter>
         </div>

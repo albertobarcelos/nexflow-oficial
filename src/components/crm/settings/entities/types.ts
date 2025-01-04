@@ -64,6 +64,7 @@ export interface CreateEntityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  entityToEdit?: Entity | null;
 }
 
 export interface EntityListProps {
