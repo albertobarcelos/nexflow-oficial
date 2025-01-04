@@ -3,22 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EntityDiagram } from "./components/EntityDiagram";
 import { EntityList } from "./components/EntityList";
-import { CreateEntityDialog } from "./components/CreateEntityDialog";
+import { EntityDialog } from "./components/dialog/EntityDialog";
 import { useEntities } from "./hooks/useEntities";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Entity } from "./types";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export function EntitiesSettings() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -124,7 +115,7 @@ export function EntitiesSettings() {
         </TabsContent>
       </Tabs>
 
-      <CreateEntityDialog
+      <EntityDialog
         open={isCreateDialogOpen || !!entityToEdit}
         onOpenChange={(open) => {
           if (!open) {
