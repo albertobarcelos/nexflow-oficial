@@ -28,6 +28,7 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
       type: 'entity',
       position: { x: 250 * index, y: 100 },
       data: entity,
+      draggable: true,
     }));
 
     setNodes(newNodes);
@@ -43,6 +44,7 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
       target: rel.target_entity_id,
       label: rel.name,
       type: 'smoothstep',
+      animated: true,
     }));
 
     setEdges(newEdges);
@@ -50,7 +52,6 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
 
   const onConnect = useCallback(
     (params: Connection) => {
-      // Handle new connections between entities
       console.log('New connection:', params);
     },
     []
