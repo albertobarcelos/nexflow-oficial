@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EntityBasicInfo } from "./form/EntityBasicInfo";
 import { EntityVisualConfig } from "./form/EntityVisualConfig";
 import { EntityFieldEditor } from "./EntityFieldEditor";
+import { ConfiguredFieldsTable } from "./ConfiguredFieldsTable";
 import type { CreateEntityDialogProps } from "../types";
 
 export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEntityDialogProps) {
@@ -123,8 +124,16 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
             onColorChange={setSelectedColor}
           />
 
-          <div className="space-y-2">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Campos da Entidade</h3>
             <EntityFieldEditor fields={fields} onChange={setFields} />
+            
+            {fields.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium mb-3">Campos Configurados</h4>
+                <ConfiguredFieldsTable fields={fields} />
+              </div>
+            )}
           </div>
 
           <DialogFooter>
