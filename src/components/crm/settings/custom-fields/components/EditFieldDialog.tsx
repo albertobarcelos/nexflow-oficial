@@ -67,7 +67,6 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
           }
         }
         break;
-      // Adicione mais validações específicas para outros tipos de campo
     }
 
     setValidationError(null);
@@ -76,7 +75,6 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
 
   const handleSave = () => {
     if (editingField && validateField(editingField)) {
-      // Adicionar entrada no histórico
       const history = editingField.history || [];
       history.push({
         timestamp: new Date().toISOString(),
@@ -97,13 +95,13 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
 
   const handleDuplicate = () => {
     if (editingField && onDuplicate) {
-      const duplicatedField = {
+      const duplicatedField: CustomField = {
         ...editingField,
         id: `temp-${Date.now()}`,
         name: `${editingField.name} (cópia)`,
         history: [{
           timestamp: new Date().toISOString(),
-          action: "created" as const,
+          action: "created",
           user_id: "current_user_id" // Substituir pelo ID do usuário atual
         }]
       };

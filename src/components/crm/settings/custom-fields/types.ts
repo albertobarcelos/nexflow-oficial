@@ -77,6 +77,6 @@ export interface PipelineFieldsEditorProps {
   stagedFields: Record<string, CustomField[]>;
   onChange: () => void;
   onEditField: (field: CustomField) => void;
-  onDuplicate?: (field: CustomField) => void;
-  onReorder?: (stageId: string, fields: CustomField[]) => void;
+  onDuplicate: (field: CustomField) => void;
+  onReorder: (stageId: string, fields: CustomField[]) => void;
 }
