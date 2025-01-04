@@ -17,9 +17,10 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { License } from "@/types/database";
+import { v4 as uuidv4 } from 'uuid';
 
 interface LicenseDialogProps {
-  clients?: { id: string; name: string; }[];
+  clients?: { id: string; name: string; email: string; }[];
   onSuccess: () => void;
 }
 
@@ -40,25 +41,66 @@ export function LicenseDialog({ clients, onSuccess }: LicenseDialogProps) {
       return;
     }
 
+    const selectedClientData = clients?.find(client => client.id === selectedClient);
+    if (!selectedClientData) {
+      toast({
+        title: "Erro",
+        description: "Cliente não encontrado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsCreating(true);
     try {
       const expirationDate = new Date();
       expirationDate.setFullYear(expirationDate.getFullYear() + 1);
 
-      const { error } = await supabase
+      // Criar a licença
+      const { data: licenseData, error: licenseError } = await supabase
         .from('licenses')
         .insert({
           client_id: selectedClient,
           type: selectedPlan,
           expiration_date: expirationDate.toISOString(),
           status: 'active',
-        } as License);
+        } as License)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (licenseError) throw licenseError;
+
+      // Criar o usuário administrador
+      const pendingAuthId = uuidv4();
+      const { error: collaboratorError } = await supabase
+        .from('collaborators')
+        .insert({
+          client_id: selectedClient,
+          license_id: licenseData.id,
+          name: selectedClientData.name,
+          email: selectedClientData.email,
+          role: 'administrator',
+          auth_user_id: pendingAuthId,
+          permissions: ['admin'],
+        });
+
+      if (collaboratorError) throw collaboratorError;
+
+      // Enviar convite para o usuário
+      const { error: inviteError } = await supabase.functions.invoke('send-invite', {
+        body: {
+          collaboratorId: licenseData.id,
+          name: selectedClientData.name,
+          email: selectedClientData.email,
+          inviteUrl: `${window.location.origin}/collaborator/set-password`,
+        },
+      });
+
+      if (inviteError) throw inviteError;
 
       toast({
         title: "Sucesso!",
-        description: "A licença foi criada com sucesso.",
+        description: "A licença foi criada e o convite enviado para o usuário administrador.",
       });
       
       setOpen(false);

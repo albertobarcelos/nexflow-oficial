@@ -26,7 +26,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
 
   const handleAddCollaborator = async (data: CollaboratorFormData & { license_id: string }) => {
     try {
-      // Get the current number of collaborators for this license
+      // Get the current number of users for this license
       const { data: existingCollaborators, error: countError } = await supabase
         .from('collaborators')
         .select('id')
@@ -46,7 +46,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
       if (existingCollaborators.length >= license.user_limit) {
         toast({
           title: "Limite excedido",
-          description: `Esta licença permite apenas ${license.user_limit} colaboradores.`,
+          description: `Esta licença permite apenas ${license.user_limit} usuários.`,
           variant: "destructive",
         });
         return;
@@ -54,7 +54,7 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
 
       const pendingAuthId = uuidv4();
 
-      // Create collaborator with role-based permissions
+      // Create user with role-based permissions
       const { data: newCollaborator, error: collaboratorError } = await supabase
         .from('collaborators')
         .insert({
@@ -84,16 +84,16 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
       if (inviteError) throw inviteError;
 
       toast({
-        title: "Colaborador adicionado",
-        description: "O colaborador foi adicionado com sucesso e receberá um email de convite.",
+        title: "Usuário adicionado",
+        description: "O usuário foi adicionado com sucesso e receberá um email de convite.",
       });
       onSuccess();
       setIsOpen(false);
     } catch (error) {
-      console.error('Error adding collaborator:', error);
+      console.error('Error adding user:', error);
       toast({
-        title: "Erro ao adicionar colaborador",
-        description: "Ocorreu um erro ao adicionar o colaborador.",
+        title: "Erro ao adicionar usuário",
+        description: "Ocorreu um erro ao adicionar o usuário.",
         variant: "destructive",
       });
     }
@@ -104,12 +104,12 @@ export function AddCollaboratorDialog({ clientId, onSuccess }: AddCollaboratorDi
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="mr-2 h-4 w-4" />
-          Adicionar Colaborador
+          Adicionar Usuário
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar Colaborador</DialogTitle>
+          <DialogTitle>Adicionar Usuário</DialogTitle>
         </DialogHeader>
         <AddCollaboratorForm clientId={clientId} onSubmit={handleAddCollaborator} />
       </DialogContent>
