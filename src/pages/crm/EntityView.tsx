@@ -27,12 +27,16 @@ export default function EntityView() {
         .from("custom_entities")
         .select("*, entity_fields(*)")
         .eq("id", id)
-        .single();
+        .maybeSingle();
 
       if (entityError) throw entityError;
       if (!entityData) throw new Error("Entidade não encontrada");
 
-      return entityData as Entity;
+      // Map entity_fields to fields in the Entity type
+      return {
+        ...entityData,
+        fields: entityData.entity_fields
+      } as Entity;
     }
   });
 

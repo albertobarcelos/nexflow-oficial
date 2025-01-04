@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AdminLayout from "@/layouts/AdminLayout";
 import CRMLayout from "@/layouts/CRMLayout";
 import Dashboard from "@/pages/crm/Dashboard";
-import Leads from "@/pages/crm/Leads";
 import OpportunitiesKanban from "@/pages/crm/OpportunitiesKanban";
 import OpportunitiesList from "@/pages/crm/OpportunitiesList";
 import Tasks from "@/pages/crm/Tasks";
@@ -42,7 +41,6 @@ export function Router() {
       <Route path="/crm/login" element={<CRMLogin />} />
       <Route path="/crm" element={<CRMLayout />}>
         <Route path="dashboard" element={<Dashboard />} />
-        <Route path="leads" element={<Leads />} />
         <Route path="opportunities/kanban" element={<OpportunitiesKanban />} />
         <Route path="opportunities/list" element={<OpportunitiesList />} />
         <Route path="tasks" element={<Tasks />} />
