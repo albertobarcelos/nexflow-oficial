@@ -206,6 +206,44 @@ export type Database = {
           },
         ]
       }
+      custom_entities: {
+        Row: {
+          client_id: string
+          created_at: string
+          description: string | null
+          fields: Json
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          description?: string | null
+          fields?: Json
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_entities_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_fields: {
         Row: {
           client_id: string
@@ -307,6 +345,61 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_relationships: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+          source_entity_id: string
+          target_entity_id: string
+          type: Database["public"]["Enums"]["relationship_type"]
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+          source_entity_id: string
+          target_entity_id: string
+          type: Database["public"]["Enums"]["relationship_type"]
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          source_entity_id?: string
+          target_entity_id?: string
+          type?: Database["public"]["Enums"]["relationship_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_relationships_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_relationships_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "custom_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_relationships_target_entity_id_fkey"
+            columns: ["target_entity_id"]
+            isOneToOne: false
+            referencedRelation: "custom_entities"
             referencedColumns: ["id"]
           },
         ]
@@ -916,6 +1009,7 @@ export type Database = {
       lead_status: "new" | "in_progress" | "closed"
       license_status: "active" | "suspended" | "expired"
       plan_type: "free" | "premium"
+      relationship_type: "one_to_many" | "many_to_many"
       report_type: "usage" | "financial"
       task_priority: "low" | "medium" | "high"
       task_status: "todo" | "doing" | "done"

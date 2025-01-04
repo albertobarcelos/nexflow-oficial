@@ -1,14 +1,15 @@
 import { useCallback } from 'react';
-import ReactFlow, { 
-  Background, 
+import {
+  ReactFlow,
+  Background,
   Controls,
   Connection,
   Edge,
   Node,
   useNodesState,
   useEdgesState,
-} from 'reactflow';
-import 'reactflow/dist/style.css';
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { EntityNode } from './EntityNode';
 import { EntityDiagramProps } from '../types';
 

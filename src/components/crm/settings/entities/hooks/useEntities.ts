@@ -11,7 +11,7 @@ export function useEntities() {
         .select("*");
 
       if (error) throw error;
-      return data as Entity[];
+      return (data || []) as Entity[];
     },
   });
 
@@ -23,7 +23,7 @@ export function useEntities() {
         .select("*");
 
       if (error) throw error;
-      return data as EntityRelationship[];
+      return (data || []) as EntityRelationship[];
     },
   });
 
