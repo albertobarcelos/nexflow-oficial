@@ -7,40 +7,47 @@ import { EntityVisualConfig } from "../form/EntityVisualConfig";
 import { EntityFormFields } from "../form/EntityFormFields";
 import { EntityFormFooter } from "../form/EntityFormFooter";
 import { useEntities } from "../../hooks/useEntities";
+import { defaultEntityFields } from "../form/defaultEntityFields";
 import type { CreateEntityDialogProps, EntityField } from "../../types";
-import { useEntityFields } from "./useEntityFields";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
   const { toast } = useToast();
   const { entities } = useEntities();
   const [isLoading, setIsLoading] = useState(false);
-  const {
-    singularName,
-    pluralName,
-    description,
-    fields,
-    selectedIcon,
-    selectedColor,
-    setSingularName,
-    setPluralName,
-    setDescription,
-    setFields,
-    setSelectedIcon,
-    setSelectedColor,
-    resetForm,
-    initializeForm
-  } = useEntityFields(entityToEdit);
+  const [formData, setFormData] = useState({
+    singularName: "",
+    pluralName: "",
+    description: "",
+    selectedIcon: "database",
+    selectedColor: "#4A90E2",
+    fields: [] as EntityField[]
+  });
 
   useEffect(() => {
     if (entityToEdit) {
-      initializeForm(entityToEdit);
+      setFormData({
+        singularName: entityToEdit.name,
+        pluralName: entityToEdit.name + 's',
+        description: entityToEdit.description || "",
+        selectedIcon: entityToEdit.icon_name || "database",
+        selectedColor: entityToEdit.color || "#4A90E2",
+        fields: entityToEdit.fields || defaultEntityFields
+      });
     } else {
-      resetForm();
+      setFormData({
+        singularName: "",
+        pluralName: "",
+        description: "",
+        selectedIcon: "database",
+        selectedColor: "#4A90E2",
+        fields: defaultEntityFields
+      });
     }
-  }, [entityToEdit]);
+  }, [entityToEdit, open]);
 
   const handleSubmit = async () => {
-    if (!singularName.trim()) {
+    if (!formData.singularName.trim()) {
       toast({
         title: "Campo obrigatório",
         description: "Por favor, preencha o nome singular da entidade.",
@@ -64,10 +71,10 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
         const { error: entityError } = await supabase
           .from('custom_entities')
           .update({
-            name: singularName,
-            description,
-            icon_name: selectedIcon,
-            color: selectedColor,
+            name: formData.singularName,
+            description: formData.description,
+            icon_name: formData.selectedIcon,
+            color: formData.selectedColor,
             updated_at: new Date().toISOString()
           })
           .eq('id', entityToEdit.id);
@@ -75,7 +82,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
         if (entityError) throw entityError;
 
         // Atualizar campos existentes e adicionar novos
-        for (const field of fields) {
+        for (const field of formData.fields) {
           if (field.id.includes('temp-')) {
             // Novo campo
             const { error: fieldError } = await supabase
@@ -108,22 +115,22 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
         const { data: entity, error: entityError } = await supabase
           .from('custom_entities')
           .insert({
-            name: singularName,
-            description,
+            name: formData.singularName,
+            description: formData.description,
             client_id: collaborator.client_id,
-            icon_name: selectedIcon,
-            color: selectedColor
+            icon_name: formData.selectedIcon,
+            color: formData.selectedColor
           })
           .select()
           .single();
 
         if (entityError) throw entityError;
 
-        if (fields.length > 0) {
+        if (formData.fields.length > 0) {
           const { error: fieldsError } = await supabase
             .from('entity_fields')
             .insert(
-              fields.map((field, index) => ({
+              formData.fields.map((field, index) => ({
                 ...field,
                 entity_id: entity.id,
                 client_id: collaborator.client_id,
@@ -137,7 +144,6 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
       
       if (onSuccess) onSuccess();
       onOpenChange(false);
-      resetForm();
       
       toast({
         title: entityToEdit ? "Entidade atualizada" : "Entidade criada",
@@ -158,52 +164,64 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
   };
 
   const handleCancel = () => {
-    resetForm();
+    setFormData({
+      singularName: "",
+      pluralName: "",
+      description: "",
+      selectedIcon: "database",
+      selectedColor: "#4A90E2",
+      fields: defaultEntityFields
+    });
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pb-20">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-2">
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
-          <EntityBasicInfo
-            singularName={singularName}
-            pluralName={pluralName}
-            description={description}
-            onSingularNameChange={(value) => {
-              setSingularName(value);
-              if (!pluralName) {
-                setPluralName(value + 's');
-              }
-            }}
-            onPluralNameChange={setPluralName}
-            onDescriptionChange={setDescription}
-          />
+        <ScrollArea className="flex-1 px-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
+            <EntityBasicInfo
+              singularName={formData.singularName}
+              pluralName={formData.pluralName}
+              description={formData.description}
+              onSingularNameChange={(value) => {
+                setFormData(prev => ({
+                  ...prev,
+                  singularName: value,
+                  pluralName: value ? value + 's' : ''
+                }));
+              }}
+              onPluralNameChange={(value) => setFormData(prev => ({ ...prev, pluralName: value }))}
+              onDescriptionChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+            />
 
-          <EntityVisualConfig
-            selectedIcon={selectedIcon}
-            selectedColor={selectedColor}
-            onIconChange={setSelectedIcon}
-            onColorChange={setSelectedColor}
-          />
+            <EntityVisualConfig
+              selectedIcon={formData.selectedIcon}
+              selectedColor={formData.selectedColor}
+              onIconChange={(value) => setFormData(prev => ({ ...prev, selectedIcon: value }))}
+              onColorChange={(value) => setFormData(prev => ({ ...prev, selectedColor: value }))}
+            />
 
-          <EntityFormFields
-            fields={fields}
-            setFields={setFields}
-            currentEntityId={entityToEdit?.id || singularName}
-            entities={entities || []}
-          />
+            <EntityFormFields
+              fields={formData.fields}
+              setFields={(fields) => setFormData(prev => ({ ...prev, fields }))}
+              currentEntityId={entityToEdit?.id || formData.singularName}
+              entities={entities || []}
+            />
+          </form>
+        </ScrollArea>
 
+        <div className="border-t p-4 mt-auto">
           <EntityFormFooter
             isLoading={isLoading}
             onCancel={handleCancel}
             entityToEdit={entityToEdit}
           />
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
