@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Entity, EntityRelationship } from "../types";
+import { Entity, EntityRelationship, EntityField } from "../types";
 
 export function useEntities() {
   const { data: entities = [], isLoading: isLoadingEntities } = useQuery({
@@ -11,7 +11,18 @@ export function useEntities() {
         .select("*");
 
       if (error) throw error;
-      return (data || []) as Entity[];
+      
+      return (data || []).map(item => ({
+        ...item,
+        fields: (item.fields as any[]).map((field): EntityField => ({
+          id: field.id,
+          name: field.name,
+          type: field.type,
+          required: field.required || false,
+          options: field.options,
+          description: field.description
+        }))
+      })) as Entity[];
     },
   });
 

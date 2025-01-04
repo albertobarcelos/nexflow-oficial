@@ -13,7 +13,7 @@ export interface EntityField {
   name: string;
   type: EntityFieldType;
   required: boolean;
-  options?: string[]; // For select fields
+  options?: string[];
   description?: string;
 }
 
@@ -24,6 +24,7 @@ export interface Entity {
   fields: EntityField[];
   created_at: string;
   updated_at: string;
+  client_id: string;
 }
 
 export type RelationType = "one_to_many" | "many_to_many";
@@ -36,6 +37,7 @@ export interface EntityRelationship {
   name: string;
   created_at: string;
   updated_at: string;
+  client_id: string;
 }
 
 export interface EntityDiagramProps {
