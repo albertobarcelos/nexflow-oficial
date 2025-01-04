@@ -49,6 +49,7 @@ export interface CustomField {
   is_required?: boolean;
   order_index: number;
   options?: Json[];
+  history?: FieldHistory[];
   created_at: string;
   updated_at: string;
 }

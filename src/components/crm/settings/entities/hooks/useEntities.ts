@@ -17,24 +17,33 @@ export function useEntities() {
 
       if (!collaborator) throw new Error("Collaborator not found");
 
-      const { data, error } = await supabase
+      // Buscar entidades
+      const { data: entitiesData, error: entitiesError } = await supabase
         .from("custom_entities")
         .select("*")
         .eq("client_id", collaborator.client_id);
 
-      if (error) throw error;
-      
-      return (data || []).map(item => ({
-        ...item,
-        fields: (item.fields as any[]).map((field): EntityField => ({
-          id: field.id,
-          name: field.name,
-          type: field.type,
-          required: field.required || false,
-          options: field.options,
-          description: field.description
-        }))
-      })) as Entity[];
+      if (entitiesError) throw entitiesError;
+
+      // Buscar campos para cada entidade
+      const entitiesWithFields = await Promise.all(
+        entitiesData.map(async (entity) => {
+          const { data: fields, error: fieldsError } = await supabase
+            .from("entity_fields")
+            .select("*")
+            .eq("entity_id", entity.id)
+            .order("order_index", { ascending: true });
+
+          if (fieldsError) throw fieldsError;
+
+          return {
+            ...entity,
+            fields: fields || []
+          };
+        })
+      );
+
+      return entitiesWithFields;
     },
   });
 
@@ -58,7 +67,7 @@ export function useEntities() {
         .eq("client_id", collaborator.client_id);
 
       if (error) throw error;
-      return (data || []) as EntityRelationship[];
+      return data as EntityRelationship[];
     },
   });
 

@@ -40,19 +40,7 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
 
   const handleSave = () => {
     if (editingField && validateField(editingField)) {
-      const history = editingField.history || [];
-      history.push({
-        timestamp: new Date().toISOString(),
-        action: "updated",
-        user_id: "current_user_id",
-        details: [{
-          field: "name",
-          oldValue: field?.name,
-          newValue: editingField.name
-        }]
-      });
-
-      onSave({ ...editingField, history });
+      onSave(editingField);
     }
   };
 
@@ -62,11 +50,8 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
         ...editingField,
         id: `temp-${Date.now()}`,
         name: `${editingField.name} (cópia)`,
-        history: [{
-          timestamp: new Date().toISOString(),
-          action: "created",
-          user_id: "current_user_id"
-        }]
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
       onDuplicate(duplicatedField);
     }
@@ -107,24 +92,6 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
 
             {validationError && (
               <div className="text-red-500">{validationError}</div>
-            )}
-
-            {editingField?.history && editingField.history.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-2">Histórico de Alterações</h4>
-                <div className="space-y-2">
-                  {editingField.history.map((entry, index) => (
-                    <div key={index} className="text-sm text-muted-foreground">
-                      {new Date(entry.timestamp).toLocaleString()}: {entry.action}
-                      {entry.details?.map((detail, idx) => (
-                        <div key={idx} className="ml-2">
-                          {detail.field}: {detail.oldValue} → {detail.newValue}
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
             )}
           </div>
           <div className="space-y-4">
