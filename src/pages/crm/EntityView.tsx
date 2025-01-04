@@ -17,6 +17,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+// Components
+import { EntityViewHeader } from "./components/EntityViewHeader";
+import { EntityViewTable } from "./components/EntityViewTable";
+import { EntityViewSearch } from "./components/EntityViewSearch";
+
 export default function EntityView() {
   const { id } = useParams();
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,15 +30,23 @@ export default function EntityView() {
   const { data: entityData, isLoading: isLoadingEntity } = useQuery({
     queryKey: ["entity", id],
     queryFn: async () => {
+      console.log("Fetching entity data for ID:", id);
       const { data: entityData, error: entityError } = await supabase
         .from("custom_entities")
         .select("*, entity_fields(*)")
         .eq("id", id)
         .maybeSingle();
 
-      if (entityError) throw entityError;
-      if (!entityData) throw new Error("Entidade não encontrada");
+      if (entityError) {
+        console.error("Error fetching entity:", entityError);
+        throw entityError;
+      }
+      if (!entityData) {
+        console.error("Entity not found");
+        throw new Error("Entidade não encontrada");
+      }
 
+      console.log("Entity data fetched:", entityData);
       return {
         ...entityData,
         fields: entityData.entity_fields
@@ -45,6 +58,7 @@ export default function EntityView() {
     queryKey: ["entity-records", id],
     enabled: !!entityData,
     queryFn: async () => {
+      console.log("Fetching records for entity:", id);
       const { data: fieldValues, error: fieldValuesError } = await supabase
         .from("entity_field_values")
         .select("*")
@@ -52,7 +66,7 @@ export default function EntityView() {
 
       if (fieldValuesError) throw fieldValuesError;
 
-      // Agrupar valores por record_id
+      // Group values by record_id
       const recordsMap = new Map();
       fieldValues?.forEach(value => {
         if (!recordsMap.has(value.record_id)) {
@@ -65,6 +79,7 @@ export default function EntityView() {
         }
       });
 
+      console.log("Records fetched:", Array.from(recordsMap.values()));
       return Array.from(recordsMap.values());
     }
   });
@@ -73,13 +88,10 @@ export default function EntityView() {
     if (!entityData) return;
 
     try {
-      // Criar um novo record_id
       const recordId = crypto.randomUUID();
-
-      // Encontrar campos relacionados
       const relatedFields = entityData.fields.filter(field => field.related_entity_id);
 
-      // Criar registros relacionados primeiro
+      // Create related records first
       for (const field of relatedFields) {
         if (field.related_entity_id) {
           const { data: relatedEntity } = await supabase
@@ -89,7 +101,6 @@ export default function EntityView() {
             .single();
 
           if (relatedEntity) {
-            // Criar um registro relacionado vazio
             const relatedRecordId = crypto.randomUUID();
             await supabase.from('entity_field_values').insert({
               entity_id: field.related_entity_id,
@@ -98,7 +109,6 @@ export default function EntityView() {
               value: null
             });
 
-            // Criar o relacionamento
             await supabase.from('entity_field_relationships').insert({
               source_field_id: field.id,
               source_record_id: recordId,
@@ -108,7 +118,7 @@ export default function EntityView() {
         }
       }
 
-      // Criar valores vazios para todos os campos
+      // Create empty values for all fields
       const fieldValues = entityData.fields.map(field => ({
         entity_id: entityData.id,
         field_id: field.id,
@@ -137,9 +147,7 @@ export default function EntityView() {
     }
   };
 
-  const isLoading = isLoadingEntity || isLoadingRecords;
-
-  if (isLoading) {
+  if (isLoadingEntity || isLoadingRecords) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -164,60 +172,26 @@ export default function EntityView() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{entityData.name}</h1>
-        <Button onClick={handleCreateRecord} className="bg-primary hover:bg-primary/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar {entityData.name}
-        </Button>
-      </div>
+      <EntityViewHeader 
+        entityName={entityData.name}
+        onCreateRecord={handleCreateRecord}
+      />
 
       <Card>
         <CardHeader>
           <CardTitle>
-            <div className="flex items-center space-x-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder={`Buscar ${entityData.name.toLowerCase()}...`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
+            <EntityViewSearch
+              entityName={entityData.name}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+            />
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {entityData.fields.map((field) => (
-                    <TableHead key={field.id}>{field.name}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRecords?.map((record, index) => (
-                  <TableRow key={index}>
-                    {entityData.fields.map((field) => (
-                      <TableCell key={field.id}>
-                        {record[field.name] || '-'}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-                {(!filteredRecords || filteredRecords.length === 0) && (
-                  <TableRow>
-                    <TableCell colSpan={entityData.fields.length} className="text-center text-muted-foreground">
-                      Nenhum registro encontrado
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <EntityViewTable
+            entityData={entityData}
+            records={filteredRecords}
+          />
         </CardContent>
       </Card>
     </div>

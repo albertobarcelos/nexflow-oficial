@@ -9,7 +9,7 @@ import {
   MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import EntityNodeContent from './diagram/EntityNodeContent';
+import EntityNodeContent from './EntityNodeContent';
 import { EntityDiagramProps } from '../types';
 
 const nodeTypes = {
@@ -68,8 +68,28 @@ export function EntityDiagram({ entities, relationships }: EntityDiagramProps) {
       },
     }));
 
-    setEdges(newEdges);
-  }, [relationships, setEdges]);
+    // Add edges for entity field relationships
+    const fieldRelationshipEdges = entities.flatMap(entity => 
+      entity.fields?.filter(field => field.field_type === 'entity' && field.related_entity_id)
+        .map(field => ({
+          id: `field-${field.id}`,
+          source: entity.id,
+          target: field.related_entity_id,
+          label: field.name,
+          type: 'smoothstep',
+          animated: true,
+          style: { stroke: '#4A90E2', strokeWidth: 2 },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+            color: '#4A90E2',
+          },
+        })) || []
+    );
+
+    setEdges([...newEdges, ...fieldRelationshipEdges]);
+  }, [relationships, entities, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => {
