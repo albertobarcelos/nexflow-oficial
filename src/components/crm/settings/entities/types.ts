@@ -1,75 +1,29 @@
-import { Json } from "@/types/database/json";
+import { CustomEntity } from "@/types/database/entity";
 
-export type EntityFieldType = 
-  | "text"
-  | "number"
-  | "date"
-  | "select"
-  | "checkbox"
-  | "email"
-  | "phone"
-  | "address";
+export interface Entity extends CustomEntity {
+  fields: EntityField[];
+}
 
 export interface EntityField {
   id: string;
   name: string;
-  type: EntityFieldType;
-  required: boolean;
-  options?: string[];
+  field_type: string;
+  is_required: boolean;
   description?: string;
   order_index: number;
-  field_type: string;
-  client_id: string;
-  entity_id: string;
-  is_required: boolean;
-  validation_rules?: Json;
-  created_at: string;
-  updated_at: string;
+  options?: string[];
+  validation_rules?: Record<string, any>;
 }
-
-export interface Entity {
-  id: string;
-  name: string;
-  description?: string;
-  fields: EntityField[];
-  created_at: string;
-  updated_at: string;
-  client_id: string;
-  is_default?: boolean;
-  template_name?: string;
-}
-
-export type RelationType = "one_to_many" | "many_to_many";
 
 export interface EntityRelationship {
   id: string;
   source_entity_id: string;
   target_entity_id: string;
-  type: RelationType;
+  type: "one_to_many" | "many_to_many";
   name: string;
-  created_at: string;
-  updated_at: string;
-  client_id: string;
 }
 
 export interface EntityDiagramProps {
   entities: Entity[];
   relationships: EntityRelationship[];
-}
-
-export interface EntityListProps {
-  entities: Entity[];
-  onEdit?: (entity: Entity) => void;
-  onDelete?: (entity: Entity) => void;
-}
-
-export interface CreateEntityDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
-}
-
-export interface EntityFieldEditorProps {
-  fields: EntityField[];
-  onChange: (fields: EntityField[]) => void;
 }
