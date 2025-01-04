@@ -8,6 +8,7 @@ import { EntityFormFields } from "../form/EntityFormFields";
 import { EntityFormFooter } from "../form/EntityFormFooter";
 import { useEntities } from "../../hooks/useEntities";
 import { useQueryClient } from "@tanstack/react-query";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CreateEntityDialogProps, EntityField } from "../../types";
 
 export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
