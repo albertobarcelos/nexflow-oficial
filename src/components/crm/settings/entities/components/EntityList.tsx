@@ -9,6 +9,20 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
     console.log('Entities updated:', entities);
   }, [entities]);
 
+  const handleEdit = (entity: any) => {
+    console.log('Editing entity:', entity);
+    if (onEdit) {
+      onEdit(entity);
+    }
+  };
+
+  const handleDelete = (entity: any) => {
+    console.log('Deleting entity:', entity);
+    if (onDelete) {
+      onDelete(entity);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="rounded-md border">
@@ -34,14 +48,14 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onEdit?.(entity)}
+                      onClick={() => handleEdit(entity)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onDelete?.(entity)}
+                      onClick={() => handleDelete(entity)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
