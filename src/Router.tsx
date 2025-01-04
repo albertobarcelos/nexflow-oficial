@@ -12,7 +12,6 @@ import AdminLogin from "@/pages/admin/AdminLogin";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminClients from "@/pages/admin/Clients";
 import ClientForm from "@/pages/admin/ClientForm";
-import AdminLicenses from "@/pages/admin/Licenses";
 import AdminReports from "@/pages/admin/Reports";
 import AdminUsers from "@/pages/admin/Users";
 import AdminAnalytics from "@/pages/admin/Analytics";
@@ -31,7 +30,6 @@ export function Router() {
         <Route path="clients" element={<AdminClients />} />
         <Route path="clients/new" element={<ClientForm />} />
         <Route path="clients/:id" element={<ClientForm />} />
-        <Route path="licenses" element={<AdminLicenses />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="analytics" element={<AdminAnalytics />} />

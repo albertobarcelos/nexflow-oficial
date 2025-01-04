@@ -1,7 +1,6 @@
 import {
   BarChart3,
   Building2,
-  KeyRound,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -34,11 +33,6 @@ const menuItems = [
     title: "Clientes",
     icon: Building2,
     url: "/admin/clients",
-  },
-  {
-    title: "Licenças",
-    icon: KeyRound,
-    url: "/admin/licenses",
   },
   {
     title: "Relatórios",
