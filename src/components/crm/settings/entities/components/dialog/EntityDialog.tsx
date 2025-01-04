@@ -7,10 +7,8 @@ import { EntityVisualConfig } from "../form/EntityVisualConfig";
 import { EntityFormFields } from "../form/EntityFormFields";
 import { EntityFormFooter } from "../form/EntityFormFooter";
 import { useEntities } from "../../hooks/useEntities";
-import { defaultEntityFields } from "../form/defaultEntityFields";
-import type { CreateEntityDialogProps, EntityField } from "../../types";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQueryClient } from "@tanstack/react-query";
+import type { CreateEntityDialogProps, EntityField } from "../../types";
 
 export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
   const { toast } = useToast();
@@ -34,7 +32,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
         description: entityToEdit.description || "",
         selectedIcon: entityToEdit.icon_name || "database",
         selectedColor: entityToEdit.color || "#4A90E2",
-        fields: entityToEdit.fields || defaultEntityFields
+        fields: entityToEdit.fields || []
       });
     } else {
       setFormData({
@@ -43,7 +41,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
         description: "",
         selectedIcon: "database",
         selectedColor: "#4A90E2",
-        fields: defaultEntityFields
+        fields: []
       });
     }
   }, [entityToEdit, open]);
@@ -87,13 +85,13 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
         if (entityError) throw entityError;
 
-        // Get existing fields
+        // Get existing fields to compare
         const { data: existingFields } = await supabase
           .from('entity_fields')
           .select('*')
           .eq('entity_id', entityToEdit.id);
 
-        // Handle fields updates and inserts
+        // Handle fields
         for (const field of formData.fields) {
           const fieldData = {
             name: field.name,
@@ -109,8 +107,9 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
             relationship_type: field.relationship_type || null
           };
 
-          // Check if field is new (has a temporary ID) or existing
-          if (!field.id || field.id.includes('temp-')) {
+          const isNewField = !existingFields?.some(ef => ef.id === field.id);
+          
+          if (isNewField) {
             console.log("Inserting new field:", fieldData);
             const { error: insertError } = await supabase
               .from('entity_fields')
@@ -141,12 +140,9 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
           }
         }
 
-        // Handle field deletions
+        // Delete removed fields
         if (existingFields) {
-          const currentFieldIds = formData.fields
-            .map(f => f.id)
-            .filter(id => id && !id.includes('temp-'));
-
+          const currentFieldIds = formData.fields.map(f => f.id);
           const fieldsToDelete = existingFields.filter(ef => !currentFieldIds.includes(ef.id));
 
           if (fieldsToDelete.length > 0) {
