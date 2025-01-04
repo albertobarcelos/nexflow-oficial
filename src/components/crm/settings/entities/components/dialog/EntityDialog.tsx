@@ -87,68 +87,66 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
         if (entityError) throw entityError;
 
-        // Get existing fields to compare
+        // Get existing fields
         const { data: existingFields } = await supabase
           .from('entity_fields')
           .select('*')
           .eq('entity_id', entityToEdit.id);
 
-        // Handle fields
+        // Handle fields updates and inserts
         for (const field of formData.fields) {
           const fieldData = {
             name: field.name,
             field_type: field.field_type,
-            description: field.description,
-            is_required: field.is_required,
-            order_index: field.order_index,
-            options: field.options,
-            validation_rules: field.validation_rules,
+            description: field.description || null,
+            is_required: field.is_required || false,
+            order_index: field.order_index || 0,
+            options: field.options || [],
+            validation_rules: field.validation_rules || {},
             entity_id: entityToEdit.id,
             client_id: collaborator.client_id,
-            related_entity_id: field.related_entity_id,
-            relationship_type: field.relationship_type
+            related_entity_id: field.related_entity_id || null,
+            relationship_type: field.relationship_type || null
           };
 
           if (!field.id || field.id.includes('temp-')) {
-            console.log("Inserting new field:", field);
-            
-            const { error: fieldError } = await supabase
+            console.log("Inserting new field:", fieldData);
+            const { error: insertError } = await supabase
               .from('entity_fields')
               .insert(fieldData);
-            
-            if (fieldError) {
-              console.error('Field insert error:', fieldError);
-              throw fieldError;
+
+            if (insertError) {
+              console.error('Field insert error:', insertError);
+              throw insertError;
             }
           } else {
-            console.log("Updating existing field:", field);
-            
-            const { error: fieldError } = await supabase
+            console.log("Updating existing field:", fieldData);
+            const { error: updateError } = await supabase
               .from('entity_fields')
               .update(fieldData)
               .eq('id', field.id);
-            
-            if (fieldError) {
-              console.error('Field update error:', fieldError);
-              throw fieldError;
+
+            if (updateError) {
+              console.error('Field update error:', updateError);
+              throw updateError;
             }
           }
         }
 
-        // Delete removed fields
+        // Handle field deletions
         if (existingFields) {
           const currentFieldIds = formData.fields
             .map(f => f.id)
             .filter(id => id && !id.includes('temp-'));
-          
-          const removedFields = existingFields
-            .filter(ef => !currentFieldIds.includes(ef.id));
 
-          if (removedFields.length > 0) {
+          const fieldsToDelete = existingFields.filter(ef => !currentFieldIds.includes(ef.id));
+
+          if (fieldsToDelete.length > 0) {
+            console.log("Deleting fields:", fieldsToDelete.map(f => f.id));
             const { error: deleteError } = await supabase
               .from('entity_fields')
               .delete()
-              .in('id', removedFields.map(f => f.id));
+              .in('id', fieldsToDelete.map(f => f.id));
 
             if (deleteError) throw deleteError;
           }
@@ -176,15 +174,15 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
           const fieldsToInsert = formData.fields.map((field, index) => ({
             name: field.name,
             field_type: field.field_type,
-            description: field.description,
-            is_required: field.is_required,
+            description: field.description || null,
+            is_required: field.is_required || false,
             order_index: index,
-            options: field.options,
-            validation_rules: field.validation_rules,
+            options: field.options || [],
+            validation_rules: field.validation_rules || {},
             entity_id: entity.id,
             client_id: collaborator.client_id,
-            related_entity_id: field.related_entity_id,
-            relationship_type: field.relationship_type
+            related_entity_id: field.related_entity_id || null,
+            relationship_type: field.relationship_type || null
           }));
 
           const { error: fieldsError } = await supabase
@@ -220,20 +218,8 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
     }
   };
 
-  const handleCancel = () => {
-    setFormData({
-      singularName: "",
-      pluralName: "",
-      description: "",
-      selectedIcon: "database",
-      selectedColor: "#4A90E2",
-      fields: defaultEntityFields
-    });
-    onOpenChange(false);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleCancel}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
@@ -274,7 +260,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
         <EntityFormFooter
           isLoading={isLoading}
-          onCancel={handleCancel}
+          onCancel={() => onOpenChange(false)}
           onSubmit={handleSubmit}
           entityToEdit={entityToEdit}
         />
