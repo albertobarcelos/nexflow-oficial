@@ -16,7 +16,9 @@ export const defaultFields: CustomField[] = [
       timestamp: new Date().toISOString(),
       action: "created",
       user_id: "system",
-    }]
+    }],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   },
   {
     id: "value",
@@ -33,6 +35,8 @@ export const defaultFields: CustomField[] = [
       timestamp: new Date().toISOString(),
       action: "created",
       user_id: "system",
-    }]
+    }],
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
   }
 ];

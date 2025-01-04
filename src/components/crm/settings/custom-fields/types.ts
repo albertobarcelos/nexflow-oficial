@@ -10,7 +10,9 @@ export type FieldType =
   | "date"
   | "datetime"
   | "checkbox"
-  | "list";
+  | "list"
+  | "single_select"
+  | "time";
 
 export interface FieldTypeInfo {
   id: FieldType;

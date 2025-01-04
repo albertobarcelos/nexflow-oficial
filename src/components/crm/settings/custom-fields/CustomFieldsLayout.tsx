@@ -51,7 +51,9 @@ export function CustomFieldsLayout() {
           timestamp: new Date().toISOString(),
           action: "created",
           user_id: "current_user_id"
-        }]
+        }],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       stageFields.splice(destination.index, 0, newField);
