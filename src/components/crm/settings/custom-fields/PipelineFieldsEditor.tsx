@@ -13,9 +13,17 @@ interface PipelineFieldsEditorProps {
   stagedFields: Record<string, CustomField[]>;
   onChange: () => void;
   onEditField: (field: CustomField) => void;
+  onDuplicate: (field: CustomField) => void;
+  onReorder: (stageId: string, reorderedFields: CustomField[]) => void;
 }
 
-export function PipelineFieldsEditor({ stagedFields, onChange, onEditField }: PipelineFieldsEditorProps) {
+export function PipelineFieldsEditor({ 
+  stagedFields, 
+  onChange, 
+  onEditField, 
+  onDuplicate,
+  onReorder 
+}: PipelineFieldsEditorProps) {
   const [selectedPipeline, setSelectedPipeline] = useState<string>();
   const [fieldsCount, setFieldsCount] = useState<number>(0);
 

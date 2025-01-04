@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CustomField } from "../types";
+import { CustomField, FieldType } from "../types";
 
 export function useCustomFields() {
   const { toast } = useToast();
@@ -40,9 +40,9 @@ export function useCustomFields() {
             .insert({
               ...field,
               client_id: clientId,
+              field_type: field.field_type as FieldType,
               pipeline_id: field.pipeline_id,
-              stage_id: field.stage_id,
-              field_type: field.field_type
+              stage_id: field.stage_id
             });
           
           if (error) throw error;

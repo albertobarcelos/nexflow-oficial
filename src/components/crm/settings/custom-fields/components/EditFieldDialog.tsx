@@ -5,14 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { CustomField, FieldType } from "../types";
+import { CustomField } from "../types";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CustomFieldRenderer } from "@/components/crm/opportunities/CustomFieldRenderer";
 import { useForm } from "react-hook-form";
 
@@ -39,36 +34,6 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
       return false;
     }
 
-    switch (field.field_type) {
-      case "email":
-        if (field.is_required) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(field.name)) {
-            setValidationError("Formato de email inválido");
-            return false;
-          }
-        }
-        break;
-      case "phone":
-        if (field.is_required) {
-          const phoneRegex = /^\+?[\d\s-()]+$/;
-          if (!phoneRegex.test(field.name)) {
-            setValidationError("Formato de telefone inválido");
-            return false;
-          }
-        }
-        break;
-      case "numeric":
-        if (field.is_required) {
-          const numericRegex = /^\d+$/;
-          if (!numericRegex.test(field.name)) {
-            setValidationError("Apenas números são permitidos");
-            return false;
-          }
-        }
-        break;
-    }
-
     setValidationError(null);
     return true;
   };
@@ -79,14 +44,12 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
       history.push({
         timestamp: new Date().toISOString(),
         action: "updated",
-        changes: [
-          {
-            field: "name",
-            oldValue: field?.name,
-            newValue: editingField.name
-          }
-        ],
-        user_id: "current_user_id" // Substituir pelo ID do usuário atual
+        user_id: "current_user_id",
+        details: [{
+          field: "name",
+          oldValue: field?.name,
+          newValue: editingField.name
+        }]
       });
 
       onSave({ ...editingField, history });
@@ -102,7 +65,7 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
         history: [{
           timestamp: new Date().toISOString(),
           action: "created",
-          user_id: "current_user_id" // Substituir pelo ID do usuário atual
+          user_id: "current_user_id"
         }]
       };
       onDuplicate(duplicatedField);
@@ -143,10 +106,7 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
             </div>
 
             {validationError && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{validationError}</AlertDescription>
-              </Alert>
+              <div className="text-red-500">{validationError}</div>
             )}
 
             {editingField?.history && editingField.history.length > 0 && (
@@ -156,9 +116,9 @@ export function EditFieldDialog({ open, onOpenChange, field, onSave, onDuplicate
                   {editingField.history.map((entry, index) => (
                     <div key={index} className="text-sm text-muted-foreground">
                       {new Date(entry.timestamp).toLocaleString()}: {entry.action}
-                      {entry.changes?.map((change, idx) => (
+                      {entry.details?.map((detail, idx) => (
                         <div key={idx} className="ml-2">
-                          {change.field}: {change.oldValue} → {change.newValue}
+                          {detail.field}: {detail.oldValue} → {detail.newValue}
                         </div>
                       ))}
                     </div>
