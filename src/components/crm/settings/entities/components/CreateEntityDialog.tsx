@@ -1,14 +1,55 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { EntityBasicInfo } from "./form/EntityBasicInfo";
 import { EntityVisualConfig } from "./form/EntityVisualConfig";
-import { EntityFieldEditor } from "./EntityFieldEditor";
-import { ConfiguredFieldsTable } from "./ConfiguredFieldsTable";
+import { EntityFormFields } from "./form/EntityFormFields";
+import { EntityFormFooter } from "./form/EntityFormFooter";
 import { useEntities } from "../hooks/useEntities";
-import type { CreateEntityDialogProps } from "../types";
+import type { CreateEntityDialogProps, EntityField } from "../types";
+
+const defaultFields: EntityField[] = [
+  {
+    id: crypto.randomUUID(),
+    name: "CNPJ",
+    field_type: "text",
+    is_required: true,
+    order_index: 0,
+    client_id: "",
+    entity_id: "",
+    validation_rules: {
+      pattern: "\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}",
+      mask: "99.999.999/9999-99"
+    }
+  },
+  {
+    id: crypto.randomUUID(),
+    name: "CPF",
+    field_type: "text",
+    is_required: true,
+    order_index: 1,
+    client_id: "",
+    entity_id: "",
+    validation_rules: {
+      pattern: "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}",
+      mask: "999.999.999-99"
+    }
+  },
+  {
+    id: crypto.randomUUID(),
+    name: "Celular",
+    field_type: "text",
+    is_required: true,
+    order_index: 2,
+    client_id: "",
+    entity_id: "",
+    validation_rules: {
+      pattern: "\\(\\d{2}\\) \\d{5}-\\d{4}",
+      mask: "(99) 99999-9999"
+    }
+  }
+];
 
 export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: CreateEntityDialogProps) {
   const { toast } = useToast();
@@ -17,14 +58,14 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
   const [singularName, setSingularName] = useState("");
   const [pluralName, setPluralName] = useState("");
   const [description, setDescription] = useState("");
-  const [fields, setFields] = useState([]);
+  const [fields, setFields] = useState<EntityField[]>([]);
   const [selectedIcon, setSelectedIcon] = useState("database");
   const [selectedColor, setSelectedColor] = useState("#4A90E2");
 
   useEffect(() => {
     if (entityToEdit) {
       setSingularName(entityToEdit.name);
-      setPluralName(entityToEdit.name + 's'); // Simplificado para exemplo
+      setPluralName(entityToEdit.name + 's');
       setDescription(entityToEdit.description || "");
       setSelectedIcon(entityToEdit.icon_name || "database");
       setSelectedColor(entityToEdit.color || "#4A90E2");
@@ -35,7 +76,7 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
       setDescription("");
       setSelectedIcon("database");
       setSelectedColor("#4A90E2");
-      setFields([]);
+      setFields(defaultFields);
     }
   }, [entityToEdit]);
 
@@ -90,16 +131,19 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
             // Campo existente
             const { error: fieldError } = await supabase
               .from('entity_fields')
-              .update(field)
+              .update({
+                name: field.name,
+                field_type: field.field_type,
+                is_required: field.is_required,
+                order_index: field.order_index,
+                validation_rules: field.validation_rules,
+                related_entity_id: field.related_entity_id,
+                relationship_type: field.relationship_type
+              })
               .eq('id', field.id);
             if (fieldError) throw fieldError;
           }
         }
-
-        toast({
-          title: "Entidade atualizada",
-          description: "A entidade foi atualizada com sucesso."
-        });
       } else {
         // Criar nova entidade
         const { data: entity, error: entityError } = await supabase
@@ -130,15 +174,17 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
 
           if (fieldsError) throw fieldsError;
         }
-
-        toast({
-          title: "Entidade criada",
-          description: "A entidade foi criada com sucesso."
-        });
       }
       
       if (onSuccess) onSuccess();
       onOpenChange(false);
+      
+      toast({
+        title: entityToEdit ? "Entidade atualizada" : "Entidade criada",
+        description: entityToEdit ? 
+          "A entidade foi atualizada com sucesso." : 
+          "A entidade foi criada com sucesso."
+      });
     } catch (error) {
       console.error('Error saving entity:', error);
       toast({
@@ -153,12 +199,12 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pb-20">
         <DialogHeader>
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-6">
           <EntityBasicInfo
             singularName={singularName}
             pluralName={pluralName}
@@ -180,39 +226,19 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess, entityToEdit
             onColorChange={setSelectedColor}
           />
 
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Campos da Entidade</h3>
-            <EntityFieldEditor 
-              fields={fields} 
-              onChange={setFields} 
-              currentEntityId={entityToEdit?.id || singularName}
-              entities={entities || []}
-            />
-            
-            {fields.length > 0 && (
-              <div className="mt-6">
-                <h4 className="text-sm font-medium mb-3">Campos Configurados</h4>
-                <ConfiguredFieldsTable fields={fields} />
-              </div>
-            )}
-          </div>
+          <EntityFormFields
+            fields={fields}
+            setFields={setFields}
+            currentEntityId={entityToEdit?.id || singularName}
+            entities={entities || []}
+          />
 
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSubmit}
-              disabled={isLoading}
-            >
-              {isLoading ? "Salvando..." : entityToEdit ? "Salvar Alterações" : "Criar Entidade"}
-            </Button>
-          </DialogFooter>
-        </div>
+          <EntityFormFooter
+            isLoading={isLoading}
+            onCancel={() => onOpenChange(false)}
+            entityToEdit={entityToEdit}
+          />
+        </form>
       </DialogContent>
     </Dialog>
   );
