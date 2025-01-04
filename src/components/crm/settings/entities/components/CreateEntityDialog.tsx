@@ -126,7 +126,12 @@ export function CreateEntityDialog({ open, onOpenChange, onSuccess }: CreateEnti
 
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Campos da Entidade</h3>
-            <EntityFieldEditor fields={fields} onChange={setFields} />
+            <EntityFieldEditor 
+              fields={fields} 
+              onChange={setFields} 
+              currentEntityId={singularName} // Temporário até termos o ID real
+              entities={[]} // Será preenchido com as entidades existentes
+            />
             
             {fields.length > 0 && (
               <div className="mt-6">

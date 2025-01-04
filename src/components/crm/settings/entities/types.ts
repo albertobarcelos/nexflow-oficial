@@ -59,3 +59,22 @@ export interface CustomNode {
   data: EntityNodeData;
   draggable: boolean;
 }
+
+export interface CreateEntityDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
+}
+
+export interface EntityListProps {
+  entities: Entity[];
+  onEdit?: (entity: Entity) => void;
+  onDelete?: (entity: Entity) => void;
+}
+
+export interface EntityFieldEditorProps {
+  fields: EntityField[];
+  onChange: (fields: EntityField[]) => void;
+  currentEntityId: string;
+  entities: Entity[];
+}

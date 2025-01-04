@@ -1,14 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { EntityField } from "../types";
+import { EntityField, EntityFieldEditorProps } from "../types";
 import { EntityFieldRow } from "./EntityFieldRow";
 
-interface EntityFieldEditorProps {
-  fields: EntityField[];
-  onChange: (fields: EntityField[]) => void;
-}
-
-export function EntityFieldEditor({ fields, onChange }: EntityFieldEditorProps) {
+export function EntityFieldEditor({ fields, onChange, currentEntityId, entities }: EntityFieldEditorProps) {
   const addField = () => {
     const newField: EntityField = {
       id: `field-${Date.now()}`,
@@ -42,6 +37,8 @@ export function EntityFieldEditor({ fields, onChange }: EntityFieldEditorProps) 
           <EntityFieldRow
             key={field.id}
             field={field}
+            entities={entities}
+            currentEntityId={currentEntityId}
             onChange={(field) => updateField(index, field)}
             onRemove={() => removeField(index)}
           />

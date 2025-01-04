@@ -28,7 +28,7 @@ const FIELD_TYPES = [
 const RELATIONSHIP_TYPES = [
   { value: "one_to_many", label: "Um para Muitos" },
   { value: "many_to_many", label: "Muitos para Muitos" },
-];
+] as const;
 
 export function EntityFieldRow({ field, entities, currentEntityId, onChange, onRemove }: EntityFieldRowProps) {
   const isEntityField = field.field_type === "entity";
@@ -83,8 +83,8 @@ export function EntityFieldRow({ field, entities, currentEntityId, onChange, onR
           </Select>
 
           <Select
-            value={field.relationship_type}
-            onValueChange={(value) => onChange({ ...field, relationship_type: value })}
+            value={field.relationship_type as "one_to_many" | "many_to_many"}
+            onValueChange={(value: "one_to_many" | "many_to_many") => onChange({ ...field, relationship_type: value })}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Tipo de relacionamento" />
