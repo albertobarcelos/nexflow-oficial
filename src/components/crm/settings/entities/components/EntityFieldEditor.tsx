@@ -1,18 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { EntityField, EntityFieldEditorProps } from "../types";
+import { EntityField, Entity } from "../types";
 import { EntityFieldRow } from "./EntityFieldRow";
 
-export function EntityFieldEditor({ fields, onChange, currentEntityId, entities }: EntityFieldEditorProps) {
+export function EntityFieldEditor({ fields, onChange, currentEntityId, entities }: {
+  fields: EntityField[];
+  onChange: (fields: EntityField[]) => void;
+  currentEntityId: string;
+  entities: Entity[];
+}) {
   const addField = () => {
     const newField: EntityField = {
-      id: `field-${Date.now()}`,
+      id: crypto.randomUUID(), // Usando UUID válido em vez de string temporária
       name: "",
       field_type: "text",
       is_required: false,
       order_index: fields.length,
       client_id: "", // Será preenchido no backend
-      entity_id: "", // Será preenchido no backend
+      entity_id: currentEntityId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       validation_rules: {}
