@@ -17,6 +17,21 @@ export interface EntityField {
   staging_batch?: string;
 }
 
+export interface Entity {
+  id: string;
+  name: string;
+  template_name: string | null;
+  client_id: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  is_default?: boolean;
+  icon_name?: string;
+  color?: string;
+  fields?: EntityField[];
+  entity_fields?: EntityField[]; // Support both naming conventions
+}
+
 export interface CustomEntity {
   id: string;
   name: string;
