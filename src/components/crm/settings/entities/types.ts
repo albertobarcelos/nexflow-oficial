@@ -3,7 +3,7 @@ export interface EntityField {
   entity_id: string;
   client_id: string;
   name: string;
-  field_type: string;
+  field_type: FieldType;
   description?: string;
   is_required?: boolean;
   order_index: number;
