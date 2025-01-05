@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 
 interface EntityRecordFormProps {
   open: boolean;
@@ -24,10 +25,13 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
     setIsSubmitting(true);
 
     try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) throw new Error('Usuário não autenticado');
+
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('auth_user_id', user.user.id)
         .single();
 
       if (!collaborator) throw new Error('Cliente não encontrado');
@@ -35,12 +39,13 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
       // Gerar um ID único para o registro
       const recordId = crypto.randomUUID();
 
-      // Criar os valores dos campos
+      // Criar os valores dos campos com o formato JSONB apropriado
       const fieldValues = fields.map(field => ({
         entity_id: entityId,
         field_id: field.id,
         record_id: recordId,
-        value: formData[field.id] || null
+        value: formData[field.id] !== undefined ? JSON.stringify(formData[field.id]) : null,
+        modified_by: user.user.id
       }));
 
       // Inserir os valores dos campos
@@ -97,6 +102,7 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
                 onChange={(e) => handleFieldChange(field.id, e.target.value)}
                 required={field.is_required}
                 placeholder={`Digite ${field.name.toLowerCase()}`}
+                disabled={isSubmitting}
               />
             </div>
           ))}
@@ -111,7 +117,14 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
               Cancelar
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Salvando..." : "Salvar"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
+              )}
             </Button>
           </div>
         </form>
