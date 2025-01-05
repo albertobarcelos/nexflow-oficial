@@ -1,5 +1,5 @@
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
-import { EntityField, Entity } from "../../types";
+import { EntityField, Entity } from "@/types/database/entity";
 import { fieldTypes } from "../../../custom-fields/data/fieldTypes";
 import { StageDropZone } from "./StageDropZone";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
 
 interface EntityFieldEditorProps {
   fields: EntityField[];
@@ -18,7 +19,7 @@ interface EntityFieldEditorProps {
 export function EntityFieldEditor({ fields, entities, currentEntityId, onChange }: EntityFieldEditorProps) {
   const [stagedFields, setStagedFields] = useState<EntityField[]>(fields);
   const [hasChanges, setHasChanges] = useState(false);
-  const stagingBatch = crypto.randomUUID();
+  const stagingBatch = uuidv4();
 
   const handleDragEnd = async (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -32,7 +33,7 @@ export function EntityFieldEditor({ fields, entities, currentEntityId, onChange 
 
       // Criar novo campo baseado no tipo arrastado
       const newField: EntityField = {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         name: fieldType.name,
         field_type: fieldType.id,
         description: fieldType.description,

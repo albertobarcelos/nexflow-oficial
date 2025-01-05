@@ -1,5 +1,5 @@
 import { Draggable } from "@hello-pangea/dnd";
-import { EntityField } from "../../types";
+import { EntityField } from "@/types/database/entity";
 import { Button } from "@/components/ui/button";
 import { Edit2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
