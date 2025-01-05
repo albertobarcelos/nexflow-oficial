@@ -25,11 +25,11 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 relative",
+              "flex-1 overflow-y-auto p-4",
               snapshot.isDraggingOver && "bg-primary/5"
             )}
           >
-            <div className="absolute inset-0 p-4 space-y-2 overflow-y-auto">
+            <div className="space-y-2">
               {fields.map((field, index) => (
                 <FieldCard
                   key={field.id}
@@ -41,7 +41,7 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
               {fields.length === 0 && !snapshot.isDraggingOver && (
                 <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
                   <p className="text-sm text-muted-foreground">
-                    Arraste e solte os campos aqui para configurar a estrutura
+                    Arraste os campos para organizar a estrutura
                   </p>
                 </div>
               )}

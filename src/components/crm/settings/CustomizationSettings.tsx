@@ -18,9 +18,9 @@ export function CustomizationSettings() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 h-full"
+      className="flex flex-col h-[calc(100vh-8rem)] gap-6"
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-shrink-0">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -47,10 +47,10 @@ export function CustomizationSettings() {
         </Tooltip>
       </div>
 
-      <Card className="shadow-md border-primary/10 flex-1">
+      <Card className="shadow-md border-primary/10 flex-1 min-h-0">
         <DragDropContext onDragEnd={handleDragEnd}>
           <Tabs defaultValue="entities" className="h-full flex flex-col">
-            <div className="px-6 pt-6">
+            <div className="px-6 pt-6 flex-shrink-0">
               <TabsList className="w-full justify-start bg-muted/30 p-1">
                 <TabsTrigger 
                   value="entities" 
@@ -69,7 +69,7 @@ export function CustomizationSettings() {
               </TabsList>
             </div>
             
-            <div className="flex-1 p-6 overflow-hidden">
+            <div className="flex-1 p-6 min-h-0">
               <TabsContent value="entities" className="h-full m-0 animate-fade-in">
                 <EntitiesCustomization />
               </TabsContent>
