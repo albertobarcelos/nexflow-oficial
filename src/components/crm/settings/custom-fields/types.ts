@@ -16,7 +16,8 @@ export type FieldType =
   | "single_select"
   | "cpf"
   | "cnpj"
-  | "time";
+  | "time"
+  | "user";
 
 export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
 
