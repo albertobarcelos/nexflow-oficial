@@ -11,7 +11,7 @@ export function EntityFieldEditor({ fields, onChange, currentEntityId, entities 
 }) {
   const addField = () => {
     const newField: EntityField = {
-      id: crypto.randomUUID(), // Usando UUID válido em vez de string temporária
+      id: crypto.randomUUID(),
       name: "",
       field_type: "text",
       is_required: false,
@@ -36,6 +36,20 @@ export function EntityFieldEditor({ fields, onChange, currentEntityId, entities 
     onChange(fields.filter((_, i) => i !== index));
   };
 
+  const duplicateField = (index: number) => {
+    const fieldToDuplicate = fields[index];
+    const duplicatedField: EntityField = {
+      ...fieldToDuplicate,
+      id: crypto.randomUUID(),
+      name: `${fieldToDuplicate.name} (cópia)`,
+      order_index: fields.length,
+    };
+    
+    const newFields = [...fields];
+    newFields.splice(index + 1, 0, duplicatedField);
+    onChange(newFields);
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -43,10 +57,12 @@ export function EntityFieldEditor({ fields, onChange, currentEntityId, entities 
           <EntityFieldRow
             key={field.id}
             field={field}
+            index={index}
             entities={entities}
             currentEntityId={currentEntityId}
             onChange={(field) => updateField(index, field)}
             onRemove={() => removeField(index)}
+            onDuplicate={() => duplicateField(index)}
           />
         ))}
       </div>
