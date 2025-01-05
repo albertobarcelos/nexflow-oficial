@@ -1,12 +1,11 @@
 import React from 'react';
+import { Draggable } from '@hello-pangea/dnd';
+import { Grip } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Grip, Copy, Trash } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { EntityField, Entity, FieldType } from "../../types";
-import { Draggable } from "@hello-pangea/dnd";
 
 interface EntityFieldRowProps {
   field: EntityField;
@@ -83,11 +82,6 @@ export function EntityFieldRow({
           ref={provided.innerRef}
           {...provided.draggableProps}
           className="flex flex-col md:flex-row items-start md:items-center gap-2 p-4 rounded-lg bg-background border group hover:border-primary/50 transition-colors"
-          style={{
-            ...provided.draggableProps.style,
-            left: 'auto',
-            top: 'auto'
-          }}
         >
           <div
             {...provided.dragHandleProps}
@@ -170,36 +164,6 @@ export function EntityFieldRow({
               onCheckedChange={(checked) => onChange({ ...field, is_required: checked })}
             />
             <span className="text-sm">Obrigatório</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onDuplicate}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Duplicar campo</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onRemove}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Remover campo</TooltipContent>
-            </Tooltip>
           </div>
         </div>
       )}
