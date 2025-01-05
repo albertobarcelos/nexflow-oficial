@@ -433,31 +433,43 @@ export type Database = {
       }
       entity_field_values: {
         Row: {
+          change_history: Json | null
           created_at: string
           entity_id: string
           field_id: string
           id: string
+          modified_by: string | null
           record_id: string
+          searchable_value: string | null
           updated_at: string
           value: Json | null
+          version: number | null
         }
         Insert: {
+          change_history?: Json | null
           created_at?: string
           entity_id: string
           field_id: string
           id?: string
+          modified_by?: string | null
           record_id: string
+          searchable_value?: string | null
           updated_at?: string
           value?: Json | null
+          version?: number | null
         }
         Update: {
+          change_history?: Json | null
           created_at?: string
           entity_id?: string
           field_id?: string
           id?: string
+          modified_by?: string | null
           record_id?: string
+          searchable_value?: string | null
           updated_at?: string
           value?: Json | null
+          version?: number | null
         }
         Relationships: [
           {
