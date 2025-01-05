@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Database, GitBranch } from "lucide-react";
 import { EntitiesCustomization } from "./customization/EntitiesCustomization";
 import { PipelinesCustomization } from "./customization/PipelinesCustomization";
-import { Database, GitBranch } from "lucide-react";
+import { motion } from "framer-motion";
 
 export function CustomizationSettings() {
   const handleDragEnd = (result: DropResult) => {
