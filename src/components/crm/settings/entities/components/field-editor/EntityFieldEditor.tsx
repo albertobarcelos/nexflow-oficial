@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { DragDropContext, Droppable, DropResult } from "@hello-pangea/dnd";
-import { EntityField, Entity } from "../../types";
+import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import { EntityField } from "../../types";
 import { StageDropZone } from "./StageDropZone";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -133,36 +133,13 @@ export function EntityFieldEditor({
         <FieldTypesSidebar />
         
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="entity-fields">
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className={`min-h-[200px] rounded-lg p-4 transition-all duration-200
-                  border-2 border-dashed
-                  ${snapshot.isDraggingOver 
-                    ? "border-primary bg-primary/5 shadow-lg" 
-                    : "border-primary/20 hover:border-primary/40"}`}
-              >
-                {stagedFields.length === 0 && !snapshot.isDraggingOver && (
-                  <div className="flex h-full min-h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
-                    <p className="text-sm text-muted-foreground">
-                      Arraste e solte os campos aqui para configurar a estrutura
-                    </p>
-                  </div>
-                )}
-                
-                <StageDropZone
-                  stageId="entity-fields"
-                  fields={stagedFields}
-                  onEditField={(field) => {
-                    console.log('Editar campo:', field);
-                  }}
-                />
-                {provided.placeholder}
-              </div>
-            )}
-          </Droppable>
+          <StageDropZone
+            stageId="entity-fields"
+            fields={stagedFields}
+            onEditField={(field) => {
+              console.log('Editar campo:', field);
+            }}
+          />
         </DragDropContext>
       </div>
     </div>
