@@ -65,7 +65,6 @@ export function EntityRecordForm({
         field_id: field.id,
         record_id: recordId,
         value: formData[field.id] !== undefined ? JSON.stringify(formData[field.id]) : null,
-        searchable_value: formData[field.id]?.toString() || null,
         modified_by: user.user.id
       }));
 
