@@ -95,7 +95,7 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="grid grid-cols-[300px_1fr] gap-6 h-[calc(100vh-200px)]">
+    <div className="grid grid-cols-[300px_1fr] gap-6">
       <FieldTypesSidebar />
       <DragDropContext onDragEnd={handleDragEnd}>
         <CustomFieldDropZone
