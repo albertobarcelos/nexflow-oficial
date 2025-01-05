@@ -9,7 +9,11 @@ interface CustomFieldDropZoneProps {
 }
 
 export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFieldDropZoneProps) {
-  console.log('🎯 Rendering DropZone with fields:', fields);
+  console.log(`🎯 CustomFieldDropZone render for ${stageId}:`, {
+    fields,
+    fieldsLength: fields.length,
+    firstField: fields[0]
+  });
   
   return (
     <div className="flex flex-col h-full rounded-lg border bg-card">
@@ -22,22 +26,30 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
 
       <Droppable droppableId={stageId}>
         {(provided, snapshot) => {
-          console.log('🎨 Droppable state:', { isDraggingOver: snapshot.isDraggingOver });
+          console.log('🎨 Droppable state:', { 
+            isDraggingOver: snapshot.isDraggingOver,
+            droppableId: stageId,
+            fieldsCount: fields.length
+          });
+          
           return (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="flex-1 p-4 overflow-y-auto"
+              className="flex-1 p-4 overflow-y-auto min-h-[200px]"
             >
               <div className="space-y-2">
-                {fields.map((field, index) => (
-                  <FieldCard
-                    key={field.id}
-                    field={field}
-                    index={index}
-                    onEdit={() => onEditField(field)}
-                  />
-                ))}
+                {fields.map((field, index) => {
+                  console.log(`🎴 Rendering FieldCard ${index}:`, field);
+                  return (
+                    <FieldCard
+                      key={field.id}
+                      field={field}
+                      index={index}
+                      onEdit={() => onEditField(field)}
+                    />
+                  );
+                })}
                 {fields.length === 0 && !snapshot.isDraggingOver && (
                   <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
                     <p className="text-sm text-muted-foreground">

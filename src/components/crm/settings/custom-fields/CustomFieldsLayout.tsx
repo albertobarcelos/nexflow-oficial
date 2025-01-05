@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { FieldTypesSidebar } from "./FieldTypesSidebar";
 import { CustomFieldDropZone } from "./components/CustomFieldDropZone";
@@ -9,28 +9,31 @@ import { fieldTypes } from "./data/fieldTypes";
 export function CustomFieldsLayout() {
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
 
+  // Monitor stagedFields changes
+  useEffect(() => {
+    console.log('🔄 stagedFields changed:', stagedFields);
+  }, [stagedFields]);
+
   const handleDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
-    console.log('🔄 Drag ended:', { source, destination, draggableId });
+    console.log('🎯 Drag ended:', { source, destination, draggableId });
     console.log('📦 Current staged fields:', stagedFields);
     
-    // Se não houver destino, retorna
     if (!destination) {
       console.log('❌ No destination, drag cancelled');
       return;
     }
 
-    // Se o drag veio da lista de tipos de campo
     if (source.droppableId === 'field-types') {
       console.log('🎯 Dragging from field types list');
       const fieldType = fieldTypes.find(f => f.id === draggableId);
+      
       if (!fieldType) {
         console.error('❌ Field type not found:', draggableId);
         return;
       }
 
-      // Criar novo campo baseado no tipo arrastado
       const newField: CustomField = {
         id: crypto.randomUUID(),
         name: fieldType.name,
@@ -48,7 +51,6 @@ export function CustomFieldsLayout() {
 
       console.log('✨ Creating new field:', newField);
 
-      // Adicionar o novo campo ao destino
       setStagedFields(prev => {
         const updatedFields = {
           ...prev,
@@ -58,6 +60,12 @@ export function CustomFieldsLayout() {
           ]
         };
         console.log('📝 Updated staged fields:', updatedFields);
+        
+        // Log the specific array for the destination
+        console.log(`🎯 Fields for ${destination.droppableId}:`, 
+          updatedFields[destination.droppableId]
+        );
+        
         return updatedFields;
       });
 
@@ -65,7 +73,6 @@ export function CustomFieldsLayout() {
       return;
     }
 
-    // Reordenação normal dos campos existentes
     console.log('🔄 Reordering existing fields');
     const sourceStageId = source.droppableId;
     const destStageId = destination.droppableId;
