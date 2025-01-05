@@ -42,7 +42,7 @@ export function EntitiesCustomization() {
   return (
     <div className="grid grid-cols-[500px_360px_1fr] gap-6 h-full">
       {/* Lista de Entidades */}
-      <Card className="overflow-hidden border-primary/10 shadow-md flex flex-col">
+      <Card className="overflow-hidden border-primary/10 shadow-md flex flex-col min-w-0">
         <ScrollArea className="flex-1 h-full">
           <div className="p-6">
             <EntityList
@@ -57,7 +57,7 @@ export function EntitiesCustomization() {
       <FieldTypesSidebar />
 
       {/* Área de Configuração */}
-      <Card className="overflow-hidden border-primary/10 shadow-md">
+      <Card className="overflow-hidden border-primary/10 shadow-md min-w-0">
         <ScrollArea className="h-full">
           <div className="p-6">
             {selectedEntityId ? (
@@ -65,6 +65,7 @@ export function EntitiesCustomization() {
                 currentEntityId={selectedEntityId}
                 setFields={setFields}
                 entities={entities || []}
+                fields={fields}
               />
             ) : (
               <motion.div 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EntityFormFieldsProps {
   currentEntityId: string;
@@ -80,7 +81,7 @@ export function EntityFormFields({ currentEntityId, setFields, entities, fields 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between sticky top-0 bg-background z-10 pb-4">
         <h3 className="text-lg font-medium">Campos da Entidade</h3>
         {hasChanges && (
           <motion.div
@@ -94,14 +95,16 @@ export function EntityFormFields({ currentEntityId, setFields, entities, fields 
         )}
       </div>
 
-      <div className="min-h-[400px] border rounded-lg p-4">
-        <EntityFieldEditor 
-          fields={entityFields || []}
-          onChange={handleFieldsChange}
-          currentEntityId={currentEntityId}
-          entities={entities || []}
-        />
-      </div>
+      <ScrollArea className="h-[calc(100vh-20rem)]">
+        <div className="pr-4">
+          <EntityFieldEditor 
+            fields={entityFields || []}
+            onChange={handleFieldsChange}
+            currentEntityId={currentEntityId}
+            entities={entities || []}
+          />
+        </div>
+      </ScrollArea>
     </div>
   );
 }
