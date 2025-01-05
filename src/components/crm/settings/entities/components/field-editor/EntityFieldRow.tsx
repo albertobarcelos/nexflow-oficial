@@ -78,21 +78,20 @@ export function EntityFieldRow({
 
   return (
     <Draggable draggableId={field.id} index={index}>
-      {(provided, snapshot) => (
+      {(provided) => (
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className={`flex flex-col md:flex-row items-start md:items-center gap-2 p-4 rounded-lg bg-background border group hover:border-primary/50 transition-colors ${snapshot.isDragging ? 'shadow-lg ring-2 ring-primary/20' : ''}`}
+          className="flex flex-col md:flex-row items-start md:items-center gap-2 p-4 rounded-lg bg-background border group hover:border-primary/50 transition-colors"
           style={{
             ...provided.draggableProps.style,
-            transform: snapshot.isDragging 
-              ? `translate(${provided.draggableProps.style?.transform?.split(',')[0] || '0'}, ${provided.draggableProps.style?.transform?.split(',')[1] || '0'})`
-              : provided.draggableProps.style?.transform
+            left: 'auto',
+            top: 'auto'
           }}
         >
           <div
             {...provided.dragHandleProps}
-            className="flex items-center cursor-grab active:cursor-grabbing hover:text-primary transition-colors"
+            className="flex items-center cursor-grab active:cursor-grabbing"
           >
             <Grip className="h-5 w-5 text-muted-foreground" />
           </div>
