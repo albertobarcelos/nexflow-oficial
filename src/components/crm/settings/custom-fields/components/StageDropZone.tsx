@@ -1,13 +1,12 @@
 import { Droppable } from "@hello-pangea/dnd";
 import { CustomField } from "../types";
-import { EntityField } from "../../entities/types";
 import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 
 interface StageDropZoneProps {
   stageId: string;
-  fields: (CustomField | EntityField)[];
-  onEditField: (field: CustomField | EntityField) => void;
+  fields: CustomField[];
+  onEditField: (field: CustomField) => void;
 }
 
 export function StageDropZone({ stageId, fields, onEditField }: StageDropZoneProps) {

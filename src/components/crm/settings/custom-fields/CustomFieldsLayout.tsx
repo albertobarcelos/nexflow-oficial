@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { FieldTypesSidebar } from "./FieldTypesSidebar";
-import { PipelineFieldsEditor } from "./PipelineFieldsEditor";
+import { StageDropZone } from "./components/StageDropZone";
 import { CustomField } from "./types";
 import { toast } from "sonner";
 import { fieldTypes } from "./data/fieldTypes";
@@ -66,37 +66,20 @@ export function CustomFieldsLayout() {
     });
   };
 
-  const handleFieldsChange = () => {
-    // This function will be called when fields change in PipelineFieldsEditor
-  };
-
   const handleEditField = (field: CustomField) => {
     console.log('Editing field:', field);
   };
 
-  const handleDuplicate = (field: CustomField) => {
-    console.log('Duplicating field:', field);
-  };
-
-  const handleReorder = (stageId: string, reorderedFields: CustomField[]) => {
-    setStagedFields(prev => ({
-      ...prev,
-      [stageId]: reorderedFields
-    }));
-  };
-
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-[300px_1fr] gap-6 h-[calc(100vh-200px)]">
-        <FieldTypesSidebar />
-        <PipelineFieldsEditor 
-          stagedFields={stagedFields}
-          onChange={handleFieldsChange}
+    <div className="grid grid-cols-[300px_1fr] gap-6 h-[calc(100vh-200px)]">
+      <FieldTypesSidebar />
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <StageDropZone
+          stageId="entity-fields"
+          fields={stagedFields["entity-fields"] || []}
           onEditField={handleEditField}
-          onDuplicate={handleDuplicate}
-          onReorder={handleReorder}
         />
-      </div>
-    </DragDropContext>
+      </DragDropContext>
+    </div>
   );
 }
