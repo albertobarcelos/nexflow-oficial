@@ -34,7 +34,6 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         animate={{ opacity: 1 }}
         className="space-y-6 flex flex-col h-full"
       >
-        {/* Header com título e busca */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-primary/90 flex items-center gap-2">
@@ -64,7 +63,6 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
           </div>
         </div>
 
-        {/* Categorias em badges horizontais */}
         <div className="flex flex-wrap gap-2">
           {Object.entries(categoryNames).map(([key, name]) => (
             <Badge
@@ -81,9 +79,8 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
           ))}
         </div>
 
-        {/* Lista de tipos de campo com scroll */}
         <ScrollArea className="flex-1">
-          <Droppable droppableId="field-types" isDropDisabled={true}>
+          <Droppable droppableId="field-types" isDropDisabled={false}>
             {(provided) => (
               <div 
                 {...provided.droppableProps}

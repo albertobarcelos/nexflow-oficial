@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
+import { FieldTypesSidebar } from "../../../custom-fields/FieldTypesSidebar";
 
 interface EntityFieldEditorProps {
   fields: EntityField[];
@@ -112,37 +113,40 @@ export function EntityFieldEditor({ fields, entities, currentEntityId, onChange 
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center sticky top-0 bg-background z-10 pb-4">
-        <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
-        {hasChanges && (
-          <Button onClick={handleSave}>
-            <Save className="w-4 h-4 mr-2" />
-            Salvar Alterações
-          </Button>
-        )}
-      </div>
-
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="entity-fields">
-          {(provided, snapshot) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="space-y-2"
-            >
-              <StageDropZone
-                stageId="entity-fields"
-                fields={stagedFields}
-                onEditField={(field) => {
-                  console.log('Editar campo:', field);
-                }}
-              />
-              {provided.placeholder}
-            </div>
+    <div className="grid grid-cols-[300px_1fr] gap-6">
+      <FieldTypesSidebar />
+      <div className="space-y-4">
+        <div className="flex justify-between items-center sticky top-0 bg-background z-10 pb-4">
+          <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
+          {hasChanges && (
+            <Button onClick={handleSave}>
+              <Save className="w-4 h-4 mr-2" />
+              Salvar Alterações
+            </Button>
           )}
-        </Droppable>
-      </DragDropContext>
+        </div>
+
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="entity-fields">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="space-y-2"
+              >
+                <StageDropZone
+                  stageId="entity-fields"
+                  fields={stagedFields}
+                  onEditField={(field) => {
+                    console.log('Editar campo:', field);
+                  }}
+                />
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </div>
     </div>
   );
 }
