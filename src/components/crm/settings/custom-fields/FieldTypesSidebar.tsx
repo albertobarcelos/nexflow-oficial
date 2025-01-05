@@ -79,7 +79,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
           <div 
             {...provided.droppableProps}
             ref={provided.innerRef}
-            className="flex-1 overflow-y-auto p-4"
+            className="flex-1 p-4"
           >
             {filteredFieldTypes.map((fieldType, index) => (
               <Draggable 

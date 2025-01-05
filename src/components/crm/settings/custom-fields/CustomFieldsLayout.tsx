@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { FieldTypesSidebar } from "./FieldTypesSidebar";
 import { CustomFieldDropZone } from "./components/CustomFieldDropZone";
@@ -7,28 +7,20 @@ import { toast } from "sonner";
 import { fieldTypes } from "./data/fieldTypes";
 
 export function CustomFieldsLayout() {
-  const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
-
-  useEffect(() => {
-    console.log('🔄 stagedFields changed:', {
-      stagedFields,
-      entityFields: stagedFields["entity-fields"],
-      fieldsLength: stagedFields["entity-fields"]?.length || 0
-    });
-  }, [stagedFields]);
+  const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({
+    "entity-fields": []
+  });
 
   const handleDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
     console.log('🎯 Drag ended:', { source, destination, draggableId });
     
-    // Se não houver destino, o usuário soltou fora da área válida
     if (!destination) {
       console.log('❌ No destination, drag cancelled');
       return;
     }
 
-    // Se a origem for a lista de tipos de campo
     if (source.droppableId === 'field-types') {
       console.log('🎯 Dragging from field types list');
       const fieldType = fieldTypes.find(f => f.id === draggableId);
@@ -38,17 +30,16 @@ export function CustomFieldsLayout() {
         return;
       }
 
-      // Criar novo campo com ID único
       const newField: CustomField = {
         id: crypto.randomUUID(),
         name: fieldType.name,
         field_type: fieldType.id,
         description: fieldType.description,
         is_required: false,
-        order_index: (stagedFields[destination.droppableId] || []).length,
-        client_id: "", // Será preenchido no backend
-        pipeline_id: destination.droppableId,
-        stage_id: destination.droppableId,
+        order_index: stagedFields["entity-fields"].length,
+        client_id: "",
+        pipeline_id: "entity-fields",
+        stage_id: "entity-fields",
         options: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -56,12 +47,10 @@ export function CustomFieldsLayout() {
 
       console.log('✨ Creating new field:', newField);
 
-      // Atualizar estado com o novo campo
       setStagedFields(prev => {
-        const existingFields = prev[destination.droppableId] || [];
         const updatedFields = {
           ...prev,
-          [destination.droppableId]: [...existingFields, newField]
+          "entity-fields": [...prev["entity-fields"], newField]
         };
         console.log('📝 Updated staged fields:', updatedFields);
         return updatedFields;
@@ -72,16 +61,16 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="h-[calc(100vh-200px)] overflow-hidden">
+    <div className="h-[calc(100vh-200px)]">
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-[300px_1fr] gap-6 w-full h-full">
-          <div className="h-full overflow-hidden">
+        <div className="grid grid-cols-[300px_1fr] gap-6 h-full">
+          <div className="h-full">
             <FieldTypesSidebar />
           </div>
-          <div className="h-full overflow-hidden">
+          <div className="h-full">
             <CustomFieldDropZone
               stageId="entity-fields"
-              fields={stagedFields["entity-fields"] || []}
+              fields={stagedFields["entity-fields"]}
               onEditField={(field) => {
                 console.log('✏️ Editing field:', field);
               }}
