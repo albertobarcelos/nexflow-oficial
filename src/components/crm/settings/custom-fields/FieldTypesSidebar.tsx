@@ -8,7 +8,7 @@ import {
   Type, AlignLeft, FileText, Paperclip, CheckSquare, 
   User, Calendar, Clock, Tag, Mail, Phone, List, 
   Radio, Timer, Hash, DollarSign, File, Fingerprint,
-  Search
+  Search, CreditCard, Building2
 } from "lucide-react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { FieldTypeInfo, FieldCategory } from "./types";
@@ -45,7 +45,26 @@ const fieldTypes: FieldTypeInfo[] = [
     description: "Campo formatado para telefones",
     icon: <Phone className="w-4 h-4" />,
     category: "contact",
-    validation: (value) => /^\+?[\d\s-()]+$/.test(value)
+    validation: (value) => /^\+?[\d\s-()]+$/.test(value),
+    mask: "(99) 99999-9999"
+  },
+  {
+    id: "cpf",
+    name: "CPF",
+    description: "Campo formatado para CPF",
+    icon: <CreditCard className="w-4 h-4" />,
+    category: "document",
+    validation: (value) => /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(value),
+    mask: "999.999.999-99"
+  },
+  {
+    id: "cnpj",
+    name: "CNPJ",
+    description: "Campo formatado para CNPJ",
+    icon: <Building2 className="w-4 h-4" />,
+    category: "document",
+    validation: (value) => /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(value),
+    mask: "99.999.999/9999-99"
   },
   // Financeiro
   {

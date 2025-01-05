@@ -14,6 +14,8 @@ export type FieldType =
   | "checkbox"
   | "list"
   | "single_select"
+  | "cpf"
+  | "cnpj"
   | "time";
 
 export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
@@ -25,6 +27,7 @@ export interface FieldTypeInfo {
   icon: JSX.Element;
   category: FieldCategory;
   validation?: (value: any) => boolean;
+  mask?: string;
 }
 
 export interface FieldHistory {
