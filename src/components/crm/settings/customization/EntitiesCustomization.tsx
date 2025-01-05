@@ -42,8 +42,8 @@ export function EntitiesCustomization() {
   });
 
   return (
-    <div className="grid grid-cols-[380px_360px_1fr] gap-6 h-full">
-      {/* Lista de Entidades - Aumentada para 380px */}
+    <div className="grid grid-cols-[500px_360px_1fr] gap-6 h-full">
+      {/* Lista de Entidades - Aumentada para 500px */}
       <Card className="overflow-hidden border-primary/10 shadow-md flex flex-col">
         <ScrollArea className="flex-1 h-full">
           <div className="p-6">
