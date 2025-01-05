@@ -32,7 +32,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-6"
+        className="space-y-6 flex flex-col h-full"
       >
         {/* Header com título e busca */}
         <div className="space-y-4">
@@ -81,10 +81,10 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
           ))}
         </div>
 
-        {/* Lista de tipos de campo */}
+        {/* Lista de tipos de campo com scroll */}
         <Droppable droppableId="field-types" isDropDisabled={true}>
           {(provided) => (
-            <ScrollArea className="h-[calc(100vh-350px)]">
+            <ScrollArea className="flex-1">
               <motion.div 
                 {...provided.droppableProps}
                 ref={provided.innerRef}
