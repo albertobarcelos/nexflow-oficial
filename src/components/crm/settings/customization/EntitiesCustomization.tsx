@@ -13,6 +13,7 @@ import { Entity } from "../entities/types";
 
 export function EntitiesCustomization() {
   const [selectedEntityId, setSelectedEntityId] = useState<string>();
+  const [fields, setFields] = useState<any[]>([]);
   
   const { data: entities, isLoading } = useQuery({
     queryKey: ['custom_entities'],
@@ -62,8 +63,7 @@ export function EntitiesCustomization() {
             {selectedEntityId ? (
               <EntityFormFields
                 currentEntityId={selectedEntityId}
-                fields={[]}
-                setFields={() => {}}
+                setFields={setFields}
                 entities={entities || []}
               />
             ) : (
