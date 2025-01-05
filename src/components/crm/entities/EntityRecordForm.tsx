@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { EntityRelationshipField } from "./EntityRelationshipField";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface EntityRecordFormProps {
   open: boolean;
@@ -20,12 +23,23 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
   const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
 
     try {
+      // Validar campos obrigatórios
+      const missingFields = fields
+        .filter(field => field.is_required && !formData[field.id])
+        .map(field => field.name);
+
+      if (missingFields.length > 0) {
+        throw new Error(`Campos obrigatórios não preenchidos: ${missingFields.join(", ")}`);
+      }
+
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) throw new Error('Usuário não autenticado');
 
@@ -64,11 +78,12 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
 
       onOpenChange(false);
       setFormData({});
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating record:', error);
+      setError(error.message);
       toast({
         title: "Erro ao criar registro",
-        description: "Ocorreu um erro ao criar o registro. Tente novamente.",
+        description: error.message || "Ocorreu um erro ao criar o registro. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -109,29 +124,46 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
         required={field.is_required}
         placeholder={`Digite ${field.name.toLowerCase()}`}
         disabled={isSubmitting}
+        className={cn(
+          "w-full",
+          field.is_required && !formData[field.id] && "border-red-500"
+        )}
       />
     );
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Novo {entityName}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {fields.map((field) => (
-            <div key={field.id} className="space-y-2">
-              <Label htmlFor={field.id}>
-                {field.name}
-                {field.is_required && <span className="text-red-500 ml-1">*</span>}
-              </Label>
-              {renderField(field)}
-            </div>
-          ))}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-          <div className="flex justify-end gap-3 pt-4">
+          <ScrollArea className="flex-1 px-1">
+            <div className="space-y-4 pr-4">
+              {fields.map((field) => (
+                <div key={field.id} className="space-y-2">
+                  <Label htmlFor={field.id} className="flex items-center">
+                    {field.name}
+                    {field.is_required && (
+                      <span className="text-red-500 ml-1" title="Campo obrigatório">*</span>
+                    )}
+                  </Label>
+                  {renderField(field)}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+
+          <div className="flex justify-end gap-3 pt-4 mt-4 border-t">
             <Button
               type="button"
               variant="outline"
@@ -140,7 +172,11 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
             >
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="min-w-[120px]"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
