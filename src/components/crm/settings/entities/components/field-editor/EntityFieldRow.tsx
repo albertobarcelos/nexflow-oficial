@@ -24,8 +24,9 @@ const FIELD_TYPES = [
   { value: "select", label: "Lista Suspensa" },
   { value: "checkbox", label: "Checkbox" },
   { value: "email", label: "E-mail" },
-  { value: "phone", label: "Telefone" },
-  { value: "address", label: "Endereço" },
+  { value: "cnpj", label: "CNPJ" },
+  { value: "cpf", label: "CPF" },
+  { value: "celular", label: "Celular" },
   { value: "entity", label: "Entidade" },
 ];
 
@@ -40,6 +41,40 @@ export function EntityFieldRow({
 }: EntityFieldRowProps) {
   const isEntityField = field.field_type === "entity";
   const availableEntities = entities.filter(entity => entity.id !== currentEntityId);
+
+  // Adicionar regras de validação baseadas no tipo do campo
+  const handleFieldTypeChange = (value: string) => {
+    let validationRules = {};
+    
+    switch(value) {
+      case 'cnpj':
+        validationRules = {
+          pattern: "\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}",
+          mask: "99.999.999/9999-99"
+        };
+        break;
+      case 'cpf':
+        validationRules = {
+          pattern: "\\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}",
+          mask: "999.999.999-99"
+        };
+        break;
+      case 'celular':
+        validationRules = {
+          pattern: "\\(\\d{2}\\) \\d{5}-\\d{4}",
+          mask: "(99) 99999-9999"
+        };
+        break;
+    }
+
+    onChange({ 
+      ...field, 
+      field_type: value,
+      validation_rules: validationRules,
+      related_entity_id: value === "entity" ? field.related_entity_id : undefined,
+      relationship_type: value === "entity" ? field.relationship_type : undefined
+    });
+  };
 
   return (
     <Draggable draggableId={field.id} index={index}>
@@ -65,12 +100,7 @@ export function EntityFieldRow({
 
           <Select
             value={field.field_type}
-            onValueChange={(value) => onChange({ 
-              ...field, 
-              field_type: value,
-              related_entity_id: value === "entity" ? field.related_entity_id : undefined,
-              relationship_type: value === "entity" ? field.relationship_type : undefined
-            })}
+            onValueChange={handleFieldTypeChange}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue />

@@ -80,3 +80,15 @@ export interface EntityFieldEditorProps {
   currentEntityId: string;
   entities: Entity[];
 }
+
+export type FieldType = 
+  | "text" 
+  | "number" 
+  | "date" 
+  | "select" 
+  | "checkbox" 
+  | "email" 
+  | "cnpj" 
+  | "cpf" 
+  | "celular" 
+  | "entity";
