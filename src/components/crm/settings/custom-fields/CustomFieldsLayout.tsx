@@ -27,13 +27,18 @@ export function CustomFieldsLayout() {
     });
   };
 
+  const handleFieldsChange = () => {
+    // This function will be called when fields change in PipelineFieldsEditor
+    // You can add additional logic here if needed
+  };
+
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-[300px_1fr] gap-6 h-[calc(100vh-200px)]">
         <FieldTypesSidebar />
         <PipelineFieldsEditor 
           stagedFields={stagedFields}
-          onChange={setStagedFields}
+          onChange={handleFieldsChange}
         />
       </div>
     </DragDropContext>
