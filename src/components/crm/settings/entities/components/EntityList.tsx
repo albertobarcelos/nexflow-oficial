@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
 
 export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
   useEffect(() => {
@@ -41,11 +42,14 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <h3 className="text-lg font-semibold text-primary">Entidades</h3>
-          <Badge variant="outline" className="text-xs font-normal">
+          <Badge 
+            variant="secondary" 
+            className="text-xs font-normal bg-primary/10 text-primary hover:bg-primary/15"
+          >
             {entities?.length || 0} total
           </Badge>
         </div>
@@ -53,7 +57,7 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
           <TooltipTrigger asChild>
             <Button 
               size="sm" 
-              className="gap-2 bg-primary/90 hover:bg-primary transition-colors"
+              className="gap-2 bg-primary hover:bg-primary/90 transition-colors"
             >
               <Plus className="h-4 w-4" />
               Nova
@@ -82,108 +86,99 @@ export function EntityList({ entities, onEdit, onDelete }: EntityListProps) {
             </div>
           </motion.div>
         ) : (
-          <motion.div 
-            className="rounded-lg border bg-card overflow-hidden"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <table className="w-full">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="p-4 text-left font-medium text-muted-foreground">Nome</th>
-                  <th className="p-4 text-left font-medium text-muted-foreground">Campos</th>
-                  <th className="p-4 text-left font-medium text-muted-foreground">Criado em</th>
-                  <th className="p-4 text-right font-medium text-muted-foreground">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entities?.map((entity, index) => {
-                  const Icon = getEntityIcon(entity.name);
-                  const fieldsCount = getFieldsCount(entity);
-                  
-                  return (
-                    <motion.tr 
-                      key={entity.id} 
-                      className={cn(
-                        "border-b transition-colors hover:bg-muted/50 group",
-                        index % 2 === 0 ? "bg-background" : "bg-muted/5"
-                      )}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
-                            <Icon className="h-4 w-4 text-primary" />
-                          </div>
-                          <span className="font-medium group-hover:text-primary transition-colors">
+          <Card className="overflow-hidden border-primary/10">
+            <div className="divide-y divide-border/50">
+              {entities?.map((entity, index) => {
+                const Icon = getEntityIcon(entity.name);
+                const fieldsCount = getFieldsCount(entity);
+                
+                return (
+                  <motion.div 
+                    key={entity.id}
+                    className={cn(
+                      "p-4 transition-colors hover:bg-muted/50 group cursor-pointer",
+                      "flex items-center justify-between gap-4"
+                    )}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center">
+                        <Icon className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium truncate group-hover:text-primary transition-colors">
                             {entity.name}
                           </span>
+                          <Badge 
+                            variant="secondary" 
+                            className="font-normal bg-muted"
+                          >
+                            {fieldsCount} {fieldsCount === 1 ? 'campo' : 'campos'}
+                          </Badge>
                         </div>
-                      </td>
-                      <td className="p-4">
-                        <Badge 
-                          variant={fieldsCount > 0 ? "secondary" : "outline"} 
-                          className="font-normal"
-                        >
-                          {fieldsCount} {fieldsCount === 1 ? 'campo' : 'campos'}
-                        </Badge>
-                      </td>
-                      <td className="p-4 text-muted-foreground">
-                        {format(new Date(entity.created_at), "dd 'de' MMMM 'de' yyyy")}
-                      </td>
-                      <td className="p-4">
-                        <div className="flex gap-2 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(entity)}
-                                className="h-8 w-8 hover:bg-primary/5"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Editar entidade</TooltipContent>
-                          </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <p className="text-sm text-muted-foreground truncate">
+                              Criado em {format(new Date(entity.created_at), "dd 'de' MMMM 'de' yyyy")}
+                            </p>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {format(new Date(entity.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm")}
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 hover:bg-primary/5"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Duplicar entidade</TooltipContent>
-                          </Tooltip>
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(entity)}
+                            className="h-8 w-8 hover:bg-primary/5"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar entidade</TooltipContent>
+                      </Tooltip>
 
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDelete(entity)}
-                                className="h-8 w-8 hover:bg-destructive/5 hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Excluir entidade</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </motion.div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-primary/5"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Duplicar entidade</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(entity)}
+                            className="h-8 w-8 hover:bg-destructive/5 hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Excluir entidade</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </Card>
         )}
       </AnimatePresence>
     </div>
