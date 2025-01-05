@@ -59,7 +59,7 @@ export function useEntityForm({ entityToEdit, onSuccess }: UseEntityFormProps) {
           "A entidade foi criada com sucesso."
       });
       
-      if (onSuccess) onSuccess();
+      if (onSuccess) await onSuccess();
       
     } catch (error) {
       console.error('Error saving entity:', error);

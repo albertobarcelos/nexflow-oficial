@@ -27,10 +27,13 @@ export function CreateEntityDialog({
     setSelectedIcon,
     setSelectedColor,
     handleSubmit
-  } = useEntityForm(entityToEdit, async () => {
-    await refetch();
-    if (onSuccess) onSuccess();
-    onOpenChange(false);
+  } = useEntityForm({ 
+    entityToEdit, 
+    onSuccess: async () => {
+      await refetch();
+      if (onSuccess) onSuccess();
+      onOpenChange(false);
+    }
   });
 
   return (

@@ -12,7 +12,7 @@ export interface EntityFormState {
 
 export interface UseEntityFormProps {
   entityToEdit: Entity | null;
-  onSuccess?: () => void;
+  onSuccess?: () => Promise<void>;
 }
 
 export interface EntityFormValidation {
