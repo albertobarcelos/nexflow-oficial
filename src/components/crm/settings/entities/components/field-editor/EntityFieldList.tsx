@@ -1,5 +1,5 @@
-import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
-import { Plus } from "lucide-react";
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Plus, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EntityField, Entity } from "../../types";
 import { EntityFieldRow } from "./EntityFieldRow";
@@ -79,16 +79,35 @@ export function EntityFieldList({ fields, entities, currentEntityId, onChange }:
               className="space-y-2"
             >
               {fields.map((field, index) => (
-                <EntityFieldRow
-                  key={field.id}
-                  field={field}
-                  index={index}
-                  entities={entities}
-                  currentEntityId={currentEntityId}
-                  onChange={(field) => updateField(index, field)}
-                  onRemove={() => removeField(index)}
-                  onDuplicate={() => duplicateField(index)}
-                />
+                <Draggable key={field.id} draggableId={field.id} index={index}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      className={`group relative bg-background border rounded-lg p-4 ${
+                        snapshot.isDragging ? "border-primary shadow-lg" : "border-border"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          {...provided.dragHandleProps}
+                          className="cursor-grab hover:text-primary"
+                        >
+                          <GripVertical className="h-5 w-5" />
+                        </div>
+                        <EntityFieldRow
+                          field={field}
+                          index={index}
+                          entities={entities}
+                          currentEntityId={currentEntityId}
+                          onChange={(field) => updateField(index, field)}
+                          onRemove={() => removeField(index)}
+                          onDuplicate={() => duplicateField(index)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
               ))}
               {provided.placeholder}
             </div>
