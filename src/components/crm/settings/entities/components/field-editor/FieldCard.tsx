@@ -1,5 +1,5 @@
 import { Draggable } from "@hello-pangea/dnd";
-import { EntityField } from "@/types/database/entity";
+import { EntityField } from "../../types";
 import { Button } from "@/components/ui/button";
 import { Edit2, GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,8 +21,7 @@ export function FieldCard({ field, index, onEdit }: FieldCardProps) {
             "mb-2 rounded-lg border bg-card p-3",
             "hover:border-primary/20 hover:shadow-sm",
             "transition-all duration-200",
-            snapshot.isDragging && "border-primary/30 shadow-md",
-            field.is_staged && "border-primary/50"
+            snapshot.isDragging && "border-primary/30 shadow-md"
           )}
         >
           <div className="flex items-center gap-3">
