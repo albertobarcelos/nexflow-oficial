@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EntityField, Entity } from "../types";
-import { EntityFieldRow } from "./EntityFieldRow";
+import { EntityFieldRow } from "./field-editor/EntityFieldRow";
 
 export function EntityFieldEditor({ fields, onChange, currentEntityId, entities }: {
   fields: EntityField[];
