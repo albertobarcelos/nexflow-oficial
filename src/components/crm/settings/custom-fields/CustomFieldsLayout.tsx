@@ -70,17 +70,23 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-[300px_1fr] gap-6 w-full">
-        <FieldTypesSidebar />
-        <CustomFieldDropZone
-          stageId="entity-fields"
-          fields={stagedFields["entity-fields"] || []}
-          onEditField={(field) => {
-            console.log('✏️ Editing field:', field);
-          }}
-        />
-      </div>
-    </DragDropContext>
+    <div className="h-[calc(100vh-200px)] overflow-hidden">
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-[300px_1fr] gap-6 w-full h-full">
+          <div className="h-full overflow-hidden">
+            <FieldTypesSidebar />
+          </div>
+          <div className="h-full overflow-hidden">
+            <CustomFieldDropZone
+              stageId="entity-fields"
+              fields={stagedFields["entity-fields"] || []}
+              onEditField={(field) => {
+                console.log('✏️ Editing field:', field);
+              }}
+            />
+          </div>
+        </div>
+      </DragDropContext>
+    </div>
   );
 }

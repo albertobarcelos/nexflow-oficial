@@ -26,44 +26,34 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
       </div>
 
       <Droppable droppableId={stageId}>
-        {(provided, snapshot) => {
-          console.log('🎨 Droppable state:', { 
-            isDraggingOver: snapshot.isDraggingOver,
-            droppableId: stageId,
-            fieldsCount: fields.length
-          });
-          
-          return (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className={cn(
-                "flex-1 p-4 overflow-y-auto",
-                snapshot.isDraggingOver && "bg-primary/5"
-              )}
-            >
-              {fields.map((field, index) => {
-                console.log(`🎴 Rendering FieldCard ${index}:`, field);
-                return (
-                  <FieldCard
-                    key={field.id}
-                    field={field}
-                    index={index}
-                    onEdit={() => onEditField(field)}
-                  />
-                );
-              })}
-              {fields.length === 0 && !snapshot.isDraggingOver && (
-                <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
-                  <p className="text-sm text-muted-foreground">
-                    Arraste os campos para organizar a estrutura
-                  </p>
-                </div>
-              )}
-              {provided.placeholder}
-            </div>
-          );
-        }}
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={cn(
+              "flex-1 p-4 overflow-y-auto",
+              snapshot.isDraggingOver && "bg-primary/5"
+            )}
+          >
+            {fields.map((field, index) => (
+              <div key={field.id} className="mb-2">
+                <FieldCard
+                  field={field}
+                  index={index}
+                  onEdit={() => onEditField(field)}
+                />
+              </div>
+            ))}
+            {fields.length === 0 && !snapshot.isDraggingOver && (
+              <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                <p className="text-sm text-muted-foreground">
+                  Arraste os campos para organizar a estrutura
+                </p>
+              </div>
+            )}
+            {provided.placeholder}
+          </div>
+        )}
       </Droppable>
     </div>
   );
