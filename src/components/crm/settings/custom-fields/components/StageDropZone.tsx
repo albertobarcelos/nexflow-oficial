@@ -11,7 +11,7 @@ interface StageDropZoneProps {
 
 export function StageDropZone({ stageId, fields, onEditField }: StageDropZoneProps) {
   return (
-    <Droppable droppableId={stageId}>
+    <Droppable droppableId={`stage-${stageId}`}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
