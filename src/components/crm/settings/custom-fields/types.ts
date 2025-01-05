@@ -58,3 +58,26 @@ export interface CustomField {
   created_at: string;
   updated_at: string;
 }
+
+export interface EntityField {
+  id: string;
+  entity_id: string;
+  client_id: string;
+  name: string;
+  field_type: string;
+  description?: string;
+  is_required?: boolean;
+  order_index: number;
+  options?: Json[];
+  validation_rules?: Json;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FieldTemplate {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  fields: Partial<CustomField>[];
+}
