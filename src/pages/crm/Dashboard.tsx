@@ -6,6 +6,7 @@ import { LeadChart } from "@/components/crm/dashboard/LeadChart";
 import { OpportunityChart } from "@/components/crm/dashboard/OpportunityChart";
 import { ConversionChart } from "@/components/crm/dashboard/ConversionChart";
 import { RecentLeads } from "@/components/crm/dashboard/RecentLeads";
+import { Loader2 } from "lucide-react";
 
 export default function Dashboard() {
   const { data: metrics, isLoading: isLoadingMetrics } = useQuery({
@@ -36,13 +37,17 @@ export default function Dashboard() {
   });
 
   if (isLoadingMetrics) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="space-y-6 p-6 pb-16">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
           Visão geral do seu CRM
         </p>
