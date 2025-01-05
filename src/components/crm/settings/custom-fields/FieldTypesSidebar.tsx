@@ -82,9 +82,9 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         </div>
 
         {/* Lista de tipos de campo com scroll */}
-        <Droppable droppableId="field-types" isDropDisabled={false}>
-          {(provided) => (
-            <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1">
+          <Droppable droppableId="field-types" isDropDisabled={true}>
+            {(provided) => (
               <motion.div 
                 {...provided.droppableProps}
                 ref={provided.innerRef}
@@ -102,6 +102,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
                       <motion.div
                         ref={provided.innerRef}
                         {...provided.draggableProps}
+                        {...provided.dragHandleProps}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
@@ -109,7 +110,6 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
                       >
                         <FieldTypeCard
                           fieldType={fieldType}
-                          dragHandleProps={provided.dragHandleProps}
                           isDragging={snapshot.isDragging}
                         />
                       </motion.div>
@@ -118,9 +118,9 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
                 ))}
                 {provided.placeholder}
               </motion.div>
-            </ScrollArea>
-          )}
-        </Droppable>
+            )}
+          </Droppable>
+        </ScrollArea>
       </motion.div>
     </Card>
   );

@@ -5,17 +5,15 @@ import { motion } from "framer-motion";
 
 interface FieldTypeCardProps {
   fieldType: FieldTypeInfo;
-  dragHandleProps: any;
   isDragging: boolean;
 }
 
-export function FieldTypeCard({ fieldType, dragHandleProps, isDragging }: FieldTypeCardProps) {
+export function FieldTypeCard({ fieldType, isDragging }: FieldTypeCardProps) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <motion.div
-            {...dragHandleProps}
             className={`
               p-3 rounded-lg hover:bg-muted/80 cursor-grab 
               transition-all duration-200 ease-in-out

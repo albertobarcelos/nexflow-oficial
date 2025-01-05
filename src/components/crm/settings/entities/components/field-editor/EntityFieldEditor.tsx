@@ -1,6 +1,7 @@
 import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { EntityField, Entity } from "../../types";
 import { EntityFieldRow } from "./EntityFieldRow";
+import { toast } from "sonner";
 
 interface EntityFieldEditorProps {
   fields: EntityField[];
@@ -29,6 +30,7 @@ export function EntityFieldEditor({ fields, entities, currentEntityId, onChange 
       };
       
       onChange([...fields, newField]);
+      toast.success("Campo adicionado com sucesso!");
       return;
     }
 
@@ -37,6 +39,7 @@ export function EntityFieldEditor({ fields, entities, currentEntityId, onChange 
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
+    // Update order_index for all fields
     const updatedFields = items.map((field, index) => ({
       ...field,
       order_index: index
@@ -72,6 +75,11 @@ export function EntityFieldEditor({ fields, entities, currentEntityId, onChange 
               />
             ))}
             {provided.placeholder}
+            {fields.length === 0 && (
+              <div className="text-center p-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                Arraste tipos de campos aqui para começar
+              </div>
+            )}
           </div>
         )}
       </Droppable>
