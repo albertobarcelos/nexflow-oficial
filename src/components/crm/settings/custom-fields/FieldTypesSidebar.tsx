@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Database, HelpCircle } from "lucide-react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { FieldTypeInfo, FieldCategory } from "./types";
 import { fieldTypes, categoryNames } from "./data/fieldTypes";
@@ -10,6 +10,7 @@ import { FieldTypeCard } from "./components/FieldTypeCard";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface FieldTypesSidebarProps {
   onFieldAdd?: (fieldType: FieldTypeInfo) => void;
@@ -36,7 +37,20 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         {/* Header com título e busca */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-primary/90">Tipos de Campo</h2>
+            <h2 className="text-lg font-semibold text-primary/90 flex items-center gap-2">
+              <Database className="w-5 h-5" />
+              Tipos de Campo
+            </h2>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-primary transition-colors">
+                  <HelpCircle className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[300px]">
+                <p>Arraste e solte os tipos de campo para personalizar sua entidade.</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
           
           <div className="relative">
