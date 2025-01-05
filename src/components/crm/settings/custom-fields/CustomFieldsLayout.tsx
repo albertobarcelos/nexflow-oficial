@@ -26,11 +26,6 @@ export function CustomFieldsLayout() {
       return;
     }
 
-    // Logging para debug
-    console.log('📍 Source:', source);
-    console.log('🎯 Destination:', destination);
-    console.log('🔑 DraggableId:', draggableId);
-
     // Se a origem for a lista de tipos de campo
     if (source.droppableId === 'field-types') {
       console.log('🎯 Dragging from field types list');
@@ -74,21 +69,17 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="h-[calc(100vh-200px)] overflow-hidden">
+    <div className="h-[calc(100vh-200px)]">
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-[300px_1fr] gap-6 h-full">
-          <div className="overflow-y-auto">
-            <FieldTypesSidebar />
-          </div>
-          <div className="overflow-y-auto">
-            <CustomFieldDropZone
-              stageId="entity-fields"
-              fields={stagedFields["entity-fields"]}
-              onEditField={(field) => {
-                console.log('✏️ Editing field:', field);
-              }}
-            />
-          </div>
+        <div className="grid grid-cols-[300px_1fr] gap-6">
+          <FieldTypesSidebar />
+          <CustomFieldDropZone
+            stageId="entity-fields"
+            fields={stagedFields["entity-fields"]}
+            onEditField={(field) => {
+              console.log('✏️ Editing field:', field);
+            }}
+          />
         </div>
       </DragDropContext>
     </div>

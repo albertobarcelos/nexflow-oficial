@@ -31,7 +31,7 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 p-4",
+              "flex-1 p-4 overflow-y-auto",
               snapshot.isDraggingOver && "bg-primary/5"
             )}
           >
