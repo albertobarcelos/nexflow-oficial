@@ -12,20 +12,21 @@ interface StageDropZoneProps {
 
 export function StageDropZone({ stageId, fields, onEditField }: StageDropZoneProps) {
   return (
-    <Droppable droppableId={`stage-${stageId}`}>
+    <Droppable droppableId={stageId}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
           className={cn(
             "min-h-[200px] rounded-lg p-4 transition-all duration-200",
-            "border-2 border-dashed border-primary/20",
-            "hover:border-primary/40",
-            snapshot.isDraggingOver && "border-primary/60 bg-primary/5"
+            "border-2 border-dashed",
+            snapshot.isDraggingOver
+              ? "border-primary bg-primary/5 shadow-lg"
+              : "border-primary/20 hover:border-primary/40",
           )}
         >
           {fields.length === 0 && !snapshot.isDraggingOver && (
-            <div className="flex h-full items-center justify-center">
+            <div className="flex h-full min-h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
               <p className="text-sm text-muted-foreground">
                 Arraste e solte os campos aqui para configurar a estrutura
               </p>

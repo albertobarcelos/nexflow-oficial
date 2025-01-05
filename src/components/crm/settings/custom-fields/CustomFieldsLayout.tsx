@@ -3,14 +3,53 @@ import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { FieldTypesSidebar } from "./FieldTypesSidebar";
 import { PipelineFieldsEditor } from "./PipelineFieldsEditor";
 import { CustomField } from "./types";
+import { toast } from "sonner";
+import { fieldTypes } from "./data/fieldTypes";
 
 export function CustomFieldsLayout() {
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
 
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+    const { source, destination, draggableId } = result;
+    
+    // Se não houver destino, retorna
+    if (!destination) return;
 
-    const { source, destination } = result;
+    // Se o drag veio da lista de tipos de campo
+    if (source.droppableId === 'field-types') {
+      const fieldType = fieldTypes.find(f => f.id === draggableId);
+      if (!fieldType) return;
+
+      // Criar novo campo baseado no tipo arrastado
+      const newField: CustomField = {
+        id: crypto.randomUUID(),
+        name: fieldType.name,
+        field_type: fieldType.id,
+        description: fieldType.description,
+        is_required: false,
+        order_index: (stagedFields[destination.droppableId] || []).length,
+        client_id: "", // Será preenchido no backend
+        pipeline_id: destination.droppableId,
+        stage_id: destination.droppableId,
+        options: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Adicionar o novo campo ao destino
+      setStagedFields(prev => ({
+        ...prev,
+        [destination.droppableId]: [
+          ...(prev[destination.droppableId] || []),
+          newField
+        ]
+      }));
+
+      toast.success("Campo adicionado com sucesso!");
+      return;
+    }
+
+    // Reordenação normal dos campos existentes
     const sourceStageId = source.droppableId;
     const destStageId = destination.droppableId;
 
@@ -29,16 +68,13 @@ export function CustomFieldsLayout() {
 
   const handleFieldsChange = () => {
     // This function will be called when fields change in PipelineFieldsEditor
-    // You can add additional logic here if needed
   };
 
   const handleEditField = (field: CustomField) => {
-    // Handle editing a field
     console.log('Editing field:', field);
   };
 
   const handleDuplicate = (field: CustomField) => {
-    // Handle duplicating a field
     console.log('Duplicating field:', field);
   };
 
