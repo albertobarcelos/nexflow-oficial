@@ -1,7 +1,6 @@
 import { Droppable } from "@hello-pangea/dnd";
 import { CustomField } from "../types";
 import { FieldCard } from "./FieldCard";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CustomFieldDropZoneProps {
   stageId: string;
@@ -24,7 +23,7 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="flex-1 p-4 min-h-0 overflow-y-auto"
+            className="flex-1 p-4"
           >
             <div className="space-y-2">
               {fields.map((field, index) => (
