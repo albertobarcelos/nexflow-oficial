@@ -1,5 +1,5 @@
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { EntityField } from "../../types";
+import { EntityField, Entity } from "../../types";
 import { FieldTypesSidebar } from "../../../custom-fields/FieldTypesSidebar";
 import { StageDropZone } from "./StageDropZone";
 import { toast } from "sonner";

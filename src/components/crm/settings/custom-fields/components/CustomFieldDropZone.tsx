@@ -1,21 +1,21 @@
 import { Droppable } from "@hello-pangea/dnd";
-import { EntityField } from "../../types";
+import { CustomField } from "../types";
 import { FieldCard } from "./FieldCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface StageDropZoneProps {
+interface CustomFieldDropZoneProps {
   stageId: string;
-  fields: EntityField[];
-  onEditField: (field: EntityField) => void;
+  fields: CustomField[];
+  onEditField: (field: CustomField) => void;
 }
 
-export function StageDropZone({ stageId, fields, onEditField }: StageDropZoneProps) {
+export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFieldDropZoneProps) {
   return (
     <div className="rounded-lg border bg-card">
       <div className="p-4 border-b">
-        <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
+        <h3 className="text-lg font-medium">Campos Personalizados</h3>
         <p className="text-sm text-muted-foreground">
-          Arraste os campos para organizar a estrutura da entidade
+          Arraste os campos para organizar a estrutura
         </p>
       </div>
 
