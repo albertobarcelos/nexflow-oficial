@@ -12,9 +12,10 @@ interface EntityFormFieldsProps {
   currentEntityId: string;
   setFields: (fields: EntityField[]) => void;
   entities: Entity[];
+  fields: EntityField[];
 }
 
-export function EntityFormFields({ currentEntityId, setFields, entities }: EntityFormFieldsProps) {
+export function EntityFormFields({ currentEntityId, setFields, entities, fields }: EntityFormFieldsProps) {
   const { toast } = useToast();
   const [hasChanges, setHasChanges] = useState(false);
 
