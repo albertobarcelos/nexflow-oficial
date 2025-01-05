@@ -1,4 +1,4 @@
-import { EntityFieldEditor } from "../EntityFieldEditor";
+import { EntityFieldEditor } from "../field-editor/EntityFieldEditor";
 import { ConfiguredFieldsTable } from "../ConfiguredFieldsTable";
 import { Entity } from "../../types";
 
