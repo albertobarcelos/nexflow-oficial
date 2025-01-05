@@ -13,6 +13,8 @@ export interface EntityField {
   updated_at?: string;
   related_entity_id?: string;
   relationship_type?: 'one_to_many' | 'many_to_many';
+  is_staged?: boolean;
+  staging_batch?: string;
 }
 
 export interface Entity {
