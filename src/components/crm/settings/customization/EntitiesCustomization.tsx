@@ -28,7 +28,6 @@ export function EntitiesCustomization() {
 
       if (!collaborator) throw new Error('Collaborator not found');
 
-      // Atualizando a query para especificar a relação correta
       const { data } = await supabase
         .from('custom_entities')
         .select(`
@@ -43,8 +42,8 @@ export function EntitiesCustomization() {
   });
 
   return (
-    <div className="grid grid-cols-[320px_360px_1fr] gap-6 h-full">
-      {/* Lista de Entidades */}
+    <div className="grid grid-cols-[380px_360px_1fr] gap-6 h-full">
+      {/* Lista de Entidades - Aumentada para 380px */}
       <Card className="overflow-hidden border-primary/10 shadow-md flex flex-col">
         <ScrollArea className="flex-1 h-full">
           <div className="p-6">
@@ -92,7 +91,7 @@ export function EntitiesCustomization() {
         </ScrollArea>
       </Card>
 
-      {/* Área de Configuração */}
+      {/* Área de Configuração - Reduzida proporcionalmente */}
       <Card className="overflow-hidden border-primary/10 shadow-md">
         <ScrollArea className="h-full">
           <div className="p-6">
