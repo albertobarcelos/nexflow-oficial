@@ -32,6 +32,23 @@ export function CustomFieldsLayout() {
     // You can add additional logic here if needed
   };
 
+  const handleEditField = (field: CustomField) => {
+    // Handle editing a field
+    console.log('Editing field:', field);
+  };
+
+  const handleDuplicate = (field: CustomField) => {
+    // Handle duplicating a field
+    console.log('Duplicating field:', field);
+  };
+
+  const handleReorder = (stageId: string, reorderedFields: CustomField[]) => {
+    setStagedFields(prev => ({
+      ...prev,
+      [stageId]: reorderedFields
+    }));
+  };
+
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-[300px_1fr] gap-6 h-[calc(100vh-200px)]">
@@ -39,6 +56,9 @@ export function CustomFieldsLayout() {
         <PipelineFieldsEditor 
           stagedFields={stagedFields}
           onChange={handleFieldsChange}
+          onEditField={handleEditField}
+          onDuplicate={handleDuplicate}
+          onReorder={handleReorder}
         />
       </div>
     </DragDropContext>
