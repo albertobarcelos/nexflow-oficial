@@ -1,16 +1,15 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Loader2, AlertCircle } from "lucide-react";
-import { EntityRelationshipField } from "./EntityRelationshipField";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { EntityFormHeader } from "./form/EntityFormHeader";
+import { EntityFormField } from "./form/EntityFormField";
+import { EntityFormFooter } from "./form/EntityFormFooter";
+import { Label } from "@/components/ui/label";
 
 interface EntityRecordFormProps {
   open: boolean;
@@ -20,7 +19,13 @@ interface EntityRecordFormProps {
   fields: any[];
 }
 
-export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fields = [] }: EntityRecordFormProps) {
+export function EntityRecordForm({ 
+  open, 
+  onOpenChange, 
+  entityId, 
+  entityName, 
+  fields = [] 
+}: EntityRecordFormProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -88,55 +93,10 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
     }
   };
 
-  const handleFieldChange = (fieldId: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldId]: value
-    }));
-  };
-
-  const renderField = (field: any) => {
-    if (field.field_type === 'entity') {
-      return (
-        <EntityRelationshipField
-          entityId={field.related_entity_id}
-          fieldId={field.id}
-          value={formData[field.id]}
-          onChange={(value) => handleFieldChange(field.id, value)}
-          disabled={isSubmitting}
-          onCreateNew={() => {
-            console.log('Criar novo registro relacionado');
-          }}
-        />
-      );
-    }
-
-    return (
-      <Input
-        id={field.id}
-        type={field.field_type === 'number' ? 'number' : 'text'}
-        value={formData[field.id] || ''}
-        onChange={(e) => handleFieldChange(field.id, e.target.value)}
-        required={field.is_required}
-        placeholder={`Digite ${field.name.toLowerCase()}`}
-        disabled={isSubmitting}
-        className={cn(
-          "w-full transition-colors duration-200",
-          field.is_required && !formData[field.id] && "border-red-500 focus:border-red-500"
-        )}
-      />
-    );
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Novo {entityName}</DialogTitle>
-          <DialogDescription>
-            Preencha os campos abaixo para criar um novo registro.
-          </DialogDescription>
-        </DialogHeader>
+        <EntityFormHeader entityName={entityName} />
         
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
           <AnimatePresence>
@@ -177,41 +137,24 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
                       >*</span>
                     )}
                   </Label>
-                  {renderField(field)}
+                  <EntityFormField
+                    field={field}
+                    value={formData[field.id]}
+                    onChange={(value) => setFormData(prev => ({
+                      ...prev,
+                      [field.id]: value
+                    }))}
+                    isSubmitting={isSubmitting}
+                  />
                 </motion.div>
               ))}
             </div>
           </ScrollArea>
 
-          <div className="flex justify-end gap-3 pt-4 mt-4 border-t">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-              className="transition-colors hover:bg-secondary"
-            >
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="min-w-[120px] relative"
-            >
-              {isSubmitting ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center"
-                >
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </motion.div>
-              ) : (
-                "Salvar"
-              )}
-            </Button>
-          </div>
+          <EntityFormFooter 
+            isSubmitting={isSubmitting}
+            onCancel={() => onOpenChange(false)}
+          />
         </form>
       </DialogContent>
     </Dialog>
