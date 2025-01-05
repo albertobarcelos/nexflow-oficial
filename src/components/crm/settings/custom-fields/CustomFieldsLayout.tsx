@@ -12,16 +12,21 @@ export function CustomFieldsLayout() {
   const handleDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
     
+    console.log('🔄 Drag ended:', { source, destination, draggableId });
+    console.log('📦 Current staged fields:', stagedFields);
+    
     // Se não houver destino, retorna
-    if (!destination) return;
-
-    console.log('Drag ended:', { source, destination, draggableId });
+    if (!destination) {
+      console.log('❌ No destination, drag cancelled');
+      return;
+    }
 
     // Se o drag veio da lista de tipos de campo
     if (source.droppableId === 'field-types') {
+      console.log('🎯 Dragging from field types list');
       const fieldType = fieldTypes.find(f => f.id === draggableId);
       if (!fieldType) {
-        console.error('Field type not found:', draggableId);
+        console.error('❌ Field type not found:', draggableId);
         return;
       }
 
@@ -41,7 +46,7 @@ export function CustomFieldsLayout() {
         updated_at: new Date().toISOString()
       };
 
-      console.log('Creating new field:', newField);
+      console.log('✨ Creating new field:', newField);
 
       // Adicionar o novo campo ao destino
       setStagedFields(prev => {
@@ -52,7 +57,7 @@ export function CustomFieldsLayout() {
             newField
           ]
         };
-        console.log('Updated staged fields:', updatedFields);
+        console.log('📝 Updated staged fields:', updatedFields);
         return updatedFields;
       });
 
@@ -61,6 +66,7 @@ export function CustomFieldsLayout() {
     }
 
     // Reordenação normal dos campos existentes
+    console.log('🔄 Reordering existing fields');
     const sourceStageId = source.droppableId;
     const destStageId = destination.droppableId;
 
@@ -78,7 +84,7 @@ export function CustomFieldsLayout() {
   };
 
   const handleEditField = (field: CustomField) => {
-    console.log('Editing field:', field);
+    console.log('✏️ Editing field:', field);
   };
 
   return (

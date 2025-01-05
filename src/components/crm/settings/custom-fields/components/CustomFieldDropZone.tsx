@@ -9,6 +9,8 @@ interface CustomFieldDropZoneProps {
 }
 
 export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFieldDropZoneProps) {
+  console.log('🎯 Rendering DropZone with fields:', fields);
+  
   return (
     <div className="flex flex-col h-full rounded-lg border bg-card">
       <div className="p-4 border-b flex-shrink-0">
@@ -19,32 +21,35 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
       </div>
 
       <Droppable droppableId={stageId}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className="flex-1 p-4"
-          >
-            <div className="space-y-2">
-              {fields.map((field, index) => (
-                <FieldCard
-                  key={field.id}
-                  field={field}
-                  index={index}
-                  onEdit={() => onEditField(field)}
-                />
-              ))}
-              {fields.length === 0 && !snapshot.isDraggingOver && (
-                <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
-                  <p className="text-sm text-muted-foreground">
-                    Arraste os campos para organizar a estrutura
-                  </p>
-                </div>
-              )}
-              {provided.placeholder}
+        {(provided, snapshot) => {
+          console.log('🎨 Droppable state:', { isDraggingOver: snapshot.isDraggingOver });
+          return (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="flex-1 p-4 overflow-y-auto"
+            >
+              <div className="space-y-2">
+                {fields.map((field, index) => (
+                  <FieldCard
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    onEdit={() => onEditField(field)}
+                  />
+                ))}
+                {fields.length === 0 && !snapshot.isDraggingOver && (
+                  <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                    <p className="text-sm text-muted-foreground">
+                      Arraste os campos para organizar a estrutura
+                    </p>
+                  </div>
+                )}
+                {provided.placeholder}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        }}
       </Droppable>
     </div>
   );
