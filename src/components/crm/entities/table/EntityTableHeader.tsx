@@ -1,9 +1,10 @@
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { FilterPopover } from "./FilterPopover";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface EntityTableHeaderProps {
   entityName: string;
@@ -37,6 +38,25 @@ export function EntityTableHeader({
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-9"
           />
+          <AnimatePresence>
+            {searchTerm && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2"
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => onSearchChange("")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <FilterPopover
           fields={fields}
@@ -49,22 +69,70 @@ export function EntityTableHeader({
             variant="outline" 
             size="icon"
             className={cn(
-              "relative",
+              "relative transition-colors hover:bg-muted",
               activeFilters.length > 0 && "border-primary"
             )}
           >
             <Filter className="h-4 w-4" />
-            {activeFilters.length > 0 && (
-              <Badge 
-                variant="secondary" 
-                className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center"
-              >
-                {activeFilters.length}
-              </Badge>
-            )}
+            <AnimatePresence>
+              {activeFilters.length > 0 && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                >
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center"
+                  >
+                    {activeFilters.length}
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Button>
         </FilterPopover>
       </div>
+      <AnimatePresence>
+        {activeFilters.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="w-full flex flex-wrap gap-2"
+          >
+            {activeFilters.map((fieldId) => {
+              const field = fields.find(f => f.id === fieldId);
+              if (!field) return null;
+              return (
+                <Badge
+                  key={fieldId}
+                  variant="secondary"
+                  className="flex items-center gap-1"
+                >
+                  {field.name}: {filters[fieldId]}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 ml-1 hover:bg-muted"
+                    onClick={() => onClearFilter(fieldId)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              );
+            })}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => activeFilters.forEach(onClearFilter)}
+            >
+              Limpar todos
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
