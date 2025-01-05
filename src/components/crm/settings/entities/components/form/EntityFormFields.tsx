@@ -45,7 +45,6 @@ export function EntityFormFields({ currentEntityId, setFields, entities }: Entit
 
   const handleSave = async () => {
     try {
-      // Implementar lógica de salvamento aqui
       const { error } = await supabase
         .from('entity_fields')
         .upsert(entityFields?.map((field, index) => ({

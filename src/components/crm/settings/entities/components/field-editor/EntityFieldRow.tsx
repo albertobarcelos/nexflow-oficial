@@ -14,7 +14,7 @@ interface EntityFieldRowProps {
   currentEntityId: string;
   onChange: (field: EntityField) => void;
   onRemove: () => void;
-  onDuplicate: () => void;
+  onDuplicate?: () => void;
 }
 
 const FIELD_TYPES: { value: FieldType; label: string }[] = [
