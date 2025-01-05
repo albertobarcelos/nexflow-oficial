@@ -22,11 +22,13 @@ export function CustomFieldsLayout() {
     
     console.log('🎯 Drag ended:', { source, destination, draggableId });
     
+    // Se não houver destino, o usuário soltou fora da área válida
     if (!destination) {
       console.log('❌ No destination, drag cancelled');
       return;
     }
 
+    // Se a origem for a lista de tipos de campo
     if (source.droppableId === 'field-types') {
       console.log('🎯 Dragging from field types list');
       const fieldType = fieldTypes.find(f => f.id === draggableId);
@@ -36,6 +38,7 @@ export function CustomFieldsLayout() {
         return;
       }
 
+      // Criar novo campo com ID único
       const newField: CustomField = {
         id: crypto.randomUUID(),
         name: fieldType.name,
@@ -53,13 +56,12 @@ export function CustomFieldsLayout() {
 
       console.log('✨ Creating new field:', newField);
 
+      // Atualizar estado com o novo campo
       setStagedFields(prev => {
+        const existingFields = prev[destination.droppableId] || [];
         const updatedFields = {
           ...prev,
-          [destination.droppableId]: [
-            ...(prev[destination.droppableId] || []),
-            newField
-          ]
+          [destination.droppableId]: [...existingFields, newField]
         };
         console.log('📝 Updated staged fields:', updatedFields);
         return updatedFields;
