@@ -5,7 +5,6 @@ import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { FieldTypeInfo, FieldCategory } from "./types";
 import { fieldTypes, categoryNames } from "./data/fieldTypes";
 import { FieldTypeCard } from "./components/FieldTypeCard";
-import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";

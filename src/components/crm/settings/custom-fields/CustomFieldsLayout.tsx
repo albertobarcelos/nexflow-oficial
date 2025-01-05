@@ -67,12 +67,11 @@ export function CustomFieldsLayout() {
       });
 
       toast.success("Campo adicionado com sucesso!");
-      return;
     }
   };
 
   return (
-    <div className="flex h-[calc(100vh-200px)]">
+    <div className="h-[calc(100vh-200px)] flex">
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-[300px_1fr] gap-6 w-full">
           <FieldTypesSidebar />
