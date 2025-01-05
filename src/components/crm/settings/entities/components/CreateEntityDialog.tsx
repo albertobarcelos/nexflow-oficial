@@ -4,13 +4,19 @@ import { EntityFormContent } from "./dialog/EntityFormContent";
 import { EntityFormFooter } from "./form/EntityFormFooter";
 import { useEntityForm } from "./dialog/useEntityForm";
 import type { CreateEntityDialogProps } from "../types";
+import { ReactNode } from "react";
+
+interface ExtendedCreateEntityDialogProps extends CreateEntityDialogProps {
+  children?: ReactNode;
+}
 
 export function CreateEntityDialog({ 
   open, 
   onOpenChange, 
   onSuccess, 
-  entityToEdit 
-}: CreateEntityDialogProps) {
+  entityToEdit,
+  children 
+}: ExtendedCreateEntityDialogProps) {
   const { entities, refetch } = useEntities();
   const {
     isLoading,
@@ -38,6 +44,7 @@ export function CreateEntityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {children}
       <DialogContent className="max-w-[950px] max-h-[90vh] w-full flex flex-col p-0 gap-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>

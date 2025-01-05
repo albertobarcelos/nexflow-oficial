@@ -74,6 +74,8 @@ export interface EntityListProps {
   entities: Entity[];
   onEdit?: (entity: Entity) => void;
   onDelete?: (entity: Entity) => void;
+  selectedEntityId?: string | null;
+  onSelectEntity?: (id: string) => void;
 }
 
 export interface EntityFieldEditorProps {
