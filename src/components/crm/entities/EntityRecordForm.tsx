@@ -17,6 +17,7 @@ interface EntityRecordFormProps {
   entityId: string;
   entityName: string;
   fields: any[];
+  onSuccess?: (recordId: string) => void;
 }
 
 export function EntityRecordForm({ 
@@ -24,7 +25,8 @@ export function EntityRecordForm({
   onOpenChange, 
   entityId, 
   entityName, 
-  fields = [] 
+  fields = [],
+  onSuccess
 }: EntityRecordFormProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, any>>({});
@@ -77,6 +79,10 @@ export function EntityRecordForm({
         title: "Registro criado",
         description: "O registro foi criado com sucesso.",
       });
+
+      if (onSuccess) {
+        onSuccess(recordId);
+      }
 
       onOpenChange(false);
       setFormData({});
