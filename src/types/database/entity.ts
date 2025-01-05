@@ -29,7 +29,7 @@ export interface Entity {
   icon_name?: string;
   color?: string;
   fields?: EntityField[];
-  entity_fields?: EntityField[]; // Support both naming conventions
+  entity_fields?: EntityField[];
 }
 
 export interface CustomEntity {
