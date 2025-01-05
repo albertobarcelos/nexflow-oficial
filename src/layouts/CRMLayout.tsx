@@ -57,16 +57,16 @@ export default function CRMLayout() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     );
   }
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full">
         <CRMSidebar />
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 p-6 overflow-auto">
           <Outlet />
         </main>
       </div>
