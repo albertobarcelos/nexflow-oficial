@@ -6,6 +6,7 @@ import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewPipelineDialog } from "../pipeline/NewPipelineDialog";
 import { PipelineCard } from "../pipeline/PipelineCard";
+import { FieldTypesSidebar } from "../custom-fields/FieldTypesSidebar";
 
 export function PipelinesCustomization() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>();
