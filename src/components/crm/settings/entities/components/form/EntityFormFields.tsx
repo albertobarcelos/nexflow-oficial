@@ -1,23 +1,28 @@
 import { EntityFieldEditor } from "../field-editor/EntityFieldEditor";
-import { ConfiguredFieldsTable } from "../ConfiguredFieldsTable";
-import { Entity } from "../../types";
+import { Entity, EntityField } from "../../types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface EntityFormFieldsProps {
   currentEntityId: string;
-  setFields: (fields: any[]) => void;
+  setFields: (fields: EntityField[]) => void;
   entities: Entity[];
 }
 
 export function EntityFormFields({ currentEntityId, setFields, entities }: EntityFormFieldsProps) {
+  const { toast } = useToast();
+  const [hasChanges, setHasChanges] = useState(false);
+
   // Fetch entity fields
   const { data: entityFields, isLoading } = useQuery({
     queryKey: ['entity_fields', currentEntityId],
     enabled: !!currentEntityId,
     queryFn: async () => {
-      console.log('Fetching fields for entity:', currentEntityId);
       const { data, error } = await supabase
         .from('entity_fields')
         .select('*')
@@ -29,10 +34,41 @@ export function EntityFormFields({ currentEntityId, setFields, entities }: Entit
         throw error;
       }
 
-      console.log('Fetched fields:', data);
-      return data;
+      return data as EntityField[];
     }
   });
+
+  const handleFieldsChange = (newFields: EntityField[]) => {
+    setFields(newFields);
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      // Implementar lógica de salvamento aqui
+      const { error } = await supabase
+        .from('entity_fields')
+        .upsert(entityFields?.map((field, index) => ({
+          ...field,
+          order_index: index
+        })));
+
+      if (error) throw error;
+
+      toast({
+        title: "Campos salvos com sucesso",
+        description: "As alterações foram salvas com sucesso.",
+      });
+      setHasChanges(false);
+    } catch (error) {
+      console.error('Error saving fields:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Ocorreu um erro ao salvar as alterações.",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -44,20 +80,28 @@ export function EntityFormFields({ currentEntityId, setFields, entities }: Entit
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Campos da Entidade</h3>
-      <EntityFieldEditor 
-        fields={entityFields || []}
-        onChange={setFields} 
-        currentEntityId={currentEntityId}
-        entities={entities || []}
-      />
-      
-      {entityFields && entityFields.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-sm font-medium mb-3">Campos Configurados</h4>
-          <ConfiguredFieldsTable fields={entityFields} />
-        </div>
-      )}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Campos da Entidade</h3>
+        {hasChanges && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Button onClick={handleSave}>
+              Salvar Alterações
+            </Button>
+          </motion.div>
+        )}
+      </div>
+
+      <div className="min-h-[400px] border rounded-lg p-4">
+        <EntityFieldEditor 
+          fields={entityFields || []}
+          onChange={handleFieldsChange}
+          currentEntityId={currentEntityId}
+          entities={entities || []}
+        />
+      </div>
     </div>
   );
 }
