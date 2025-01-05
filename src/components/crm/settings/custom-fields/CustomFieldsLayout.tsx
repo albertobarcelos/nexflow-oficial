@@ -21,7 +21,6 @@ export function CustomFieldsLayout() {
     const { source, destination, draggableId } = result;
     
     console.log('🎯 Drag ended:', { source, destination, draggableId });
-    console.log('📦 Current staged fields:', stagedFields);
     
     if (!destination) {
       console.log('❌ No destination, drag cancelled');
@@ -71,19 +70,17 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="h-[calc(100vh-200px)] flex">
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-[300px_1fr] gap-6 w-full">
-          <FieldTypesSidebar />
-          <CustomFieldDropZone
-            stageId="entity-fields"
-            fields={stagedFields["entity-fields"] || []}
-            onEditField={(field) => {
-              console.log('✏️ Editing field:', field);
-            }}
-          />
-        </div>
-      </DragDropContext>
-    </div>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="grid grid-cols-[300px_1fr] gap-6 w-full">
+        <FieldTypesSidebar />
+        <CustomFieldDropZone
+          stageId="entity-fields"
+          fields={stagedFields["entity-fields"] || []}
+          onEditField={(field) => {
+            console.log('✏️ Editing field:', field);
+          }}
+        />
+      </div>
+    </DragDropContext>
   );
 }

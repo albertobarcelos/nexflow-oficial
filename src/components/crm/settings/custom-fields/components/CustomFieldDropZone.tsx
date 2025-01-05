@@ -18,7 +18,7 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
   
   return (
     <div className="flex flex-col h-full rounded-lg border bg-card">
-      <div className="p-4 border-b flex-shrink-0">
+      <div className="p-4 border-b">
         <h3 className="text-lg font-medium">Campos da Entidade</h3>
         <p className="text-sm text-muted-foreground">
           Arraste os campos para organizar a estrutura
@@ -38,31 +38,29 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                "flex-1 overflow-y-auto p-4",
+                "flex-1 p-4 overflow-y-auto",
                 snapshot.isDraggingOver && "bg-primary/5"
               )}
             >
-              <div className="space-y-2">
-                {fields.map((field, index) => {
-                  console.log(`🎴 Rendering FieldCard ${index}:`, field);
-                  return (
-                    <FieldCard
-                      key={field.id}
-                      field={field}
-                      index={index}
-                      onEdit={() => onEditField(field)}
-                    />
-                  );
-                })}
-                {fields.length === 0 && !snapshot.isDraggingOver && (
-                  <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
-                    <p className="text-sm text-muted-foreground">
-                      Arraste os campos para organizar a estrutura
-                    </p>
-                  </div>
-                )}
-                {provided.placeholder}
-              </div>
+              {fields.map((field, index) => {
+                console.log(`🎴 Rendering FieldCard ${index}:`, field);
+                return (
+                  <FieldCard
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    onEdit={() => onEditField(field)}
+                  />
+                );
+              })}
+              {fields.length === 0 && !snapshot.isDraggingOver && (
+                <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    Arraste os campos para organizar a estrutura
+                  </p>
+                </div>
+              )}
+              {provided.placeholder}
             </div>
           );
         }}

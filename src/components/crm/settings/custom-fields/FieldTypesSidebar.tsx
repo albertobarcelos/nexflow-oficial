@@ -92,7 +92,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className="transition-transform duration-200 ease-in-out"
+                    className="mb-2"
                   >
                     <FieldTypeCard
                       fieldType={fieldType}
