@@ -23,9 +23,6 @@ export function EntityFormField({ field, value, onChange, isSubmitting }: Entity
         value={value}
         onChange={onChange}
         disabled={isSubmitting}
-        onCreateNew={() => {
-          console.log('Criar novo registro relacionado');
-        }}
       />
     );
   }
