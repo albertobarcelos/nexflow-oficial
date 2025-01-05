@@ -21,11 +21,15 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
 
       <ScrollArea className="h-[calc(100vh-20rem)]">
         <Droppable droppableId={stageId}>
-          {(provided) => (
+          {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="p-4 space-y-2 min-h-[200px]"
+              className={`p-4 space-y-2 min-h-[200px] transition-colors duration-200 ${
+                snapshot.isDraggingOver 
+                  ? "bg-primary/5 border-2 border-dashed border-primary" 
+                  : ""
+              }`}
             >
               {fields.map((field, index) => (
                 <FieldCard
@@ -35,6 +39,13 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
                   onEdit={() => onEditField(field)}
                 />
               ))}
+              {fields.length === 0 && !snapshot.isDraggingOver && (
+                <div className="flex h-full min-h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    Arraste e solte os campos aqui para configurar a estrutura
+                  </p>
+                </div>
+              )}
               {provided.placeholder}
             </div>
           )}
