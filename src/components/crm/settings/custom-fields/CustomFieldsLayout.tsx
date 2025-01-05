@@ -74,13 +74,13 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="h-[calc(100vh-200px)]">
+    <div className="h-[calc(100vh-200px)] overflow-hidden">
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-[300px_1fr] gap-6 h-full">
-          <div className="h-full">
+          <div className="overflow-y-auto">
             <FieldTypesSidebar />
           </div>
-          <div className="h-full">
+          <div className="overflow-y-auto">
             <CustomFieldDropZone
               stageId="entity-fields"
               fields={stagedFields["entity-fields"]}
