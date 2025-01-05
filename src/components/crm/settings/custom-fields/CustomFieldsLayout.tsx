@@ -15,10 +15,15 @@ export function CustomFieldsLayout() {
     // Se não houver destino, retorna
     if (!destination) return;
 
+    console.log('Drag ended:', { source, destination, draggableId });
+
     // Se o drag veio da lista de tipos de campo
     if (source.droppableId === 'field-types') {
       const fieldType = fieldTypes.find(f => f.id === draggableId);
-      if (!fieldType) return;
+      if (!fieldType) {
+        console.error('Field type not found:', draggableId);
+        return;
+      }
 
       // Criar novo campo baseado no tipo arrastado
       const newField: CustomField = {
@@ -36,14 +41,20 @@ export function CustomFieldsLayout() {
         updated_at: new Date().toISOString()
       };
 
+      console.log('Creating new field:', newField);
+
       // Adicionar o novo campo ao destino
-      setStagedFields(prev => ({
-        ...prev,
-        [destination.droppableId]: [
-          ...(prev[destination.droppableId] || []),
-          newField
-        ]
-      }));
+      setStagedFields(prev => {
+        const updatedFields = {
+          ...prev,
+          [destination.droppableId]: [
+            ...(prev[destination.droppableId] || []),
+            newField
+          ]
+        };
+        console.log('Updated staged fields:', updatedFields);
+        return updatedFields;
+      });
 
       toast.success("Campo adicionado com sucesso!");
       return;

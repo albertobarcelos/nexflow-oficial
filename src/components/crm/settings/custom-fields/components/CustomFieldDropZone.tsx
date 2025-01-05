@@ -11,22 +11,22 @@ interface CustomFieldDropZoneProps {
 
 export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFieldDropZoneProps) {
   return (
-    <div className="rounded-lg border bg-card">
-      <div className="p-4 border-b">
+    <div className="flex flex-col h-full rounded-lg border bg-card">
+      <div className="p-4 border-b flex-shrink-0">
         <h3 className="text-lg font-medium">Campos Personalizados</h3>
         <p className="text-sm text-muted-foreground">
           Arraste os campos para organizar a estrutura
         </p>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-20rem)]">
-        <Droppable droppableId={stageId}>
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="p-4 space-y-2 min-h-[200px]"
-            >
+      <Droppable droppableId={stageId}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className="flex-1 p-4 min-h-0 overflow-y-auto"
+          >
+            <div className="space-y-2">
               {fields.map((field, index) => (
                 <FieldCard
                   key={field.id}
@@ -35,11 +35,18 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
                   onEdit={() => onEditField(field)}
                 />
               ))}
+              {fields.length === 0 && !snapshot.isDraggingOver && (
+                <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    Arraste os campos para organizar a estrutura
+                  </p>
+                </div>
+              )}
               {provided.placeholder}
             </div>
-          )}
-        </Droppable>
-      </ScrollArea>
+          </div>
+        )}
+      </Droppable>
     </div>
   );
 }
