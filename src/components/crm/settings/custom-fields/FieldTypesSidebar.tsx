@@ -25,8 +25,8 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
   });
 
   return (
-    <Card className="p-4 h-full">
-      <h2 className="text-lg font-semibold mb-4">Tipos de Campo</h2>
+    <Card className="p-4 h-full border-primary/10 shadow-md">
+      <h2 className="text-lg font-semibold mb-4 text-primary/90">Tipos de Campo</h2>
       
       <div className="mb-4">
         <div className="relative">
@@ -35,19 +35,19 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
             placeholder="Buscar tipo de campo..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
+            className="pl-8 border-primary/20 focus:border-primary/30 transition-colors"
           />
         </div>
       </div>
 
       <Tabs defaultValue="basic" className="mb-4">
-        <TabsList className="w-full flex flex-wrap">
+        <TabsList className="w-full flex flex-wrap bg-muted/30">
           {Object.entries(categoryNames).map(([key, name]) => (
             <TabsTrigger
               key={key}
               value={key}
               onClick={() => setSelectedCategory(key as FieldCategory)}
-              className="flex-1"
+              className="flex-1 text-xs data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
             >
               {name}
             </TabsTrigger>
@@ -61,7 +61,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
             <div 
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="space-y-2"
+              className="space-y-2 pr-2"
             >
               {filteredFieldTypes.map((fieldType, index) => (
                 <Draggable 
@@ -73,6 +73,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
+                      className="transition-transform duration-200 ease-in-out"
                     >
                       <FieldTypeCard
                         fieldType={fieldType}
