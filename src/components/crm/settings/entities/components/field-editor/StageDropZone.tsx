@@ -1,7 +1,7 @@
 import { Droppable } from "@hello-pangea/dnd";
 import { EntityField } from "../../types";
 import { FieldCard } from "./FieldCard";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface StageDropZoneProps {
   stageId: string;
@@ -19,17 +19,17 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
         </p>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-20rem)]">
+      <div className="h-[calc(100vh-20rem)] overflow-y-auto">
         <Droppable droppableId={stageId}>
           {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className={`p-4 space-y-2 min-h-[200px] transition-colors duration-200 ${
-                snapshot.isDraggingOver 
-                  ? "bg-primary/5 border-2 border-dashed border-primary" 
-                  : ""
-              }`}
+              className={cn(
+                "p-4 space-y-2 min-h-[200px]",
+                "transition-colors duration-200",
+                snapshot.isDraggingOver && "bg-primary/5 border-2 border-dashed border-primary"
+              )}
             >
               {fields.map((field, index) => (
                 <FieldCard
@@ -50,7 +50,7 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
             </div>
           )}
         </Droppable>
-      </ScrollArea>
+      </div>
     </div>
   );
 }
