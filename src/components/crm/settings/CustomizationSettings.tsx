@@ -16,48 +16,53 @@ export function CustomizationSettings() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 animate-fade-in"
+      className="space-y-6 h-[calc(100vh-12rem)] overflow-hidden"
     >
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
+        className="space-y-2"
       >
         <h2 className="text-3xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
           Personalização
         </h2>
-        <p className="text-muted-foreground text-lg mt-1">
+        <p className="text-muted-foreground text-lg">
           Configure suas entidades e pipelines de forma intuitiva
         </p>
       </motion.div>
 
-      <Card className="p-6 shadow-md border-primary/10">
+      <Card className="shadow-md border-primary/10 h-[calc(100vh-16rem)] overflow-hidden">
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Tabs defaultValue="entities" className="space-y-6">
-            <TabsList className="w-full justify-start bg-muted/30 p-1">
-              <TabsTrigger 
-                value="entities" 
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
-              >
-                <Database className="w-4 h-4" />
-                Entidades
-              </TabsTrigger>
-              <TabsTrigger 
-                value="pipelines"
-                className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
-              >
-                <GitBranch className="w-4 h-4" />
-                Pipelines
-              </TabsTrigger>
-            </TabsList>
+          <Tabs defaultValue="entities" className="h-full flex flex-col">
+            <div className="px-6 pt-6">
+              <TabsList className="w-full justify-start bg-muted/30 p-1">
+                <TabsTrigger 
+                  value="entities" 
+                  className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
+                >
+                  <Database className="w-4 h-4" />
+                  Entidades
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="pipelines"
+                  className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
+                >
+                  <GitBranch className="w-4 h-4" />
+                  Pipelines
+                </TabsTrigger>
+              </TabsList>
+            </div>
             
-            <TabsContent value="entities" className="space-y-4 mt-2 animate-fade-in">
-              <EntitiesCustomization />
-            </TabsContent>
-            
-            <TabsContent value="pipelines" className="space-y-4 mt-2 animate-fade-in">
-              <PipelinesCustomization />
-            </TabsContent>
+            <div className="flex-1 overflow-hidden">
+              <TabsContent value="entities" className="h-full m-0 p-6 animate-fade-in">
+                <EntitiesCustomization />
+              </TabsContent>
+              
+              <TabsContent value="pipelines" className="h-full m-0 p-6 animate-fade-in">
+                <PipelinesCustomization />
+              </TabsContent>
+            </div>
           </Tabs>
         </DragDropContext>
       </Card>
