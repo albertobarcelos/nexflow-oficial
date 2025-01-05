@@ -9,7 +9,6 @@ import { fieldTypes } from "./data/fieldTypes";
 export function CustomFieldsLayout() {
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
 
-  // Monitor stagedFields changes
   useEffect(() => {
     console.log('🔄 stagedFields changed:', stagedFields);
   }, [stagedFields]);
@@ -66,38 +65,22 @@ export function CustomFieldsLayout() {
       toast.success("Campo adicionado com sucesso!");
       return;
     }
-
-    console.log('🔄 Reordering existing fields');
-    const sourceStageId = source.droppableId;
-    const destStageId = destination.droppableId;
-
-    const sourceFields = [...(stagedFields[sourceStageId] || [])];
-    const destFields = sourceStageId === destStageId ? sourceFields : [...(stagedFields[destStageId] || [])];
-
-    const [movedField] = sourceFields.splice(source.index, 1);
-    destFields.splice(destination.index, 0, movedField);
-
-    setStagedFields({
-      ...stagedFields,
-      [sourceStageId]: sourceFields,
-      [destStageId]: destFields,
-    });
-  };
-
-  const handleEditField = (field: CustomField) => {
-    console.log('✏️ Editing field:', field);
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-[300px_1fr] gap-6">
-        <FieldTypesSidebar />
-        <CustomFieldDropZone
-          stageId="entity-fields"
-          fields={stagedFields["entity-fields"] || []}
-          onEditField={handleEditField}
-        />
-      </div>
-    </DragDropContext>
+    <div className="flex h-[calc(100vh-200px)]">
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-[300px_1fr] gap-6 w-full">
+          <FieldTypesSidebar />
+          <CustomFieldDropZone
+            stageId="entity-fields"
+            fields={stagedFields["entity-fields"] || []}
+            onEditField={(field) => {
+              console.log('✏️ Editing field:', field);
+            }}
+          />
+        </div>
+      </DragDropContext>
+    </div>
   );
 }

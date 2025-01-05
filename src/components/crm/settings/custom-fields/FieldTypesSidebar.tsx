@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, Database, HelpCircle } from "lucide-react";
-import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
+import { Droppable, Draggable } from "@hello-pangea/dnd";
 import { FieldTypeInfo, FieldCategory } from "./types";
 import { fieldTypes, categoryNames } from "./data/fieldTypes";
 import { FieldTypeCard } from "./components/FieldTypeCard";
@@ -27,7 +27,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
   });
 
   return (
-    <Card className="flex flex-col h-[calc(100vh-200px)] border-primary/10 shadow-md">
+    <Card className="flex flex-col h-full border-primary/10 shadow-md">
       <div className="p-4 border-b">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
