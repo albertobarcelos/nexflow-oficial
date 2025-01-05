@@ -2,7 +2,7 @@ import {
   Type, AlignLeft, FileText, Paperclip, CheckSquare, 
   User, Calendar, Clock, Tag, Mail, Phone, List, 
   Radio, Timer, Hash, DollarSign, File, Fingerprint,
-  Search, CreditCard, Building2
+  Search, CreditCard
 } from "lucide-react";
 import { FieldTypeInfo } from "../types";
 
@@ -54,7 +54,7 @@ export const fieldTypes: FieldTypeInfo[] = [
     id: "cnpj",
     name: "CNPJ",
     description: "Campo formatado para CNPJ",
-    icon: <Building2 className="w-4 h-4" />,
+    icon: <CreditCard className="w-4 h-4" />,
     category: "document",
     validation: (value) => /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(value),
     mask: "99.999.999/9999-99"
@@ -106,6 +106,13 @@ export const fieldTypes: FieldTypeInfo[] = [
     icon: <Clock className="w-4 h-4" />,
     category: "date"
   },
+  {
+    id: "time",
+    name: "Hora",
+    description: "Selecionar horário",
+    icon: <Timer className="w-4 h-4" />,
+    category: "date"
+  },
   // Outros
   {
     id: "checkbox",
@@ -119,6 +126,13 @@ export const fieldTypes: FieldTypeInfo[] = [
     name: "Lista",
     description: "Lista de opções múltiplas",
     icon: <List className="w-4 h-4" />,
+    category: "other"
+  },
+  {
+    id: "single_select",
+    name: "Seleção Única",
+    description: "Selecionar uma única opção",
+    icon: <Radio className="w-4 h-4" />,
     category: "other"
   },
   {
