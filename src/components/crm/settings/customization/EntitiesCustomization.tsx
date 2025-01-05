@@ -1,11 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Plus, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { EntityList } from "../entities/components/EntityList";
-import { FieldTypesSidebar } from "../custom-fields/FieldTypesSidebar";
 import { EntityFormFields } from "../entities/components/form/EntityFormFields";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -40,21 +38,19 @@ export function EntitiesCustomization() {
   });
 
   return (
-    <div className="grid grid-cols-[500px_360px_1fr] gap-6 h-full">
+    <div className="grid grid-cols-[500px_1fr] gap-6 h-full">
       {/* Lista de Entidades */}
       <Card className="overflow-hidden border-primary/10 shadow-md flex flex-col min-w-0">
         <ScrollArea className="flex-1 h-full">
           <div className="p-6">
             <EntityList
               entities={entities || []}
-              onEdit={(entity) => setSelectedEntityId(entity.id)}
+              selectedEntityId={selectedEntityId}
+              onSelectEntity={setSelectedEntityId}
             />
           </div>
         </ScrollArea>
       </Card>
-
-      {/* Tipos de Campos */}
-      <FieldTypesSidebar />
 
       {/* Área de Configuração */}
       <Card className="overflow-hidden border-primary/10 shadow-md min-w-0">

@@ -8,6 +8,7 @@ import { Entity } from "./types";
 
 export function EntitiesSettings() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [fields, setFields] = useState<any[]>([]);
 
   const { data: entities, isLoading } = useQuery({
     queryKey: ['entities'],
@@ -56,8 +57,10 @@ export function EntitiesSettings() {
         {selectedEntityId ? (
           <Card className="p-4">
             <EntityFormFields 
-              entityId={selectedEntityId} 
+              currentEntityId={selectedEntityId}
               entities={entities || []}
+              fields={fields}
+              setFields={setFields}
             />
           </Card>
         ) : (
