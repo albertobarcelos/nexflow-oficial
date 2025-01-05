@@ -1364,6 +1364,7 @@ export type Database = {
         | "currency"
         | "documents"
         | "id"
+        | "user"
       lead_source: "partner_portal" | "manual"
       lead_status: "new" | "in_progress" | "closed"
       license_status: "active" | "suspended" | "expired"

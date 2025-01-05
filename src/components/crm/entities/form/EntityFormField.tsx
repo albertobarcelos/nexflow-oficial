@@ -5,6 +5,9 @@ import { EntityRelationshipField } from "../EntityRelationshipField";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import InputMask from "react-input-mask";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EntityFormFieldProps {
   field: any;
@@ -16,6 +19,28 @@ interface EntityFormFieldProps {
 export function EntityFormField({ field, value, onChange, isSubmitting }: EntityFormFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
 
+  const { data: collaborators } = useQuery({
+    queryKey: ['collaborators'],
+    enabled: field.field_type === 'user',
+    queryFn: async () => {
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!collaborator) throw new Error('Collaborator not found');
+
+      const { data, error } = await supabase
+        .from('collaborators')
+        .select('id, name, role')
+        .eq('client_id', collaborator.client_id);
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
   if (field.field_type === 'entity') {
     return (
       <EntityRelationshipField
@@ -25,6 +50,28 @@ export function EntityFormField({ field, value, onChange, isSubmitting }: Entity
         onChange={onChange}
         disabled={isSubmitting}
       />
+    );
+  }
+
+  // Handle user selection field
+  if (field.field_type === 'user') {
+    return (
+      <Select
+        value={value}
+        onValueChange={onChange}
+        disabled={isSubmitting}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Selecione um usuário" />
+        </SelectTrigger>
+        <SelectContent>
+          {collaborators?.map((collaborator) => (
+            <SelectItem key={collaborator.id} value={collaborator.id}>
+              {collaborator.name} ({collaborator.role})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     );
   }
 

@@ -120,6 +120,13 @@ export const fieldTypes: FieldTypeInfo[] = [
     description: "Lista de opções múltiplas",
     icon: <List className="w-4 h-4" />,
     category: "other"
+  },
+  {
+    id: "user",
+    name: "Usuário",
+    description: "Selecionar um usuário do sistema",
+    icon: <User className="w-4 h-4" />,
+    category: "other"
   }
 ];
 
