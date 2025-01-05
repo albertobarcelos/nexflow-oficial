@@ -4,12 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Loader2, AlertCircle } from "lucide-react";
 import { EntityRelationshipField } from "./EntityRelationshipField";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface EntityRecordFormProps {
   open: boolean;
@@ -31,7 +32,6 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
     setError(null);
 
     try {
-      // Validar campos obrigatórios
       const missingFields = fields
         .filter(field => field.is_required && !formData[field.id])
         .map(field => field.name);
@@ -51,10 +51,8 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
 
       if (!collaborator) throw new Error('Cliente não encontrado');
 
-      // Gerar um ID único para o registro
       const recordId = crypto.randomUUID();
 
-      // Criar os valores dos campos com o formato JSONB apropriado
       const fieldValues = fields.map(field => ({
         entity_id: entityId,
         field_id: field.id,
@@ -64,7 +62,6 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
         modified_by: user.user.id
       }));
 
-      // Inserir os valores dos campos
       const { error } = await supabase
         .from('entity_field_values')
         .insert(fieldValues);
@@ -108,7 +105,6 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
           onChange={(value) => handleFieldChange(field.id, value)}
           disabled={isSubmitting}
           onCreateNew={() => {
-            // TODO: Implementar criação de novo registro relacionado
             console.log('Criar novo registro relacionado');
           }}
         />
@@ -125,8 +121,8 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
         placeholder={`Digite ${field.name.toLowerCase()}`}
         disabled={isSubmitting}
         className={cn(
-          "w-full",
-          field.is_required && !formData[field.id] && "border-red-500"
+          "w-full transition-colors duration-200",
+          field.is_required && !formData[field.id] && "border-red-500 focus:border-red-500"
         )}
       />
     );
@@ -137,28 +133,52 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
       <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Novo {entityName}</DialogTitle>
+          <DialogDescription>
+            Preencha os campos abaixo para criar um novo registro.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <ScrollArea className="flex-1 px-1">
             <div className="space-y-4 pr-4">
               {fields.map((field) => (
-                <div key={field.id} className="space-y-2">
-                  <Label htmlFor={field.id} className="flex items-center">
+                <motion.div
+                  key={field.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-2"
+                >
+                  <Label 
+                    htmlFor={field.id} 
+                    className="flex items-center text-sm font-medium transition-colors"
+                  >
                     {field.name}
                     {field.is_required && (
-                      <span className="text-red-500 ml-1" title="Campo obrigatório">*</span>
+                      <span 
+                        className="text-red-500 ml-1" 
+                        title="Campo obrigatório"
+                      >*</span>
                     )}
                   </Label>
                   {renderField(field)}
-                </div>
+                </motion.div>
               ))}
             </div>
           </ScrollArea>
@@ -169,19 +189,24 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
+              className="transition-colors hover:bg-secondary"
             >
               Cancelar
             </Button>
             <Button 
               type="submit" 
               disabled={isSubmitting}
-              className="min-w-[120px]"
+              className="min-w-[120px] relative"
             >
               {isSubmitting ? (
-                <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center"
+                >
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Salvando...
-                </>
+                </motion.div>
               ) : (
                 "Salvar"
               )}
