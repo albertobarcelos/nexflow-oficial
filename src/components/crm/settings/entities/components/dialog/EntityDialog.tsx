@@ -59,7 +59,6 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
 
     setIsLoading(true);
     try {
-      // Save logic
       const { data: collaborator } = await supabase
         .from('collaborators')
         .select('client_id')
@@ -145,7 +144,7 @@ export function EntityDialog({ open, onOpenChange, onSuccess, entityToEdit }: Cr
           if (fieldsError) throw fieldsError;
         }
       }
-
+      
       await queryClient.invalidateQueries({ queryKey: ['entities'] });
       await refetch();
       
