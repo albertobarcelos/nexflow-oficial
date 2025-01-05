@@ -16,8 +16,10 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
-          className={`min-h-[400px] p-4 rounded-lg transition-colors ${
-            snapshot.isDraggingOver ? "bg-muted/50 border-2 border-dashed border-primary" : "bg-muted/10"
+          className={`min-h-[400px] p-4 rounded-lg transition-all duration-200 ${
+            snapshot.isDraggingOver 
+              ? "bg-primary/10 border-2 border-dashed border-primary shadow-lg" 
+              : "bg-muted/5 border-2 border-dashed border-muted hover:border-primary/50"
           }`}
           style={{ maxHeight: "400px", overflowY: "auto" }}
         >
@@ -51,7 +53,13 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
           ))}
           {fields?.length === 0 && (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              Arraste campos aqui
+              <p className="text-center">
+                Arraste campos aqui para adicionar à estrutura
+                <br />
+                <span className="text-sm opacity-70">
+                  Os campos serão organizados na ordem em que forem adicionados
+                </span>
+              </p>
             </div>
           )}
           {provided.placeholder}
