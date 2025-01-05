@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { EntityFormState } from "./types";
-import { Entity } from "../../types";
+import { Entity, EntityField, FieldType } from "../../types";
 
-const defaultFields = [
+const defaultFields: EntityField[] = [
   {
     id: crypto.randomUUID(),
     name: "CNPJ",
-    field_type: "text",
+    field_type: "cnpj" as FieldType,
     is_required: true,
     order_index: 0,
     client_id: "",
@@ -19,7 +19,7 @@ const defaultFields = [
   {
     id: crypto.randomUUID(),
     name: "CPF",
-    field_type: "text",
+    field_type: "cpf" as FieldType,
     is_required: true,
     order_index: 1,
     client_id: "",
@@ -32,7 +32,7 @@ const defaultFields = [
   {
     id: crypto.randomUUID(),
     name: "Celular",
-    field_type: "text",
+    field_type: "celular" as FieldType,
     is_required: true,
     order_index: 2,
     client_id: "",

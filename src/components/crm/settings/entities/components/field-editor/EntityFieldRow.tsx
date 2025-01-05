@@ -1,10 +1,11 @@
-import { Grip, Copy, Trash } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import React from 'react';
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Grip, Copy, Trash } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { EntityField, Entity } from "../../types";
+import { EntityField, Entity, FieldType } from "../../types";
 import { Draggable } from "@hello-pangea/dnd";
 
 interface EntityFieldRowProps {
@@ -17,7 +18,7 @@ interface EntityFieldRowProps {
   onDuplicate: () => void;
 }
 
-const FIELD_TYPES = [
+const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: "text", label: "Texto" },
   { value: "number", label: "Número" },
   { value: "date", label: "Data" },
@@ -42,8 +43,7 @@ export function EntityFieldRow({
   const isEntityField = field.field_type === "entity";
   const availableEntities = entities.filter(entity => entity.id !== currentEntityId);
 
-  // Adicionar regras de validação baseadas no tipo do campo
-  const handleFieldTypeChange = (value: string) => {
+  const handleFieldTypeChange = (value: FieldType) => {
     let validationRules = {};
     
     switch(value) {
