@@ -60,12 +60,6 @@ export function CustomFieldsLayout() {
           ]
         };
         console.log('📝 Updated staged fields:', updatedFields);
-        
-        // Log the specific array for the destination
-        console.log(`🎯 Fields for ${destination.droppableId}:`, 
-          updatedFields[destination.droppableId]
-        );
-        
         return updatedFields;
       });
 
@@ -95,15 +89,15 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="grid grid-cols-[300px_1fr] gap-6">
-      <FieldTypesSidebar />
-      <DragDropContext onDragEnd={handleDragEnd}>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="grid grid-cols-[300px_1fr] gap-6">
+        <FieldTypesSidebar />
         <CustomFieldDropZone
           stageId="entity-fields"
           fields={stagedFields["entity-fields"] || []}
           onEditField={handleEditField}
         />
-      </DragDropContext>
-    </div>
+      </div>
+    </DragDropContext>
   );
 }

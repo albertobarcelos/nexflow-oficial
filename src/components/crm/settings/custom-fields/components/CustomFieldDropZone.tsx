@@ -16,7 +16,7 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
   });
   
   return (
-    <div className="flex flex-col h-full rounded-lg border bg-card">
+    <div className="flex flex-col h-[calc(100vh-200px)] rounded-lg border bg-card">
       <div className="p-4 border-b flex-shrink-0">
         <h3 className="text-lg font-medium">Campos Personalizados</h3>
         <p className="text-sm text-muted-foreground">
@@ -36,7 +36,7 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
-              className="flex-1 p-4 overflow-y-auto min-h-[200px]"
+              className="flex-1 p-4 overflow-y-auto"
             >
               <div className="space-y-2">
                 {fields.map((field, index) => {

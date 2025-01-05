@@ -27,12 +27,8 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
   });
 
   return (
-    <Card className="p-4 h-full border-primary/10 shadow-md">
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-6 flex flex-col h-full"
-      >
+    <Card className="flex flex-col h-[calc(100vh-200px)] border-primary/10 shadow-md">
+      <div className="p-4 border-b">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-primary/90 flex items-center gap-2">
@@ -62,7 +58,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 mt-4">
           {Object.entries(categoryNames).map(([key, name]) => (
             <Badge
               key={key}
@@ -77,40 +73,40 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
             </Badge>
           ))}
         </div>
+      </div>
 
-        <Droppable droppableId="field-types">
-          {(provided) => (
-            <div 
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="flex-1 overflow-y-auto pr-2"
-            >
-              {filteredFieldTypes.map((fieldType, index) => (
-                <Draggable 
-                  key={fieldType.id} 
-                  draggableId={fieldType.id} 
-                  index={index}
-                >
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className="transition-transform duration-200 ease-in-out"
-                    >
-                      <FieldTypeCard
-                        fieldType={fieldType}
-                        isDragging={snapshot.isDragging}
-                      />
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </motion.div>
+      <Droppable droppableId="field-types">
+        {(provided) => (
+          <div 
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+            className="flex-1 overflow-y-auto p-4"
+          >
+            {filteredFieldTypes.map((fieldType, index) => (
+              <Draggable 
+                key={fieldType.id} 
+                draggableId={fieldType.id} 
+                index={index}
+              >
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    className="transition-transform duration-200 ease-in-out"
+                  >
+                    <FieldTypeCard
+                      fieldType={fieldType}
+                      isDragging={snapshot.isDragging}
+                    />
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
     </Card>
   );
 }
