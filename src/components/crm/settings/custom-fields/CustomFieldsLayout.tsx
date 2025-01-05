@@ -10,7 +10,11 @@ export function CustomFieldsLayout() {
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
 
   useEffect(() => {
-    console.log('🔄 stagedFields changed:', stagedFields);
+    console.log('🔄 stagedFields changed:', {
+      stagedFields,
+      entityFields: stagedFields["entity-fields"],
+      fieldsLength: stagedFields["entity-fields"]?.length || 0
+    });
   }, [stagedFields]);
 
   const handleDragEnd = (result: DropResult) => {
