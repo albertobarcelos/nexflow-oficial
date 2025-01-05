@@ -1,14 +1,22 @@
+import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { EntityField, Entity } from "../types";
 import { EntityFieldRow } from "./field-editor/EntityFieldRow";
 
-export function EntityFieldEditor({ fields, onChange, currentEntityId, entities }: {
+interface EntityFieldEditorProps {
   fields: EntityField[];
-  onChange: (fields: EntityField[]) => void;
-  currentEntityId: string;
   entities: Entity[];
-}) {
+  currentEntityId: string;
+  onChange: (fields: EntityField[]) => void;
+}
+
+export function EntityFieldEditor({
+  fields,
+  entities,
+  currentEntityId,
+  onChange
+}: EntityFieldEditorProps) {
   const addField = () => {
     const newField: EntityField = {
       id: crypto.randomUUID(),
@@ -50,22 +58,49 @@ export function EntityFieldEditor({ fields, onChange, currentEntityId, entities 
     onChange(newFields);
   };
 
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(fields);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update order_index for all fields
+    const updatedFields = items.map((field, index) => ({
+      ...field,
+      order_index: index
+    }));
+
+    onChange(updatedFields);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        {fields.map((field, index) => (
-          <EntityFieldRow
-            key={field.id}
-            field={field}
-            index={index}
-            entities={entities}
-            currentEntityId={currentEntityId}
-            onChange={(field) => updateField(index, field)}
-            onRemove={() => removeField(index)}
-            onDuplicate={() => duplicateField(index)}
-          />
-        ))}
-      </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="fields">
+          {(provided) => (
+            <div 
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="space-y-2"
+            >
+              {fields.map((field, index) => (
+                <EntityFieldRow
+                  key={field.id}
+                  field={field}
+                  index={index}
+                  entities={entities}
+                  currentEntityId={currentEntityId}
+                  onChange={(field) => updateField(index, field)}
+                  onRemove={() => removeField(index)}
+                  onDuplicate={() => duplicateField(index)}
+                />
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
 
       <Button type="button" variant="outline" onClick={addField}>
         <Plus className="mr-2 h-4 w-4" />
