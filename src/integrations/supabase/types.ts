@@ -497,11 +497,13 @@ export type Database = {
           field_type: string
           id: string
           is_required: boolean | null
+          is_staged: boolean | null
           name: string
           options: Json | null
           order_index: number
           related_entity_id: string | null
           relationship_type: string | null
+          staging_batch: string | null
           updated_at: string
           validation_rules: Json | null
         }
@@ -513,11 +515,13 @@ export type Database = {
           field_type: string
           id?: string
           is_required?: boolean | null
+          is_staged?: boolean | null
           name: string
           options?: Json | null
           order_index: number
           related_entity_id?: string | null
           relationship_type?: string | null
+          staging_batch?: string | null
           updated_at?: string
           validation_rules?: Json | null
         }
@@ -529,11 +533,13 @@ export type Database = {
           field_type?: string
           id?: string
           is_required?: boolean | null
+          is_staged?: boolean | null
           name?: string
           options?: Json | null
           order_index?: number
           related_entity_id?: string | null
           relationship_type?: string | null
+          staging_batch?: string | null
           updated_at?: string
           validation_rules?: Json | null
         }
