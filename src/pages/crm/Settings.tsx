@@ -14,7 +14,7 @@ export default function Settings() {
         </p>
       </div>
 
-      <Tabs defaultValue="automations" className="space-y-4">
+      <Tabs defaultValue="customization" className="space-y-4">
         <TabsList>
           <TabsTrigger value="automations">Automações</TabsTrigger>
           <TabsTrigger value="team">Equipe</TabsTrigger>

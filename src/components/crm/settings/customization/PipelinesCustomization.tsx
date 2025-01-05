@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { FieldTypesSidebar } from "../custom-fields/FieldTypesSidebar";
+import { NewPipelineDialog } from "../pipeline/NewPipelineDialog";
 import { PipelineCard } from "../pipeline/PipelineCard";
 
 export function PipelinesCustomization() {
