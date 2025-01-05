@@ -11,25 +11,25 @@ interface StageDropZoneProps {
 
 export function StageDropZone({ stageId, fields, onEditField }: StageDropZoneProps) {
   return (
-    <div className="rounded-lg border bg-card h-full">
+    <div className="rounded-lg border bg-card h-full flex flex-col">
+      <div className="p-4 border-b flex-shrink-0">
+        <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
+        <p className="text-sm text-muted-foreground">
+          Arraste os campos para organizar a estrutura
+        </p>
+      </div>
+
       <Droppable droppableId={stageId}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "h-full flex flex-col",
+              "flex-1 relative",
               snapshot.isDraggingOver && "bg-primary/5"
             )}
           >
-            <div className="p-4 border-b flex-shrink-0">
-              <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
-              <p className="text-sm text-muted-foreground">
-                Arraste os campos para organizar a estrutura
-              </p>
-            </div>
-
-            <div className="flex-1 p-4 space-y-2 overflow-y-auto">
+            <div className="absolute inset-0 p-4 space-y-2 overflow-y-auto">
               {fields.map((field, index) => (
                 <FieldCard
                   key={field.id}
