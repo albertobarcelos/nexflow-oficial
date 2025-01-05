@@ -4,7 +4,7 @@ export type FieldType =
   | "short_text"
   | "long_text"
   | "email"
-  | "phone"
+  | "celular"
   | "currency"
   | "numeric"
   | "documents"
