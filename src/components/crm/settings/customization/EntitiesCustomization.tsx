@@ -2,20 +2,17 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Search, Database, HelpCircle } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { EntityList } from "../entities/components/EntityList";
 import { FieldTypesSidebar } from "../custom-fields/FieldTypesSidebar";
 import { EntityFormFields } from "../entities/components/form/EntityFormFields";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Entity } from "../entities/types";
 
 export function EntitiesCustomization() {
   const [selectedEntityId, setSelectedEntityId] = useState<string>();
-  const [searchTerm, setSearchTerm] = useState("");
   
   const { data: entities, isLoading } = useQuery({
     queryKey: ['custom_entities'],
@@ -43,7 +40,7 @@ export function EntitiesCustomization() {
 
   return (
     <div className="grid grid-cols-[500px_360px_1fr] gap-6 h-full">
-      {/* Lista de Entidades - Aumentada para 500px */}
+      {/* Lista de Entidades */}
       <Card className="overflow-hidden border-primary/10 shadow-md flex flex-col">
         <ScrollArea className="flex-1 h-full">
           <div className="p-6">
@@ -56,42 +53,9 @@ export function EntitiesCustomization() {
       </Card>
 
       {/* Tipos de Campos */}
-      <Card className="overflow-hidden border-primary/10 shadow-md">
-        <ScrollArea className="h-full">
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                <Database className="w-5 h-5" />
-                Tipos de Campo
-              </h3>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[300px]">
-                  <p>Arraste e solte os tipos de campo para personalizar sua entidade.</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar tipos de campo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 pr-4"
-              />
-            </div>
+      <FieldTypesSidebar />
 
-            <FieldTypesSidebar />
-          </div>
-        </ScrollArea>
-      </Card>
-
-      {/* Área de Configuração - Reduzida proporcionalmente */}
+      {/* Área de Configuração */}
       <Card className="overflow-hidden border-primary/10 shadow-md">
         <ScrollArea className="h-full">
           <div className="p-6">
