@@ -80,7 +80,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         </div>
 
         <ScrollArea className="flex-1">
-          <Droppable droppableId="field-types" isDropDisabled={false}>
+          <Droppable droppableId="field-types">
             {(provided) => (
               <div 
                 {...provided.droppableProps}
