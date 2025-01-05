@@ -13,15 +13,23 @@ export function CustomizationSettings() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 animate-fade-in"
+    >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
         <h2 className="text-3xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
           Personalização
         </h2>
         <p className="text-muted-foreground text-lg mt-1">
           Configure suas entidades e pipelines de forma intuitiva
         </p>
-      </div>
+      </motion.div>
 
       <Card className="p-6 shadow-md border-primary/10">
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -53,6 +61,6 @@ export function CustomizationSettings() {
           </Tabs>
         </DragDropContext>
       </Card>
-    </div>
+    </motion.div>
   );
 }

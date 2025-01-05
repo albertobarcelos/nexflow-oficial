@@ -1,6 +1,7 @@
 import { TooltipProvider, TooltipContent, TooltipTrigger, Tooltip } from "@/components/ui/tooltip";
 import { GripVertical } from "lucide-react";
 import { FieldTypeInfo } from "../types";
+import { motion } from "framer-motion";
 
 interface FieldTypeCardProps {
   fieldType: FieldTypeInfo;
@@ -13,7 +14,7 @@ export function FieldTypeCard({ fieldType, dragHandleProps, isDragging }: FieldT
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
-          <div
+          <motion.div
             {...dragHandleProps}
             className={`
               p-3 rounded-lg hover:bg-muted/80 cursor-grab 
@@ -22,6 +23,8 @@ export function FieldTypeCard({ fieldType, dragHandleProps, isDragging }: FieldT
               ${isDragging ? "bg-muted shadow-lg scale-105" : "bg-card hover:scale-[1.02]"}
               group
             `}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.98 }}
           >
             <div className="flex items-center gap-3">
               <div className="text-muted-foreground group-hover:text-primary transition-colors">
@@ -39,7 +42,7 @@ export function FieldTypeCard({ fieldType, dragHandleProps, isDragging }: FieldT
                 {fieldType.icon}
               </div>
             </div>
-          </div>
+          </motion.div>
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-[200px]">
           <p>{fieldType.description}</p>
