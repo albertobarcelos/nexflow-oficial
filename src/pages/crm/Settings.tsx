@@ -1,8 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AutomationSettings } from "@/components/crm/settings/AutomationSettings";
 import { TeamSettings } from "@/components/crm/settings/TeamSettings";
-import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
-import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
+import { CustomizationSettings } from "@/components/crm/settings/CustomizationSettings";
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
 
 export default function Settings() {
@@ -19,8 +18,7 @@ export default function Settings() {
         <TabsList>
           <TabsTrigger value="automations">Automações</TabsTrigger>
           <TabsTrigger value="team">Equipe</TabsTrigger>
-          <TabsTrigger value="pipelines">Pipelines</TabsTrigger>
-          <TabsTrigger value="fields">Campos Personalizados</TabsTrigger>
+          <TabsTrigger value="customization">Personalização</TabsTrigger>
           <TabsTrigger value="notifications">Notificações</TabsTrigger>
         </TabsList>
 
@@ -32,12 +30,8 @@ export default function Settings() {
           <TeamSettings />
         </TabsContent>
 
-        <TabsContent value="pipelines" className="space-y-4">
-          <PipelineSettings />
-        </TabsContent>
-
-        <TabsContent value="fields" className="space-y-4">
-          <CustomFieldsSettings />
+        <TabsContent value="customization" className="space-y-4">
+          <CustomizationSettings />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4">
