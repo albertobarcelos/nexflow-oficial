@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Loader2 } from "lucide-react";
+import { EntityRelationshipField } from "./EntityRelationshipField";
 
 interface EntityRecordFormProps {
   open: boolean;
@@ -45,6 +46,7 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
         field_id: field.id,
         record_id: recordId,
         value: formData[field.id] !== undefined ? JSON.stringify(formData[field.id]) : null,
+        searchable_value: formData[field.id]?.toString() || null,
         modified_by: user.user.id
       }));
 
@@ -81,6 +83,36 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
     }));
   };
 
+  const renderField = (field: any) => {
+    if (field.field_type === 'entity') {
+      return (
+        <EntityRelationshipField
+          entityId={field.related_entity_id}
+          fieldId={field.id}
+          value={formData[field.id]}
+          onChange={(value) => handleFieldChange(field.id, value)}
+          disabled={isSubmitting}
+          onCreateNew={() => {
+            // TODO: Implementar criação de novo registro relacionado
+            console.log('Criar novo registro relacionado');
+          }}
+        />
+      );
+    }
+
+    return (
+      <Input
+        id={field.id}
+        type={field.field_type === 'number' ? 'number' : 'text'}
+        value={formData[field.id] || ''}
+        onChange={(e) => handleFieldChange(field.id, e.target.value)}
+        required={field.is_required}
+        placeholder={`Digite ${field.name.toLowerCase()}`}
+        disabled={isSubmitting}
+      />
+    );
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -95,15 +127,7 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
                 {field.name}
                 {field.is_required && <span className="text-red-500 ml-1">*</span>}
               </Label>
-              <Input
-                id={field.id}
-                type={field.field_type === 'number' ? 'number' : 'text'}
-                value={formData[field.id] || ''}
-                onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                required={field.is_required}
-                placeholder={`Digite ${field.name.toLowerCase()}`}
-                disabled={isSubmitting}
-              />
+              {renderField(field)}
             </div>
           ))}
 
