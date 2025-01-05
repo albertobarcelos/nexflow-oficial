@@ -28,9 +28,13 @@ export function EntitiesCustomization() {
 
       if (!collaborator) throw new Error('Collaborator not found');
 
+      // Atualizando a query para especificar a relação correta
       const { data } = await supabase
         .from('custom_entities')
-        .select('*, entity_fields(*)')
+        .select(`
+          *,
+          entity_fields!entity_fields_entity_id_fkey(*)
+        `)
         .eq('client_id', collaborator.client_id)
         .order('created_at', { ascending: true });
 
