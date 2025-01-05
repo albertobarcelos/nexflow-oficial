@@ -8,12 +8,10 @@ import { EntityViewHeader } from "./components/EntityViewHeader";
 import { EntityViewTable } from "./components/EntityViewTable";
 import { EntityViewSearch } from "./components/EntityViewSearch";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 
 export default function EntityView() {
   const { id } = useParams();
   const [searchTerm, setSearchTerm] = useState("");
-  const { toast } = useToast();
 
   const { data: entityData, isLoading: isLoadingEntity } = useQuery({
     queryKey: ["entity", id],
@@ -75,69 +73,6 @@ export default function EntityView() {
     }
   });
 
-  const handleCreateRecord = async () => {
-    if (!entityData) return;
-
-    try {
-      const recordId = crypto.randomUUID();
-      const relatedFields = entityData.fields.filter(field => field.related_entity_id);
-
-      // Create related records first
-      for (const field of relatedFields) {
-        if (field.related_entity_id) {
-          const { data: relatedEntity } = await supabase
-            .from('custom_entities')
-            .select('*')
-            .eq('id', field.related_entity_id)
-            .single();
-
-          if (relatedEntity) {
-            const relatedRecordId = crypto.randomUUID();
-            await supabase.from('entity_field_values').insert({
-              entity_id: field.related_entity_id,
-              record_id: relatedRecordId,
-              field_id: field.id,
-              value: null
-            });
-
-            await supabase.from('entity_field_relationships').insert({
-              source_field_id: field.id,
-              source_record_id: recordId,
-              target_record_id: relatedRecordId
-            });
-          }
-        }
-      }
-
-      // Create empty values for all fields
-      const fieldValues = entityData.fields.map(field => ({
-        entity_id: entityData.id,
-        field_id: field.id,
-        record_id: recordId,
-        value: null
-      }));
-
-      const { error } = await supabase
-        .from('entity_field_values')
-        .insert(fieldValues);
-
-      if (error) throw error;
-
-      toast({
-        title: "Registro criado",
-        description: "Um novo registro foi criado com sucesso."
-      });
-
-    } catch (error) {
-      console.error('Error creating record:', error);
-      toast({
-        title: "Erro ao criar registro",
-        description: "Ocorreu um erro ao criar o registro.",
-        variant: "destructive"
-      });
-    }
-  };
-
   if (isLoadingEntity || isLoadingRecords) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -165,7 +100,8 @@ export default function EntityView() {
     <div className="p-6 space-y-6">
       <EntityViewHeader 
         entityName={entityData.name}
-        onCreateRecord={handleCreateRecord}
+        entityId={entityData.id}
+        fields={entityData.fields}
       />
 
       <Card>

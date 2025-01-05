@@ -14,7 +14,7 @@ interface EntityRecordFormProps {
   fields: any[];
 }
 
-export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fields }: EntityRecordFormProps) {
+export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fields = [] }: EntityRecordFormProps) {
   const { toast } = useToast();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,10 +32,14 @@ export function EntityRecordForm({ open, onOpenChange, entityId, entityName, fie
 
       if (!collaborator) throw new Error('Cliente não encontrado');
 
+      // Gerar um ID único para o registro
+      const recordId = crypto.randomUUID();
+
       // Criar os valores dos campos
       const fieldValues = fields.map(field => ({
         entity_id: entityId,
         field_id: field.id,
+        record_id: recordId,
         value: formData[field.id] || null
       }));
 
