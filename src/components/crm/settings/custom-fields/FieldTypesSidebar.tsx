@@ -73,48 +73,46 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         </Tabs>
       </motion.div>
 
-      <DragDropContext onDragEnd={() => {}}>
-        <Droppable droppableId="field-types" isDropDisabled={true}>
-          {(provided, snapshot) => (
-            <ScrollArea className="h-[calc(100vh-350px)]">
-              <motion.div 
-                {...provided.droppableProps}
-                ref={provided.innerRef}
-                className="space-y-2 pr-2"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                {filteredFieldTypes.map((fieldType, index) => (
-                  <Draggable 
-                    key={fieldType.id} 
-                    draggableId={fieldType.id} 
-                    index={index}
-                  >
-                    {(provided, snapshot) => (
-                      <motion.div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className="transition-transform duration-200 ease-in-out"
-                      >
-                        <FieldTypeCard
-                          fieldType={fieldType}
-                          dragHandleProps={provided.dragHandleProps}
-                          isDragging={snapshot.isDragging}
-                        />
-                      </motion.div>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </motion.div>
-            </ScrollArea>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <Droppable droppableId="field-types" isDropDisabled={true}>
+        {(provided, snapshot) => (
+          <ScrollArea className="h-[calc(100vh-350px)]">
+            <motion.div 
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="space-y-2 pr-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              {filteredFieldTypes.map((fieldType, index) => (
+                <Draggable 
+                  key={fieldType.id} 
+                  draggableId={fieldType.id} 
+                  index={index}
+                >
+                  {(provided, snapshot) => (
+                    <motion.div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="transition-transform duration-200 ease-in-out"
+                    >
+                      <FieldTypeCard
+                        fieldType={fieldType}
+                        dragHandleProps={provided.dragHandleProps}
+                        isDragging={snapshot.isDragging}
+                      />
+                    </motion.div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </motion.div>
+          </ScrollArea>
+        )}
+      </Droppable>
     </Card>
   );
 }
