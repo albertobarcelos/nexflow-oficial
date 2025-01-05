@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Check, ChevronsUpDown, Loader2, Plus, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import debounce from "lodash/debounce";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface EntityRelationshipFieldProps {
   entityId: string;
@@ -80,25 +81,64 @@ export function EntityRelationshipField({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className={cn(
+            "w-full justify-between transition-all duration-200",
+            open && "ring-2 ring-primary/20",
+            disabled && "opacity-50 cursor-not-allowed"
+          )}
           disabled={disabled}
         >
-          {selectedItem ? selectedItem.display_value : placeholder}
+          <span className="truncate">
+            {selectedItem ? selectedItem.display_value : placeholder}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[300px] p-0">
+      <PopoverContent className="w-[300px] p-0" align="start">
         <Command>
           <div className="flex items-center border-b px-3">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <CommandInput
               placeholder="Buscar..."
               onValueChange={handleSearch}
+              className="border-0 focus:ring-0"
             />
+            <AnimatePresence>
+              {search && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 hover:bg-muted"
+                    onClick={() => {
+                      setSearch("");
+                      setPage(1);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <CommandList>
             <CommandEmpty className="py-6 text-center text-sm">
-              Nenhum registro encontrado
+              {search ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  Nenhum registro encontrado para "{search}"
+                </motion.div>
+              ) : (
+                "Nenhum registro encontrado"
+              )}
             </CommandEmpty>
 
             {onCreateNew && (
@@ -109,9 +149,10 @@ export function EntityRelationshipField({
                       setOpen(false);
                       onCreateNew();
                     }}
+                    className="flex items-center gap-2 py-3 px-4 cursor-pointer hover:bg-muted transition-colors"
                   >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Criar novo registro
+                    <Plus className="h-4 w-4" />
+                    <span>Criar novo registro</span>
                   </CommandItem>
                 </CommandGroup>
                 <CommandSeparator />
@@ -120,28 +161,46 @@ export function EntityRelationshipField({
 
             <CommandGroup>
               {isLoading || isFetching ? (
-                <div className="flex items-center justify-center py-6">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center justify-center py-6"
+                >
                   <Loader2 className="h-4 w-4 animate-spin" />
-                </div>
+                </motion.div>
               ) : (
-                data?.map((item) => (
-                  <CommandItem
-                    key={item.record_id}
-                    value={item.record_id}
-                    onSelect={() => {
-                      onChange(item.record_id);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        value === item.record_id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {item.display_value}
-                  </CommandItem>
-                ))
+                <AnimatePresence mode="popLayout">
+                  {data?.map((item) => (
+                    <motion.div
+                      key={item.record_id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CommandItem
+                        value={item.record_id}
+                        onSelect={() => {
+                          onChange(item.record_id);
+                          setOpen(false);
+                        }}
+                        className="flex items-center gap-2 py-2 px-4 cursor-pointer hover:bg-muted transition-colors"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <Check
+                            className={cn(
+                              "h-4 w-4 transition-opacity",
+                              value === item.record_id
+                                ? "opacity-100"
+                                : "opacity-0"
+                            )}
+                          />
+                          <span className="truncate">{item.display_value}</span>
+                        </div>
+                      </CommandItem>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               )}
             </CommandGroup>
           </CommandList>
