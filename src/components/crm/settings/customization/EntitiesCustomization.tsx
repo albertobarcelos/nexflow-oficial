@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Entity } from "../entities/types";
 
 export function EntitiesCustomization() {
   const [selectedEntityId, setSelectedEntityId] = useState<string>();
@@ -33,7 +34,7 @@ export function EntitiesCustomization() {
         .eq('client_id', collaborator.client_id)
         .order('created_at', { ascending: true });
 
-      return data;
+      return data as Entity[];
     }
   });
 

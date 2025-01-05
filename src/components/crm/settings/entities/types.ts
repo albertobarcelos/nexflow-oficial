@@ -3,7 +3,7 @@ export interface EntityField {
   entity_id: string;
   client_id: string;
   name: string;
-  field_type: FieldType;
+  field_type: string; // Alterado de FieldType para string
   description?: string;
   is_required?: boolean;
   order_index: number;
