@@ -38,7 +38,7 @@ export function CreateEntityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] w-full flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-[950px] max-h-[90vh] w-full flex flex-col p-0 gap-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>{entityToEdit ? 'Editar Entidade' : 'Nova Entidade'}</DialogTitle>
         </DialogHeader>

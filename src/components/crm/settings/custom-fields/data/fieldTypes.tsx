@@ -33,12 +33,12 @@ export const fieldTypes: FieldTypeInfo[] = [
     validation: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
   },
   {
-    id: "phone",
-    name: "Telefone",
-    description: "Campo formatado para telefones",
+    id: "celular",
+    name: "Celular",
+    description: "Campo formatado para celular",
     icon: <Phone className="w-4 h-4" />,
     category: "contact",
-    validation: (value) => /^\+?[\d\s-()]+$/.test(value),
+    validation: (value) => /^\(\d{2}\)\s\d{5}-\d{4}$/.test(value),
     mask: "(99) 99999-9999"
   },
   {
