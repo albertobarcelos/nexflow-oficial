@@ -2,12 +2,11 @@ import {
   Type, AlignLeft, FileText, Paperclip, CheckSquare, 
   User, Calendar, Clock, Tag, Mail, Phone, List, 
   Radio, Timer, Hash, DollarSign, File, Fingerprint,
-  Search, CreditCard
+  Search, CreditCard, Link
 } from "lucide-react";
 import { FieldTypeInfo } from "../types";
 
 export const fieldTypes: FieldTypeInfo[] = [
-  // Dados Básicos
   {
     id: "short_text",
     name: "Texto curto",
@@ -76,7 +75,17 @@ export const fieldTypes: FieldTypeInfo[] = [
     category: "financial",
     validation: (value) => /^\d+$/.test(value)
   },
-  // Documentos
+
+  // Relacionamentos
+  {
+    id: "entity",
+    name: "Entidade Relacionada",
+    description: "Campo para relacionar com outra entidade",
+    icon: <Link className="w-4 h-4" />,
+    category: "relationship",
+    validation: (value) => !!value
+  },
+
   {
     id: "documents",
     name: "Documentos",
@@ -150,5 +159,6 @@ export const categoryNames: Record<string, string> = {
   financial: "Financeiro",
   document: "Documentos",
   date: "Datas",
+  relationship: "Relacionamentos",
   other: "Outros"
 };

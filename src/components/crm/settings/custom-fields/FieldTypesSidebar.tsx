@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Database, HelpCircle } from "lucide-react";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
@@ -11,6 +10,7 @@ import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card } from "@/components/ui/card";
 
 interface FieldTypesSidebarProps {
   onFieldAdd?: (fieldType: FieldTypeInfo) => void;
@@ -82,7 +82,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         </div>
 
         {/* Lista de tipos de campo com scroll */}
-        <Droppable droppableId="field-types" isDropDisabled={true}>
+        <Droppable droppableId="field-types" isDropDisabled={false}>
           {(provided) => (
             <ScrollArea className="flex-1">
               <motion.div 

@@ -17,9 +17,10 @@ export type FieldType =
   | "cpf"
   | "cnpj"
   | "time"
-  | "user";
+  | "user"
+  | "entity";
 
-export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "other";
+export type FieldCategory = "basic" | "contact" | "financial" | "document" | "date" | "relationship" | "other";
 
 export interface FieldTypeInfo {
   id: FieldType;
@@ -56,27 +57,4 @@ export interface CustomField {
   history?: FieldHistory[];
   created_at: string;
   updated_at: string;
-}
-
-export interface EntityField {
-  id: string;
-  entity_id: string;
-  client_id: string;
-  name: string;
-  field_type: string;
-  description?: string;
-  is_required?: boolean;
-  order_index: number;
-  options?: Json[];
-  validation_rules?: Json;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface FieldTemplate {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  fields: Partial<CustomField>[];
 }
