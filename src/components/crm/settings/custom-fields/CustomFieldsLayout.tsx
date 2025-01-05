@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { FieldTypesSidebar } from "./FieldTypesSidebar";
-import { StageDropZone } from "./components/StageDropZone";
+import { CustomFieldDropZone } from "./components/CustomFieldDropZone";
 import { CustomField } from "./types";
 import { toast } from "sonner";
 import { fieldTypes } from "./data/fieldTypes";
@@ -74,7 +74,7 @@ export function CustomFieldsLayout() {
     <div className="grid grid-cols-[300px_1fr] gap-6 h-[calc(100vh-200px)]">
       <FieldTypesSidebar />
       <DragDropContext onDragEnd={handleDragEnd}>
-        <StageDropZone
+        <CustomFieldDropZone
           stageId="entity-fields"
           fields={stagedFields["entity-fields"] || []}
           onEditField={handleEditField}
