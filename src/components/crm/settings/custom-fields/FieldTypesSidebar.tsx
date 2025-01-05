@@ -74,7 +74,7 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         </div>
       </div>
 
-      <Droppable droppableId="field-types">
+      <Droppable droppableId="field-types" type="FIELD">
         {(provided) => (
           <div 
             {...provided.droppableProps}

@@ -11,16 +11,27 @@ export function CustomFieldsLayout() {
     "entity-fields": []
   });
 
+  console.log('🔄 CustomFieldsLayout render:', {
+    stagedFields,
+    fieldsCount: stagedFields["entity-fields"].length
+  });
+
   const handleDragEnd = (result: DropResult) => {
-    const { source, destination, draggableId } = result;
+    console.log('🎯 handleDragEnd called with:', result);
     
-    console.log('🎯 Drag ended:', { source, destination, draggableId });
+    const { source, destination, draggableId } = result;
     
     if (!destination) {
       console.log('❌ No destination, drag cancelled');
       return;
     }
 
+    // Logging para debug
+    console.log('📍 Source:', source);
+    console.log('🎯 Destination:', destination);
+    console.log('🔑 DraggableId:', draggableId);
+
+    // Se a origem for a lista de tipos de campo
     if (source.droppableId === 'field-types') {
       console.log('🎯 Dragging from field types list');
       const fieldType = fieldTypes.find(f => f.id === draggableId);
@@ -29,6 +40,8 @@ export function CustomFieldsLayout() {
         console.error('❌ Field type not found:', draggableId);
         return;
       }
+
+      console.log('✨ Found field type:', fieldType);
 
       const newField: CustomField = {
         id: crypto.randomUUID(),

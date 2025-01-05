@@ -25,7 +25,7 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
         </p>
       </div>
 
-      <Droppable droppableId={stageId}>
+      <Droppable droppableId={stageId} type="FIELD">
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
