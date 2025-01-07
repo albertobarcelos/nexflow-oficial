@@ -9,6 +9,7 @@ import { EntityList } from "../entities/components/EntityList";
 import { Entity } from "../entities/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
