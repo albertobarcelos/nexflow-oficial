@@ -18,26 +18,12 @@ export function CustomizationSettings() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col h-[calc(100vh-8rem)] gap-6"
+      className="flex flex-col h-[calc(100vh-8rem)] gap-4"
     >
-      <div className="flex items-center justify-between flex-shrink-0">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="space-y-2"
-        >
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-            Personalização
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Configure suas entidades e pipelines de forma intuitiva
-          </p>
-        </motion.div>
-
+      <div className="flex items-center justify-end flex-shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" className="ml-4">
+            <Button variant="outline" size="icon">
               <HelpCircle className="h-5 w-5 text-muted-foreground" />
             </Button>
           </TooltipTrigger>
