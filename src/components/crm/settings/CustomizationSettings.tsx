@@ -2,12 +2,12 @@ import { useState } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Database, GitBranch, HelpCircle } from "lucide-react";
-import { EntitiesCustomization } from "./customization/EntitiesCustomization";
+import { GitBranch, HelpCircle } from "lucide-react";
 import { PipelinesCustomization } from "./customization/PipelinesCustomization";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CustomFieldsLayout } from "./custom-fields/CustomFieldsLayout";
 
 export function CustomizationSettings() {
   const handleDragEnd = (result: DropResult) => {
@@ -56,7 +56,6 @@ export function CustomizationSettings() {
                   value="entities" 
                   className="flex items-center gap-2 text-sm data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
                 >
-                  <Database className="w-4 h-4" />
                   Entidades
                 </TabsTrigger>
                 <TabsTrigger 
@@ -71,7 +70,7 @@ export function CustomizationSettings() {
             
             <div className="flex-1 p-6 min-h-0">
               <TabsContent value="entities" className="h-full m-0 animate-fade-in">
-                <EntitiesCustomization />
+                <CustomFieldsLayout />
               </TabsContent>
               
               <TabsContent value="pipelines" className="h-full m-0 animate-fade-in">
