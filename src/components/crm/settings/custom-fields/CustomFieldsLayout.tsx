@@ -29,17 +29,27 @@ export function CustomFieldsLayout() {
     }
   });
 
-  // Carregar campos quando uma entidade é selecionada
   const handleSelectEntity = (entityId: string) => {
     setSelectedEntityId(entityId);
     const entity = entities?.find(e => e.id === entityId);
     if (entity?.entity_fields) {
+      const mappedFields: CustomField[] = entity.entity_fields.map(field => ({
+        id: field.id,
+        name: field.name,
+        field_type: field.field_type as CustomField['field_type'],
+        description: field.description,
+        is_required: field.is_required,
+        order_index: field.order_index,
+        client_id: field.client_id,
+        pipeline_id: entityId,
+        stage_id: entityId,
+        options: field.options || [],
+        created_at: field.created_at || new Date().toISOString(),
+        updated_at: field.updated_at || new Date().toISOString()
+      }));
+
       setStagedFields({
-        [entityId]: entity.entity_fields.map(field => ({
-          ...field,
-          pipeline_id: entityId,
-          stage_id: entityId
-        }))
+        [entityId]: mappedFields
       });
     }
   };
