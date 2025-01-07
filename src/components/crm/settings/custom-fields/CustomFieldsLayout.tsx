@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { FieldTypesSidebar } from "./FieldTypesSidebar";
-import { CustomFieldDropZone } from "./components/CustomFieldDropZone";
 import { CustomField } from "./types";
 import { toast } from "sonner";
 import { fieldTypes } from "./data/fieldTypes";
+import { FieldTypesHeader } from "./components/FieldTypesHeader";
+import { CustomFieldDropZone } from "./components/CustomFieldDropZone";
 
 export function CustomFieldsLayout() {
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({
@@ -69,10 +69,10 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="h-[calc(100vh-200px)]">
+    <div className="space-y-6">
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-[300px_1fr] gap-6">
-          <FieldTypesSidebar />
+        <div className="flex flex-col gap-6">
+          <FieldTypesHeader />
           <CustomFieldDropZone
             stageId="entity-fields"
             fields={stagedFields["entity-fields"]}

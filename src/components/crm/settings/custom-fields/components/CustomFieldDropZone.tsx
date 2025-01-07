@@ -2,6 +2,7 @@ import { Droppable } from "@hello-pangea/dnd";
 import { CustomField } from "../types";
 import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 interface CustomFieldDropZoneProps {
   stageId: string;
@@ -17,11 +18,11 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
   });
   
   return (
-    <div className="flex flex-col h-full rounded-lg border bg-card">
+    <Card className="flex flex-col h-[calc(100vh-400px)]">
       <div className="p-4 border-b">
-        <h3 className="text-lg font-medium">Campos da Entidade</h3>
+        <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
         <p className="text-sm text-muted-foreground">
-          Arraste os campos para organizar a estrutura
+          Arraste os campos para organizar a estrutura do formulário
         </p>
       </div>
 
@@ -35,26 +36,27 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
               snapshot.isDraggingOver && "bg-primary/5"
             )}
           >
-            {fields.map((field, index) => (
-              <div key={field.id} className="mb-2">
+            <div className="space-y-2">
+              {fields.map((field, index) => (
                 <FieldCard
+                  key={field.id}
                   field={field}
                   index={index}
                   onEdit={() => onEditField(field)}
                 />
-              </div>
-            ))}
-            {fields.length === 0 && !snapshot.isDraggingOver && (
-              <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
-                <p className="text-sm text-muted-foreground">
-                  Arraste os campos para organizar a estrutura
-                </p>
-              </div>
-            )}
-            {provided.placeholder}
+              ))}
+              {fields.length === 0 && !snapshot.isDraggingOver && (
+                <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                  <p className="text-sm text-muted-foreground">
+                    Arraste os tipos de campo acima para começar a montar a estrutura
+                  </p>
+                </div>
+              )}
+              {provided.placeholder}
+            </div>
           </div>
         )}
       </Droppable>
-    </div>
+    </Card>
   );
 }
