@@ -14,7 +14,10 @@ const CRMLogin = () => {
     try {
       setLoading(true);
       
-      // First, authenticate with Supabase
+      // Clear any existing session
+      await supabase.auth.signOut();
+      
+      // Attempt to sign in
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: credentials.email,
         password: credentials.password,
@@ -22,7 +25,7 @@ const CRMLogin = () => {
 
       if (authError) throw authError;
 
-      // Then, check if the user is a collaborator
+      // Check if the user is a collaborator
       const { data: collaboratorData, error: collaboratorError } = await supabase
         .from('collaborators')
         .select('*')
@@ -48,6 +51,9 @@ const CRMLogin = () => {
         description: error instanceof Error ? error.message : "Ocorreu um erro ao tentar fazer login.",
         variant: "destructive",
       });
+      
+      // Ensure we're signed out on error
+      await supabase.auth.signOut();
     } finally {
       setLoading(false);
     }

@@ -4,16 +4,35 @@ import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CRMLayout() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
+      
       if (event === 'SIGNED_OUT' || !session) {
+        navigate("/crm/login");
+        return;
+      }
+
+      if (event === 'TOKEN_REFRESHED') {
+        console.log("Token refreshed successfully");
+      }
+
+      // Handle auth errors
+      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+        toast({
+          title: "Sessão expirada",
+          description: "Por favor, faça login novamente.",
+          variant: "destructive",
+        });
         navigate("/crm/login");
       }
     });
@@ -46,11 +65,13 @@ export default function CRMLayout() {
         console.error('User is not a collaborator');
         throw new Error('Unauthorized');
       }
+
+      // If we get here, the user is authenticated and authorized
+      setLoading(false);
+
     } catch (error) {
       console.error('Authentication error:', error);
       navigate("/crm/login");
-    } finally {
-      setLoading(false);
     }
   };
 
