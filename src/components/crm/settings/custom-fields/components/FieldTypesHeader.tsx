@@ -16,12 +16,12 @@ export function FieldTypesHeader() {
   );
 
   return (
-    <Card className="p-4 border-primary/10">
-      <div className="space-y-4">
+    <Card className="p-3 border-primary/10">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-primary/90">Tipos de Campo Disponíveis</h2>
-            <p className="text-sm text-muted-foreground">
+          <div className="space-y-0.5">
+            <h2 className="text-sm font-medium text-primary/90">Tipos de Campo Disponíveis</h2>
+            <p className="text-xs text-muted-foreground">
               Arraste os tipos de campo abaixo para adicionar à estrutura da entidade
             </p>
           </div>
@@ -29,8 +29,8 @@ export function FieldTypesHeader() {
             open={isDialogOpen}
             onOpenChange={setIsDialogOpen}
           >
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
+            <Button size="sm" variant="outline" className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
               Nova Entidade
             </Button>
           </CreateEntityDialog>
@@ -41,7 +41,7 @@ export function FieldTypesHeader() {
             <div 
               {...provided.droppableProps}
               ref={provided.innerRef}
-              className="flex flex-wrap gap-2"
+              className="flex flex-wrap gap-1.5"
             >
               {essentialFieldTypes.map((fieldType, index) => (
                 <Draggable 
