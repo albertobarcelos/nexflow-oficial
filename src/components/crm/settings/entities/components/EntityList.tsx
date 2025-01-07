@@ -14,7 +14,7 @@ export function EntityList({
   onSelectEntity,
 }: EntityListProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 h-full">
       {entities.map((entity) => (
         <Card
           key={entity.id}

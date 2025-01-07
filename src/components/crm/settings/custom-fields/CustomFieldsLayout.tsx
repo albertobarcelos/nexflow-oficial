@@ -124,52 +124,48 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="flex flex-col h-full gap-6">
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-[250px_1fr] gap-6 h-full">
-          {/* Coluna da esquerda - Lista de entidades */}
-          <div className="flex flex-col h-full overflow-auto border rounded-lg bg-background p-4">
-            <EntityList
-              entities={entities || []}
-              selectedEntityId={selectedEntityId}
-              onSelectEntity={handleSelectEntity}
-            />
-          </div>
+    <div className="grid grid-cols-[250px_1fr] gap-6 h-full">
+      {/* Coluna da esquerda - Lista de entidades */}
+      <div className="h-full overflow-auto">
+        <EntityList
+          entities={entities || []}
+          selectedEntityId={selectedEntityId}
+          onSelectEntity={handleSelectEntity}
+        />
+      </div>
 
-          {/* Coluna da direita - Área de edição */}
-          <div className="flex flex-col gap-6 h-full">
-            <div className="flex items-center justify-between">
-              <FieldTypesHeader />
-              {selectedEntityId && (
-                <Button 
-                  onClick={handleSave}
-                  className="gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  Salvar Alterações
-                </Button>
-              )}
-            </div>
-            
-            <div className={cn(
-              "flex-1 overflow-auto",
-              !selectedEntityId && "flex items-center justify-center text-muted-foreground"
-            )}>
-              {selectedEntityId ? (
-                <CustomFieldDropZone
-                  stageId={selectedEntityId}
-                  fields={stagedFields[selectedEntityId] || []}
-                  onEditField={(field) => {
-                    console.log('✏️ Editing field:', field);
-                  }}
-                />
-              ) : (
-                <p>Selecione uma entidade para começar a editar seus campos</p>
-              )}
-            </div>
-          </div>
+      {/* Coluna da direita - Área de edição */}
+      <div className="flex flex-col gap-6 h-full">
+        <div className="flex items-center justify-between">
+          <FieldTypesHeader />
+          {selectedEntityId && (
+            <Button 
+              onClick={handleSave}
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Salvar Alterações
+            </Button>
+          )}
         </div>
-      </DragDropContext>
+        
+        <div className={cn(
+          "flex-1 overflow-auto",
+          !selectedEntityId && "flex items-center justify-center text-muted-foreground"
+        )}>
+          {selectedEntityId ? (
+            <CustomFieldDropZone
+              stageId={selectedEntityId}
+              fields={stagedFields[selectedEntityId] || []}
+              onEditField={(field) => {
+                console.log('✏️ Editing field:', field);
+              }}
+            />
+          ) : (
+            <p>Selecione uma entidade para começar a editar seus campos</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
