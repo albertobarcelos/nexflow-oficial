@@ -6,14 +6,7 @@ import { NotificationSettings } from "@/components/crm/settings/NotificationSett
 
 export default function Settings() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Configurações</h1>
-        <p className="text-muted-foreground">
-          Personalize o CRM de acordo com suas necessidades
-        </p>
-      </div>
-
+    <div className="space-y-4">
       <Tabs defaultValue="customization" className="space-y-4">
         <TabsList>
           <TabsTrigger value="automations">Automações</TabsTrigger>
