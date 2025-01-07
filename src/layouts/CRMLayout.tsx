@@ -27,7 +27,7 @@ export default function CRMLayout() {
       }
 
       // Handle auth errors
-      if (event === 'USER_DELETED' || event === 'SIGNED_OUT') {
+      if (event === 'USER_UPDATED' && !session) {
         toast({
           title: "Sessão expirada",
           description: "Por favor, faça login novamente.",
