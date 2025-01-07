@@ -10,22 +10,18 @@ import { Entity } from "../entities/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { CreateEntityDialog } from "../entities/components/CreateEntityDialog";
+import { Save } from "lucide-react";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({
-    "entity-fields": []
-  });
+  const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
 
-  const { data: entities } = useQuery({
+  const { data: entities, refetch } = useQuery({
     queryKey: ['entities'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('custom_entities')
-        .select('*')
+        .select('*, entity_fields(*)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -33,13 +29,28 @@ export function CustomFieldsLayout() {
     }
   });
 
+  // Carregar campos quando uma entidade é selecionada
+  const handleSelectEntity = (entityId: string) => {
+    setSelectedEntityId(entityId);
+    const entity = entities?.find(e => e.id === entityId);
+    if (entity?.entity_fields) {
+      setStagedFields({
+        [entityId]: entity.entity_fields.map(field => ({
+          ...field,
+          pipeline_id: entityId,
+          stage_id: entityId
+        }))
+      });
+    }
+  };
+
   const handleDragEnd = (result: DropResult) => {
     console.log('🎯 handleDragEnd called with:', result);
     
     const { source, destination, draggableId } = result;
     
-    if (!destination) {
-      console.log('❌ No destination, drag cancelled');
+    if (!destination || !selectedEntityId) {
+      console.log('❌ No destination or no entity selected');
       return;
     }
 
@@ -60,67 +71,82 @@ export function CustomFieldsLayout() {
         field_type: fieldType.id,
         description: fieldType.description,
         is_required: false,
-        order_index: stagedFields["entity-fields"].length,
+        order_index: stagedFields[selectedEntityId]?.length || 0,
         client_id: "",
-        pipeline_id: "entity-fields",
-        stage_id: "entity-fields",
+        pipeline_id: selectedEntityId,
+        stage_id: selectedEntityId,
         options: [],
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
-      console.log('✨ Creating new field:', newField);
-
-      setStagedFields(prev => {
-        const updatedFields = {
-          ...prev,
-          "entity-fields": [...prev["entity-fields"], newField]
-        };
-        console.log('📝 Updated staged fields:', updatedFields);
-        return updatedFields;
-      });
+      setStagedFields(prev => ({
+        ...prev,
+        [selectedEntityId]: [...(prev[selectedEntityId] || []), newField]
+      }));
 
       toast.success("Campo adicionado com sucesso!");
     }
   };
 
+  const handleSave = async () => {
+    if (!selectedEntityId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('entity_fields')
+        .upsert(
+          stagedFields[selectedEntityId].map(field => ({
+            ...field,
+            entity_id: selectedEntityId
+          }))
+        );
+
+      if (error) throw error;
+      
+      toast.success("Alterações salvas com sucesso!");
+      await refetch();
+    } catch (error) {
+      console.error('Error saving fields:', error);
+      toast.error("Erro ao salvar alterações");
+    }
+  };
+
   return (
     <div className="grid grid-cols-[250px_1fr] gap-6 h-full">
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Button 
-            size="sm" 
-            onClick={() => setIsDialogOpen(true)}
-            className="w-full gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Nova Entidade
-          </Button>
-        </div>
-
+      <div>
         <EntityList
           entities={entities || []}
           selectedEntityId={selectedEntityId}
-          onSelectEntity={setSelectedEntityId}
-        />
-
-        <CreateEntityDialog
-          open={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
+          onSelectEntity={handleSelectEntity}
         />
       </div>
 
       <div className="space-y-6">
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="flex flex-col gap-6">
-            <FieldTypesHeader />
-            <CustomFieldDropZone
-              stageId="entity-fields"
-              fields={stagedFields["entity-fields"]}
-              onEditField={(field) => {
-                console.log('✏️ Editing field:', field);
-              }}
-            />
+            <div className="flex items-center justify-between">
+              <FieldTypesHeader />
+              {selectedEntityId && (
+                <Button 
+                  onClick={handleSave}
+                  className="gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  Salvar Alterações
+                </Button>
+              )}
+            </div>
+            
+            {selectedEntityId && (
+              <CustomFieldDropZone
+                stageId={selectedEntityId}
+                fields={stagedFields[selectedEntityId] || []}
+                onEditField={(field) => {
+                  console.log('✏️ Editing field:', field);
+                }}
+              />
+            )}
           </div>
         </DragDropContext>
       </div>
