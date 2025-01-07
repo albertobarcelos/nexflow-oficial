@@ -134,8 +134,6 @@ export function CustomFieldsLayout() {
 
       {/* Coluna da direita - Área de edição */}
       <div className="flex flex-col gap-6 h-full">
-        <FieldTypesHeader />
-        
         <div className={cn(
           "flex-1 overflow-auto",
           !selectedEntityId && "flex items-center justify-center text-muted-foreground"
@@ -154,6 +152,8 @@ export function CustomFieldsLayout() {
             <p>Selecione uma entidade para começar a editar seus campos</p>
           )}
         </div>
+        
+        <FieldTypesHeader />
       </div>
     </div>
   );
