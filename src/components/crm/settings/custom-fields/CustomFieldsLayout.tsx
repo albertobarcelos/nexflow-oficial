@@ -124,11 +124,11 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] gap-6">
+    <div className="flex flex-col h-full gap-6">
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="grid grid-cols-[250px_1fr] gap-6 flex-1 min-h-0">
+        <div className="grid grid-cols-[250px_1fr] gap-6 h-full">
           {/* Coluna da esquerda - Lista de entidades */}
-          <div className="flex flex-col space-y-4 overflow-hidden">
+          <div className="flex flex-col h-full overflow-auto border rounded-lg bg-background p-4">
             <EntityList
               entities={entities || []}
               selectedEntityId={selectedEntityId}
@@ -137,7 +137,7 @@ export function CustomFieldsLayout() {
           </div>
 
           {/* Coluna da direita - Área de edição */}
-          <div className="flex flex-col gap-6 overflow-hidden">
+          <div className="flex flex-col gap-6 h-full">
             <div className="flex items-center justify-between">
               <FieldTypesHeader />
               {selectedEntityId && (
@@ -152,7 +152,7 @@ export function CustomFieldsLayout() {
             </div>
             
             <div className={cn(
-              "flex-1 min-h-0",
+              "flex-1 overflow-auto",
               !selectedEntityId && "flex items-center justify-center text-muted-foreground"
             )}>
               {selectedEntityId ? (
