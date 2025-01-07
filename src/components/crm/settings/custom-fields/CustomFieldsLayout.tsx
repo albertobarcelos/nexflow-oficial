@@ -9,9 +9,6 @@ import { EntityList } from "../entities/components/EntityList";
 import { Entity } from "../entities/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -136,18 +133,7 @@ export function CustomFieldsLayout() {
 
       {/* Coluna da direita - Área de edição */}
       <div className="flex flex-col gap-6 h-full">
-        <div className="flex items-center justify-between">
-          <FieldTypesHeader />
-          {selectedEntityId && (
-            <Button 
-              onClick={handleSave}
-              className="gap-2"
-            >
-              <Save className="h-4 w-4" />
-              Salvar Alterações
-            </Button>
-          )}
-        </div>
+        <FieldTypesHeader />
         
         <div className={cn(
           "flex-1 overflow-auto",
@@ -160,6 +146,8 @@ export function CustomFieldsLayout() {
               onEditField={(field) => {
                 console.log('✏️ Editing field:', field);
               }}
+              onSave={handleSave}
+              hasChanges={stagedFields[selectedEntityId]?.length > 0}
             />
           ) : (
             <p>Selecione uma entidade para começar a editar seus campos</p>

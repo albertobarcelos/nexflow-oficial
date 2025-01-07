@@ -3,14 +3,24 @@ import { CustomField } from "../types";
 import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Save } from "lucide-react";
 
 interface CustomFieldDropZoneProps {
   stageId: string;
   fields: CustomField[];
   onEditField: (field: CustomField) => void;
+  onSave?: () => void;
+  hasChanges?: boolean;
 }
 
-export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFieldDropZoneProps) {
+export function CustomFieldDropZone({ 
+  stageId, 
+  fields, 
+  onEditField,
+  onSave,
+  hasChanges 
+}: CustomFieldDropZoneProps) {
   console.log(`🎯 CustomFieldDropZone render for ${stageId}:`, {
     fields,
     fieldsLength: fields.length,
@@ -19,11 +29,23 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
   
   return (
     <Card className="flex flex-col h-full">
-      <div className="py-2.5 px-4 border-b">
-        <h3 className="text-sm font-medium leading-none mb-1">Estrutura da Entidade</h3>
-        <p className="text-xs text-muted-foreground">
-          Arraste os campos para organizar a estrutura do formulário
-        </p>
+      <div className="py-2.5 px-4 border-b flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-medium leading-none mb-1">Estrutura da Entidade</h3>
+          <p className="text-xs text-muted-foreground">
+            Arraste os campos para organizar a estrutura do formulário
+          </p>
+        </div>
+        {hasChanges && onSave && (
+          <Button 
+            onClick={onSave}
+            size="sm"
+            className="gap-2"
+          >
+            <Save className="h-4 w-4" />
+            Salvar Alterações
+          </Button>
+        )}
       </div>
 
       <Droppable droppableId={stageId} type="FIELD">
