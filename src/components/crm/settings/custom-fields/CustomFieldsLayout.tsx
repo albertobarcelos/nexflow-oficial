@@ -5,15 +5,28 @@ import { toast } from "sonner";
 import { fieldTypes } from "./data/fieldTypes";
 import { FieldTypesHeader } from "./components/FieldTypesHeader";
 import { CustomFieldDropZone } from "./components/CustomFieldDropZone";
+import { EntityList } from "../entities/components/EntityList";
+import { Entity } from "../entities/types";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export function CustomFieldsLayout() {
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({
     "entity-fields": []
   });
 
-  console.log('🔄 CustomFieldsLayout render:', {
-    stagedFields,
-    fieldsCount: stagedFields["entity-fields"].length
+  const { data: entities } = useQuery({
+    queryKey: ['entities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('custom_entities')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Entity[];
+    }
   });
 
   const handleDragEnd = (result: DropResult) => {
@@ -69,19 +82,30 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="space-y-6">
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex flex-col gap-6">
-          <FieldTypesHeader />
-          <CustomFieldDropZone
-            stageId="entity-fields"
-            fields={stagedFields["entity-fields"]}
-            onEditField={(field) => {
-              console.log('✏️ Editing field:', field);
-            }}
-          />
-        </div>
-      </DragDropContext>
+    <div className="grid grid-cols-[250px_1fr] gap-6 h-[calc(100vh-8rem)]">
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Entidades</h2>
+        <EntityList
+          entities={entities || []}
+          selectedEntityId={selectedEntityId}
+          onSelectEntity={setSelectedEntityId}
+        />
+      </div>
+
+      <div className="space-y-6">
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex flex-col gap-6">
+            <FieldTypesHeader />
+            <CustomFieldDropZone
+              stageId="entity-fields"
+              fields={stagedFields["entity-fields"]}
+              onEditField={(field) => {
+                console.log('✏️ Editing field:', field);
+              }}
+            />
+          </div>
+        </DragDropContext>
+      </div>
     </div>
   );
 }
