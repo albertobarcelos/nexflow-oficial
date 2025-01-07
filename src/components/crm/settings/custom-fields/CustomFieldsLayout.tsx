@@ -18,9 +18,21 @@ export function CustomFieldsLayout() {
   const { data: entities, refetch } = useQuery({
     queryKey: ['entities'],
     queryFn: async () => {
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (!collaborator) throw new Error('Collaborator not found');
+
       const { data, error } = await supabase
         .from('custom_entities')
-        .select('*, entity_fields(*)')
+        .select(`
+          *,
+          entity_fields!entity_fields_entity_id_fkey(*)
+        `)
+        .eq('client_id', collaborator.client_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
