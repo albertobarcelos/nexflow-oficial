@@ -19,9 +19,9 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
   
   return (
     <Card className="flex flex-col h-full">
-      <div className="p-4 border-b">
-        <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
-        <p className="text-sm text-muted-foreground">
+      <div className="py-2.5 px-4 border-b">
+        <h3 className="text-sm font-medium leading-none mb-1">Estrutura da Entidade</h3>
+        <p className="text-xs text-muted-foreground">
           Arraste os campos para organizar a estrutura do formulário
         </p>
       </div>
