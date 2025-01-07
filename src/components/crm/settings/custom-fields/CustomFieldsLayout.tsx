@@ -147,7 +147,7 @@ export function CustomFieldsLayout() {
       {/* Coluna da direita - Área de edição */}
       <div className="flex flex-col gap-6 h-full">
         <div className={cn(
-          "flex-1 overflow-auto",
+          "flex-1 min-h-0 overflow-auto",
           !selectedEntityId && "flex items-center justify-center text-muted-foreground"
         )}>
           {selectedEntityId ? (
@@ -165,7 +165,11 @@ export function CustomFieldsLayout() {
           )}
         </div>
         
-        {selectedEntityId && <FieldTypesHeader />}
+        {selectedEntityId && (
+          <div className="flex-shrink-0">
+            <FieldTypesHeader />
+          </div>
+        )}
       </div>
     </div>
   );
