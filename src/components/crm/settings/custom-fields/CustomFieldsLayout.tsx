@@ -153,7 +153,7 @@ export function CustomFieldsLayout() {
           )}
         </div>
         
-        <FieldTypesHeader />
+        {selectedEntityId && <FieldTypesHeader />}
       </div>
     </div>
   );
