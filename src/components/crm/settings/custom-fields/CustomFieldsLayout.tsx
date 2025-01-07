@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -123,18 +124,20 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="grid grid-cols-[250px_1fr] gap-6 h-full">
-      <div>
-        <EntityList
-          entities={entities || []}
-          selectedEntityId={selectedEntityId}
-          onSelectEntity={handleSelectEntity}
-        />
-      </div>
+    <div className="flex flex-col h-[calc(100vh-8rem)] gap-6">
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-[250px_1fr] gap-6 flex-1 min-h-0">
+          {/* Coluna da esquerda - Lista de entidades */}
+          <div className="flex flex-col space-y-4 overflow-hidden">
+            <EntityList
+              entities={entities || []}
+              selectedEntityId={selectedEntityId}
+              onSelectEntity={handleSelectEntity}
+            />
+          </div>
 
-      <div className="space-y-6">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <div className="flex flex-col gap-6">
+          {/* Coluna da direita - Área de edição */}
+          <div className="flex flex-col gap-6 overflow-hidden">
             <div className="flex items-center justify-between">
               <FieldTypesHeader />
               {selectedEntityId && (
@@ -148,18 +151,25 @@ export function CustomFieldsLayout() {
               )}
             </div>
             
-            {selectedEntityId && (
-              <CustomFieldDropZone
-                stageId={selectedEntityId}
-                fields={stagedFields[selectedEntityId] || []}
-                onEditField={(field) => {
-                  console.log('✏️ Editing field:', field);
-                }}
-              />
-            )}
+            <div className={cn(
+              "flex-1 min-h-0",
+              !selectedEntityId && "flex items-center justify-center text-muted-foreground"
+            )}>
+              {selectedEntityId ? (
+                <CustomFieldDropZone
+                  stageId={selectedEntityId}
+                  fields={stagedFields[selectedEntityId] || []}
+                  onEditField={(field) => {
+                    console.log('✏️ Editing field:', field);
+                  }}
+                />
+              ) : (
+                <p>Selecione uma entidade para começar a editar seus campos</p>
+              )}
+            </div>
           </div>
-        </DragDropContext>
-      </div>
+        </div>
+      </DragDropContext>
     </div>
   );
 }

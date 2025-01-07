@@ -18,7 +18,7 @@ export function CustomFieldDropZone({ stageId, fields, onEditField }: CustomFiel
   });
   
   return (
-    <Card className="flex flex-col h-[calc(100vh-400px)]">
+    <Card className="flex flex-col h-full">
       <div className="p-4 border-b">
         <h3 className="text-lg font-medium">Estrutura da Entidade</h3>
         <p className="text-sm text-muted-foreground">
