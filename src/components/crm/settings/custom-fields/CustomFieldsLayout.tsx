@@ -147,29 +147,30 @@ export function CustomFieldsLayout() {
       {/* Coluna da direita - Área de edição */}
       <div className="flex flex-col gap-6 h-full">
         <div className={cn(
-          "flex-1 min-h-0 overflow-auto",
-          !selectedEntityId && "flex items-center justify-center text-muted-foreground"
+          "flex-1 min-h-0 flex flex-col",
+          !selectedEntityId && "items-center justify-center text-muted-foreground"
         )}>
           {selectedEntityId ? (
-            <CustomFieldDropZone
-              stageId={selectedEntityId}
-              fields={stagedFields[selectedEntityId] || []}
-              onEditField={(field) => {
-                console.log('✏️ Editing field:', field);
-              }}
-              onSave={handleSave}
-              hasChanges={stagedFields[selectedEntityId]?.length > 0}
-            />
+            <div className="flex flex-col h-full">
+              <div className="flex-1 min-h-0 overflow-auto">
+                <CustomFieldDropZone
+                  stageId={selectedEntityId}
+                  fields={stagedFields[selectedEntityId] || []}
+                  onEditField={(field) => {
+                    console.log('✏️ Editing field:', field);
+                  }}
+                  onSave={handleSave}
+                  hasChanges={stagedFields[selectedEntityId]?.length > 0}
+                />
+              </div>
+              <div className="flex-shrink-0 mt-6">
+                <FieldTypesHeader />
+              </div>
+            </div>
           ) : (
             <p>Selecione uma entidade para começar a editar seus campos</p>
           )}
         </div>
-        
-        {selectedEntityId && (
-          <div className="flex-shrink-0">
-            <FieldTypesHeader />
-          </div>
-        )}
       </div>
     </div>
   );
