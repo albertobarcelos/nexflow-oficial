@@ -9,9 +9,13 @@ import { EntityList } from "../entities/components/EntityList";
 import { Entity } from "../entities/types";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { CreateEntityDialog } from "../entities/components/CreateEntityDialog";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({
     "entity-fields": []
   });
@@ -39,7 +43,6 @@ export function CustomFieldsLayout() {
       return;
     }
 
-    // Se a origem for a lista de tipos de campo
     if (source.droppableId === 'field-types') {
       console.log('🎯 Dragging from field types list');
       const fieldType = fieldTypes.find(f => f.id === draggableId);
@@ -82,13 +85,28 @@ export function CustomFieldsLayout() {
   };
 
   return (
-    <div className="grid grid-cols-[250px_1fr] gap-6 h-[calc(100vh-8rem)]">
+    <div className="grid grid-cols-[250px_1fr] gap-6 h-full">
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Entidades</h2>
+        <div className="flex items-center justify-between">
+          <Button 
+            size="sm" 
+            onClick={() => setIsDialogOpen(true)}
+            className="w-full gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Entidade
+          </Button>
+        </div>
+
         <EntityList
           entities={entities || []}
           selectedEntityId={selectedEntityId}
           onSelectEntity={setSelectedEntityId}
+        />
+
+        <CreateEntityDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
         />
       </div>
 
