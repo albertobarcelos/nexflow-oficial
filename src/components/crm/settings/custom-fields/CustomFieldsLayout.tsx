@@ -68,34 +68,37 @@ export function CustomFieldsLayout() {
       toast.error("Dados inválidos para exclusão");
       return;
     }
-    
-    try {
-      const { error: relError } = await supabase
-        .from('entity_field_relationships')
-        .delete()
-        .eq('source_field_id', fieldId);
 
-      if (relError) throw relError;
+    toast.promise(
+      async () => {
+        const { error: relError } = await supabase
+          .from('entity_field_relationships')
+          .delete()
+          .eq('source_field_id', fieldId);
 
-      const { error } = await supabase
-        .from('entity_fields')
-        .delete()
-        .eq('id', fieldId);
+        if (relError) throw relError;
 
-      if (error) throw error;
+        const { error } = await supabase
+          .from('entity_fields')
+          .delete()
+          .eq('id', fieldId);
 
-      const updatedFields = stagedFields[selectedEntityId].filter(f => f.id !== fieldId);
-      setStagedFields({
-        ...stagedFields,
-        [selectedEntityId]: updatedFields
-      });
-      
-      toast.success("Campo removido com sucesso!");
-      await refetch();
-    } catch (error) {
-      console.error('Error deleting field:', error);
-      toast.error("Erro ao remover campo");
-    }
+        if (error) throw error;
+
+        const updatedFields = stagedFields[selectedEntityId].filter(f => f.id !== fieldId);
+        setStagedFields({
+          ...stagedFields,
+          [selectedEntityId]: updatedFields
+        });
+        
+        await refetch();
+      },
+      {
+        loading: 'Removendo campo...',
+        success: 'Campo removido com sucesso!',
+        error: 'Erro ao remover campo'
+      }
+    );
   };
 
   const handleSave = async () => {
@@ -104,58 +107,63 @@ export function CustomFieldsLayout() {
       return;
     }
 
-    try {
-      const { data: collaborator } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .maybeSingle();
+    toast.promise(
+      async () => {
+        const { data: collaborator } = await supabase
+          .from('collaborators')
+          .select('client_id')
+          .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+          .maybeSingle();
 
-      if (!collaborator) {
-        toast.error("Colaborador não encontrado");
-        return;
-      }
+        if (!collaborator) {
+          throw new Error("Colaborador não encontrado");
+        }
 
-      const fieldsToSave = stagedFields[selectedEntityId].map((field, index) => ({
-        ...field,
-        client_id: collaborator.client_id,
-        order_index: index,
-        entity_id: selectedEntityId,
-        layout_config: field.layout_config as unknown as Json
-      }));
+        const fieldsToSave = stagedFields[selectedEntityId].map((field, index) => ({
+          ...field,
+          client_id: collaborator.client_id,
+          order_index: index,
+          entity_id: selectedEntityId,
+          layout_config: field.layout_config as unknown as Json
+        }));
 
-      // Delete existing fields and relationships
-      for (const field of fieldsToSave) {
-        if (!field.id) continue;
-        
-        const { error: relError } = await supabase
-          .from('entity_field_relationships')
+        // Delete existing fields and relationships
+        for (const field of fieldsToSave) {
+          if (!field.id) continue;
+          
+          const { error: relError } = await supabase
+            .from('entity_field_relationships')
+            .delete()
+            .eq('source_field_id', field.id);
+
+          if (relError) throw relError;
+        }
+
+        const { error: deleteError } = await supabase
+          .from('entity_fields')
           .delete()
-          .eq('source_field_id', field.id);
+          .eq('entity_id', selectedEntityId);
 
-        if (relError) throw relError;
+        if (deleteError) throw deleteError;
+
+        // Insert new fields
+        const { error: insertError } = await supabase
+          .from('entity_fields')
+          .insert(fieldsToSave);
+
+        if (insertError) throw insertError;
+        
+        await refetch();
+      },
+      {
+        loading: 'Salvando alterações...',
+        success: () => {
+          const fieldCount = stagedFields[selectedEntityId]?.length || 0;
+          return `Alterações salvas com sucesso! ${fieldCount} campos configurados.`;
+        },
+        error: (err) => `Erro ao salvar alterações: ${err.message}`
       }
-
-      const { error: deleteError } = await supabase
-        .from('entity_fields')
-        .delete()
-        .eq('entity_id', selectedEntityId);
-
-      if (deleteError) throw deleteError;
-
-      // Insert new fields
-      const { error: insertError } = await supabase
-        .from('entity_fields')
-        .insert(fieldsToSave);
-
-      if (insertError) throw insertError;
-      
-      toast.success("Alterações salvas com sucesso!");
-      await refetch();
-    } catch (error) {
-      console.error('Error saving fields:', error);
-      toast.error("Erro ao salvar alterações");
-    }
+    );
   };
 
   return (
