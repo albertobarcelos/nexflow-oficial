@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CustomFieldDropZoneProps {
   stageId: string;
@@ -48,37 +49,39 @@ export function CustomFieldDropZone({
         )}
       </div>
 
-      <Droppable droppableId={stageId} type="FIELD">
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={cn(
-              "flex-1 p-4 overflow-y-auto",
-              snapshot.isDraggingOver && "bg-primary/5"
-            )}
-          >
-            <div className="space-y-2">
-              {fields.map((field, index) => (
-                <FieldCard
-                  key={field.id}
-                  field={field}
-                  index={index}
-                  onEdit={() => onEditField(field)}
-                />
-              ))}
-              {fields.length === 0 && !snapshot.isDraggingOver && (
-                <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
-                  <p className="text-sm text-muted-foreground">
-                    Arraste os tipos de campo acima para começar a montar a estrutura
-                  </p>
-                </div>
+      <ScrollArea className="flex-1">
+        <Droppable droppableId={stageId} type="FIELD">
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className={cn(
+                "p-4",
+                snapshot.isDraggingOver && "bg-primary/5"
               )}
-              {provided.placeholder}
+            >
+              <div className="space-y-2">
+                {fields.map((field, index) => (
+                  <FieldCard
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    onEdit={() => onEditField(field)}
+                  />
+                ))}
+                {fields.length === 0 && !snapshot.isDraggingOver && (
+                  <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                    <p className="text-sm text-muted-foreground">
+                      Arraste os tipos de campo acima para começar a montar a estrutura
+                    </p>
+                  </div>
+                )}
+                {provided.placeholder}
+              </div>
             </div>
-          </div>
-        )}
-      </Droppable>
+          )}
+        </Droppable>
+      </ScrollArea>
     </Card>
   );
 }

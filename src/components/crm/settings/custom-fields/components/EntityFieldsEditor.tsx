@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Plus, Save } from "lucide-react";
+import { Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { CustomField } from "../types";
@@ -61,7 +61,6 @@ export function EntityFieldsEditor({
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex items-center justify-between gap-4"
           >
             <Button
               onClick={() => setIsAddFieldOpen(true)}
@@ -69,16 +68,6 @@ export function EntityFieldsEditor({
             >
               <Plus className="w-4 h-4" />
               Adicionar Campo
-            </Button>
-
-            <Button
-              onClick={onSave}
-              variant="default"
-              className="gap-2"
-              disabled={!stagedFields[selectedEntityId]?.length}
-            >
-              <Save className="w-4 h-4" />
-              Salvar Alterações
             </Button>
           </motion.div>
         )}
