@@ -1,8 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CustomField } from "../types";
-import { EntityFormField } from "@/components/crm/entities/form/EntityFormField";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 
 interface FormPreviewDialogProps {
   open: boolean;
@@ -17,35 +15,43 @@ export function FormPreviewDialog({
   fields,
   layout
 }: FormPreviewDialogProps) {
-  const [formValues, setFormValues] = useState<Record<string, any>>({});
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Preview do Formulário</DialogTitle>
         </DialogHeader>
-
+        
         <div className="py-4">
           <div className={cn(
-            "space-y-4",
-            layout === "horizontal" && "grid grid-cols-2 gap-4 space-y-0"
+            "grid gap-4",
+            layout === "horizontal" ? "grid-cols-2" : "grid-cols-1"
           )}>
-            {fields.map((field) => (
-              <div key={field.id} className="space-y-2">
-                <EntityFormField
-                  field={field}
-                  value={formValues[field.id]}
-                  onChange={(value) => {
-                    setFormValues(prev => ({
-                      ...prev,
-                      [field.id]: value
-                    }));
-                  }}
-                  isSubmitting={false}
-                />
-              </div>
-            ))}
+            {fields.map((field) => {
+              const layoutConfig = field.layout_config || {
+                width: 'full',
+                forceNewLine: false,
+                groupWithNext: false
+              };
+
+              return (
+                <div
+                  key={field.id}
+                  className={cn(
+                    "space-y-2 p-4 border rounded-lg",
+                    layoutConfig.width === 'full' && "col-span-2",
+                    layoutConfig.width === 'half' && "col-span-1",
+                    layoutConfig.width === 'third' && "col-span-1",
+                    layoutConfig.forceNewLine && "col-span-2",
+                    layoutConfig.groupWithNext && "border-primary/30"
+                  )}
+                >
+                  <label className="text-sm font-medium">{field.name}</label>
+                  <div className="h-10 bg-muted rounded-md"></div>
+                  <p className="text-xs text-muted-foreground">{field.description}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </DialogContent>
