@@ -62,7 +62,7 @@ export function CustomFieldsLayout() {
     if (!selectedEntityId) return;
     
     try {
-      // First delete any related records in entity_field_relationships
+      // Delete related records one by one
       const { error: relError } = await supabase
         .from('entity_field_relationships')
         .delete()
@@ -70,7 +70,6 @@ export function CustomFieldsLayout() {
 
       if (relError) throw relError;
 
-      // Then delete the field itself
       const { error } = await supabase
         .from('entity_fields')
         .delete()
@@ -93,7 +92,10 @@ export function CustomFieldsLayout() {
   };
 
   const handleSave = async () => {
-    if (!selectedEntityId) return;
+    if (!selectedEntityId) {
+      toast.error("Nenhuma entidade selecionada");
+      return;
+    }
     
     try {
       const fieldsToSave = stagedFields[selectedEntityId].map((field, index) => ({
@@ -103,8 +105,9 @@ export function CustomFieldsLayout() {
         layout_config: field.layout_config as unknown as Json
       }));
 
-      // Delete related records one by one to avoid array parameter issues
+      // Delete related records one by one
       for (const field of fieldsToSave) {
+        if (!field.id) continue;
         const { error: relError } = await supabase
           .from('entity_field_relationships')
           .delete()
@@ -113,7 +116,7 @@ export function CustomFieldsLayout() {
         if (relError) throw relError;
       }
 
-      // Then delete existing fields
+      // Delete existing fields
       const { error: deleteError } = await supabase
         .from('entity_fields')
         .delete()
@@ -121,7 +124,7 @@ export function CustomFieldsLayout() {
 
       if (deleteError) throw deleteError;
 
-      // Finally insert new fields
+      // Insert new fields
       const { error: insertError } = await supabase
         .from('entity_fields')
         .insert(fieldsToSave);
