@@ -57,8 +57,6 @@ export interface LayoutConfig {
 export interface CustomField {
   id: string;
   client_id: string;
-  pipeline_id: string;
-  stage_id: string;
   name: string;
   field_type: FieldType;
   description?: string;
@@ -69,6 +67,7 @@ export interface CustomField {
   created_at: string;
   updated_at: string;
   layout_config?: LayoutConfig;
+  entity_id: string;
 }
 
 export interface EntityField {
