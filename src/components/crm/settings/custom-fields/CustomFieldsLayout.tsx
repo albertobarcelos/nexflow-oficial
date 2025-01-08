@@ -70,7 +70,6 @@ export function CustomFieldsLayout() {
     }
     
     try {
-      // Delete related records one by one
       const { error: relError } = await supabase
         .from('entity_field_relationships')
         .delete()
@@ -104,13 +103,25 @@ export function CustomFieldsLayout() {
       toast.error("Nenhuma entidade selecionada");
       return;
     }
-    
+
     try {
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .maybeSingle();
+
+      if (!collaborator) {
+        toast.error("Colaborador não encontrado");
+        return;
+      }
+
       const fieldsToSave = stagedFields[selectedEntityId].map((field, index) => ({
         ...field,
+        client_id: collaborator.client_id,
         order_index: index,
         entity_id: selectedEntityId,
-        layout_config: field.layout_config || { width: 'full' }
+        layout_config: field.layout_config as unknown as Json
       }));
 
       // Delete existing fields and relationships
