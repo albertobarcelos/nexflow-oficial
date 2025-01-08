@@ -45,7 +45,7 @@ export function CustomFieldsLayout() {
         ...field,
         field_type: field.field_type as EntityField['field_type'],
         order_index: index,
-        layout_config: field.layout_config as unknown as EntityField['layout_config'] ?? {
+        layout_config: field.layout_config as LayoutConfig ?? {
           width: 'full',
           forceNewLine: false,
           groupWithNext: false,
@@ -75,11 +75,20 @@ export function CustomFieldsLayout() {
         layout_config: field.layout_config as unknown as Json
       }));
 
-      const { error } = await supabase
+      // Delete existing fields first to avoid order_index conflicts
+      const { error: deleteError } = await supabase
         .from('entity_fields')
-        .upsert(fieldsToSave);
+        .delete()
+        .eq('entity_id', selectedEntityId);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+
+      // Insert new fields with updated order_index values
+      const { error: insertError } = await supabase
+        .from('entity_fields')
+        .insert(fieldsToSave);
+
+      if (insertError) throw insertError;
       
       toast.success("Alterações salvas com sucesso!");
       await refetch();

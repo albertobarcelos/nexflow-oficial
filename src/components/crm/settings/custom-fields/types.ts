@@ -66,13 +66,7 @@ interface BaseField {
   options?: Json[];
   created_at: string;
   updated_at: string;
-  layout_config?: LayoutConfig;
-}
-
-// Custom fields for pipelines
-export interface CustomField extends BaseField {
-  pipeline_id: string;
-  stage_id: string;
+  layout_config: LayoutConfig;
 }
 
 // Entity fields
@@ -85,10 +79,16 @@ export interface EntityField extends BaseField {
   staging_batch?: string;
 }
 
+// Custom fields for pipelines
+export interface CustomField extends BaseField {
+  pipeline_id: string;
+  stage_id: string;
+}
+
 export interface FieldTemplate {
   id: string;
   name: string;
   description: string;
   category: string;
-  fields: Partial<CustomField>[];
+  fields: Partial<EntityField>[];
 }
