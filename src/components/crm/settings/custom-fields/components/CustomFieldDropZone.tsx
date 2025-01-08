@@ -4,8 +4,11 @@ import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { AlignVerticalJustify, Eye, Grid, Save } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { FormPreviewDialog } from "./FormPreviewDialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface CustomFieldDropZoneProps {
   stageId: string;
@@ -22,11 +25,8 @@ export function CustomFieldDropZone({
   onSave,
   hasChanges 
 }: CustomFieldDropZoneProps) {
-  console.log(`🎯 CustomFieldDropZone render for ${stageId}:`, {
-    fields,
-    fieldsLength: fields.length,
-    firstField: fields[0]
-  });
+  const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   
   return (
     <Card className="flex flex-col h-full">
@@ -37,30 +37,54 @@ export function CustomFieldDropZone({
             Arraste os campos para organizar a estrutura do formulário
           </p>
         </div>
-        {hasChanges && onSave && (
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={layout} onValueChange={(value: "vertical" | "horizontal") => setLayout(value)}>
+            <ToggleGroupItem value="vertical" aria-label="Layout Vertical">
+              <AlignVerticalJustify className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="horizontal" aria-label="Layout Horizontal">
+              <Grid className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+
           <Button 
-            onClick={onSave}
+            variant="outline"
             size="sm"
+            onClick={() => setIsPreviewOpen(true)}
             className="gap-2"
           >
-            <Save className="h-4 w-4" />
-            Salvar Alterações
+            <Eye className="h-4 w-4" />
+            Preview
           </Button>
-        )}
+
+          {hasChanges && onSave && (
+            <Button 
+              onClick={onSave}
+              size="sm"
+              className="gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Salvar Alterações
+            </Button>
+          )}
+        </div>
       </div>
 
-      <ScrollArea className="flex-1">
-        <Droppable droppableId={stageId} type="FIELD">
-          {(provided, snapshot) => (
+      <Droppable droppableId={stageId} type="FIELD">
+        {(provided, snapshot) => (
+          <ScrollArea className="flex-1">
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                "p-4 h-[calc(100vh-35rem)]",
+                "p-4 min-h-[calc(100vh-15rem)]",
                 snapshot.isDraggingOver && "bg-primary/5"
               )}
             >
-              <div className="space-y-2">
+              <div className={cn(
+                "space-y-2",
+                layout === "horizontal" && "grid grid-cols-2 gap-2 space-y-0"
+              )}>
                 {fields.map((field, index) => (
                   <FieldCard
                     key={field.id}
@@ -79,9 +103,16 @@ export function CustomFieldDropZone({
                 {provided.placeholder}
               </div>
             </div>
-          )}
-        </Droppable>
-      </ScrollArea>
+          </ScrollArea>
+        )}
+      </Droppable>
+
+      <FormPreviewDialog
+        open={isPreviewOpen}
+        onOpenChange={setIsPreviewOpen}
+        fields={fields}
+        layout={layout}
+      />
     </Card>
   );
 }
