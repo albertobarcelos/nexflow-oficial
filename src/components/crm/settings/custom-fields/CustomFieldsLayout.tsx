@@ -45,15 +45,10 @@ export function CustomFieldsLayout() {
         ...field,
         field_type: field.field_type as EntityField['field_type'],
         order_index: index,
-        layout_config: field.layout_config as LayoutConfig ?? {
-          width: 'full',
-          forceNewLine: false,
-          groupWithNext: false,
-          responsiveBreakpoints: {
-            sm: 'stack',
-            md: 'maintain',
-            lg: 'maintain'
-          }
+        created_at: field.created_at || new Date().toISOString(),
+        updated_at: field.updated_at || new Date().toISOString(),
+        layout_config: field.layout_config || {
+          width: 'full'
         }
       }));
 
@@ -67,12 +62,11 @@ export function CustomFieldsLayout() {
     if (!selectedEntityId) return;
     
     try {
-      // Update order_index to ensure uniqueness
       const fieldsToSave = stagedFields[selectedEntityId].map((field, index) => ({
         ...field,
         order_index: index,
         entity_id: selectedEntityId,
-        layout_config: field.layout_config as unknown as Json
+        layout_config: field.layout_config as Json
       }));
 
       // Delete existing fields first to avoid order_index conflicts

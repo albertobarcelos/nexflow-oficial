@@ -44,14 +44,7 @@ export interface FieldHistory {
 }
 
 export interface LayoutConfig {
-  width: 'full' | 'half' | 'third' | 'quarter';
-  forceNewLine: boolean;
-  groupWithNext: boolean;
-  responsiveBreakpoints: {
-    sm: 'stack' | 'maintain';
-    md: 'stack' | 'maintain';
-    lg: 'stack' | 'maintain';
-  };
+  width: 'full' | 'half' | 'third';
 }
 
 // Base interface for common field properties

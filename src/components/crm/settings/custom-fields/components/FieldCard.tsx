@@ -22,33 +22,24 @@ interface FieldCardProps {
 
 export function FieldCard({ field, index, onEdit, onLayoutChange }: FieldCardProps) {
   const layoutConfig = field.layout_config || {
-    width: 'full',
-    forceNewLine: false,
-    groupWithNext: false,
-    responsiveBreakpoints: {
-      sm: 'stack',
-      md: 'maintain',
-      lg: 'maintain'
-    }
+    width: 'full'
   };
 
-  const handleLayoutChange = (changes: Partial<typeof layoutConfig>) => {
+  const handleLayoutChange = (width: 'full' | 'half' | 'third') => {
     if (onLayoutChange) {
       const newConfig = {
         ...layoutConfig,
-        ...changes
+        width
       };
       onLayoutChange(newConfig);
       
-      // Feedback visual para o usuário
       const widthLabels = {
         full: 'Largura Total',
         half: 'Metade da Largura',
-        third: 'Um Terço',
-        quarter: 'Um Quarto'
+        third: 'Um Terço'
       };
       
-      toast.success(`Layout atualizado: ${widthLabels[changes.width as keyof typeof widthLabels] || 'Configuração alterada'}`);
+      toast.success(`Layout atualizado: ${widthLabels[width]}`);
     }
   };
 
@@ -64,10 +55,7 @@ export function FieldCard({ field, index, onEdit, onLayoutChange }: FieldCardPro
             "transition-all duration-200",
             snapshot.isDragging && "border-primary/30 shadow-md",
             layoutConfig.width === 'half' && "w-1/2",
-            layoutConfig.width === 'third' && "w-1/3",
-            layoutConfig.width === 'quarter' && "w-1/4",
-            layoutConfig.forceNewLine && "clear-both",
-            layoutConfig.groupWithNext && "float-left"
+            layoutConfig.width === 'third' && "w-1/3"
           )}
         >
           <div className="flex items-center gap-3">
@@ -101,38 +89,25 @@ export function FieldCard({ field, index, onEdit, onLayoutChange }: FieldCardPro
                 <DropdownMenuLabel>Layout do Campo</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={() => handleLayoutChange({ width: 'full' })}
+                  onClick={() => handleLayoutChange('full')}
                   className={cn(layoutConfig.width === 'full' && "bg-muted")}
                 >
                   <LayoutGrid className="mr-2 h-4 w-4" />
                   Largura Total
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={() => handleLayoutChange({ width: 'half' })}
+                  onClick={() => handleLayoutChange('half')}
                   className={cn(layoutConfig.width === 'half' && "bg-muted")}
                 >
                   <LayoutGrid className="mr-2 h-4 w-4" />
                   Metade da Largura
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  onClick={() => handleLayoutChange({ width: 'third' })}
+                  onClick={() => handleLayoutChange('third')}
                   className={cn(layoutConfig.width === 'third' && "bg-muted")}
                 >
                   <LayoutGrid className="mr-2 h-4 w-4" />
                   Um Terço
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => handleLayoutChange({ forceNewLine: !layoutConfig.forceNewLine })}
-                  className={cn(layoutConfig.forceNewLine && "bg-muted")}
-                >
-                  Forçar Nova Linha {layoutConfig.forceNewLine && "✓"}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleLayoutChange({ groupWithNext: !layoutConfig.groupWithNext })}
-                  className={cn(layoutConfig.groupWithNext && "bg-muted")}
-                >
-                  Agrupar com Próximo {layoutConfig.groupWithNext && "✓"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
