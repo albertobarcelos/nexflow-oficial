@@ -462,6 +462,7 @@ export type Database = {
           id: string
           is_required: boolean | null
           is_staged: boolean | null
+          layout_config: Json | null
           name: string
           options: Json | null
           order_index: number
@@ -480,6 +481,7 @@ export type Database = {
           id?: string
           is_required?: boolean | null
           is_staged?: boolean | null
+          layout_config?: Json | null
           name: string
           options?: Json | null
           order_index: number
@@ -498,6 +500,7 @@ export type Database = {
           id?: string
           is_required?: boolean | null
           is_staged?: boolean | null
+          layout_config?: Json | null
           name?: string
           options?: Json | null
           order_index?: number
