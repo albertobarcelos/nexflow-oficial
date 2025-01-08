@@ -1,11 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CustomField } from "../types";
+import { CustomField, EntityField, LayoutConfig } from "../types";
 import { cn } from "@/lib/utils";
 
 interface FormPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fields: CustomField[];
+  fields: (CustomField | EntityField)[];
   layout: "vertical" | "horizontal";
 }
 
@@ -28,11 +28,7 @@ export function FormPreviewDialog({
             layout === "horizontal" ? "grid-cols-2" : "grid-cols-1"
           )}>
             {fields.map((field) => {
-              const layoutConfig = field.layout_config || {
-                width: 'full',
-                forceNewLine: false,
-                groupWithNext: false
-              };
+              const layoutConfig = field.layout_config as LayoutConfig;
 
               return (
                 <div
@@ -41,9 +37,7 @@ export function FormPreviewDialog({
                     "space-y-2 p-4 border rounded-lg",
                     layoutConfig.width === 'full' && "col-span-2",
                     layoutConfig.width === 'half' && "col-span-1",
-                    layoutConfig.width === 'third' && "col-span-1",
-                    layoutConfig.forceNewLine && "col-span-2",
-                    layoutConfig.groupWithNext && "border-primary/30"
+                    layoutConfig.width === 'third' && "col-span-1"
                   )}
                 >
                   <label className="text-sm font-medium">{field.name}</label>

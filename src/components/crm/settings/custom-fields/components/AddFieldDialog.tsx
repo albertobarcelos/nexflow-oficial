@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { fieldTypes } from "../data/fieldTypes";
-import { CustomField, EntityField } from "../types";
+import { CustomField, EntityField, LayoutConfig } from "../types";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -15,7 +15,12 @@ interface AddFieldDialogProps {
   onAddField: (field: EntityField) => void;
 }
 
-export function AddFieldDialog({ open, onOpenChange, selectedEntityId, onAddField }: AddFieldDialogProps) {
+export function AddFieldDialog({ 
+  open, 
+  onOpenChange, 
+  selectedEntityId, 
+  onAddField 
+}: AddFieldDialogProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredFieldTypes = fieldTypes.filter(type => 
@@ -49,6 +54,10 @@ export function AddFieldDialog({ open, onOpenChange, selectedEntityId, onAddFiel
                 onClick={() => {
                   if (!selectedEntityId) return;
                   
+                  const layoutConfig: LayoutConfig = {
+                    width: 'full'
+                  };
+
                   const newField: EntityField = {
                     id: crypto.randomUUID(),
                     name: fieldType.name,
@@ -61,16 +70,7 @@ export function AddFieldDialog({ open, onOpenChange, selectedEntityId, onAddFiel
                     options: [],
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                    layout_config: {
-                      width: 'full',
-                      forceNewLine: false,
-                      groupWithNext: false,
-                      responsiveBreakpoints: {
-                        sm: 'stack',
-                        md: 'maintain',
-                        lg: 'maintain'
-                      }
-                    }
+                    layout_config: layoutConfig
                   };
 
                   onAddField(newField);
