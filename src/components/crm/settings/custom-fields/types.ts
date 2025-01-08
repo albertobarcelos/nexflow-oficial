@@ -58,7 +58,7 @@ interface BaseField {
   options?: Json[];
   created_at: string;
   updated_at: string;
-  layout_config: LayoutConfig;
+  layout_config?: LayoutConfig;
 }
 
 export interface EntityField extends BaseField {
