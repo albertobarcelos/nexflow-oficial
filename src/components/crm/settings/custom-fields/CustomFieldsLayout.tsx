@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Entity } from "../entities/types";
 import { EntitySelector } from "./components/EntitySelector";
 import { EntityFieldsEditor } from "./components/EntityFieldsEditor";
+import { Json } from "@/types/database/json";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
@@ -52,7 +53,8 @@ export function CustomFieldsLayout() {
         stage_id: entityId,
         options: field.options || [],
         created_at: field.created_at || new Date().toISOString(),
-        updated_at: field.updated_at || new Date().toISOString()
+        updated_at: field.updated_at || new Date().toISOString(),
+        layout_config: field.layout_config as CustomField['layout_config']
       }));
 
       setStagedFields({
@@ -70,7 +72,9 @@ export function CustomFieldsLayout() {
         .upsert(
           stagedFields[selectedEntityId].map(field => ({
             ...field,
-            entity_id: selectedEntityId
+            entity_id: selectedEntityId,
+            // Convertendo layout_config para Json explicitamente
+            layout_config: field.layout_config as Json
           }))
         );
 
