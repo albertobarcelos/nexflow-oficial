@@ -43,8 +43,9 @@ export function CustomFieldsLayout() {
     if (entity?.entity_fields) {
       const mappedFields: EntityField[] = entity.entity_fields.map((field, index) => ({
         ...field,
+        field_type: field.field_type as EntityField['field_type'],
         order_index: index,
-        layout_config: field.layout_config ? field.layout_config as unknown as EntityField['layout_config'] : {
+        layout_config: field.layout_config as unknown as EntityField['layout_config'] ?? {
           width: 'full',
           forceNewLine: false,
           groupWithNext: false,
@@ -66,16 +67,17 @@ export function CustomFieldsLayout() {
     if (!selectedEntityId) return;
     
     try {
+      // Update order_index to ensure uniqueness
+      const fieldsToSave = stagedFields[selectedEntityId].map((field, index) => ({
+        ...field,
+        order_index: index,
+        entity_id: selectedEntityId,
+        layout_config: field.layout_config as unknown as Json
+      }));
+
       const { error } = await supabase
         .from('entity_fields')
-        .upsert(
-          stagedFields[selectedEntityId].map((field, index) => ({
-            ...field,
-            order_index: index,
-            entity_id: selectedEntityId,
-            layout_config: field.layout_config as unknown as Json
-          }))
-        );
+        .upsert(fieldsToSave);
 
       if (error) throw error;
       

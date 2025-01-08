@@ -2,15 +2,15 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { CustomField } from "../types";
+import { EntityField } from "../types";
 import { CustomFieldDropZone } from "./CustomFieldDropZone";
 import { useState } from "react";
 import { AddFieldDialog } from "./AddFieldDialog";
 
 interface EntityFieldsEditorProps {
   selectedEntityId: string | null;
-  stagedFields: Record<string, CustomField[]>;
-  setStagedFields: (fields: Record<string, CustomField[]>) => void;
+  stagedFields: Record<string, EntityField[]>;
+  setStagedFields: (fields: Record<string, EntityField[]>) => void;
   onSave: () => Promise<void>;
 }
 
@@ -41,7 +41,7 @@ export function EntityFieldsEditor({
     });
   };
 
-  const handleAddField = (newField: CustomField) => {
+  const handleAddField = (newField: EntityField) => {
     if (!selectedEntityId) return;
     
     const currentFields = stagedFields[selectedEntityId] || [];
