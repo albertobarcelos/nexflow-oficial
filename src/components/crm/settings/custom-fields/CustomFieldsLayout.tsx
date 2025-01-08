@@ -19,7 +19,7 @@ export function CustomFieldsLayout() {
         .from('collaborators')
         .select('client_id')
         .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+        .maybeSingle();
 
       if (!collaborator) throw new Error('Collaborator not found');
 
@@ -38,7 +38,7 @@ export function CustomFieldsLayout() {
   });
 
   const handleSelectEntity = (entityId: string) => {
-    if (!entityId) {
+    if (!entityId || entityId.trim() === '') {
       toast.error("ID da entidade inválido");
       return;
     }
