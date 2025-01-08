@@ -71,11 +71,19 @@ export function PipelineFieldsEditor({
 
   const selectedPipelineData = pipelines?.find(p => p.id === selectedPipeline);
 
-  // Combina os campos existentes com os campos staged
-  const getFieldsForStage = (stageId: string) => {
+  const getFieldsForStage = (stageId: string): CustomField[] => {
     const existingFields = customFields?.filter(field => field.stage_id === stageId) || [];
     const stagedFieldsForStage = stagedFields[stageId] || [];
-    return [...existingFields, ...stagedFieldsForStage];
+    
+    // Ensure all fields have required properties
+    const completeFields: CustomField[] = stagedFieldsForStage.map(field => ({
+      ...field,
+      pipeline_id: selectedPipeline || '',
+      stage_id: stageId,
+      layout_config: field.layout_config || { width: 'full' }
+    }));
+    
+    return [...existingFields, ...completeFields];
   };
 
   return (
