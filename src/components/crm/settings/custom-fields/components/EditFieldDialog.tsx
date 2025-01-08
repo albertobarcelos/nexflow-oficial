@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CustomField, EntityField } from "../types";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface EditFieldDialogProps {
   field: CustomField | EntityField | null;
@@ -21,6 +22,19 @@ export function EditFieldDialog({ field, open, onOpenChange, onSave }: EditField
       setEditingField({ ...field });
     }
   }, [field]);
+
+  const handleSave = () => {
+    if (!editingField) return;
+
+    try {
+      onSave(editingField);
+      onOpenChange(false);
+      toast.success("Campo atualizado com sucesso!");
+    } catch (error) {
+      console.error("Error saving field:", error);
+      toast.error("Erro ao salvar alterações no campo");
+    }
+  };
 
   if (!editingField) return null;
 
@@ -60,7 +74,7 @@ export function EditFieldDialog({ field, open, onOpenChange, onSave }: EditField
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={() => onSave(editingField)}>
+          <Button onClick={handleSave}>
             Salvar
           </Button>
         </DialogFooter>
