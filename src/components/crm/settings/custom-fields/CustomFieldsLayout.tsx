@@ -110,12 +110,13 @@ export function CustomFieldsLayout() {
         ...field,
         order_index: index,
         entity_id: selectedEntityId,
-        layout_config: field.layout_config as unknown as Json
+        layout_config: field.layout_config || { width: 'full' }
       }));
 
-      // Delete related records one by one
+      // Delete existing fields and relationships
       for (const field of fieldsToSave) {
         if (!field.id) continue;
+        
         const { error: relError } = await supabase
           .from('entity_field_relationships')
           .delete()
@@ -124,7 +125,6 @@ export function CustomFieldsLayout() {
         if (relError) throw relError;
       }
 
-      // Delete existing fields
       const { error: deleteError } = await supabase
         .from('entity_fields')
         .delete()
