@@ -50,12 +50,15 @@ export function EntityRelationshipField({
     queryFn: async () => {
       const { data, error } = await supabase.rpc("search_related_records", {
         p_entity_id: entityId,
-        p_search_term: search || null,
         p_page: page,
         p_page_size: pageSize,
+        p_search_term: search || null
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching related records:", error);
+        throw error;
+      }
       return data;
     },
   });
