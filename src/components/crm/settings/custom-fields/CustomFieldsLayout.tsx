@@ -54,7 +54,7 @@ export function CustomFieldsLayout() {
         options: field.options || [],
         created_at: field.created_at || new Date().toISOString(),
         updated_at: field.updated_at || new Date().toISOString(),
-        layout_config: field.layout_config as CustomField['layout_config']
+        layout_config: field.layout_config as unknown as CustomField['layout_config']
       }));
 
       setStagedFields({
@@ -74,7 +74,7 @@ export function CustomFieldsLayout() {
             ...field,
             entity_id: selectedEntityId,
             // Convertendo layout_config para Json explicitamente
-            layout_config: field.layout_config as Json
+            layout_config: field.layout_config as unknown as Json
           }))
         );
 

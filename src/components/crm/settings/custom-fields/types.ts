@@ -84,6 +84,7 @@ export interface EntityField {
   validation_rules?: Json;
   created_at: string;
   updated_at: string;
+  layout_config?: Json;
 }
 
 export interface FieldTemplate {
