@@ -15,6 +15,7 @@ export interface EntityField {
   relationship_type?: 'one_to_many' | 'many_to_many';
   is_staged?: boolean;
   staging_batch?: string;
+  layout_config?: Record<string, any>;
 }
 
 export interface Entity {
