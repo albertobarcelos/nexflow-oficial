@@ -1,7 +1,7 @@
 import { Draggable } from "@hello-pangea/dnd";
-import { CustomField } from "../types";
+import { CustomField, EntityField, LayoutConfig } from "../types";
 import { Button } from "@/components/ui/button";
-import { Edit2, GripVertical, LayoutGrid } from "lucide-react";
+import { Edit2, GripVertical, LayoutGrid, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   DropdownMenu,
@@ -14,21 +14,21 @@ import {
 import { toast } from "sonner";
 
 interface FieldCardProps {
-  field: CustomField;
+  field: EntityField | CustomField;
   index: number;
   onEdit: () => void;
-  onLayoutChange?: (layout: any) => void;
+  onDelete: () => void;
+  onLayoutChange?: (layout: LayoutConfig) => void;
 }
 
-export function FieldCard({ field, index, onEdit, onLayoutChange }: FieldCardProps) {
-  const layoutConfig = field.layout_config || {
+export function FieldCard({ field, index, onEdit, onDelete, onLayoutChange }: FieldCardProps) {
+  const layoutConfig = field.layout_config as LayoutConfig || {
     width: 'full'
   };
 
   const handleLayoutChange = (width: 'full' | 'half' | 'third') => {
     if (onLayoutChange) {
-      const newConfig = {
-        ...layoutConfig,
+      const newConfig: LayoutConfig = {
         width
       };
       onLayoutChange(newConfig);
@@ -119,6 +119,15 @@ export function FieldCard({ field, index, onEdit, onLayoutChange }: FieldCardPro
               className="h-8 w-8"
             >
               <Edit2 className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              className="h-8 w-8 text-destructive hover:text-destructive/90"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>

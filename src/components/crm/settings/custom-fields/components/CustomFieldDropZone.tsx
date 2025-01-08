@@ -1,5 +1,5 @@
 import { Droppable } from "@hello-pangea/dnd";
-import { CustomField } from "../types";
+import { CustomField, EntityField } from "../types";
 import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -10,12 +10,13 @@ import { useState } from "react";
 import { FormPreviewDialog } from "./FormPreviewDialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { EditFieldDialog } from "./EditFieldDialog";
 
 interface CustomFieldDropZoneProps {
   stageId: string;
-  fields: CustomField[];
-  onEditField: (field: CustomField) => void;
+  fields: (CustomField | EntityField)[];
+  onEditField: (field: CustomField | EntityField) => void;
+  onDeleteField: (fieldId: string) => void;
   onSave?: () => void;
   hasChanges?: boolean;
 }
@@ -24,26 +25,33 @@ export function CustomFieldDropZone({
   stageId, 
   fields, 
   onEditField,
+  onDeleteField,
   onSave,
   hasChanges 
 }: CustomFieldDropZoneProps) {
   const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [editingField, setEditingField] = useState<CustomField | EntityField | null>(null);
   
   const handleLayoutChange = async (fieldId: string, layoutConfig: any) => {
     try {
-      const { error } = await supabase
-        .from('entity_fields')
-        .update({ layout_config: layoutConfig })
-        .eq('id', fieldId);
-
-      if (error) throw error;
-
+      const fieldToUpdate = fields.find(f => f.id === fieldId);
+      if (fieldToUpdate) {
+        onEditField({
+          ...fieldToUpdate,
+          layout_config: layoutConfig
+        });
+      }
       toast.success('Layout atualizado com sucesso');
     } catch (error) {
       console.error('Erro ao atualizar layout:', error);
       toast.error('Erro ao atualizar layout');
     }
+  };
+
+  const handleDeleteField = (fieldId: string) => {
+    onDeleteField(fieldId);
+    toast.success('Campo removido com sucesso');
   };
 
   return (
@@ -108,7 +116,8 @@ export function CustomFieldDropZone({
                     key={field.id}
                     field={field}
                     index={index}
-                    onEdit={() => onEditField(field)}
+                    onEdit={() => setEditingField(field)}
+                    onDelete={() => handleDeleteField(field.id)}
                     onLayoutChange={(layoutConfig) => handleLayoutChange(field.id, layoutConfig)}
                   />
                 ))}
@@ -131,6 +140,17 @@ export function CustomFieldDropZone({
         onOpenChange={setIsPreviewOpen}
         fields={fields}
         layout={layout}
+      />
+
+      <EditFieldDialog
+        field={editingField}
+        open={!!editingField}
+        onOpenChange={(open) => !open && setEditingField(null)}
+        onSave={(updatedField) => {
+          onEditField(updatedField);
+          setEditingField(null);
+          toast.success('Campo atualizado com sucesso');
+        }}
       />
     </Card>
   );
