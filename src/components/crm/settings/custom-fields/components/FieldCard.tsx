@@ -1,5 +1,5 @@
 import { Draggable } from "@hello-pangea/dnd";
-import { CustomField, EntityField, LayoutConfig } from "../types";
+import { CustomField, EntityField } from "../types";
 import { Button } from "@/components/ui/button";
 import { Edit2, GripVertical, LayoutGrid, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,17 +18,17 @@ interface FieldCardProps {
   index: number;
   onEdit: () => void;
   onDelete: () => void;
-  onLayoutChange?: (layout: LayoutConfig) => void;
+  onLayoutChange?: (layout: { width: 'full' | 'half' | 'third' }) => void;
 }
 
 export function FieldCard({ field, index, onEdit, onDelete, onLayoutChange }: FieldCardProps) {
-  const layoutConfig = field.layout_config as LayoutConfig || {
+  const layoutConfig = field.layout_config || {
     width: 'full'
   };
 
   const handleLayoutChange = (width: 'full' | 'half' | 'third') => {
     if (onLayoutChange) {
-      const newConfig: LayoutConfig = {
+      const newConfig = {
         width
       };
       onLayoutChange(newConfig);

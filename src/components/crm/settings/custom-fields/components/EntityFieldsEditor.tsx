@@ -12,13 +12,15 @@ interface EntityFieldsEditorProps {
   stagedFields: Record<string, EntityField[]>;
   setStagedFields: (fields: Record<string, EntityField[]>) => void;
   onSave: () => Promise<void>;
+  onDeleteField: (fieldId: string) => void;
 }
 
 export function EntityFieldsEditor({ 
   selectedEntityId, 
   stagedFields, 
   setStagedFields,
-  onSave 
+  onSave,
+  onDeleteField
 }: EntityFieldsEditorProps) {
   const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
 
@@ -82,6 +84,7 @@ export function EntityFieldsEditor({
               onEditField={(field) => {
                 console.log('✏️ Editing field:', field);
               }}
+              onDeleteField={onDeleteField}
               onSave={onSave}
               hasChanges={stagedFields[selectedEntityId]?.length > 0}
             />

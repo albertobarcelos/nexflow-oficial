@@ -58,6 +58,31 @@ export function CustomFieldsLayout() {
     }
   };
 
+  const handleDeleteField = async (fieldId: string) => {
+    if (!selectedEntityId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('entity_fields')
+        .delete()
+        .eq('id', fieldId);
+
+      if (error) throw error;
+
+      const updatedFields = stagedFields[selectedEntityId].filter(f => f.id !== fieldId);
+      setStagedFields({
+        ...stagedFields,
+        [selectedEntityId]: updatedFields
+      });
+      
+      toast.success("Campo removido com sucesso!");
+      await refetch();
+    } catch (error) {
+      console.error('Error deleting field:', error);
+      toast.error("Erro ao remover campo");
+    }
+  };
+
   const handleSave = async () => {
     if (!selectedEntityId) return;
     
@@ -105,6 +130,7 @@ export function CustomFieldsLayout() {
         stagedFields={stagedFields}
         setStagedFields={setStagedFields}
         onSave={handleSave}
+        onDeleteField={handleDeleteField}
       />
     </div>
   );
