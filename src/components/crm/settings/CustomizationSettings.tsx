@@ -10,6 +10,19 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CustomFieldsLayout } from "./custom-fields/CustomFieldsLayout";
 
 export function CustomizationSettings() {
+  const [activeTab, setActiveTab] = useState("entities");
+
+  const getHelpText = () => {
+    switch (activeTab) {
+      case "entities":
+        return "Gerencie suas entidades personalizadas e campos customizados.";
+      case "pipelines":
+        return "Configure seus pipelines e estágios de vendas.";
+      default:
+        return "Precisa de ajuda? Clique para ver o guia completo de personalização do CRM.";
+    }
+  };
+
   const handleDragEnd = (result: DropResult) => {
     console.log('Drag ended:', result);
   };
@@ -18,24 +31,30 @@ export function CustomizationSettings() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col h-[calc(100vh-8rem)] gap-4"
+      className="flex flex-col h-[calc(100vh-8rem)] gap-4 relative"
     >
-      <div className="flex items-center justify-end flex-shrink-0">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon">
-              <HelpCircle className="h-5 w-5 text-muted-foreground" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="left" className="max-w-[300px]">
-            <p>Precisa de ajuda? Clique para ver o guia completo de personalização do CRM.</p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute top-0 right-0 z-10"
+          >
+            <HelpCircle className="h-5 w-5 text-muted-foreground" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left" className="max-w-[300px]">
+          <p>{getHelpText()}</p>
+        </TooltipContent>
+      </Tooltip>
 
       <Card className="shadow-md border-primary/10 flex-1 min-h-0 flex flex-col">
         <DragDropContext onDragEnd={handleDragEnd}>
-          <Tabs defaultValue="entities" className="h-full flex flex-col">
+          <Tabs 
+            defaultValue="entities" 
+            className="h-full flex flex-col"
+            onValueChange={setActiveTab}
+          >
             <div className="px-6 pt-6 flex-shrink-0">
               <TabsList className="w-full justify-start bg-muted/30 p-1">
                 <TabsTrigger 
