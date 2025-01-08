@@ -38,6 +38,11 @@ export function CustomFieldsLayout() {
   });
 
   const handleSelectEntity = (entityId: string) => {
+    if (!entityId) {
+      toast.error("ID da entidade inválido");
+      return;
+    }
+    
     setSelectedEntityId(entityId);
     const entity = entities?.find(e => e.id === entityId);
     if (entity?.entity_fields) {
@@ -59,7 +64,10 @@ export function CustomFieldsLayout() {
   };
 
   const handleDeleteField = async (fieldId: string) => {
-    if (!selectedEntityId) return;
+    if (!selectedEntityId || !fieldId) {
+      toast.error("Dados inválidos para exclusão");
+      return;
+    }
     
     try {
       // Delete related records one by one
