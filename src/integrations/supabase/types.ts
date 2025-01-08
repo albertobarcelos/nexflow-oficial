@@ -1231,19 +1231,33 @@ export type Database = {
         }
         Returns: unknown
       }
-      search_related_records: {
-        Args: {
-          p_entity_id: string
-          p_search_term: string
-          p_page: number
-          p_page_size: number
-        }
-        Returns: {
-          record_id: string
-          display_value: string
-          total_count: number
-        }[]
-      }
+      search_related_records:
+        | {
+            Args: {
+              p_entity_id: string
+              p_page: number
+              p_page_size: number
+              p_search_term: string
+            }
+            Returns: {
+              record_id: string
+              display_value: string
+              total_count: number
+            }[]
+          }
+        | {
+            Args: {
+              p_entity_id: string
+              p_search_term: string
+              p_page: number
+              p_page_size: number
+            }
+            Returns: {
+              record_id: string
+              display_value: string
+              total_count: number
+            }[]
+          }
       set_limit: {
         Args: {
           "": number
