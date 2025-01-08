@@ -56,7 +56,7 @@ export function CustomFieldDropZone({
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                "p-4 min-h-[200px] max-h-[calc(100vh-35rem)]",
+                "p-4 min-h-[calc(100vh-35rem)] max-h-[calc(100vh-35rem)]",
                 snapshot.isDraggingOver && "bg-primary/5"
               )}
             >
