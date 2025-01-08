@@ -62,6 +62,15 @@ export function CustomFieldsLayout() {
     if (!selectedEntityId) return;
     
     try {
+      // First delete any related records in entity_field_relationships
+      const { error: relError } = await supabase
+        .from('entity_field_relationships')
+        .delete()
+        .eq('source_field_id', fieldId);
+
+      if (relError) throw relError;
+
+      // Then delete the field itself
       const { error } = await supabase
         .from('entity_fields')
         .delete()

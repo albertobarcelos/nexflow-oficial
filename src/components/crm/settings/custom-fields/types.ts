@@ -47,7 +47,6 @@ export interface LayoutConfig {
   width: 'full' | 'half' | 'third';
 }
 
-// Base interface for common field properties
 interface BaseField {
   id: string;
   client_id: string;
@@ -62,7 +61,6 @@ interface BaseField {
   layout_config: LayoutConfig;
 }
 
-// Entity fields
 export interface EntityField extends BaseField {
   entity_id: string;
   validation_rules?: Json;
@@ -72,7 +70,6 @@ export interface EntityField extends BaseField {
   staging_batch?: string;
 }
 
-// Custom fields for pipelines
 export interface CustomField extends BaseField {
   pipeline_id: string;
   stage_id: string;

@@ -7,9 +7,10 @@ interface StageDropZoneProps {
   stageId: string;
   fields: CustomField[];
   onEditField: (field: CustomField) => void;
+  onDeleteField?: (fieldId: string) => void;
 }
 
-export function StageDropZone({ stageId, fields, onEditField }: StageDropZoneProps) {
+export function StageDropZone({ stageId, fields, onEditField, onDeleteField }: StageDropZoneProps) {
   return (
     <Droppable droppableId={stageId}>
       {(provided, snapshot) => (
@@ -38,6 +39,7 @@ export function StageDropZone({ stageId, fields, onEditField }: StageDropZonePro
               field={field}
               index={index}
               onEdit={() => onEditField(field)}
+              onDelete={() => onDeleteField?.(field.id)}
             />
           ))}
           {provided.placeholder}
