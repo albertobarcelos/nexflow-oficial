@@ -103,7 +103,15 @@ export function CustomFieldsLayout() {
         layout_config: field.layout_config as unknown as Json
       }));
 
-      // Delete existing fields first to avoid order_index conflicts
+      // First delete any related records in entity_field_relationships for all fields
+      const { error: relError } = await supabase
+        .from('entity_field_relationships')
+        .delete()
+        .eq('source_field_id', fieldsToSave.map(f => f.id));
+
+      if (relError) throw relError;
+
+      // Then delete existing fields
       const { error: deleteError } = await supabase
         .from('entity_fields')
         .delete()
@@ -111,7 +119,7 @@ export function CustomFieldsLayout() {
 
       if (deleteError) throw deleteError;
 
-      // Insert new fields with updated order_index values
+      // Finally insert new fields
       const { error: insertError } = await supabase
         .from('entity_fields')
         .insert(fieldsToSave);
