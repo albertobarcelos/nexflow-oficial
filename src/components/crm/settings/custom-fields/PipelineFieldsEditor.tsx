@@ -80,6 +80,13 @@ export function PipelineFieldsEditor({
       ...field,
       pipeline_id: selectedPipeline || '',
       stage_id: stageId,
+      client_id: field.client_id || '',
+      id: field.id || '',
+      name: field.name || '',
+      field_type: field.field_type,
+      order_index: field.order_index,
+      created_at: field.created_at || new Date().toISOString(),
+      updated_at: field.updated_at || new Date().toISOString(),
       layout_config: field.layout_config || { width: 'full' }
     }));
     
