@@ -4,7 +4,7 @@ import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlignVerticalJustify, Eye, Grid, Save } from "lucide-react";
+import { AlignJustify, Eye, Grid, Save } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 import { FormPreviewDialog } from "./FormPreviewDialog";
@@ -40,7 +40,7 @@ export function CustomFieldDropZone({
         <div className="flex items-center gap-2">
           <ToggleGroup type="single" value={layout} onValueChange={(value: "vertical" | "horizontal") => setLayout(value)}>
             <ToggleGroupItem value="vertical" aria-label="Layout Vertical">
-              <AlignVerticalJustify className="h-4 w-4" />
+              <AlignJustify className="h-4 w-4" />
             </ToggleGroupItem>
             <ToggleGroupItem value="horizontal" aria-label="Layout Horizontal">
               <Grid className="h-4 w-4" />
