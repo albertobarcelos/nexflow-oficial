@@ -100,7 +100,7 @@ export function CustomFieldsLayout() {
         ...field,
         order_index: index,
         entity_id: selectedEntityId,
-        layout_config: field.layout_config as Json
+        layout_config: field.layout_config as unknown as Json
       }));
 
       // Delete existing fields first to avoid order_index conflicts
