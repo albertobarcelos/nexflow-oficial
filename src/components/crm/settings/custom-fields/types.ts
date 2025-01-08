@@ -43,6 +43,17 @@ export interface FieldHistory {
   }[];
 }
 
+export interface LayoutConfig {
+  width: 'full' | 'half' | 'third' | 'quarter';
+  forceNewLine: boolean;
+  groupWithNext: boolean;
+  responsiveBreakpoints: {
+    sm: 'stack' | 'maintain';
+    md: 'stack' | 'maintain';
+    lg: 'stack' | 'maintain';
+  };
+}
+
 export interface CustomField {
   id: string;
   client_id: string;
@@ -57,6 +68,7 @@ export interface CustomField {
   history?: FieldHistory[];
   created_at: string;
   updated_at: string;
+  layout_config?: LayoutConfig;
 }
 
 export interface EntityField {
