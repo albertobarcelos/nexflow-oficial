@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { fieldTypes } from "../data/fieldTypes";
-import { CustomField } from "../types";
+import { CustomField, EntityField } from "../types";
 import { toast } from "sonner";
 import { useState } from "react";
 
@@ -12,7 +12,7 @@ interface AddFieldDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedEntityId: string;
-  onAddField: (field: CustomField) => void;
+  onAddField: (field: EntityField) => void;
 }
 
 export function AddFieldDialog({ open, onOpenChange, selectedEntityId, onAddField }: AddFieldDialogProps) {
@@ -49,7 +49,7 @@ export function AddFieldDialog({ open, onOpenChange, selectedEntityId, onAddFiel
                 onClick={() => {
                   if (!selectedEntityId) return;
                   
-                  const newField: CustomField = {
+                  const newField: EntityField = {
                     id: crypto.randomUUID(),
                     name: fieldType.name,
                     field_type: fieldType.id,
@@ -57,11 +57,20 @@ export function AddFieldDialog({ open, onOpenChange, selectedEntityId, onAddFiel
                     is_required: false,
                     order_index: 0,
                     client_id: "",
-                    pipeline_id: selectedEntityId,
-                    stage_id: selectedEntityId,
+                    entity_id: selectedEntityId,
                     options: [],
                     created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    layout_config: {
+                      width: 'full',
+                      forceNewLine: false,
+                      groupWithNext: false,
+                      responsiveBreakpoints: {
+                        sm: 'stack',
+                        md: 'maintain',
+                        lg: 'maintain'
+                      }
+                    }
                   };
 
                   onAddField(newField);

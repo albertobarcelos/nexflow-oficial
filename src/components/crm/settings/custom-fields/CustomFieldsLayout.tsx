@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CustomField } from "./types";
+import { EntityField } from "./types";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import { Json } from "@/types/database/json";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [stagedFields, setStagedFields] = useState<Record<string, CustomField[]>>({});
+  const [stagedFields, setStagedFields] = useState<Record<string, EntityField[]>>({});
 
   const { data: entities, refetch } = useQuery({
     queryKey: ['entities'],
@@ -41,19 +41,10 @@ export function CustomFieldsLayout() {
     setSelectedEntityId(entityId);
     const entity = entities?.find(e => e.id === entityId);
     if (entity?.entity_fields) {
-      const mappedFields: CustomField[] = entity.entity_fields.map(field => ({
-        id: field.id,
-        name: field.name,
-        field_type: field.field_type as CustomField['field_type'],
-        description: field.description,
-        is_required: field.is_required,
-        order_index: field.order_index,
-        client_id: field.client_id,
-        entity_id: entityId,
-        options: field.options || [],
-        created_at: field.created_at || new Date().toISOString(),
-        updated_at: field.updated_at || new Date().toISOString(),
-        layout_config: field.layout_config ? field.layout_config as unknown as CustomField['layout_config'] : {
+      const mappedFields: EntityField[] = entity.entity_fields.map((field, index) => ({
+        ...field,
+        order_index: index,
+        layout_config: field.layout_config ? field.layout_config as unknown as EntityField['layout_config'] : {
           width: 'full',
           forceNewLine: false,
           groupWithNext: false,
@@ -78,8 +69,9 @@ export function CustomFieldsLayout() {
       const { error } = await supabase
         .from('entity_fields')
         .upsert(
-          stagedFields[selectedEntityId].map(field => ({
+          stagedFields[selectedEntityId].map((field, index) => ({
             ...field,
+            order_index: index,
             entity_id: selectedEntityId,
             layout_config: field.layout_config as unknown as Json
           }))

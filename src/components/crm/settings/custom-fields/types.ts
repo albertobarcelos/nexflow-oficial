@@ -54,7 +54,8 @@ export interface LayoutConfig {
   };
 }
 
-export interface CustomField {
+// Base interface for common field properties
+interface BaseField {
   id: string;
   client_id: string;
   name: string;
@@ -63,27 +64,25 @@ export interface CustomField {
   is_required?: boolean;
   order_index: number;
   options?: Json[];
-  history?: FieldHistory[];
   created_at: string;
   updated_at: string;
   layout_config?: LayoutConfig;
-  entity_id: string;
 }
 
-export interface EntityField {
-  id: string;
+// Custom fields for pipelines
+export interface CustomField extends BaseField {
+  pipeline_id: string;
+  stage_id: string;
+}
+
+// Entity fields
+export interface EntityField extends BaseField {
   entity_id: string;
-  client_id: string;
-  name: string;
-  field_type: string;
-  description?: string;
-  is_required?: boolean;
-  order_index: number;
-  options?: Json[];
   validation_rules?: Json;
-  created_at: string;
-  updated_at: string;
-  layout_config?: Json;
+  related_entity_id?: string;
+  relationship_type?: string;
+  is_staged?: boolean;
+  staging_batch?: string;
 }
 
 export interface FieldTemplate {
