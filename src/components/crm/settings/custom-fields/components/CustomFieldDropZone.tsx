@@ -49,14 +49,14 @@ export function CustomFieldDropZone({
         )}
       </div>
 
-      <ScrollArea className="flex-1 h-[calc(100vh-20rem)]">
+      <ScrollArea className="flex-1 overflow-y-auto">
         <Droppable droppableId={stageId} type="FIELD">
           {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
               className={cn(
-                "p-4 min-h-[200px]",
+                "p-4 min-h-[200px] max-h-[calc(100vh-16rem)]",
                 snapshot.isDraggingOver && "bg-primary/5"
               )}
             >
