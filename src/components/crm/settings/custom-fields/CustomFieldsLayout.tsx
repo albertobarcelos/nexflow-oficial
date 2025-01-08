@@ -103,13 +103,15 @@ export function CustomFieldsLayout() {
         layout_config: field.layout_config as unknown as Json
       }));
 
-      // First delete any related records in entity_field_relationships for all fields
-      const { error: relError } = await supabase
-        .from('entity_field_relationships')
-        .delete()
-        .eq('source_field_id', fieldsToSave.map(f => f.id));
+      // Delete related records one by one to avoid array parameter issues
+      for (const field of fieldsToSave) {
+        const { error: relError } = await supabase
+          .from('entity_field_relationships')
+          .delete()
+          .eq('source_field_id', field.id);
 
-      if (relError) throw relError;
+        if (relError) throw relError;
+      }
 
       // Then delete existing fields
       const { error: deleteError } = await supabase
