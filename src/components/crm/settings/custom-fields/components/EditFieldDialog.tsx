@@ -1,65 +1,55 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState, useEffect } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { CustomField, EntityField } from "../types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 interface EditFieldDialogProps {
-  field: CustomField | EntityField | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (field: CustomField | EntityField) => void;
+  field: EntityField | null;
+  onSave: (field: EntityField) => void;
 }
 
 export function EditFieldDialog({ field, open, onOpenChange, onSave }: EditFieldDialogProps) {
   const [editingField, setEditingField] = useState<CustomField | EntityField | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (field) {
-      setEditingField({ ...field });
+      form.reset({
+        name: field.name,
+        description: field.description || "",
+        field_type: field.field_type,
+        is_required: field.is_required,
+        options: field.options?.join(", ") || "",
+      });
     }
-  }, [field]);
+  }, [field, form]);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!editingField) return;
 
     try {
-      setIsSaving(true);
-
-      // Update the field in the database
-      const { error } = await supabase
-        .from('entity_fields')
-        .update({
-          name: editingField.name,
-          description: editingField.description,
-          is_required: editingField.is_required,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingField.id);
-
-      if (error) throw error;
-
       onSave(editingField);
       onOpenChange(false);
-      toast.success("Campo atualizado com sucesso!");
     } catch (error) {
       console.error("Error saving field:", error);
       toast.error("Erro ao salvar alterações no campo");
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  if (!editingField) return null;
+  const selectedFieldType = form.watch("field_type");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar Campo</DialogTitle>
         </DialogHeader>
@@ -93,8 +83,8 @@ export function EditFieldDialog({ field, open, onOpenChange, onSave }: EditField
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Salvando..." : "Salvar"}
+          <Button onClick={handleSave}>
+            Salvar
           </Button>
         </DialogFooter>
       </DialogContent>

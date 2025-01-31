@@ -1,6 +1,6 @@
 import { Users, Trash2, Check, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { getRolePermissions } from "@/lib/utils/roles";

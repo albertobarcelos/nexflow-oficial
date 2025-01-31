@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { LoginCredentials } from "@/types/auth";

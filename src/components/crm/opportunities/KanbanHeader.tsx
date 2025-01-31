@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Plus, List } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useState } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewOpportunityForm } from "./NewOpportunityForm";
 
 export function KanbanHeader() {
   const navigate = useNavigate();
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -20,7 +21,7 @@ export function KanbanHeader() {
             <List className="h-4 w-4 mr-2" />
             Visualizar Lista
           </Button>
-          <Dialog>
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
@@ -31,7 +32,7 @@ export function KanbanHeader() {
               <DialogHeader>
                 <DialogTitle>Nova Oportunidade</DialogTitle>
               </DialogHeader>
-              <NewOpportunityForm />
+              <NewOpportunityForm onSuccess={() => setIsOpen(false)} />
             </DialogContent>
           </Dialog>
         </div>

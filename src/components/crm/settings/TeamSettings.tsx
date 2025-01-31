@@ -4,7 +4,7 @@ import { UserPlus } from "lucide-react";
 import { AddCollaboratorDialog } from "@/components/collaborator/AddCollaboratorDialog";
 import { CollaboratorsList } from "@/components/client/license/CollaboratorsList";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 
 export function TeamSettings() {
   const { data: currentUser } = useQuery({

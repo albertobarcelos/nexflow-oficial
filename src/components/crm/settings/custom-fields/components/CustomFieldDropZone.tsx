@@ -4,11 +4,10 @@ import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlignJustify, Eye, Grid, Save } from "lucide-react";
+import { Grid, Plus, Save, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState } from "react";
 import { FormPreviewDialog } from "./FormPreviewDialog";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
 import { EditFieldDialog } from "./EditFieldDialog";
 
@@ -17,8 +16,9 @@ interface CustomFieldDropZoneProps {
   fields: (CustomField | EntityField)[];
   onEditField: (field: CustomField | EntityField) => void;
   onDeleteField: (fieldId: string) => void;
-  onSave?: () => void;
+  onSave: () => Promise<void>;
   hasChanges?: boolean;
+  onAddField?: () => void;
 }
 
 export function CustomFieldDropZone({ 
@@ -27,11 +27,13 @@ export function CustomFieldDropZone({
   onEditField,
   onDeleteField,
   onSave,
-  hasChanges 
+  hasChanges,
+  onAddField
 }: CustomFieldDropZoneProps) {
   const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | EntityField | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   
   const handleLayoutChange = async (fieldId: string, layoutConfig: any) => {
     try {
@@ -42,7 +44,6 @@ export function CustomFieldDropZone({
           layout_config: layoutConfig
         });
       }
-      toast.success('Layout atualizado com sucesso');
     } catch (error) {
       console.error('Erro ao atualizar layout:', error);
       toast.error('Erro ao atualizar layout');
@@ -51,7 +52,31 @@ export function CustomFieldDropZone({
 
   const handleDeleteField = (fieldId: string) => {
     onDeleteField(fieldId);
-    toast.success('Campo removido com sucesso');
+    toast.success('Campo removido. Clique em "Salvar Alterações" para confirmar.');
+  };
+
+  const handleEditField = (updatedField: CustomField | EntityField) => {
+    try {
+      onEditField(updatedField);
+      toast.success('Campo atualizado. Clique em "Salvar Alterações" para confirmar.');
+    } catch (error) {
+      console.error('Erro ao atualizar campo:', error);
+      toast.error('Erro ao atualizar campo');
+    }
+  };
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      await onSave();
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      toast.error('Erro ao salvar alterações');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -64,14 +89,17 @@ export function CustomFieldDropZone({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <ToggleGroup type="single" value={layout} onValueChange={(value: "vertical" | "horizontal") => setLayout(value)}>
-            <ToggleGroupItem value="vertical" aria-label="Layout Vertical">
-              <AlignJustify className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="horizontal" aria-label="Layout Horizontal">
-              <Grid className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
+          {onAddField && (
+            <Button
+              onClick={onAddField}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar Campo
+            </Button>
+          )}
 
           <Button 
             variant="outline"
@@ -79,18 +107,28 @@ export function CustomFieldDropZone({
             onClick={() => setIsPreviewOpen(true)}
             className="gap-2"
           >
-            <Eye className="h-4 w-4" />
+            <Grid className="h-4 w-4" />
             Preview
           </Button>
 
-          {hasChanges && onSave && (
+          {hasChanges && (
             <Button 
-              onClick={onSave}
+              onClick={handleSave}
               size="sm"
               className="gap-2"
+              disabled={isSaving}
             >
-              <Save className="h-4 w-4" />
-              Salvar Alterações
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  Salvar Alterações
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -107,22 +145,25 @@ export function CustomFieldDropZone({
                 snapshot.isDraggingOver && "bg-primary/5"
               )}
             >
-              <div className={cn(
-                "space-y-2",
-                layout === "horizontal" && "grid grid-cols-2 gap-2 space-y-0"
-              )}>
-                {fields.map((field, index) => (
-                  <FieldCard
-                    key={field.id}
-                    field={field}
-                    index={index}
-                    onEdit={() => setEditingField(field)}
-                    onDelete={() => handleDeleteField(field.id)}
-                    onLayoutChange={(layoutConfig) => handleLayoutChange(field.id, layoutConfig)}
-                  />
-                ))}
+              <div className="flex flex-wrap gap-4">
+                {fields.map((field, index) => {
+                  const width = field.layout_config?.width || 'full';
+                  const widthClass = width === 'full' ? 'w-full' : width === 'half' ? 'w-[calc(50%-0.5rem)]' : 'w-[calc(33.33%-0.67rem)]';
+                  
+                  return (
+                    <div key={field.id} className={cn(widthClass, "transition-all duration-200")}>
+                      <FieldCard
+                        field={field}
+                        index={index}
+                        onEdit={() => setEditingField(field)}
+                        onDelete={() => handleDeleteField(field.id)}
+                        onLayoutChange={(config) => handleLayoutChange(field.id, config)}
+                      />
+                    </div>
+                  );
+                })}
                 {fields.length === 0 && !snapshot.isDraggingOver && (
-                  <div className="flex h-[200px] items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
+                  <div className="flex h-[200px] w-full items-center justify-center rounded-lg border-2 border-dashed border-primary/20 bg-muted/50">
                     <p className="text-sm text-muted-foreground">
                       Arraste os tipos de campo acima para começar a montar a estrutura
                     </p>
@@ -146,11 +187,7 @@ export function CustomFieldDropZone({
         field={editingField}
         open={!!editingField}
         onOpenChange={(open) => !open && setEditingField(null)}
-        onSave={(updatedField) => {
-          onEditField(updatedField);
-          setEditingField(null);
-          toast.success('Campo atualizado com sucesso');
-        }}
+        onSave={handleEditField}
       />
     </Card>
   );

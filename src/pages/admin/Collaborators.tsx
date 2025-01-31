@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { CollaboratorsTable } from "@/components/collaborator/CollaboratorsTable";
 import { AddCollaboratorDialog } from "@/components/collaborator/AddCollaboratorDialog";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Collaborator } from "@/types/database";
 
 export default function Collaborators() {

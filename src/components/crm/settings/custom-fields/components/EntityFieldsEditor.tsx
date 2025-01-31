@@ -1,106 +1,46 @@
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { EntityField } from "../types";
-import { CustomFieldDropZone } from "./CustomFieldDropZone";
 import { useState } from "react";
-import { AddFieldDialog } from "./AddFieldDialog";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCustomFields } from "@/hooks/useCustomFields";
+import { AddCustomFieldDialog } from "../../entities/components/AddCustomFieldDialog";
+import { CustomFieldsList } from "./CustomFieldsList";
 
 interface EntityFieldsEditorProps {
-  selectedEntityId: string | null;
-  stagedFields: Record<string, EntityField[]>;
-  setStagedFields: (fields: Record<string, EntityField[]>) => void;
-  onSave: () => Promise<void>;
-  onDeleteField: (fieldId: string) => void;
+  entityType: "companies" | "contacts" | "partners";
 }
 
-export function EntityFieldsEditor({ 
-  selectedEntityId, 
-  stagedFields, 
-  setStagedFields,
-  onSave,
-  onDeleteField
-}: EntityFieldsEditorProps) {
-  const [isAddFieldOpen, setIsAddFieldOpen] = useState(false);
+export function EntityFieldsEditor({ entityType }: EntityFieldsEditorProps) {
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const { fields, isLoading } = useCustomFields(entityType);
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || !selectedEntityId) return;
-
-    const currentFields = stagedFields[selectedEntityId] || [];
-    const items = Array.from(currentFields);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    const updatedFields = items.map((field, index) => ({
-      ...field,
-      order_index: index
-    }));
-
-    setStagedFields({
-      ...stagedFields,
-      [selectedEntityId]: updatedFields
-    });
-  };
-
-  const handleAddField = (newField: EntityField) => {
-    if (!selectedEntityId) return;
-    
-    const currentFields = stagedFields[selectedEntityId] || [];
-    newField.order_index = currentFields.length;
-    
-    setStagedFields({
-      ...stagedFields,
-      [selectedEntityId]: [...currentFields, newField]
-    });
-  };
+  if (isLoading) {
+    return <div>Carregando...</div>;
+  }
 
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <AnimatePresence>
-        {selectedEntityId && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            <Button
-              onClick={() => setIsAddFieldOpen(true)}
-              className="gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Adicionar Campo
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="flex-1 min-h-0">
-        {selectedEntityId ? (
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <CustomFieldDropZone
-              stageId={selectedEntityId}
-              fields={stagedFields[selectedEntityId] || []}
-              onEditField={(field) => {
-                console.log('✏️ Editing field:', field);
-              }}
-              onDeleteField={onDeleteField}
-              onSave={onSave}
-              hasChanges={stagedFields[selectedEntityId]?.length > 0}
-            />
-          </DragDropContext>
-        ) : (
-          <div className="flex items-center justify-center text-muted-foreground h-full">
-            <p>Selecione uma entidade para começar a editar seus campos</p>
-          </div>
-        )}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold">Campos Personalizados</h2>
+          <p className="text-sm text-muted-foreground">
+            Gerencie os campos personalizados desta entidade
+          </p>
+        </div>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar Campo
+        </Button>
       </div>
 
-      <AddFieldDialog
-        open={isAddFieldOpen}
-        onOpenChange={setIsAddFieldOpen}
-        selectedEntityId={selectedEntityId!}
-        onAddField={handleAddField}
+      <ScrollArea className="h-[500px] pr-4">
+        <CustomFieldsList fields={fields} entityType={entityType} />
+      </ScrollArea>
+
+      <AddCustomFieldDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        entityType={entityType}
       />
     </div>
   );

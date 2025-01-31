@@ -9,7 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PlusCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { AddCollaboratorForm } from "@/components/client/license/AddCollaboratorForm";
 import { CollaboratorFormData } from "@/lib/validations/collaborator";
 import { getRolePermissions } from "@/lib/utils/roles";

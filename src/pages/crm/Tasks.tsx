@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DragDropContext } from '@hello-pangea/dnd';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Plus, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';

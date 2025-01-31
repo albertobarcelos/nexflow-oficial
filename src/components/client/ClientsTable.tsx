@@ -4,7 +4,7 @@ import { Edit2, XCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Client } from "@/types/database";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ClientsTableProps {

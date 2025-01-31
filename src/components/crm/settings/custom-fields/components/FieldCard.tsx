@@ -1,7 +1,7 @@
 import { Draggable } from "@hello-pangea/dnd";
 import { CustomField, EntityField } from "../types";
 import { Button } from "@/components/ui/button";
-import { Edit2, GripVertical, LayoutGrid, Trash2 } from "lucide-react";
+import { Edit2, GripVertical, LayoutGrid, Trash2, MoreVertical, Pencil, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   DropdownMenu,
@@ -50,12 +50,10 @@ export function FieldCard({ field, index, onEdit, onDelete, onLayoutChange }: Fi
           ref={provided.innerRef}
           {...provided.draggableProps}
           className={cn(
-            "mb-2 rounded-lg border bg-card p-3",
+            "rounded-lg border bg-card p-3 h-full",
             "hover:border-primary/20 hover:shadow-sm",
             "transition-all duration-200",
-            snapshot.isDragging && "border-primary/30 shadow-md",
-            layoutConfig.width === 'half' && "w-1/2",
-            layoutConfig.width === 'third' && "w-1/3"
+            snapshot.isDragging && "border-primary/30 shadow-md"
           )}
         >
           <div className="flex items-center gap-3">
@@ -112,23 +110,30 @@ export function FieldCard({ field, index, onEdit, onDelete, onLayoutChange }: Fi
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onEdit}
-              className="h-8 w-8"
-            >
-              <Edit2 className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onDelete}
-              className="h-8 w-8 text-destructive hover:text-destructive/90"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit?.(field)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onDelete?.(field.id)}
+                  className="text-destructive"
+                >
+                  <Trash className="mr-2 h-4 w-4" />
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       )}

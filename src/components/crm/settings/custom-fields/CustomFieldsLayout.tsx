@@ -1,186 +1,72 @@
 import { useState } from "react";
 import { EntityField } from "./types";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Entity } from "../entities/types";
+import { supabase } from "@/lib/supabase";
 import { EntitySelector } from "./components/EntitySelector";
 import { EntityFieldsEditor } from "./components/EntityFieldsEditor";
-import { Json } from "@/types/database/json";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCustomFields } from "@/hooks/useCustomFields";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [stagedFields, setStagedFields] = useState<Record<string, EntityField[]>>({});
-
-  const { data: entities, refetch } = useQuery({
-    queryKey: ['entities'],
-    queryFn: async () => {
-      const { data: collaborator } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .maybeSingle();
-
-      if (!collaborator) throw new Error('Collaborator not found');
-
-      const { data, error } = await supabase
-        .from('custom_entities')
-        .select(`
-          *,
-          entity_fields!entity_fields_entity_id_fkey(*)
-        `)
-        .eq('client_id', collaborator.client_id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Entity[];
-    }
-  });
+  const { fields, isLoading, updateFields } = useCustomFields(selectedEntityId);
 
   const handleSelectEntity = (entityId: string) => {
-    if (!entityId || entityId.trim() === '') {
-      toast.error("ID da entidade inválido");
-      return;
-    }
-    
     setSelectedEntityId(entityId);
-    const entity = entities?.find(e => e.id === entityId);
-    if (entity?.entity_fields) {
-      const mappedFields: EntityField[] = entity.entity_fields.map((field, index) => ({
-        ...field,
-        field_type: field.field_type as EntityField['field_type'],
-        order_index: index,
-        created_at: field.created_at || new Date().toISOString(),
-        updated_at: field.updated_at || new Date().toISOString(),
-        layout_config: field.layout_config || {
-          width: 'full'
-        }
-      }));
-
-      setStagedFields({
-        [entityId]: mappedFields
-      });
-    }
   };
 
-  const handleDeleteField = async (fieldId: string) => {
-    if (!selectedEntityId || !fieldId) {
-      toast.error("Dados inválidos para exclusão");
-      return;
-    }
-
-    toast.promise(
-      async () => {
-        const { error: relError } = await supabase
-          .from('entity_field_relationships')
-          .delete()
-          .eq('source_field_id', fieldId);
-
-        if (relError) throw relError;
-
-        const { error } = await supabase
-          .from('entity_fields')
-          .delete()
-          .eq('id', fieldId);
-
-        if (error) throw error;
-
-        const updatedFields = stagedFields[selectedEntityId].filter(f => f.id !== fieldId);
-        setStagedFields({
-          ...stagedFields,
-          [selectedEntityId]: updatedFields
-        });
-        
-        await refetch();
-      },
-      {
-        loading: 'Removendo campo...',
-        success: 'Campo removido com sucesso!',
-        error: 'Erro ao remover campo'
-      }
-    );
-  };
-
-  const handleSave = async () => {
+  const handleSave = async (updatedFields: EntityField[]) => {
     if (!selectedEntityId) {
       toast.error("Nenhuma entidade selecionada");
       return;
     }
 
-    toast.promise(
-      async () => {
-        const { data: collaborator } = await supabase
-          .from('collaborators')
-          .select('client_id')
-          .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-          .maybeSingle();
-
-        if (!collaborator) {
-          throw new Error("Colaborador não encontrado");
-        }
-
-        const fieldsToSave = stagedFields[selectedEntityId].map((field, index) => ({
-          ...field,
-          client_id: collaborator.client_id,
-          order_index: index,
-          entity_id: selectedEntityId,
-          layout_config: field.layout_config as unknown as Json
-        }));
-
-        // Delete existing fields and relationships
-        for (const field of fieldsToSave) {
-          if (!field.id) continue;
-          
-          const { error: relError } = await supabase
-            .from('entity_field_relationships')
-            .delete()
-            .eq('source_field_id', field.id);
-
-          if (relError) throw relError;
-        }
-
-        const { error: deleteError } = await supabase
-          .from('entity_fields')
-          .delete()
-          .eq('entity_id', selectedEntityId);
-
-        if (deleteError) throw deleteError;
-
-        // Insert new fields
-        const { error: insertError } = await supabase
-          .from('entity_fields')
-          .insert(fieldsToSave);
-
-        if (insertError) throw insertError;
-        
-        await refetch();
-      },
-      {
-        loading: 'Salvando alterações...',
-        success: () => {
-          const fieldCount = stagedFields[selectedEntityId]?.length || 0;
-          return `Alterações salvas com sucesso! ${fieldCount} campos configurados.`;
-        },
-        error: (err) => `Erro ao salvar alterações: ${err.message}`
-      }
-    );
+    try {
+      await updateFields(updatedFields);
+      toast.success("Campos atualizados com sucesso!");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao atualizar campos");
+    }
   };
 
   return (
-    <div className="grid grid-cols-[250px_1fr] gap-4 h-full">
-      <EntitySelector
-        entities={entities}
-        selectedEntityId={selectedEntityId}
-        onSelectEntity={handleSelectEntity}
-      />
+    <div className="container mx-auto py-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Configuração de Campos</h1>
+        <p className="text-muted-foreground">
+          Personalize os campos para cada tipo de entidade no sistema.
+        </p>
+      </div>
 
-      <EntityFieldsEditor
-        selectedEntityId={selectedEntityId}
-        stagedFields={stagedFields}
-        setStagedFields={setStagedFields}
-        onSave={handleSave}
-        onDeleteField={handleDeleteField}
-      />
+      <div className="grid grid-cols-[300px_1fr] gap-6">
+        <EntitySelector
+          selectedEntityId={selectedEntityId}
+          onSelectEntity={handleSelectEntity}
+        />
+
+        {selectedEntityId ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Campos Personalizados</CardTitle>
+              <CardDescription>
+                Adicione, remova e organize os campos personalizados para esta entidade.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <EntityFieldsEditor
+                entityId={selectedEntityId}
+                fields={fields}
+                isLoading={isLoading}
+                onSave={handleSave}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="flex items-center justify-center h-[500px] text-muted-foreground">
+            Selecione uma entidade para começar a editar seus campos
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

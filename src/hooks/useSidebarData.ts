@@ -1,6 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { CustomEntity } from "@/types/database/entity";
+import { supabase } from "@/lib/supabase";
+import { Building2, Contact, Users } from "lucide-react";
+
+const FIXED_ENTITIES = [
+  {
+    id: "companies",
+    name: "Empresas",
+    icon: Building2,
+    description: "Gerencie suas empresas e seus dados"
+  },
+  {
+    id: "people",
+    name: "Pessoas",
+    icon: Contact,
+    description: "Gerencie seus contatos e relacionamentos"
+  },
+  {
+    id: "partners",
+    name: "Parceiros",
+    icon: Users,
+    description: "Gerencie seus parceiros de negócio"
+  }
+] as const;
 
 export function useSidebarData() {
   const { data: collaborator } = useQuery({
@@ -33,24 +54,9 @@ export function useSidebarData() {
     },
   });
 
-  const { data: customEntities = [] } = useQuery({
-    queryKey: ['custom-entities', collaborator?.client_id],
-    enabled: !!collaborator?.client_id,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('custom_entities')
-        .select('*')
-        .eq('client_id', collaborator.client_id)
-        .order('created_at');
-
-      if (error) throw error;
-      return data as CustomEntity[];
-    },
-  });
-
   return {
     collaborator,
     pipelines,
-    customEntities
+    entities: FIXED_ENTITIES
   };
 }

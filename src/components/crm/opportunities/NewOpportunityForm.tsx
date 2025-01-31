@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { useParams } from "react-router-dom";
 import { CustomField } from "../settings/custom-fields/types";
 import { CustomFieldRenderer } from "./CustomFieldRenderer";
 import { OpportunityFormData } from "./types";
 
-export function NewOpportunityForm() {
+export function NewOpportunityForm({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { pipelineId } = useParams();
@@ -94,6 +94,7 @@ export function NewOpportunityForm() {
       });
 
       reset();
+      onSuccess?.();
     } catch (error) {
       console.error('Error creating opportunity:', error);
       toast({

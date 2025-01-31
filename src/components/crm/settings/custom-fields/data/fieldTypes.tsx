@@ -2,7 +2,7 @@ import {
   Type, AlignLeft, FileText, Paperclip, CheckSquare, 
   User, Calendar, Clock, Tag, Mail, Phone, List, 
   Radio, Timer, Hash, DollarSign, File, Fingerprint,
-  Search, CreditCard, Link
+  Search, CreditCard, Link, MapPin, Building2
 } from "lucide-react";
 import { FieldTypeInfo } from "../types";
 
@@ -37,26 +37,49 @@ export const fieldTypes: FieldTypeInfo[] = [
     description: "Campo formatado para celular",
     icon: <Phone className="w-4 h-4" />,
     category: "contact",
-    validation: (value) => /^\(\d{2}\)\s\d{5}-\d{4}$/.test(value),
-    mask: "(99) 99999-9999"
+    validation: (value) => {
+      // Aceita formatos (99) 99999-9999 ou (99) 9999-9999
+      const celularRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
+      return celularRegex.test(value);
+    },
+    mask: (value) => {
+      if (!value) return "";
+      // Remove todos os caracteres não numéricos
+      const numbers = value.replace(/\D/g, "");
+      
+      // Se tiver 11 dígitos (com 9 na frente)
+      if (numbers.length === 11) {
+        return numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+      }
+      
+      // Se tiver 10 dígitos (formato antigo)
+      return numbers.replace(/(\d{2})(\d{4})(\d{4})/, "($1) $2-$3");
+    }
   },
   {
-    id: "cpf",
-    name: "CPF",
-    description: "Campo formatado para CPF",
+    id: "document",
+    name: "Documento",
+    description: "Campo formatado para CPF ou CNPJ",
     icon: <CreditCard className="w-4 h-4" />,
     category: "document",
-    validation: (value) => /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(value),
-    mask: "999.999.999-99"
-  },
-  {
-    id: "cnpj",
-    name: "CNPJ",
-    description: "Campo formatado para CNPJ",
-    icon: <CreditCard className="w-4 h-4" />,
-    category: "document",
-    validation: (value) => /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(value),
-    mask: "99.999.999/9999-99"
+    validation: (value) => {
+      const cpfRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/;
+      const cnpjRegex = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/;
+      return cpfRegex.test(value) || cnpjRegex.test(value);
+    },
+    mask: (value) => {
+      if (!value) return "";
+      // Remove todos os caracteres não numéricos
+      const numbers = value.replace(/\D/g, "");
+      
+      // Aplica máscara de CPF se tiver 11 dígitos
+      if (numbers.length <= 11) {
+        return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+      }
+      
+      // Aplica máscara de CNPJ se tiver mais de 11 dígitos
+      return numbers.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    }
   },
   // Financeiro
   {
@@ -150,6 +173,64 @@ export const fieldTypes: FieldTypeInfo[] = [
     description: "Selecionar um usuário do sistema",
     icon: <User className="w-4 h-4" />,
     category: "other"
+  },
+  // Campos de Endereço
+  {
+    id: "state_select",
+    name: "Estado",
+    description: "Campo de seleção de estado",
+    icon: <MapPin className="w-4 h-4" />,
+    category: "contact",
+    validation: (value) => typeof value === "string" && value.length > 0
+  },
+  {
+    id: "city_select",
+    name: "Cidade",
+    description: "Campo de seleção de cidade (requer campo de Estado)",
+    icon: <Building2 className="w-4 h-4" />,
+    category: "contact",
+    validation: (value) => typeof value === "string" && value.length > 0,
+    dependsOn: "state_select"
+  },
+  {
+    id: "street",
+    name: "Rua/Avenida",
+    description: "Nome da rua ou avenida",
+    icon: <MapPin className="w-4 h-4" />,
+    category: "contact",
+    validation: (value) => typeof value === "string" && value.length > 0
+  },
+  {
+    id: "neighborhood",
+    name: "Bairro",
+    description: "Nome do bairro",
+    icon: <MapPin className="w-4 h-4" />,
+    category: "contact",
+    validation: (value) => typeof value === "string" && value.length > 0
+  },
+  {
+    id: "complement",
+    name: "Complemento",
+    description: "Complemento do endereço (opcional)",
+    icon: <MapPin className="w-4 h-4" />,
+    category: "contact"
+  },
+  {
+    id: "number",
+    name: "Número",
+    description: "Número do endereço",
+    icon: <MapPin className="w-4 h-4" />,
+    category: "contact",
+    validation: (value) => typeof value === "string" && value.length > 0
+  },
+  {
+    id: "zip_code",
+    name: "CEP",
+    description: "Código postal",
+    icon: <MapPin className="w-4 h-4" />,
+    category: "contact",
+    validation: (value) => /^\d{5}-?\d{3}$/.test(value.replace(/\D/g, '')),
+    mask: (value) => value.replace(/\D/g, '').replace(/(\d{5})(\d{3})/, '$1-$2')
   }
 ];
 

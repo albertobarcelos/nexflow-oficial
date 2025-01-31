@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { DragDropContext } from '@hello-pangea/dnd';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { KanbanHeader } from '@/components/crm/opportunities/KanbanHeader';
 import { KanbanColumn } from '@/components/crm/opportunities/KanbanColumn';

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { LicenseDialog } from "@/components/admin/licenses/LicenseDialog";
 import { LicensesTable } from "@/components/admin/licenses/LicensesTable";
 import type { License } from "@/types/database";

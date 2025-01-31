@@ -1,10 +1,12 @@
+'use client';
+
 import { useEffect, useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
+import { Sidebar } from "@/components/crm/sidebar/Sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default function CRMLayout() {
   const navigate = useNavigate();
@@ -15,18 +17,11 @@ export default function CRMLayout() {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
-      
       if (event === 'SIGNED_OUT' || !session) {
         navigate("/crm/login");
         return;
       }
 
-      if (event === 'TOKEN_REFRESHED') {
-        console.log("Token refreshed successfully");
-      }
-
-      // Handle auth errors
       if (event === 'USER_UPDATED' && !session) {
         toast({
           title: "Sessão expirada",
@@ -47,7 +42,8 @@ export default function CRMLayout() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        throw new Error('No session found');
+        navigate("/crm/login");
+        return;
       }
 
       const { data: collaboratorData, error: collaboratorError } = await supabase
@@ -63,10 +59,10 @@ export default function CRMLayout() {
 
       if (!collaboratorData) {
         console.error('User is not a collaborator');
-        throw new Error('Unauthorized');
+        navigate("/crm/login");
+        return;
       }
 
-      // If we get here, the user is authenticated and authorized
       setLoading(false);
 
     } catch (error) {
@@ -84,13 +80,17 @@ export default function CRMLayout() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <CRMSidebar />
-        <main className="flex-1 p-6 overflow-auto">
-          <Outlet />
-        </main>
+    <TooltipProvider>
+      <div className="min-h-screen">
+        <div className="flex flex-col">
+          <div className="h-14 bg-[#212040]">
+            <Sidebar />
+          </div>
+          <main className="p-6">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </SidebarProvider>
+    </TooltipProvider>
   );
 }

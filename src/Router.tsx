@@ -1,55 +1,144 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import AdminLayout from "@/layouts/AdminLayout";
+import { createBrowserRouter, RouterProvider, Route, Navigate } from "react-router-dom";
+import { SelectPortal } from "@/pages/SelectPortal";
 import CRMLayout from "@/layouts/CRMLayout";
-import Dashboard from "@/pages/crm/Dashboard";
-import OpportunitiesKanban from "@/pages/crm/OpportunitiesKanban";
-import OpportunitiesList from "@/pages/crm/OpportunitiesList";
+import { Dashboard } from "@/pages/crm/Dashboard";
+import { CompaniesPage } from "@/features/companies/pages/CompaniesPage";
+import { PeoplePage } from "@/pages/crm/people/PeoplePage";
+import { AddPersonPage } from "@/pages/crm/people/AddPersonPage";
+import { EditPersonPage } from "@/pages/crm/people/EditPersonPage";
+import { PartnersPage } from "@/pages/crm/partners/PartnersPage";
+import { AddPartnerPage } from "@/pages/crm/partners/AddPartnerPage";
+import PartnerDetailsPage from "@/pages/crm/partners/PartnerDetailsPage";
+import { Settings } from "@/pages/crm/settings/Settings";
+import { CustomFieldsSettings } from "@/pages/crm/settings/CustomFieldsSettings";
+import { PipelineSettings } from "@/components/crm/settings/pipeline/PipelineSettings";
 import Tasks from "@/pages/crm/Tasks";
-import Settings from "@/pages/crm/Settings";
-import CRMLogin from "@/pages/crm/CRMLogin";
-import AdminLogin from "@/pages/admin/AdminLogin";
-import AdminDashboard from "@/pages/admin/Dashboard";
-import AdminClients from "@/pages/admin/Clients";
-import ClientForm from "@/pages/admin/ClientForm";
-import AdminReports from "@/pages/admin/Reports";
-import AdminUsers from "@/pages/admin/Users";
-import AdminAnalytics from "@/pages/admin/Analytics";
-import AdminSettings from "@/pages/admin/Settings";
-import Index from "@/pages/Index";
-import SetPassword from "@/pages/collaborator/SetPassword";
-import EntityView from "@/pages/crm/EntityView";
+import TasksList from "@/pages/crm/TasksList";
+import FunnelPage from "@/pages/crm/funnels/FunnelPage";
 
-export function Router() {
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      
-      {/* Admin Routes */}
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin" element={<AdminLayout />}>
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="clients" element={<AdminClients />} />
-        <Route path="clients/new" element={<ClientForm />} />
-        <Route path="clients/:id" element={<ClientForm />} />
-        <Route path="reports" element={<AdminReports />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="analytics" element={<AdminAnalytics />} />
-        <Route path="settings" element={<AdminSettings />} />
-      </Route>
-      
-      {/* CRM Routes */}
-      <Route path="/crm/login" element={<CRMLogin />} />
-      <Route path="/crm" element={<CRMLayout />}>
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="opportunities/kanban" element={<OpportunitiesKanban />} />
-        <Route path="opportunities/list" element={<OpportunitiesList />} />
-        <Route path="tasks" element={<Tasks />} />
-        <Route path="settings/*" element={<Settings />} />
-        <Route path="entities/:id" element={<EntityView />} />
-      </Route>
+// Auth Pages
+import { LoginPage as CRMLoginPage } from "@/pages/auth/crm/LoginPage";
+import { LoginPage as AdminLoginPage } from "@/pages/auth/admin/LoginPage";
+import { LoginPage as PartnerLoginPage } from "@/pages/auth/partner/LoginPage";
 
-      {/* Collaborator Routes */}
-      <Route path="/collaborator/set-password" element={<SetPassword />} />
-    </Routes>
-  );
+const routes = [
+  // Portal Selection
+  {
+    path: "/",
+    element: <SelectPortal />,
+  },
+
+  // Auth Routes
+  {
+    path: "/admin/login",
+    element: <AdminLoginPage />,
+  },
+  {
+    path: "/crm/login",
+    element: <CRMLoginPage />,
+  },
+  {
+    path: "/partner/login",
+    element: <PartnerLoginPage />,
+  },
+
+  // CRM Routes
+  {
+    path: "/crm",
+    element: <CRMLayout />,
+    children: [
+      {
+        index: true,
+        element: <Dashboard />,
+      },
+      {
+        path: "dashboard",
+        element: <Navigate to="/crm" replace />,
+      },
+
+      // Settings
+      {
+        path: "settings",
+        element: <Settings />,
+        children: [
+          {
+            index: true,
+            element: <div>Selecione uma configuração</div>,
+          },
+          {
+            path: "custom-fields",
+            element: <CustomFieldsSettings />,
+          },
+          {
+            path: "pipeline",
+            element: <PipelineSettings />,
+          },
+        ],
+      },
+
+      // Companies
+      {
+        path: "companies",
+        element: <CompaniesPage />,
+      },
+
+      // People
+      {
+        path: "people",
+        element: <PeoplePage />,
+      },
+      {
+        path: "people/add",
+        element: <AddPersonPage />,
+      },
+      {
+        path: "people/:id/edit",
+        element: <EditPersonPage />,
+      },
+
+      // Partners
+      {
+        path: "partners",
+        element: <PartnersPage />,
+      },
+      {
+        path: "partners/add",
+        element: <AddPartnerPage />,
+      },
+      {
+        path: "partners/:id",
+        element: <PartnerDetailsPage />,
+      },
+
+      // Tasks
+      {
+        path: "tasks",
+        element: <Tasks />,
+      },
+      {
+        path: "tasks/list",
+        element: <TasksList />,
+      },
+
+      // Funnels
+      {
+        path: "funnels/default",
+        element: <FunnelPage />,
+      },
+      {
+        path: "funnels/:id",
+        element: <FunnelPage />,
+      },
+    ],
+  },
+];
+
+const router = createBrowserRouter(routes, {
+  future: {
+    v7_startTransition: true,
+  },
+});
+
+export function AppRouter() {
+  return <RouterProvider router={router} />;
 }

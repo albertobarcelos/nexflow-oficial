@@ -1,64 +1,89 @@
-import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { useSidebar } from "@/components/ui/sidebar";
-import { Menu } from "lucide-react";
-import { useEntityNames } from "@/hooks/useEntityNames";
+import { useNavigate } from "react-router-dom";
+import { LogOut, Building2, Users } from "lucide-react";
+import { useSidebar } from "@/hooks/useSidebar";
 import { useSidebarData } from "@/hooks/useSidebarData";
+import { Button } from "@/components/ui/button";
+import { EntitiesMenu } from "./sidebar/EntitiesMenu";
+import { PipelinesMenu } from "./sidebar/PipelinesMenu";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
-import { MainMenuItems } from "./sidebar/MainMenuItems";
-import { CustomEntitiesMenu } from "./sidebar/CustomEntitiesMenu";
-import { SidebarLogoutButton } from "./sidebar/SidebarLogoutButton";
+import { SidebarMenuItem } from "./sidebar/SidebarMenuItem";
 
 export function CRMSidebar() {
-  const { state, setOpen, isMobile } = useSidebar();
-  const [showPipelineSelector, setShowPipelineSelector] = useState(false);
-  const { leadSingular, leadPlural } = useEntityNames();
-  const { pipelines = [], customEntities = [] } = useSidebarData();
+  const navigate = useNavigate();
+  const { isOpen } = useSidebar();
+  const { pipelines, entities } = useSidebarData();
 
   return (
-    <>
-      <div
-        className={cn(
-          "fixed inset-0 z-20 bg-black/80 lg:hidden",
-          state === "expanded" ? "block" : "hidden"
-        )}
-        onClick={() => setOpen(false)}
-      />
+    <aside
+      className={`fixed left-0 top-0 z-40 h-screen w-64 -translate-x-full border-r border-border bg-background transition-transform ${
+        isOpen ? "translate-x-0" : ""
+      }`}
+    >
+      <div className="flex h-full flex-col overflow-y-auto">
+        <SidebarHeader />
 
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 z-20 flex h-screen w-64 flex-col bg-white transition-transform duration-300 lg:static lg:translate-x-0 dark:bg-gray-900",
-          state === "expanded" ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <SidebarHeader onClose={() => setOpen(false)} />
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          <SidebarMenuItem
+            title="Dashboard"
+            href="/crm/dashboard"
+            icon={LogOut}
+            onClick={() => navigate("/crm/dashboard")}
+          />
 
-        <div className="flex-1 overflow-auto">
-          <nav className="flex-1 space-y-1 p-2">
-            <MainMenuItems 
-              showPipelineSelector={showPipelineSelector}
-              setShowPipelineSelector={setShowPipelineSelector}
-              pipelines={pipelines}
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Oportunidades
+            </span>
+
+            <PipelinesMenu pipelines={pipelines} />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Entidades
+            </span>
+
+            <EntitiesMenu entities={entities} />
+          </div>
+
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Empresas
+            </span>
+
+            <SidebarMenuItem
+              title="Empresas"
+              href="/crm/companies"
+              icon={Building2}
+              onClick={() => navigate("/crm/companies")}
             />
+          </div>
 
-            <div className="my-4 border-t border-gray-200 dark:border-gray-700" />
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Pessoas
+            </span>
 
-            <CustomEntitiesMenu entities={customEntities} />
-          </nav>
+            <SidebarMenuItem
+              title="Pessoas"
+              href="/crm/people"
+              icon={Users}
+              onClick={() => navigate("/crm/people")}
+            />
+          </div>
         </div>
 
-        <SidebarLogoutButton />
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-2"
+            onClick={() => navigate("/auth/logout")}
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </Button>
+        </div>
       </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-3 left-4 z-30 lg:hidden"
-        onClick={() => setOpen(state !== "expanded")}
-      >
-        <Menu className="h-6 w-6" />
-      </Button>
-    </>
+    </aside>
   );
 }
