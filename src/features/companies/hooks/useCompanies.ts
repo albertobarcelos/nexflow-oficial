@@ -12,8 +12,13 @@ export interface CompanyFormData {
   name: string;
   razao_social?: string | null;
   cnpj?: string | null;
-  state_id: string;
-  city_id: string;
+  state_id?: string | null;
+  city_id?: string | null;
+  company_type: string;
+  email?: string | null;
+  whatsapp?: string | null;
+  celular?: string | null;
+  instagram?: string | null;
   address?: {
     cep?: string | null;
     rua?: string | null;
@@ -48,6 +53,11 @@ export function useCompanies(filters?: { search?: string }) {
           razao_social,
           cnpj,
           client_id,
+          company_type,
+          email,
+          whatsapp,
+          celular,
+          instagram,
           cep,
           rua,
           numero,
@@ -101,15 +111,42 @@ export function useCompanies(filters?: { search?: string }) {
           razao_social: data.razao_social,
           cnpj: data.cnpj,
           client_id: collaborator.client_id,
+          company_type: data.company_type,
+          state_id: data.state_id || null,
+          city_id: data.city_id || null,
+          email: data.email,
+          whatsapp: data.whatsapp,
+          celular: data.celular,
+          instagram: data.instagram,
           cep: data.address?.cep,
           rua: data.address?.rua,
           numero: data.address?.numero,
           complemento: data.address?.complemento,
           bairro: data.address?.bairro,
-          state_id: data.state_id,
-          city_id: data.city_id
         })
-        .select()
+        .select(`
+          id,
+          name,
+          razao_social,
+          cnpj,
+          client_id,
+          company_type,
+          email,
+          whatsapp,
+          celular,
+          instagram,
+          cep,
+          rua,
+          numero,
+          complemento,
+          bairro,
+          state_id,
+          city_id,
+          created_at,
+          updated_at,
+          city:cities(name),
+          state:states(name)
+        `)
         .single()
 
       if (error) {

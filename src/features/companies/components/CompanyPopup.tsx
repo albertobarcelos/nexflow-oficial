@@ -6,6 +6,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
+  SheetClose,
 } from "@/components/ui/sheet";
 import {
   Building2,
@@ -16,7 +17,6 @@ import {
   Map,
   Navigation,
   Users,
-  UserPlus,
   Instagram,
   Building,
   Hash,
@@ -38,24 +38,31 @@ export function CompanyPopup({
   onOpenChange,
   company,
 }: CompanyPopupProps) {
+  if (!company || !onOpenChange) {
+    return null;
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-xl">
-        <SheetHeader>
-          <div className="flex items-center justify-between">
+        <SheetHeader className="flex items-center justify-between space-y-0">
+          <div>
             <SheetTitle>Detalhes da Empresa</SheetTitle>
+            <SheetDescription>
+              Informações detalhadas sobre a empresa
+            </SheetDescription>
+          </div>
+          <SheetClose asChild>
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              onClick={() => onOpenChange(false)}
+              className="relative -right-2 -top-2"
             >
               <X className="h-4 w-4" />
+              <span className="sr-only">Fechar</span>
             </Button>
-          </div>
-          <SheetDescription>
-            Informações detalhadas sobre a empresa
-          </SheetDescription>
+          </SheetClose>
         </SheetHeader>
 
         <ScrollArea className="h-[calc(100vh-8rem)] pr-4">
@@ -221,41 +228,45 @@ export function CompanyPopup({
             </div>
 
             {/* Pessoas */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  <span className="text-sm font-medium">Pessoas</span>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 pb-2 border-b border-muted">
+                <Users className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Pessoas</span>
+              </div>
+              {company.people && company.people.length > 0 ? (
+                <div className="space-y-4">
+                  {company.people.map((person) => (
+                    <div key={person.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{person.name}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <Button variant="outline" size="sm">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Adicionar Pessoa
-                </Button>
-              </div>
-              <Separator />
-
-              <div className="text-sm text-muted-foreground text-center py-8">
-                Nenhuma pessoa cadastrada
-              </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhuma pessoa cadastrada</p>
+              )}
             </div>
 
             {/* Integrantes */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Users className="w-4 h-4" />
-                  <span className="text-sm font-medium">Integrantes</span>
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 pb-2 border-b border-muted">
+                <Users className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Integrantes</span>
+              </div>
+              {company.collaborators && company.collaborators.length > 0 ? (
+                <div className="space-y-4">
+                  {company.collaborators.map((collaborator) => (
+                    <div key={collaborator.id} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{collaborator.name}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <Button variant="outline" size="sm">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Adicionar Integrante
-                </Button>
-              </div>
-              <Separator />
-
-              <div className="text-sm text-muted-foreground text-center py-8">
-                Nenhum integrante cadastrado
-              </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Nenhum integrante cadastrado</p>
+              )}
             </div>
           </div>
         </ScrollArea>

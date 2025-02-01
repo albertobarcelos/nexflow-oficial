@@ -13,13 +13,17 @@ interface LinkPersonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   companyId: string;
+  onLink: (person: Person) => void;
 }
 
-export function LinkPersonDialog({ open, onOpenChange, companyId }: LinkPersonDialogProps) {
+export function LinkPersonDialog({ open, onOpenChange, companyId, onLink }: LinkPersonDialogProps) {
   const [search, setSearch] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { people } = usePeople();
-  const { addCompanyPerson } = useCompanyRelationships(companyId);
+  const { companyPeople } = useCompanyRelationships(companyId);
+
+  // Ids das pessoas já vinculadas
+  const linkedPeopleIds = companyPeople?.map((cp) => cp.person.id) || [];
 
   // Filtrar pessoas que não estão vinculadas à empresa atual
   const filteredPeople = people?.filter((person) => {
@@ -28,25 +32,13 @@ export function LinkPersonDialog({ open, onOpenChange, companyId }: LinkPersonDi
       person.email?.toLowerCase().includes(search.toLowerCase()) ||
       person.whatsapp?.toLowerCase().includes(search.toLowerCase());
 
-    // Pessoa não está vinculada a esta empresa
-    const notLinkedToThisCompany = person.company_id !== companyId;
-
-    return matchesSearch && notLinkedToThisCompany;
+    return matchesSearch;
   });
 
   const handleLinkPerson = async (person: Person) => {
-    try {
-      await addCompanyPerson({
-        personId: person.id,
-        role: person.cargo || "",
-        isPrimary: false
-      });
-      toast.success("Pessoa vinculada com sucesso!");
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Erro ao vincular pessoa:", error);
-      toast.error("Erro ao vincular pessoa");
-    }
+    onLink(person);
+    onOpenChange(false);
+    toast.success("Pessoa adicionada com sucesso!");
   };
 
   return (

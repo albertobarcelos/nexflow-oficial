@@ -7,6 +7,7 @@ import { Plus, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { TaskColumn } from '@/components/crm/tasks/TaskColumn';
+import { useAuth } from '@/hooks/useAuth';
 
 type Task = {
   id: string;
@@ -36,36 +37,48 @@ export default function Tasks() {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const { isLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: async () => {
-      const { data: collaborator } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+      try {
+        const { data: collaborator } = await supabase
+          .from('collaborators')
+          .select('client_id')
+          .eq('auth_user_id', user?.id)
+          .single();
 
-      if (!collaborator) throw new Error('Collaborator not found');
+        if (!collaborator) throw new Error('Collaborator not found');
 
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          assigned_to_collaborator:collaborators!tasks_assigned_to_fkey(name)
-        `)
-        .eq('client_id', collaborator.client_id);
+        const { data: tasks, error } = await supabase
+          .from('tasks')
+          .select(`
+            *,
+            assigned_to_collaborator:collaborators!tasks_assigned_to_fkey(name)
+          `)
+          .eq('client_id', collaborator.client_id);
 
-      if (!tasks) return;
+        if (error) throw error;
 
-      const newColumns = initialColumns.map(col => ({
-        ...col,
-        tasks: tasks.filter(task => task.status === col.id)
-      }));
+        const newColumns = initialColumns.map(col => ({
+          ...col,
+          tasks: tasks?.filter(task => task.status === col.id) || []
+        }));
 
-      setColumns(newColumns);
-      return tasks;
-    }
+        setColumns(newColumns);
+        return tasks || [];
+      } catch (error) {
+        console.error('Error fetching tasks:', error);
+        toast({
+          title: "Erro ao carregar tarefas",
+          description: "Não foi possível carregar as tarefas.",
+          variant: "destructive",
+        });
+        return [];
+      }
+    },
+    enabled: !!user?.id
   });
 
   const onDragEnd = async (result: any) => {

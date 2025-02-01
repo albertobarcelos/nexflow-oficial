@@ -25,7 +25,6 @@ interface CompanyPartner {
     whatsapp?: string;
     partner_type?: string;
   };
-  partnership_type?: string;
 }
 
 interface AddCompanyPersonParams {
@@ -36,7 +35,6 @@ interface AddCompanyPersonParams {
 
 interface AddCompanyPartnerParams {
   partnerId: string;
-  partnershipType?: string;
 }
 
 export function useCompanyRelationships(companyId: string) {
@@ -141,8 +139,7 @@ export function useCompanyRelationships(companyId: string) {
             email,
             whatsapp,
             partner_type
-          ),
-          partnership_type
+          )
         `)
         .eq('company_id', companyId)
         .eq('client_id', collaborator.client_id);
@@ -223,7 +220,7 @@ export function useCompanyRelationships(companyId: string) {
 
   // Adicionar parceiro à empresa
   const addCompanyPartnerMutation = useMutation({
-    mutationFn: async ({ partnerId, partnershipType }: AddCompanyPartnerParams) => {
+    mutationFn: async ({ partnerId }: AddCompanyPartnerParams) => {
       if (!user?.id) throw new Error('Usuário não autenticado');
 
       const { data: collaborator } = await supabase
@@ -239,8 +236,7 @@ export function useCompanyRelationships(companyId: string) {
         .insert({
           client_id: collaborator.client_id,
           company_id: companyId,
-          partner_id: partnerId,
-          partnership_type: partnershipType,
+          partner_id: partnerId
         })
         .select()
         .single();

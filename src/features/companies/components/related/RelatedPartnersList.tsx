@@ -1,4 +1,3 @@
-import { useCompanyRelationships } from "@/features/companies/hooks/useCompanyRelationships";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,90 +15,47 @@ import {
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
-interface RelatedPartnersListProps {
-  companyId: string;
+interface Partner {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  type?: string;
 }
 
-export function RelatedPartnersList({ companyId }: RelatedPartnersListProps) {
-  const { relatedPartners, removeRelationship } =
-    useCompanyRelationships(companyId);
+interface RelatedPartnersListProps {
+  partners: Partner[];
+}
 
-  const handleRemove = async (relationshipId: string) => {
-    const confirmed = window.confirm(
-      "Tem certeza que deseja remover este relacionamento?"
-    );
-    if (confirmed) {
-      try {
-        await removeRelationship.mutateAsync(relationshipId);
-        toast.success("Relacionamento removido com sucesso!");
-      } catch (error) {
-        console.error("Erro ao remover relacionamento:", error);
-        toast.error("Erro ao remover relacionamento");
-      }
-    }
-  };
-
-  if (!relatedPartners?.length) {
+export function RelatedPartnersList({ partners }: RelatedPartnersListProps) {
+  if (!partners?.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <p className="text-sm text-muted-foreground">
-          Nenhum parceiro relacionado encontrado
-        </p>
+      <div className="text-sm text-muted-foreground text-center py-4">
+        Nenhum parceiro relacionado encontrado
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {relatedPartners.map((relationship) => (
-        <Card key={relationship.id}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div>
-              <CardTitle className="text-lg font-medium">
-                {relationship.partner.name}
-              </CardTitle>
-              <CardDescription>
-                {relationship.partner.email || "Sem e-mail"}
-              </CardDescription>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Abrir menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => handleRemove(relationship.id)}
-                >
-                  Remover
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-1">
-              {relationship.partner.phone && (
-                <p className="text-sm text-muted-foreground">
-                  Telefone: {relationship.partner.phone}
-                </p>
-              )}
-              {relationship.partner.website && (
-                <p className="text-sm text-muted-foreground">
-                  Website: {relationship.partner.website}
-                </p>
-              )}
-              {relationship.partner.type && (
-                <p className="text-sm text-muted-foreground">
-                  Tipo: {relationship.partner.type}
-                </p>
+    <div className="space-y-2">
+      {partners.map((partner) => (
+        <div
+          key={partner.id}
+          className="flex items-center justify-between p-2 rounded-lg border"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{partner.name}</span>
+              {partner.email && (
+                <span className="text-sm text-muted-foreground">
+                  {partner.email}
+                </span>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );
-} 
+}

@@ -13,13 +13,17 @@ interface LinkPartnerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   companyId: string;
+  onLink: (partner: Partner) => void;
 }
 
-export function LinkPartnerDialog({ open, onOpenChange, companyId }: LinkPartnerDialogProps) {
+export function LinkPartnerDialog({ open, onOpenChange, companyId, onLink }: LinkPartnerDialogProps) {
   const [search, setSearch] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { partners } = usePartners();
-  const { addCompanyPartner } = useCompanyRelationships(companyId);
+  const { companyPartners } = useCompanyRelationships(companyId);
+
+  // Ids dos parceiros já vinculados
+  const linkedPartnerIds = companyPartners?.map(cp => cp.partner.id) || [];
 
   // Filtrar parceiros que não estão vinculados à empresa atual
   const filteredPartners = partners?.filter((partner) => {
@@ -28,24 +32,13 @@ export function LinkPartnerDialog({ open, onOpenChange, companyId }: LinkPartner
       partner.email?.toLowerCase().includes(search.toLowerCase()) ||
       partner.whatsapp?.toLowerCase().includes(search.toLowerCase());
 
-    // Parceiro não está vinculado a esta empresa
-    const notLinkedToThisCompany = partner.company_id !== companyId;
-
-    return matchesSearch && notLinkedToThisCompany;
+    return matchesSearch;
   });
 
   const handleLinkPartner = async (partner: Partner) => {
-    try {
-      await addCompanyPartner({
-        partnerId: partner.id,
-        partnershipType: partner.partner_type || "",
-      });
-      toast.success("Parceiro vinculado com sucesso!");
-      onOpenChange(false);
-    } catch (error) {
-      console.error("Erro ao vincular parceiro:", error);
-      toast.error("Erro ao vincular parceiro");
-    }
+    onLink(partner);
+    onOpenChange(false);
+    toast.success("Parceiro adicionado com sucesso!");
   };
 
   return (
@@ -107,13 +100,24 @@ export function LinkPartnerDialog({ open, onOpenChange, companyId }: LinkPartner
                           <td className="py-3 px-4">{partner.email}</td>
                           <td className="py-3 px-4">{partner.whatsapp}</td>
                           <td className="py-3 px-4 text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleLinkPartner(partner)}
-                            >
-                              Vincular
-                            </Button>
+                            {linkedPartnerIds.includes(partner.id) ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="text-muted-foreground"
+                              >
+                                Vinculado
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleLinkPartner(partner)}
+                              >
+                                Vincular
+                              </Button>
+                            )}
                           </td>
                         </tr>
                       ))

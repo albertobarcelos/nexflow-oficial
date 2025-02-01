@@ -1,3 +1,8 @@
+/**
+ * @deprecated Este componente foi substituído pela implementação direta na página CompaniesPage.
+ * Mantido apenas para referência histórica. Pode ser removido quando conveniente.
+ */
+
 import { useState } from "react";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import { Database } from "@/types/supabase";
@@ -23,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Building2, Mail, Phone, MapPin, Pencil, Trash2, Map, Instagram, Eye } from "lucide-react";
+import { Building2, Mail, Phone, MapPin, Pencil, Trash2, Map, Instagram, Eye, Hash } from "lucide-react";
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 
@@ -64,7 +69,12 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetails }: Com
                   Empresa
                 </div>
               </TableHead>
-              <TableHead className="min-w-[150px]">CNPJ</TableHead>
+              <TableHead className="min-w-[150px]">
+                <div className="flex items-center gap-2">
+                  <Hash className="w-4 h-4" />
+                  CNPJ
+                </div>
+              </TableHead>
               <TableHead className="min-w-[100px]">Status</TableHead>
               <TableHead className="min-w-[200px]">
                 <div className="flex items-center gap-2">
@@ -78,8 +88,7 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetails }: Com
                   Localização
                 </div>
               </TableHead>
-              <TableHead className="w-[100px]"></TableHead>
-              <TableHead className="w-[100px]"></TableHead>
+              <TableHead className="w-[150px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -88,9 +97,8 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetails }: Com
                 key={company.id}
                 className="cursor-pointer hover:bg-muted/50"
                 onClick={(e) => {
-                  // Não abrir popup se clicou nos botões de ação
                   if ((e.target as HTMLElement).closest('.action-buttons')) return;
-                  setSelectedCompany(company);
+                  onViewDetails(company);
                 }}
               >
                 <TableCell>
@@ -106,7 +114,7 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetails }: Com
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="font-mono">
                   {company.cnpj ? formatCNPJ(company.cnpj) : "Não informado"}
                 </TableCell>
                 <TableCell>
@@ -138,16 +146,22 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetails }: Com
                 </TableCell>
                 <TableCell>
                   <div className="space-y-1">
-                    <div className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3 h-3" />
-                        {company.city?.name || "Cidade não informada"}
+                    {(company.cidade || company.estado) && (
+                      <div className="text-sm">
+                        {company.cidade && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-3 h-3" />
+                            {company.cidade}
+                          </div>
+                        )}
+                        {company.estado && (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Map className="w-3 h-3" />
+                            {company.estado}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Map className="w-3 h-3" />
-                        {company.state?.name || "Estado não informado"}
-                      </div>
-                    </div>
+                    )}
                     {company.bairro && (
                       <div className="text-sm text-muted-foreground">
                         {company.bairro}
@@ -155,26 +169,35 @@ export function CompanyTable({ companies, onEdit, onDelete, onViewDetails }: Com
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
+                <TableCell>
+                  <div className="flex items-center justify-end gap-2 action-buttons">
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onViewDetails(company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewDetails(company);
+                      }}
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onEdit(company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(company);
+                      }}
                     >
                       <Pencil className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => setCompanyToDelete(company)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCompanyToDelete(company);
+                      }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
