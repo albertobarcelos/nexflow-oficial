@@ -206,6 +206,68 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          id: string;
+          created_at: string;
+          name: string;
+          razao_social: string | null;
+          cnpj: string | null;
+          email: string | null;
+          whatsapp: string | null;
+          instagram: string | null;
+          status: string | null;
+          description: string | null;
+          estado: string | null;
+          cidade: string | null;
+          cep: string | null;
+          rua: string | null;
+          numero: string | null;
+          bairro: string | null;
+          complemento: string | null;
+          client_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          name: string;
+          razao_social?: string | null;
+          cnpj?: string | null;
+          email?: string | null;
+          whatsapp?: string | null;
+          instagram?: string | null;
+          status?: string | null;
+          description?: string | null;
+          estado?: string | null;
+          cidade?: string | null;
+          cep?: string | null;
+          rua?: string | null;
+          numero?: string | null;
+          bairro?: string | null;
+          complemento?: string | null;
+          client_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          created_at?: string;
+          name?: string;
+          razao_social?: string | null;
+          cnpj?: string | null;
+          email?: string | null;
+          whatsapp?: string | null;
+          instagram?: string | null;
+          status?: string | null;
+          description?: string | null;
+          estado?: string | null;
+          cidade?: string | null;
+          cep?: string | null;
+          rua?: string | null;
+          numero?: string | null;
+          bairro?: string | null;
+          complemento?: string | null;
+          client_id?: string | null;
+        };
+      }
       custom_entities: {
         Row: {
           client_id: string

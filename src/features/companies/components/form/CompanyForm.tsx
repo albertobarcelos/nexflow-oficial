@@ -25,11 +25,14 @@ import {
   Pencil,
   Users,
   UserPlus,
-  Plus
+  Plus,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import { useLocation } from "@/hooks/useLocation";
 import { useCompanyRelationships } from "@/features/companies/hooks/useCompanyRelationships";
+import { useLocationForm } from "@/hooks/useLocationForm";
 import { Partner } from "@/types/database/partner";
 import { Person } from "@/types/database/person";
 import { toast } from "sonner";
@@ -54,13 +57,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,32 +71,23 @@ import { RelatedPartnersList } from "@/features/companies/components/related/Rel
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 
 const companyFormSchema = z.object({
-  name: z.string().min(1, "Nome fantasia é obrigatório"),
+  name: z.string().min(1, "Nome é obrigatório"),
   razao_social: z.string().optional(),
   cnpj: z.string().optional(),
-  description: z.string().optional(),
-  email: z.string().email("Email inválido").optional(),
-  whatsapp: z.string().min(1, "WhatsApp é obrigatório"),
+  state_id: z.string().optional(),
+  city_id: z.string().optional(),
+  company_type: z.string(),
+  email: z.string().optional(),
+  whatsapp: z.string().optional(),
   celular: z.string().optional(),
   instagram: z.string().optional(),
-  cep: z.string().optional(),
-  pais: z.string().optional(),
-  state_id: z.string().optional().nullable(),
-  city_id: z.string().optional().nullable(),
-  bairro: z.string().optional(),
-  rua: z.string().optional(),
-  numero: z.string().optional(),
-  complemento: z.string().optional(),
-  privacidade: z.enum(["todos", "somente-eu"]).default("todos"),
-  company_type: z.enum([
-    "Possível Cliente (Lead)",
-    "Cliente Ativo",
-    "Empresa Parceira",
-    "Cliente Inativo",
-    "Outro"
-  ], {
-    required_error: "Tipo de empresa é obrigatório"
-  }),
+  address: z.object({
+    cep: z.string().optional(),
+    rua: z.string().optional(),
+    numero: z.string().optional(),
+    complemento: z.string().optional(),
+    bairro: z.string().optional(),
+  }).optional(),
 });
 
 type CompanyFormData = z.infer<typeof companyFormSchema>;
@@ -115,13 +103,55 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
   const queryClient = useQueryClient();
   const [linkedPartners, setLinkedPartners] = useState<Partner[]>([]);
   const [linkedPeople, setLinkedPeople] = useState<Person[]>([]);
-  const [partnersToUnlink, setPartnersToUnlink] = useState<string[]>([]);
-  const [peopleToUnlink, setPeopleToUnlink] = useState<string[]>([]);
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
   const [isLinkPartnerDialogOpen, setIsLinkPartnerDialogOpen] = useState(false);
   const [isLinkPersonDialogOpen, setIsLinkPersonDialogOpen] = useState(false);
-  
+  const [showFullAddress, setShowFullAddress] = useState(false);
+
+  const { states, cities, isLoadingStates } = useLocation();
+  const {
+    selectedStateId,
+    selectedCityId,
+    setSelectedCityId,
+    handleStateChange,
+    filteredCities,
+    updateStates,
+  } = useLocationForm();
+
+  // Atualiza os estados quando o componente carrega
+  useEffect(() => {
+    if (states.length > 0) {
+      updateStates(states);
+    }
+  }, [states]);
+
+  // Atualiza o estado e cidade quando o formulário carrega com uma empresa
+  useEffect(() => {
+    if (company?.state_id) {
+      handleStateChange(company.state_id);
+      if (company.city_id) {
+        setSelectedCityId(company.city_id);
+      }
+    }
+  }, [company]);
+
+  // Atualiza o form quando o estado ou cidade mudam
+  useEffect(() => {
+    form.setValue("state_id", selectedStateId);
+    form.setValue("city_id", selectedCityId);
+  }, [selectedStateId, selectedCityId]);
+
+  const onStateSelect = (stateId: string) => {
+    handleStateChange(stateId);
+    form.setValue("city_id", ""); // Limpa a cidade quando troca o estado
+  };
+
+  const onCitySelect = (cityId: string) => {
+    setSelectedCityId(cityId);
+  };
+
   const { createCompany, updateCompany } = useCompanies();
-  const { companyPartners, companyPeople, addCompanyPartner, addCompanyPerson } = useCompanyRelationships(company?.id || "");
+  const { companyPartners, companyPeople } = useCompanyRelationships(company?.id || "");
 
   // Carregar relacionamentos existentes quando o componente montar
   useEffect(() => {
@@ -135,6 +165,60 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
       setLinkedPeople(companyPeople.map(cp => cp.person));
     }
   }, [companyPeople]);
+
+  // Efeito para inicializar estado e cidade quando editar uma empresa existente
+  useEffect(() => {
+    if (company && states.length > 0) {
+      const state = states.find(s => s.name === company.estado);
+      if (state) {
+        handleStateChange(state.id);
+        
+        // Buscar cidades do estado
+        const cityData = async () => {
+          const { data, error } = await supabase
+            .from("cities")
+            .select("*")
+            .eq("state_id", state.id)
+            .order("name");
+          if (error) throw error;
+          return data;
+        };
+        cityData().then((cityData) => {
+          // Normalizar o nome da cidade do CEP
+          const normalizedViaCepCity = company.cidade
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+          
+          // Encontrar a cidade correspondente
+          const city = cityData.find(c => {
+            const normalizedCityName = c.name
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .trim();
+            return normalizedCityName === normalizedViaCepCity;
+          });
+
+          if (city) {
+            setSelectedCityId(city.id);
+          } else {
+            toast.error("Cidade não encontrada automaticamente. Por favor, selecione manualmente.");
+          }
+        });
+      }
+    }
+  }, [company, states]);
+
+  useEffect(() => {
+    if (company && selectedStateId && cities.length > 0) {
+      const city = cities.find(c => c.name === company.cidade);
+      if (city) {
+        setSelectedCityId(city.id);
+      }
+    }
+  }, [company, selectedStateId, cities]);
 
   const handleRemovePartner = (partnerId: string) => {
     setLinkedPartners(prev => prev.filter(p => p.id !== partnerId));
@@ -273,16 +357,71 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
     }
   };
 
-  const { 
-    states, 
-    cities, 
-    isLoadingStates, 
-    isLoadingCities, 
-    selectedStateId, 
-    setSelectedStateId, 
-    selectedCityId, 
-    setSelectedCityId 
-  } = useLocation();
+  const handleCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const cep = e.target.value.replace(/\D/g, '');
+    if (cep.length !== 8) return;
+
+    setIsLoadingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+      const data = await response.json();
+
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
+      }
+
+      // Preencher os campos com os dados do CEP
+      const form = e.target.form as HTMLFormElement;
+      if (form) {
+        form.querySelector<HTMLInputElement>('input[name="rua"]')!.value = data.logradouro;
+        form.querySelector<HTMLInputElement>('input[name="bairro"]')!.value = data.bairro;
+
+        // Encontrar o estado correspondente
+        const state = states.find(s => s.uf.toLowerCase() === data.uf.toLowerCase());
+        if (state) {
+          handleStateChange(state.id);
+          
+          // Buscar cidades do estado
+          const cityData = await supabase
+            .from("cities")
+            .select("*")
+            .eq("state_id", state.id)
+            .order("name");
+          
+          if (cityData.error) throw cityData.error;
+          
+          // Normalizar o nome da cidade do CEP
+          const normalizedViaCepCity = data.localidade
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim();
+          
+          // Encontrar a cidade correspondente
+          const city = cityData.data.find(c => {
+            const normalizedCityName = c.name
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .trim();
+            return normalizedCityName === normalizedViaCepCity;
+          });
+
+          if (city) {
+            setSelectedCityId(city.id);
+          } else {
+            toast.error("Cidade não encontrada automaticamente. Por favor, selecione manualmente.");
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+      toast.error("Erro ao buscar CEP");
+    } finally {
+      setIsLoadingCep(false);
+    }
+  };
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companyFormSchema),
@@ -290,20 +429,20 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
       name: company?.name || "",
       razao_social: company?.razao_social || "",
       cnpj: company?.cnpj || "",
+      state_id: company?.estado || "",
+      city_id: company?.cidade || "",
+      company_type: company?.company_type || "",
       email: company?.email || "",
       whatsapp: company?.whatsapp || "",
       celular: company?.celular || "",
       instagram: company?.instagram || "",
-      cep: company?.cep || "",
-      pais: "Brasil",
-      state_id: company?.state_id || "",
-      city_id: company?.city_id || "",
-      bairro: company?.bairro || "",
-      rua: company?.rua || "",
-      numero: company?.numero || "",
-      complemento: company?.complemento || "",
-      privacidade: "todos",
-      company_type: company?.company_type || "Possível Cliente (Lead)",
+      address: {
+        cep: company?.cep || "",
+        rua: company?.rua || "",
+        numero: company?.numero || "",
+        complemento: company?.complemento || "",
+        bairro: company?.bairro || "",
+      },
     },
   });
 
@@ -313,20 +452,20 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
         name: company.name || "",
         razao_social: company.razao_social || "",
         cnpj: company.cnpj || "",
+        state_id: company.estado || "",
+        city_id: company.cidade || "",
+        company_type: company.company_type || "",
         email: company.email || "",
         whatsapp: company.whatsapp || "",
         celular: company.celular || "",
         instagram: company.instagram || "",
-        cep: company.cep || "",
-        pais: "Brasil",
-        state_id: company.state_id || "",
-        city_id: company.city_id || "",
-        bairro: company.bairro || "",
-        rua: company.rua || "",
-        numero: company.numero || "",
-        complemento: company.complemento || "",
-        privacidade: "todos",
-        company_type: company.company_type || "Possível Cliente (Lead)",
+        address: {
+          cep: company.cep || "",
+          rua: company.rua || "",
+          numero: company.numero || "",
+          complemento: company.complemento || "",
+          bairro: company.bairro || "",
+        },
       });
     }
   }, [company, form]);
@@ -359,7 +498,7 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <FormLabel className="text-sm font-normal text-muted-foreground">
-                        Nome Fantasia *
+                        Nome *
                       </FormLabel>
                       <FormControl>
                         <Input 
@@ -409,35 +548,6 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
                         />
                       </FormControl>
                       <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="company_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Empresa</FormLabel>
-                      <FormControl>
-                        <Select 
-                          defaultValue={field.value} 
-                          onValueChange={field.onChange}
-                          name={field.name}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Selecione o tipo de empresa" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Possível Cliente (Lead)">Possível Cliente (Lead)</SelectItem>
-                            <SelectItem value="Cliente Ativo">Cliente Ativo</SelectItem>
-                            <SelectItem value="Empresa Parceira">Empresa Parceira</SelectItem>
-                            <SelectItem value="Cliente Inativo">Cliente Inativo</SelectItem>
-                            <SelectItem value="Outro">Outro</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -514,6 +624,167 @@ export function CompanyForm({ open, onOpenChange, company, onSuccess }: CompanyF
                   )}
                 />
               </div>
+            </div>
+
+            {/* Localização */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 pb-2 border-b border-muted">
+                <MapPin className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-primary">Localização</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="state_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <FormControl>
+                        <Combobox
+                          items={states.map(state => ({
+                            label: state.name,
+                            value: state.id,
+                            description: state.uf
+                          }))}
+                          value={selectedStateId}
+                          onChange={onStateSelect}
+                          placeholder="Selecione um estado"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="city_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Combobox
+                          items={filteredCities.map(city => ({
+                            label: city.name,
+                            value: city.id
+                          }))}
+                          value={selectedCityId}
+                          onChange={onCitySelect}
+                          placeholder={!selectedStateId ? "Selecione um estado primeiro" : "Selecione uma cidade"}
+                          disabled={!selectedStateId}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Botão Expandir/Retrair */}
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => setShowFullAddress(!showFullAddress)}
+              >
+                {showFullAddress ? (
+                  <>
+                    <ChevronUp className="w-4 h-4" />
+                    Mostrar menos
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Mostrar endereço completo
+                  </>
+                )}
+              </Button>
+
+              {/* Campos de Endereço Completo */}
+              {showFullAddress && (
+                <div className="space-y-4 animate-in slide-in-from-top-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="address.cep"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>CEP</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="CEP"
+                              {...field}
+                              onChange={(e) => {
+                                const formatted = formatCEP(e.target.value);
+                                field.onChange(formatted);
+                              }}
+                              onBlur={handleCepBlur}
+                              disabled={isLoadingCep}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="address.rua"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel>Rua</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Rua" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address.numero"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Número</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Número" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="address.bairro"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Bairro</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Bairro" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="address.complemento"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Complemento</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Complemento" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Pessoas */}

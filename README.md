@@ -65,7 +65,29 @@ src/
 ├── components/         # Componentes reutilizáveis
 │   ├── ui/            # Componentes de UI base
 │   └── crm/           # Componentes específicos do CRM
-├── hooks/             # Hooks customizados
+├── features/          # Módulos de funcionalidades
+│   └── companies/     # Módulo de empresas
+│       ├── components/
+│       │   ├── custom-fields/  # Campos personalizados
+│       │   ├── details/        # Componentes de detalhes
+│       │   │   └── CompanyPopup.tsx
+│       │   ├── form/          # Componentes de formulário
+│       │   │   ├── CompanyForm.tsx
+│       │   │   └── EditCompanyDialog.tsx
+│       │   ├── list/          # Componentes de listagem
+│       │   │   └── CompanyTable.tsx
+│       │   └── related/       # Componentes de relacionamentos
+│       │       ├── LinkPartnerDialog.tsx
+│       │       └── LinkPersonDialog.tsx
+│       ├── hooks/             # Hooks personalizados
+│       │   ├── useCompanies.ts
+│       │   └── useCompanyRelationships.ts
+│       ├── pages/             # Páginas principais
+│       │   ├── CompaniesPage.tsx
+│       │   ├── CompanyDetailsPage.tsx
+│       │   └── CompanyFormPage.tsx
+│       └── types/             # Tipos e interfaces
+├── hooks/             # Hooks globais
 ├── layouts/           # Layouts da aplicação
 ├── lib/              # Bibliotecas e configurações
 ├── pages/            # Páginas da aplicação
@@ -74,6 +96,57 @@ src/
 ├── types/            # Definições de tipos
 └── utils/            # Funções utilitárias
 ```
+
+### 🏢 Módulo de Empresas (Companies)
+
+O módulo de empresas segue uma arquitetura organizada e escalável:
+
+#### 1. Componentes (`components/`)
+- **custom-fields/**: Campos personalizados específicos para empresas
+- **details/**: Componentes para visualização detalhada de empresas
+  - `CompanyPopup.tsx`: Modal de detalhes rápidos
+- **form/**: Componentes de formulário
+  - `CompanyForm.tsx`: Formulário principal
+  - `EditCompanyDialog.tsx`: Modal de edição rápida
+- **list/**: Componentes de listagem
+  - `CompanyTable.tsx`: Tabela de empresas
+- **related/**: Componentes de relacionamentos
+  - `LinkPartnerDialog.tsx`: Modal para vincular parceiros
+  - `LinkPersonDialog.tsx`: Modal para vincular pessoas
+
+#### 2. Hooks (`hooks/`)
+- `useCompanies.ts`: Gerenciamento de estado e operações CRUD
+- `useCompanyRelationships.ts`: Gestão de relacionamentos
+
+#### 3. Páginas (`pages/`)
+- `CompaniesPage.tsx`: Listagem e gestão de empresas
+- `CompanyDetailsPage.tsx`: Visualização detalhada
+- `CompanyFormPage.tsx`: Criação/edição completa
+
+#### 4. Tipos (`types/`)
+- Definições de tipos e interfaces específicas do módulo
+
+#### Funcionalidades do Módulo:
+1. **Gestão de Empresas**
+   - Cadastro completo com informações básicas
+   - Localização (Estado, Cidade, Endereço completo)
+   - Contatos e relacionamentos
+   - Upload e gestão de documentos
+
+2. **Relacionamentos**
+   - Vinculação com parceiros
+   - Vinculação com pessoas
+   - Gestão de vínculos
+
+3. **Campos Customizados**
+   - Suporte a campos personalizados por cliente
+   - Validações específicas
+   - Formatação personalizada
+
+4. **Localização**
+   - Seleção de Estado/Cidade
+   - Busca por CEP com preenchimento automático
+   - Endereço completo expansível
 
 ## 🔐 Variáveis de Ambiente
 
@@ -304,7 +377,6 @@ Cliente B
    - Índices otimizados por client_id
    - Queries naturalmente particionadas
    - Cache eficiente por tenant
-
 
 3. **Boas Práticas**
    - Índices otimizados para client_id

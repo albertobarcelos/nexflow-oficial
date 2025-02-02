@@ -48,12 +48,12 @@ const routes = [
     element: <CRMLayout />,
     children: [
       {
-        index: true,
-        element: <Dashboard />,
+        path: "",
+        element: <Navigate to="dashboard" />,
       },
       {
         path: "dashboard",
-        element: <Navigate to="/crm" replace />,
+        element: <Dashboard />,
       },
 
       // Settings

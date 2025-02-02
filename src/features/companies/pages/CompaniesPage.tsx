@@ -16,8 +16,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Database } from "@/types/supabase";
-import { CompanyPopup } from "@/features/companies/components/CompanyPopup";
+import { CompanyPopup } from "@/features/companies/components/details/CompanyPopup";
 import { CompanyForm } from "@/features/companies/components/form/CompanyForm";
+import { CompanyTable } from "@/features/companies/components/list/CompanyTable";
 import { toast } from "sonner";
 import { formatCNPJ, formatPhone } from "@/lib/format";
 

@@ -52,7 +52,8 @@ export function useCompanies(filters?: { search?: string }) {
           name,
           razao_social,
           cnpj,
-          client_id,
+          state_id,
+          city_id,
           company_type,
           email,
           whatsapp,
@@ -63,30 +64,33 @@ export function useCompanies(filters?: { search?: string }) {
           numero,
           complemento,
           bairro,
-          state_id,
-          city_id,
           created_at,
-          updated_at,
-          city:cities(name),
-          state:states(name)
-        `)
-        .eq("client_id", collaborator.client_id);
+          updated_at
+        `);
 
       if (filters?.search) {
-        query = query.or(
-          `name.ilike.%${filters.search}%,razao_social.ilike.%${filters.search}%,cnpj.ilike.%${filters.search}%,email.ilike.%${filters.search}%,whatsapp.ilike.%${filters.search}%`
-        );
+        query = query.ilike("name", `%${filters.search}%`);
       }
 
       const { data, error } = await query;
 
       if (error) {
-        console.error("Error fetching companies:", error);
-        toast.error("Erro ao carregar empresas");
+        console.error("Erro ao buscar empresas:", error);
+        toast.error("Erro ao buscar empresas");
         return [];
       }
 
-      return data;
+      // Transformar os campos de endereço em um objeto
+      return data.map(company => ({
+        ...company,
+        address: {
+          cep: company.cep,
+          rua: company.rua,
+          numero: company.numero,
+          complemento: company.complemento,
+          bairro: company.bairro
+        }
+      }));
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
     retry: 1,
@@ -104,32 +108,32 @@ export function useCompanies(filters?: { search?: string }) {
         throw new Error("Colaborador não encontrado")
       }
 
-      const { data: company, error } = await supabase
+      const { data: result, error } = await supabase
         .from("companies")
         .insert({
           name: data.name,
-          razao_social: data.razao_social,
-          cnpj: data.cnpj,
-          client_id: collaborator.client_id,
-          company_type: data.company_type,
+          razao_social: data.razao_social || null,
+          cnpj: data.cnpj || null,
+          email: data.email || null,
+          whatsapp: data.whatsapp || null,
+          instagram: data.instagram || null,
           state_id: data.state_id || null,
           city_id: data.city_id || null,
-          email: data.email,
-          whatsapp: data.whatsapp,
-          celular: data.celular,
-          instagram: data.instagram,
-          cep: data.address?.cep,
-          rua: data.address?.rua,
-          numero: data.address?.numero,
-          complemento: data.address?.complemento,
-          bairro: data.address?.bairro,
+          company_type: data.company_type,
+          cep: data.address?.cep || null,
+          rua: data.address?.rua || null,
+          numero: data.address?.numero || null,
+          complemento: data.address?.complemento || null,
+          bairro: data.address?.bairro || null,
+          client_id: collaborator.client_id,
         })
         .select(`
           id,
           name,
           razao_social,
           cnpj,
-          client_id,
+          state_id,
+          city_id,
           company_type,
           email,
           whatsapp,
@@ -140,12 +144,8 @@ export function useCompanies(filters?: { search?: string }) {
           numero,
           complemento,
           bairro,
-          state_id,
-          city_id,
           created_at,
-          updated_at,
-          city:cities(name),
-          state:states(name)
+          updated_at
         `)
         .single()
 
@@ -153,7 +153,16 @@ export function useCompanies(filters?: { search?: string }) {
         throw error
       }
 
-      return company
+      return {
+        ...result,
+        address: {
+          cep: result.cep,
+          rua: result.rua,
+          numero: result.numero,
+          complemento: result.complemento,
+          bairro: result.bairro
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"], refetchType: "active" })
@@ -177,12 +186,46 @@ export function useCompanies(filters?: { search?: string }) {
 
       if (!collaborator) throw new Error("Colaborador não encontrado");
 
-      const { data, error } = await supabase
+      const { data: result, error } = await supabase
         .from("companies")
-        .update(values)
+        .update({
+          name: values.name,
+          razao_social: values.razao_social || null,
+          cnpj: values.cnpj || null,
+          email: values.email || null,
+          whatsapp: values.whatsapp || null,
+          instagram: values.instagram || null,
+          state_id: values.state_id || null,
+          city_id: values.city_id || null,
+          company_type: values.company_type,
+          cep: values.address?.cep || null,
+          rua: values.address?.rua || null,
+          numero: values.address?.numero || null,
+          complemento: values.address?.complemento || null,
+          bairro: values.address?.bairro || null,
+        })
         .eq("id", id)
         .eq("client_id", collaborator.client_id)
-        .select()
+        .select(`
+          id,
+          name,
+          razao_social,
+          cnpj,
+          state_id,
+          city_id,
+          company_type,
+          email,
+          whatsapp,
+          celular,
+          instagram,
+          cep,
+          rua,
+          numero,
+          complemento,
+          bairro,
+          created_at,
+          updated_at
+        `)
         .single();
 
       if (error) {
@@ -190,7 +233,16 @@ export function useCompanies(filters?: { search?: string }) {
         throw new Error(error.message);
       }
 
-      return data;
+      return {
+        ...result,
+        address: {
+          cep: result.cep,
+          rua: result.rua,
+          numero: result.numero,
+          complemento: result.complemento,
+          bairro: result.bairro
+        }
+      };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
