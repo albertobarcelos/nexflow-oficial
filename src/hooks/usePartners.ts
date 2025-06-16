@@ -2,6 +2,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { getCurrentUserData } from "@/lib/auth";
 import type { Partner, CreatePartnerData, UpdatePartnerData } from "@/types/partner";
 
 export function usePartners(id?: string) {
@@ -12,43 +13,42 @@ export function usePartners(id?: string) {
   const { data: partners, isLoading } = useQuery({
     queryKey: ["partners"],
     queryFn: async () => {
-      const { data: collaborator } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", user?.id)
-        .single();
+      try {
+        const collaborator = await getCurrentUserData();
 
-      if (!collaborator) throw new Error("Colaborador não encontrado");
-
-      const { data, error } = await supabase
-        .from("partners")
-        .select(`
-          *,
-          company:company_partners(
-            company:companies (
-              id,
-              name,
-              razao_social,
-              cnpj
+        const { data, error } = await supabase
+          .from("web_partners")
+          .select(`
+            *,
+            company:web_company_partners(
+              company:web_companies (
+                id,
+                name,
+                razao_social,
+                cnpj
+              )
             )
-          )
-        `)
-        .eq("client_id", collaborator.client_id)
-        .order("name");
+          `)
+          .eq("client_id", collaborator.client_id)
+          .order("name");
 
-      if (error) {
+        if (error) {
+          console.error("Erro ao buscar parceiros:", error);
+          return [];
+        }
+
+        return data.map((partner: any) => ({
+          ...partner,
+          company_id: partner.company?.[0]?.company?.id || null,
+          company_name: partner.company?.[0]?.company?.name || null,
+          company_razao_social: partner.company?.[0]?.company?.razao_social || null,
+          company_cnpj: partner.company?.[0]?.company?.cnpj || null,
+          company: undefined // Remove o campo company para não confundir
+        }));
+      } catch (error) {
         console.error("Erro ao buscar parceiros:", error);
-        throw error;
+        return [];
       }
-
-      return data.map((partner: any) => ({
-        ...partner,
-        company_id: partner.company?.[0]?.company?.id || null,
-        company_name: partner.company?.[0]?.company?.name || null,
-        company_razao_social: partner.company?.[0]?.company?.razao_social || null,
-        company_cnpj: partner.company?.[0]?.company?.cnpj || null,
-        company: undefined // Remove o campo company para não confundir
-      }));
     },
     enabled: !!user?.id && !id,
   });
@@ -57,35 +57,40 @@ export function usePartners(id?: string) {
   const { data: partner } = useQuery({
     queryKey: ["partners", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("partners")
-        .select(`
-          *,
-          company:company_partners(
-            company:companies (
-              id,
-              name,
-              razao_social,
-              cnpj
+      try {
+        const { data, error } = await supabase
+          .from("web_partners")
+          .select(`
+            *,
+            company:web_company_partners(
+              company:web_companies (
+                id,
+                name,
+                razao_social,
+                cnpj
+              )
             )
-          )
-        `)
-        .eq("id", id)
-        .single();
+          `)
+          .eq("id", id)
+          .single();
 
-      if (error) {
+        if (error) {
+          console.error("Erro ao buscar parceiro:", error);
+          throw error;
+        }
+
+        return {
+          ...data,
+          company_id: data.company?.[0]?.company?.id || null,
+          company_name: data.company?.[0]?.company?.name || null,
+          company_razao_social: data.company?.[0]?.company?.razao_social || null,
+          company_cnpj: data.company?.[0]?.company?.cnpj || null,
+          company: undefined
+        } as Partner;
+      } catch (error) {
         console.error("Erro ao buscar parceiro:", error);
-        throw error;
+        return null;
       }
-
-      return {
-        ...data,
-        company_id: data.company?.[0]?.company?.id || null,
-        company_name: data.company?.[0]?.company?.name || null,
-        company_razao_social: data.company?.[0]?.company?.razao_social || null,
-        company_cnpj: data.company?.[0]?.company?.cnpj || null,
-        company: undefined
-      } as Partner;
     },
     enabled: !!user?.id && !!id,
   });
@@ -101,13 +106,7 @@ export function usePartners(id?: string) {
     if (!data.partner_type) throw new Error("Tipo de parceiro é obrigatório");
 
     // Buscar o client_id do usuário logado
-    const { data: collaborator } = await supabase
-      .from("collaborators")
-      .select("client_id")
-      .eq("auth_user_id", user.id)
-      .single();
-
-    if (!collaborator) throw new Error("Colaborador não encontrado");
+    const collaborator = await getCurrentUserData();
 
     // Formatar dados
     const partnerData = {
@@ -123,7 +122,7 @@ export function usePartners(id?: string) {
 
     // Inserir parceiro
     const { data: newPartner, error } = await supabase
-      .from("partners")
+      .from("web_partners")
       .insert([partnerData])
       .select()
       .single();
@@ -136,7 +135,7 @@ export function usePartners(id?: string) {
     // Se tem empresa, criar vínculo
     if (data.company_id) {
       const { error: linkError } = await supabase
-        .from("company_partners")
+        .from("web_company_partners")
         .insert({
           client_id: collaborator.client_id,
           company_id: data.company_id,
@@ -158,95 +157,77 @@ export function usePartners(id?: string) {
 
   // Atualizar um parceiro existente
   const updatePartner = async (partner: UpdatePartnerData & { id: string }) => {
-    const { company_id, ...partnerData } = partner;
+    try {
+      const { company_id, ...partnerData } = partner;
 
-    // Primeiro buscar o collaborator
-    const { data: collaborator } = await supabase
-      .from("collaborators")
-      .select("client_id")
-      .eq("auth_user_id", (await supabase.auth.getUser()).data.user?.id)
-      .single();
+      // Primeiro buscar o collaborator
+      const collaborator = await getCurrentUserData();
 
-    if (!collaborator) throw new Error("Colaborador não encontrado");
+      // Gerenciar vínculo com empresa
+      if (company_id) {
+        // Verifica se já existe um vínculo
+        const { data: existingLink } = await supabase
+          .from("web_company_partners")
+          .select()
+          .eq("partner_id", partner.id)
+          .single();
 
-    // Gerenciar vínculo com empresa
-    if (company_id) {
-      // Verifica se já existe um vínculo
-      const { data: existingLink } = await supabase
-        .from("company_partners")
-        .select()
-        .eq("partner_id", partner.id)
-        .single();
+        if (existingLink) {
+          // Atualiza o vínculo existente
+          const { error: updateError } = await supabase
+            .from("web_company_partners")
+            .update({
+              company_id: company_id,
+              relationship_type: "MATRIZ" // Por padrão, toda empresa vinculada é MATRIZ
+            })
+            .eq("partner_id", partner.id);
 
-      if (existingLink) {
-        // Atualiza o vínculo existente
-        const { error: updateError } = await supabase
-          .from("company_partners")
-          .update({
-            company_id: company_id,
-            relationship_type: "MATRIZ" // Por padrão, toda empresa vinculada é MATRIZ
-          })
+          if (updateError) throw new Error(updateError.message);
+        } else {
+          // Cria novo vínculo
+          const { error: insertError } = await supabase
+            .from("web_company_partners")
+            .insert({
+              client_id: collaborator.client_id,
+              company_id: company_id,
+              partner_id: partner.id,
+              relationship_type: "MATRIZ" // Por padrão, toda empresa vinculada é MATRIZ
+            });
+
+          if (insertError) throw new Error(insertError.message);
+        }
+      } else {
+        // Remove vínculo se não há empresa
+        const { error: deleteError } = await supabase
+          .from("web_company_partners")
+          .delete()
           .eq("partner_id", partner.id);
 
-        if (updateError) throw new Error(updateError.message);
-      } else {
-        // Cria novo vínculo
-        const { error: insertError } = await supabase
-          .from("company_partners")
-          .insert({
-            client_id: collaborator.client_id,
-            company_id: company_id,
-            partner_id: partner.id,
-            relationship_type: "MATRIZ" // Por padrão, toda empresa vinculada é MATRIZ
-          });
-
-        if (insertError) throw new Error(insertError.message);
+        if (deleteError) throw new Error(deleteError.message);
       }
-    } else {
-      // Se não tem company_id, remove qualquer vínculo existente
-      const { error: deleteError } = await supabase
-        .from("company_partners")
-        .delete()
-        .eq("partner_id", partner.id);
 
-      if (deleteError) throw new Error(deleteError.message);
+      // Atualizar dados do parceiro
+      const { data: updatedPartner, error: updatePartnerError } = await supabase
+        .from("web_partners")
+        .update({
+          ...partnerData,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", partner.id)
+        .select()
+        .single();
+
+      if (updatePartnerError) throw new Error(updatePartnerError.message);
+
+      // Invalidar cache
+      queryClient.invalidateQueries({ queryKey: ["partners"] });
+      queryClient.invalidateQueries({ queryKey: ["partners", partner.id] });
+
+      return updatedPartner;
+    } catch (error) {
+      console.error("Erro ao atualizar parceiro:", error);
+      throw error;
     }
-
-    // Depois atualizar o parceiro e buscar os dados atualizados
-    const { data: updatedPartner, error: updateError } = await supabase
-      .from("partners")
-      .update(partnerData)
-      .eq("id", partner.id)
-      .select(`
-        *,
-        company:company_partners(
-          company:companies (
-            id,
-            name,
-            razao_social,
-            cnpj
-          )
-        )
-      `)
-      .single();
-
-    if (updateError) throw new Error(updateError.message);
-
-    // Invalidar todos os queries relacionados a partners
-    await queryClient.invalidateQueries({ 
-      queryKey: ["partners"],
-      exact: false,
-      refetchType: "all"
-    });
-    
-    return {
-      ...updatedPartner,
-      company_id: updatedPartner.company?.[0]?.company?.id || null,
-      company_name: updatedPartner.company?.[0]?.company?.name || null,
-      company_razao_social: updatedPartner.company?.[0]?.company?.razao_social || null,
-      company_cnpj: updatedPartner.company?.[0]?.company?.cnpj || null,
-      company: undefined
-    } as Partner;
   };
 
   // Excluir um parceiro

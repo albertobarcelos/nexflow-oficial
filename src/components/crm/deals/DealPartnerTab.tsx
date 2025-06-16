@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { usePartners } from "@/hooks/usePartners";
 import { PartnerAvatar } from "@/components/partners/PartnerAvatar";
 import { Partner } from "@/types/partner";
+import { Deal } from "@/types/deal";
 import {
   Select,
   SelectContent,
@@ -14,11 +15,10 @@ import {
 } from "@/components/ui/select";
 
 interface DealPartnerTabProps {
-  selectedPartner: Partner | null;
-  onSelectPartner: (partner: Partner | null) => void;
+  deal: Deal;
 }
 
-export function DealPartnerTab({ selectedPartner, onSelectPartner }: DealPartnerTabProps) {
+export function DealPartnerTab({ deal }: DealPartnerTabProps) {
   const navigate = useNavigate();
   const { partners = [], isLoading } = usePartners();
 
@@ -26,27 +26,27 @@ export function DealPartnerTab({ selectedPartner, onSelectPartner }: DealPartner
     <div className="p-6 space-y-4">
       <h2 className="text-lg font-medium text-gray-800">Parceiro</h2>
 
-      {selectedPartner ? (
+      {deal.partner ? (
         <div className="p-4 bg-gray-50/50 rounded-lg space-y-2">
           <div className="flex items-center gap-2">
-            <PartnerAvatar partner={selectedPartner} size="lg" showStatus />
+            <PartnerAvatar partner={deal.partner} size="lg" showStatus />
             <div>
-              <h3 className="text-base font-medium text-gray-800">{selectedPartner.name}</h3>
-              <p className="text-sm text-gray-600">{selectedPartner.email}</p>
+              <h3 className="text-base font-medium text-gray-800">{deal.partner.name}</h3>
+              <p className="text-sm text-gray-600">{deal.partner.email}</p>
             </div>
           </div>
-          <Button variant="outline" className="w-full" onClick={() => onSelectPartner(null)}>
+          <Button variant="outline" className="w-full" onClick={() => {}}>
             Remover parceiro
           </Button>
         </div>
       ) : (
         <div className="space-y-2">
           <Select
-            value={selectedPartner?.id}
+            value={deal.partner?.id}
             onValueChange={(value) => {
               const partner = partners.find(p => p.id === value);
               if (partner) {
-                onSelectPartner(partner);
+                // onSelectPartner(partner);
               }
             }}
           >

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface Person {
   id: string;
@@ -102,35 +103,33 @@ export function usePeopleAndPartners(dealId: string) {
   } = useQuery({
     queryKey: ["deal-company", dealId],
     queryFn: async () => {
-      const { data: deal } = await supabase
+      const { data, error } = await supabase
         .from("deals")
-        .select("company_id")
+        .select(`
+          company:companies (
+            id,
+            name,
+            email,
+            phone,
+            website,
+            address,
+            city,
+            state,
+            country,
+            sector,
+            size,
+            revenue
+          )
+        `)
         .eq("id", dealId)
         .single();
 
-      if (!deal?.company_id) return null;
+      if (error) {
+        console.error("Error fetching company:", error);
+        throw error;
+      }
 
-      const { data, error } = await supabase
-        .from("companies")
-        .select(`
-          id,
-          name,
-          email,
-          phone,
-          website,
-          address,
-          city,
-          state,
-          country,
-          sector,
-          size,
-          revenue
-        `)
-        .eq("id", deal.company_id)
-        .single();
-
-      if (error) throw error;
-      return data;
+      return data?.company || null;
     },
     enabled: !!dealId
   });
@@ -389,6 +388,57 @@ export function usePeopleAndPartners(dealId: string) {
     }
   });
 
+  // Atualizar empresa do negócio
+  const updateCompany = useMutation({
+    mutationFn: async (input: { dealId: string; companyId: string }) => {
+      const { data: deal } = await supabase
+        .from("deals")
+        .select("client_id")
+        .eq("id", input.dealId)
+        .single();
+
+      if (!deal) throw new Error("Deal not found");
+
+      const { error } = await supabase
+        .from("deals")
+        .update({ company_id: input.companyId })
+        .eq("id", input.dealId);
+
+      if (error) {
+        console.error("Error updating company:", error);
+        throw error;
+      }
+
+      // Buscar informações da empresa para o histórico
+      const { data: company } = await supabase
+        .from("companies")
+        .select("name")
+        .eq("id", input.companyId)
+        .single();
+
+      // Adicionar ao histórico
+      await supabase.from("deal_history").insert([{
+        deal_id: input.dealId,
+        user_id: user?.id,
+        description: "Atualizou a empresa do negócio",
+        details: {
+          companyName: company?.name
+        },
+        type: "company_updated",
+        client_id: deal.client_id
+      }]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["deal-company", dealId]);
+      queryClient.invalidateQueries(["deal-history", dealId]);
+      toast.success("Empresa atualizada com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Error in updateCompany mutation:", error);
+      toast.error("Erro ao atualizar empresa");
+    }
+  });
+
   return {
     people,
     isLoadingPeople,
@@ -404,6 +454,7 @@ export function usePeopleAndPartners(dealId: string) {
     addTask,
     completeTask,
     addPerson,
-    removePerson
+    removePerson,
+    updateCompany
   };
 }

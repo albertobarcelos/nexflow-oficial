@@ -1,276 +1,309 @@
-import { Company } from "@/types/company";
-import { formatPhone, formatCNPJ } from "@/lib/format";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetClose,
-} from "@/components/ui/sheet";
-import {
-  Building2,
-  Mail,
-  Phone,
-  MapPin,
-  X,
-  Map,
-  Navigation,
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { WebCompany } from '@/lib/supabase';
+import { 
+  Mail, 
+  Phone, 
+  MapPin, 
+  AtSign,
   Users,
-  Instagram,
-  Building,
+  Building2,
   Hash,
-  FileText,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+  Globe,
+  Info,
+  Building,
+  Tag,
+  History
+} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatCNPJ, formatPhone } from '@/lib/format';
 
 interface CompanyPopupProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  company: Company;
+  company: WebCompany | null;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function CompanyPopup({
-  open,
-  onOpenChange,
-  company,
-}: CompanyPopupProps) {
-  if (!company || !onOpenChange) {
-    return null;
-  }
+export function CompanyPopup({ company, isOpen, onClose }: CompanyPopupProps) {
+  // Buscar pessoas vinculadas
+  const { data: people = [] } = useQuery({
+    queryKey: ['company_people', company?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_people')
+        .select(`
+          person:people (
+            id,
+            name,
+            email,
+            whatsapp,
+            celular,
+            role
+          )
+        `)
+        .eq('company_id', company?.id);
+
+      if (error) {
+        console.error('Erro ao buscar pessoas:', error);
+        return [];
+      }
+
+      return data.map(item => item.person);
+    },
+  });
+
+  // Buscar estado e cidade
+  const { data: location } = useQuery({
+    queryKey: ['company_location', company?.id],
+    queryFn: async () => {
+      const { data: states } = await supabase
+        .from('states')
+        .select('name, uf')
+        .eq('id', company?.state_id)
+        .single();
+
+      const { data: cities } = await supabase
+        .from('cities')
+        .select('name')
+        .eq('id', company?.city_id)
+        .single();
+
+      return {
+        state: states?.name,
+        uf: states?.uf,
+        city: cities?.name
+      };
+    },
+  });
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-xl">
-        <SheetHeader className="flex items-center justify-between space-y-0">
-          <div>
-            <SheetTitle>Detalhes da Empresa</SheetTitle>
-            <SheetDescription>
-              Informações detalhadas sobre a empresa
-            </SheetDescription>
-          </div>
-          <SheetClose asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="relative -right-2 -top-2"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Fechar</span>
-            </Button>
-          </SheetClose>
-        </SheetHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Detalhes da Empresa</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Informações detalhadas sobre a empresa
+          </p>
+        </DialogHeader>
 
-        <ScrollArea className="h-[calc(100vh-8rem)] pr-4">
-          <div className="space-y-6 mt-6">
-            {/* Dados Básicos */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Building2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Dados Básicos</span>
-              </div>
-              <Separator />
-
-              <div className="grid gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Building className="w-4 h-4" />
-                    Nome Fantasia
+        <div className="space-y-6">
+          {/* Informações Principais */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{company?.name}</h3>
+                    <p className="text-sm text-muted-foreground">{company?.razao_social}</p>
                   </div>
-                  <div className="font-medium">{company.name}</div>
-                </div>
-
-                {company.razao_social && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Building2 className="w-4 h-4" />
-                      Razão Social
+                  {company?.categoria && (
+                    <div className="px-2.5 py-1.5 rounded-full bg-green-100 text-green-800 text-xs font-medium">
+                      {company.categoria}
                     </div>
-                    <div>{company.razao_social}</div>
-                  </div>
-                )}
-
-                {company.cnpj && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Hash className="w-4 h-4" />
-                      CNPJ
-                    </div>
-                    <div>{formatCNPJ(company.cnpj)}</div>
-                  </div>
-                )}
-
-                {company.description && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <FileText className="w-4 h-4" />
-                      Descrição
-                    </div>
-                    <div className="text-sm">{company.description}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Contato */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="w-4 h-4" />
-                <span className="text-sm font-medium">Contato</span>
-              </div>
-              <Separator />
-
-              <div className="grid gap-4">
-                {company.email && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </div>
-                    <div>{company.email}</div>
-                  </div>
-                )}
-
-                {company.whatsapp && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="w-4 h-4" />
-                      WhatsApp
-                    </div>
-                    <div>{formatPhone(company.whatsapp)}</div>
-                  </div>
-                )}
-
-                {company.celular && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="w-4 h-4" />
-                      Celular
-                    </div>
-                    <div>{formatPhone(company.celular)}</div>
-                  </div>
-                )}
-
-                {company.instagram && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Instagram className="w-4 h-4" />
-                      Instagram
-                    </div>
-                    <div>{company.instagram}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Localização */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span className="text-sm font-medium">Localização</span>
-              </div>
-              <Separator />
-
-              <div className="grid gap-4">
-                <div className="flex items-center gap-4">
-                  {company.city?.name && (
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <Navigation className="w-3 h-3" />
-                      {company.city.name}
-                    </Badge>
-                  )}
-                  {company.state?.name && (
-                    <Badge variant="secondary" className="flex items-center gap-2">
-                      <Map className="w-3 h-3" />
-                      {company.state.name}
-                    </Badge>
                   )}
                 </div>
 
-                {company.cep && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      CEP
-                    </div>
-                    <div>{company.cep}</div>
+                {company?.cnpj && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Hash className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{formatCNPJ(company.cnpj)}</span>
                   </div>
                 )}
 
-                {company.bairro && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      Bairro
-                    </div>
-                    <div>{company.bairro}</div>
+                {company?.description && (
+                  <div className="flex items-start gap-2 text-sm">
+                    <Info className="h-4 w-4 text-muted-foreground mt-1" />
+                    <span className="text-muted-foreground">{company.description}</span>
                   </div>
                 )}
 
-                {company.rua && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                      Endereço
-                    </div>
-                    <div>
-                      {company.rua}
-                      {company.numero && `, ${company.numero}`}
-                      {company.complemento && ` - ${company.complemento}`}
-                    </div>
+                {company?.origem && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <History className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Origem: {company.origem}</span>
                   </div>
                 )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Pessoas */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b border-muted">
-                <Users className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Pessoas</span>
-              </div>
-              {company.people && company.people.length > 0 ? (
-                <div className="space-y-4">
-                  {company.people.map((person) => (
-                    <div key={person.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{person.name}</span>
-                      </div>
+          {/* Contato */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Contato
+                </h4>
+                <div className="grid gap-3">
+                  {company?.email && (
+                    <div className="flex items-center gap-2 text-sm group">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <a 
+                        href={`mailto:${company.email}`} 
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {company.email}
+                      </a>
                     </div>
-                  ))}
+                  )}
+                  {company?.telefone && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{formatPhone(company.telefone)}</span>
+                    </div>
+                  )}
+                  {company?.celular && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">{formatPhone(company.celular)}</span>
+                    </div>
+                  )}
+                  {company?.whatsapp && (
+                    <div className="flex items-center gap-2 text-sm group">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <a 
+                        href={`https://wa.me/${company.whatsapp.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer" 
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {formatPhone(company.whatsapp)}
+                      </a>
+                    </div>
+                  )}
+                  {company?.website && (
+                    <div className="flex items-center gap-2 text-sm group">
+                      <Globe className="h-4 w-4 text-muted-foreground" />
+                      <a 
+                        href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {company.website}
+                      </a>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhuma pessoa cadastrada</p>
-              )}
-            </div>
-
-            {/* Integrantes */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b border-muted">
-                <Users className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Integrantes</span>
               </div>
-              {company.collaborators && company.collaborators.length > 0 ? (
+            </CardContent>
+          </Card>
+
+          {/* Localização */}
+          {(company?.cep || company?.rua || location?.city || location?.state) && (
+            <Card>
+              <CardContent className="pt-6">
                 <div className="space-y-4">
-                  {company.collaborators.map((collaborator) => (
-                    <div key={collaborator.id} className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Localização
+                  </h4>
+                  <div className="grid gap-2 text-sm">
+                    {company?.cep && (
                       <div className="flex items-center gap-2">
-                        <span className="text-sm">{collaborator.name}</span>
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">CEP: {company.cep}</span>
                       </div>
-                    </div>
-                  ))}
+                    )}
+                    {(company?.rua || company?.numero || company?.complemento) && (
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {company.rua}
+                          {company.numero && `, ${company.numero}`}
+                          {company.complemento && ` - ${company.complemento}`}
+                        </span>
+                      </div>
+                    )}
+                    {(company.bairro || location?.city || location?.state) && (
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          {company.bairro && `${company.bairro}, `}
+                          {location?.city}
+                          {location?.uf && ` - ${location.uf}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum integrante cadastrado</p>
-              )}
-            </div>
-          </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Pessoas */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Pessoas
+                  </h4>
+                  <span className="text-xs text-muted-foreground px-2.5 py-1.5 bg-secondary rounded-full">
+                    {people.length} pessoa(s)
+                  </span>
+                </div>
+                
+                {people.length > 0 ? (
+                  <div className="grid gap-2">
+                    {people.map((person: any) => (
+                      <div 
+                        key={person.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                      >
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-medium">{person.name}</span>
+                          {person.role && (
+                            <span className="text-xs text-muted-foreground">
+                              {person.role}
+                            </span>
+                          )}
+                          {person.email && (
+                            <a 
+                              href={`mailto:${person.email}`}
+                              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              {person.email}
+                            </a>
+                          )}
+                          {(person.whatsapp || person.celular) && (
+                            <div className="flex items-center gap-2">
+                              {person.whatsapp && (
+                                <a
+                                  href={`https://wa.me/${person.whatsapp.replace(/\D/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  WhatsApp: {formatPhone(person.whatsapp)}
+                                </a>
+                              )}
+                              {person.celular && (
+                                <span className="text-xs text-muted-foreground">
+                                  Celular: {formatPhone(person.celular)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-sm text-muted-foreground bg-muted/50 rounded-lg">
+                    Nenhuma pessoa vinculada
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

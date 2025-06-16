@@ -15,19 +15,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Database } from "@/types/supabase";
+import { Database } from "@/types/database";
 import { CompanyPopup } from "@/features/companies/components/details/CompanyPopup";
 import { CompanyForm } from "@/features/companies/components/form/CompanyForm";
-import { CompanyTable } from "@/features/companies/components/list/CompanyTable";
 import { toast } from "sonner";
 import { formatCNPJ, formatPhone } from "@/lib/format";
+import { useDebounce } from '@/hooks/useDebounce';
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 
 export function CompaniesPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const { companies, isLoading, deleteCompany } = useCompanies({ search });
+  const debouncedSearch = useDebounce(search, 300);
+  const { companies, isLoading, deleteCompany, refreshCompanies } = useCompanies({ search: debouncedSearch });
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -239,25 +240,32 @@ export function CompaniesPage() {
         />
       )}
 
-      {/* Diálogo de Edição */}
+      {/* Formulário de Edição */}
       {companyToEdit && (
         <CompanyForm
+          company={companyToEdit}
           open={isEditDialogOpen}
           onOpenChange={(open) => {
             setIsEditDialogOpen(open);
             if (!open) setCompanyToEdit(null);
           }}
-          company={companyToEdit}
-          onSuccess={(updatedCompany) => {
-            // Atualizar a lista de empresas ou qualquer outra lógica necessária
+          onSuccess={() => {
+            setIsEditDialogOpen(false);
+            setCompanyToEdit(null);
+            refreshCompanies();
+            toast.success('Empresa atualizada com sucesso!');
           }}
         />
       )}
 
-      {/* Diálogo de Nova Empresa */}
+      {/* Dialog de Nova Empresa */}
       <CompanyForm
         open={isNewCompanyDialogOpen}
         onOpenChange={setIsNewCompanyDialogOpen}
+        onSuccess={() => {
+          setIsNewCompanyDialogOpen(false);
+          refreshCompanies();
+        }}
       />
 
       {/* Diálogo de confirmação de exclusão */}

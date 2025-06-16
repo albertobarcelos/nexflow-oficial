@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { getCurrentUserData } from "@/lib/auth";
 import {
   FieldDefinition,
   FieldValue,
@@ -17,16 +18,10 @@ export function useFields(targetType?: FieldDefinition["target_type"]) {
     try {
       setIsLoading(true);
 
-      const { data: collaborator } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!collaborator) throw new Error("Colaborador não encontrado");
+      const collaborator = await getCurrentUserData();
 
       const query = supabase
-        .from("field_definitions")
+        .from("web_field_definitions")
         .select("*")
         .eq("client_id", collaborator.client_id)
         .order("created_at", { ascending: false });
@@ -52,17 +47,11 @@ export function useFields(targetType?: FieldDefinition["target_type"]) {
     try {
       setIsLoading(true);
 
-      const { data: collaborator } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!collaborator) throw new Error("Colaborador não encontrado");
+      const collaborator = await getCurrentUserData();
 
       const { data, error } = await supabase
-        .from("field_values")
-        .select("*, field:field_definitions(*)")
+        .from("web_field_values")
+        .select("*, field:web_field_definitions(*)")
         .eq("client_id", collaborator.client_id)
         .eq("target_id", targetId)
         .order("created_at", { ascending: false });
@@ -82,16 +71,10 @@ export function useFields(targetType?: FieldDefinition["target_type"]) {
     try {
       setIsLoading(true);
 
-      const { data: collaborator } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!collaborator) throw new Error("Colaborador não encontrado");
+      const collaborator = await getCurrentUserData();
 
       const { data, error } = await supabase
-        .from("field_definitions")
+        .from("web_field_definitions")
         .insert([{ ...input, client_id: collaborator.client_id }])
         .select()
         .single();
@@ -118,7 +101,7 @@ export function useFields(targetType?: FieldDefinition["target_type"]) {
       setIsLoading(true);
 
       const { data, error } = await supabase
-        .from("field_definitions")
+        .from("web_field_definitions")
         .update(input)
         .eq("id", id)
         .select()
@@ -145,7 +128,7 @@ export function useFields(targetType?: FieldDefinition["target_type"]) {
       setIsLoading(true);
 
       const { error } = await supabase
-        .from("field_definitions")
+        .from("web_field_definitions")
         .delete()
         .eq("id", id);
 
@@ -170,16 +153,10 @@ export function useFields(targetType?: FieldDefinition["target_type"]) {
     try {
       setIsLoading(true);
 
-      const { data: collaborator } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!collaborator) throw new Error("Colaborador não encontrado");
+      const collaborator = await getCurrentUserData();
 
       const { data, error } = await supabase
-        .from("field_values")
+        .from("web_field_values")
         .insert([
           {
             client_id: collaborator.client_id,
@@ -188,7 +165,7 @@ export function useFields(targetType?: FieldDefinition["target_type"]) {
             value,
           },
         ])
-        .select("*, field:field_definitions(*)")
+        .select("*, field:web_field_definitions(*)")
         .single();
 
       if (error) throw error;

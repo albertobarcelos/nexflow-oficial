@@ -41,7 +41,17 @@ export function Combobox({
   const selectedItem = items.find((item) => item.value === value);
 
   return (
-    <div className="relative w-full">
+    <div 
+      className="relative w-full"
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
+    >
       <Button
         variant="outline"
         role="combobox"
@@ -50,7 +60,15 @@ export function Combobox({
           "w-full justify-between font-normal",
           disabled && "opacity-50 cursor-not-allowed"
         )}
-        onClick={() => !disabled && setOpen(!open)}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          if (!disabled) setOpen(!open);
+        }}
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
         disabled={disabled}
       >
         {selectedItem ? (
@@ -61,9 +79,23 @@ export function Combobox({
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
       {open && !disabled && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
+        <div 
+          className="absolute z-[200] mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
+        >
           <CommandPrimitive className="w-full">
-            <div className="flex items-center border-b px-3">
+            <div 
+              className="flex items-center border-b px-3"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
               <CommandPrimitive.Input
                 value={search}
                 onValueChange={setSearch}

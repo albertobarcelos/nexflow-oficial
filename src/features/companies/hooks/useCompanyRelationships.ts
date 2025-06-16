@@ -305,3 +305,68 @@ export function useCompanyRelationships(companyId: string) {
     removeCompanyPartner: removeCompanyPartnerMutation.mutateAsync,
   };
 }
+
+export const useCompanyRelationshipsHook = (companyId: string) => {
+  // Buscar parceiros vinculados
+  const { data: companyPartners, isLoading: loadingPartners } = useQuery({
+    queryKey: ['company-partners', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+
+      const { data, error } = await supabase
+        .from('company_partners')
+        .select(`
+          id,
+          partner:partners (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('company_id', companyId);
+
+      if (error) {
+        console.error('Erro ao buscar parceiros:', error);
+        return [];
+      }
+
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  // Buscar pessoas vinculadas
+  const { data: companyPeople, isLoading: loadingPeople } = useQuery({
+    queryKey: ['company-people', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+
+      const { data, error } = await supabase
+        .from('company_people')
+        .select(`
+          id,
+          person:people (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('company_id', companyId);
+
+      if (error) {
+        console.error('Erro ao buscar pessoas:', error);
+        return [];
+      }
+
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
+  return {
+    companyPartners,
+    companyPeople,
+    loadingPartners,
+    loadingPeople,
+  };
+};

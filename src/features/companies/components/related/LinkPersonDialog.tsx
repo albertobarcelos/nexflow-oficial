@@ -1,134 +1,194 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { usePeople } from "@/hooks/usePeople";
-import { Person } from "@/types/database/person";
-import { Search, Plus } from "lucide-react";
-import { AddPersonDialog } from "@/components/crm/people/AddPersonDialog";
-import { toast } from "sonner";
-import { useCompanyRelationships } from "@/features/companies/hooks/useCompanyRelationships";
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Person } from '@/types/database/person';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
+import { toast } from 'sonner';
+import { Plus } from 'lucide-react';
+import { QuickPersonCreate } from "@/components/crm/people/QuickPersonCreate";
 
 interface LinkPersonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   companyId: string;
   onLink: (person: Person) => void;
+  currentLinkedPeople: Person[]; 
 }
 
-export function LinkPersonDialog({ open, onOpenChange, companyId, onLink }: LinkPersonDialogProps) {
-  const [search, setSearch] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { people } = usePeople();
-  const { companyPeople } = useCompanyRelationships(companyId);
+export function LinkPersonDialog({ 
+  open, 
+  onOpenChange, 
+  companyId, 
+  onLink,
+  currentLinkedPeople 
+}: LinkPersonDialogProps) {
+  const [search, setSearch] = useState('');
+  const [isQuickPersonCreateOpen, setIsQuickPersonCreateOpen] = useState(false);
 
-  // Ids das pessoas já vinculadas
-  const linkedPeopleIds = companyPeople?.map((cp) => cp.person.id) || [];
+  // Buscar informações da empresa para obter o client_id
+  const { data: company } = useQuery({
+    queryKey: ['company', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('client_id')
+        .eq('id', companyId)
+        .single();
 
-  // Filtrar pessoas que não estão vinculadas à empresa atual
-  const filteredPeople = people?.filter((person) => {
-    const matchesSearch =
-      person.name?.toLowerCase().includes(search.toLowerCase()) ||
-      person.email?.toLowerCase().includes(search.toLowerCase()) ||
-      person.whatsapp?.toLowerCase().includes(search.toLowerCase());
+      if (error) {
+        console.error('Erro ao buscar empresa:', error);
+        return null;
+      }
 
-    return matchesSearch;
+      return data;
+    },
   });
 
-  const handleLinkPerson = async (person: Person) => {
-    onLink(person);
-    onOpenChange(false);
-    toast.success("Pessoa adicionada com sucesso!");
+  // Buscar pessoas pelo nome
+  const { data: people = [], isLoading } = useQuery({
+    queryKey: ['people', search],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('people')
+        .select('*')
+        .ilike('name', `%${search}%`)
+        .limit(10);
+
+      if (error) {
+        console.error('Erro ao buscar pessoas:', error);
+        return [];
+      }
+
+      return data;
+    },
+    enabled: open,
+  });
+
+  const handleLink = async (person: Person) => {
+    try {
+      if (!company?.client_id) {
+        toast.error('Não foi possível identificar o cliente da empresa');
+        return;
+      }
+
+      // Verificar se já está vinculada usando o estado atual
+      if (currentLinkedPeople.some(p => p.id === person.id)) {
+        return;
+      }
+
+      // Se a pessoa já foi vinculada antes (está apenas temporariamente desvinculada),
+      // apenas atualizamos o estado sem tentar inserir no banco
+      const alreadyExistsInDb = await supabase
+        .from('company_people')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('person_id', person.id)
+        .single();
+
+      if (alreadyExistsInDb.data) {
+        onLink(person);
+        toast.success('Pessoa vinculada com sucesso!');
+        return;
+      }
+
+      // Se não existe no banco, cria um novo vínculo
+      const { error } = await supabase
+        .from('company_people')
+        .insert({
+          company_id: companyId,
+          person_id: person.id,
+          client_id: company.client_id
+        });
+
+      if (error) throw error;
+
+      onLink(person);
+      toast.success('Pessoa vinculada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao vincular pessoa:', error);
+      toast.error('Erro ao vincular pessoa');
+    }
   };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl" aria-describedby="dialog-description">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Vincular Pessoa</DialogTitle>
-            <p id="dialog-description" className="text-sm text-muted-foreground">
-              Selecione uma pessoa para vincular a esta empresa ou crie uma nova.
-            </p>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Barra de pesquisa */}
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar pessoas..."
+                  placeholder="Buscar pessoa..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8"
                 />
               </div>
               <Button
-                onClick={() => {
-                  setIsAddDialogOpen(true);
-                }}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsQuickPersonCreateOpen(true)}
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Nova Pessoa
               </Button>
             </div>
 
-            {/* Lista de pessoas */}
-            <div className="border rounded-lg">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="py-3 px-4 text-left font-medium">Nome</th>
-                      <th className="py-3 px-4 text-left font-medium">Email</th>
-                      <th className="py-3 px-4 text-left font-medium">WhatsApp</th>
-                      <th className="py-3 px-4 text-right font-medium">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPeople?.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="py-3 px-4 text-center text-muted-foreground">
-                          Nenhuma pessoa encontrada
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredPeople?.map((person) => (
-                        <tr key={person.id} className="border-b">
-                          <td className="py-3 px-4">{person.name}</td>
-                          <td className="py-3 px-4">{person.email || "-"}</td>
-                          <td className="py-3 px-4">{person.whatsapp || "-"}</td>
-                          <td className="py-3 px-4 text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleLinkPerson(person)}
-                            >
-                              Vincular
-                            </Button>
-                          </td>
-                        </tr>
-                      ))
+            <div className="space-y-2">
+              {people.map((person) => (
+                <div
+                  key={person.id}
+                  className="flex items-center justify-between p-2 rounded-lg border"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{person.name}</span>
+                    {person.email && (
+                      <span className="text-sm text-muted-foreground">
+                        {person.email}
+                      </span>
                     )}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                  <Button
+                    variant={currentLinkedPeople.some(p => p.id === person.id) ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => handleLink(person)}
+                    disabled={currentLinkedPeople.some(p => p.id === person.id)}
+                  >
+                    {currentLinkedPeople.some(p => p.id === person.id) ? "Vinculado" : "Vincular"}
+                  </Button>
+                </div>
+              ))}
+
+              {!isLoading && people.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-4">
+                  Nenhuma pessoa encontrada
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para adicionar nova pessoa */}
-      <AddPersonDialog
-        open={isAddDialogOpen}
-        onOpenChange={(open) => {
-          setIsAddDialogOpen(open);
-          if (!open) {
-            onOpenChange(true); // Reabrir o dialog de vincular pessoa
-          }
-        }}
-      />
+      {isQuickPersonCreateOpen && (
+        <QuickPersonCreate
+          open={isQuickPersonCreateOpen}
+          onOpenChange={setIsQuickPersonCreateOpen}
+          onSuccess={(person) => {
+            onLink(person);
+            setIsQuickPersonCreateOpen(false);
+            onOpenChange(false);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -99,54 +99,95 @@ src/
 
 ### 🏢 Módulo de Empresas (Companies)
 
-O módulo de empresas segue uma arquitetura organizada e escalável:
+O módulo de empresas segue uma arquitetura limpa e organizada:
 
-#### 1. Componentes (`components/`)
-- **custom-fields/**: Campos personalizados específicos para empresas
-- **details/**: Componentes para visualização detalhada de empresas
-  - `CompanyPopup.tsx`: Modal de detalhes rápidos
-- **form/**: Componentes de formulário
-  - `CompanyForm.tsx`: Formulário principal
-  - `EditCompanyDialog.tsx`: Modal de edição rápida
-- **list/**: Componentes de listagem
-  - `CompanyTable.tsx`: Tabela de empresas
-- **related/**: Componentes de relacionamentos
-  - `LinkPartnerDialog.tsx`: Modal para vincular parceiros
-  - `LinkPersonDialog.tsx`: Modal para vincular pessoas
+#### 1. Estrutura
+```
+companies/
+├── application/           # Lógica de negócios e hooks
+│   ├── useCompanyForm.ts
+│   └── useCompanyForm.test.ts
+├── components/
+│   ├── custom-fields/    # Campos personalizados
+│   ├── details/          # Visualização detalhada
+│   ├── form/            # Formulários
+│   │   └── CompanyForm.tsx
+│   ├── list/            # Componentes de lista
+│   └── related/         # Relacionamentos
+├── schemas/             # Validação
+│   └── companySchema.ts
+└── pages/              # Páginas
+```
 
-#### 2. Hooks (`hooks/`)
-- `useCompanies.ts`: Gerenciamento de estado e operações CRUD
-- `useCompanyRelationships.ts`: Gestão de relacionamentos
+#### 2. Componentes Principais
 
-#### 3. Páginas (`pages/`)
-- `CompaniesPage.tsx`: Listagem e gestão de empresas
-- `CompanyDetailsPage.tsx`: Visualização detalhada
-- `CompanyFormPage.tsx`: Criação/edição completa
+##### CompanyForm
+Componente de formulário para criação e edição de empresas.
+- Validação com Zod
+- Gestão de estado com React Hook Form
+- Carregamento dinâmico de estados/cidades
+- Feedback visual com toasts
+- Suporte a campos customizados
 
-#### 4. Tipos (`types/`)
-- Definições de tipos e interfaces específicas do módulo
+##### EntityLinker
+HOC para vincular entidades (empresas, pessoas, etc):
+- Lista de itens vinculados
+- Ações de vincular/desvincular
+- Loading state
+- Área de rolagem para muitos itens
 
-#### Funcionalidades do Módulo:
+#### 3. Hooks
+
+##### useCompanyForm
+Hook personalizado para gerenciar formulários de empresa:
+- Validação integrada
+- Carregamento de estados/cidades
+- Gestão de estado do formulário
+- Submissão e feedback
+- Suporte a criação/edição
+
+#### 4. Validação (Zod)
+```typescript
+const companySchema = z.object({
+  name: z.string().min(3),
+  cnpj: z.string().regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/),
+  state_id: z.string().uuid(),
+  city_id: z.string().uuid(),
+  address: z.string().optional()
+});
+```
+
+#### 5. Testes
+- Testes unitários para hooks
+- Cobertura de:
+  - Inicialização
+  - Carregamento de dados
+  - Submissão
+  - Estados de loading
+  - Validação
+
+#### 6. Funcionalidades
 1. **Gestão de Empresas**
-   - Cadastro completo com informações básicas
-   - Localização (Estado, Cidade, Endereço completo)
-   - Contatos e relacionamentos
-   - Upload e gestão de documentos
+   - CRUD completo
+   - Validação robusta
+   - Feedback visual
+   - Campos customizados
 
 2. **Relacionamentos**
-   - Vinculação com parceiros
-   - Vinculação com pessoas
-   - Gestão de vínculos
+   - Vinculação dinâmica
+   - Interface intuitiva
+   - Gestão de múltiplos vínculos
 
-3. **Campos Customizados**
-   - Suporte a campos personalizados por cliente
-   - Validações específicas
-   - Formatação personalizada
+3. **Localização**
+   - Estados/Cidades do Brasil
+   - Busca por CEP
+   - Endereço completo
 
-4. **Localização**
-   - Seleção de Estado/Cidade
-   - Busca por CEP com preenchimento automático
-   - Endereço completo expansível
+4. **UX/UI**
+   - Feedback visual
+   - Loading states
+   - Validação em tempo real
+   - Mensagens de erro claras
 
 ## 🔐 Variáveis de Ambiente
 
@@ -456,7 +497,7 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
 ### Componentes Principais
 
 1. `DealDialog`:
-   - Interface para visualização e edição de deals
+   - Interface principal de gerenciamento de deals
    - Gerenciamento de tags
    - Campos customizados do deal
 
@@ -553,3 +594,165 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
    - Breakpoints consistentes
    - Mobile-first approach
    - Gestos touch-friendly
+
+## Atualizações Recentes
+
+### Melhorias no Drag and Drop do Funil (07/02/2024)
+
+#### Otimizações de Performance
+- Adicionada aceleração por hardware usando `transform-gpu`
+- Otimização de re-renders com `willChange`
+- Transições suaves com `duration-200` e `ease-in-out`
+
+#### Melhorias Visuais
+- Efeito consistente ao arrastar cards:
+  - Escala suave (scale-[1.02])
+  - Rotação sutil (rotate-1)
+  - Sombra elevada (shadow-xl)
+- Feedback visual ao passar sobre colunas:
+  - Background azul suave
+  - Borda sutil com ring
+- Transições fluidas em todas as interações
+
+#### Correções de Bugs
+- Resolvido problema de "piscar" ao soltar cards
+- Corrigida referência à tabela `users` no histórico
+- Adicionados índices para melhor performance no banco de dados
+
+#### Boas Práticas Implementadas
+- Otimização de cache para reduzir requisições
+- Tratamento silencioso de erros não-críticos
+- Uso de animações performáticas com GPU
+
+## Validação de CNPJ
+
+A função `validateCNPJ` foi implementada em `src/lib/utils.ts` para validar o formato e os dígitos verificadores do CNPJ. Essa função é utilizada pelo schema de validação (definido com Zod) em `src/features/companies/validation.ts` para garantir que somente CNPJs válidos sejam aceitos nos formulários.
+
+A validação realiza as seguintes etapas:
+- Remove caracteres não numéricos
+- Verifica se o CNPJ possui 14 dígitos
+- Checa se os dígitos não são todos iguais
+- Calcula os dígitos verificadores e confirma a validade do CNPJ
+
+### Exemplos de Uso
+
+```typescript
+// Validação direta
+validateCNPJ('12.345.678/0001-95') // retorna true/false
+
+// No formulário (via Zod)
+const companySchema = z.object({
+  document: z.string().refine(validateCNPJ, 'CNPJ inválido')
+});
+
+```
+
+## Estrutura do Sistema
+
+### Relacionamentos e Permissões
+
+#### Usuários e Clientes
+- Cada usuário está vinculado a um cliente através da tabela `users_clients`
+- A tabela `users_clients` contém:
+  - `user_id`: ID do usuário (auth.users)
+  - `client_id`: ID do cliente (clients)
+
+#### Pessoas
+- Ao criar uma nova pessoa, é necessário:
+  1. `client_id`: Obtido da tabela `users_clients` usando o ID do usuário logado
+  2. `responsavel_id`: ID do usuário logado que está criando a pessoa
+  3. Campos obrigatórios:
+     - Nome
+     - WhatsApp (opcional)
+     - Cargo (opcional)
+
+#### Fluxo de Criação de Pessoas
+```typescript
+// Exemplo de como obter o client_id do usuário logado
+const { data: userInfo } = useQuery({
+  queryKey: ['user-client', user?.id],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from('users_clients')
+      .select('client_id')
+      .eq('user_id', user?.id)
+      .single();
+    return data;
+  },
+});
+
+// Criação da pessoa
+await supabase.from('people').insert({
+  name: 'Nome da Pessoa',
+  responsavel_id: user?.id,
+  client_id: userInfo.client_id,
+  created_at: new Date().toISOString(),
+});
+```
+
+#### Boas Práticas
+1. Sempre verificar se o usuário tem um `client_id` antes de criar registros
+2. Usar o React Query para gerenciar o estado e cache das consultas
+3. Tratar erros apropriadamente com feedback visual ao usuário
+4. Manter a consistência dos dados usando as relações corretas
+
+## Sistema de Gestão de Tarefas
+
+O sistema de gestão de tarefas foi implementado para permitir um acompanhamento eficiente das atividades relacionadas a cada negócio. Principais características:
+
+### Tipos de Tarefas
+- Tipos de tarefas personalizáveis armazenados na tabela `task_types`
+- Cada tipo possui:
+  - Nome descritivo
+  - Ícone (usando Lucide React)
+  - Cor personalizada
+  - Descrição opcional
+
+### Funcionalidades
+- Criação, edição e exclusão de tarefas
+- Marcação de tarefas como concluídas
+- Agendamento com data e hora
+- Descrições detalhadas
+- Interface intuitiva e responsiva
+- Integração com o Supabase para persistência dos dados
+
+### Estrutura do Banco de Dados
+
+```sql
+-- Tabela de tipos de tarefas
+CREATE TABLE task_types (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    icon TEXT NOT NULL,
+    color TEXT NOT NULL,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Tabela de tarefas
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    deal_id UUID REFERENCES deals(id) ON DELETE CASCADE,
+    type_id UUID REFERENCES task_types(id),
+    title TEXT NOT NULL,
+    description TEXT,
+    scheduled_date TIMESTAMPTZ NOT NULL,
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Componentes Principais
+- `DealTasksTab`: Interface principal de gerenciamento de tarefas
+- `useTasks`: Hook React para interação com o backend
+- Tipos TypeScript em `types/tasks.ts`
+
+### Dependências
+- `@tanstack/react-query`: Gerenciamento de estado e cache
+- `date-fns`: Formatação de datas
+- `lucide-react`: Ícones
+- `react-hook-form`: Gerenciamento de formulários
+- `zod`: Validação de dados

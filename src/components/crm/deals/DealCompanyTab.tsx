@@ -26,46 +26,41 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { CompanySelect } from "@/components/ui/company-select";
+import { Deal } from "@/types/deals";
 
 interface DealCompanyTabProps {
-  dealId: string;
-  mode: "view" | "edit";
+  deal: Deal;
 }
 
-export function DealCompanyTab({ dealId, mode }: DealCompanyTabProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const { company, isLoadingCompany, updateCompany } = usePeopleAndPartners(dealId);
+export function DealCompanyTab({ deal }: DealCompanyTabProps) {
+  const [selectOpen, setSelectOpen] = useState(false);
+  const { updateCompany } = usePeopleAndPartners(deal.id);
 
-  const handleUpdateCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCompanySelect = async (companyId: string) => {
     try {
-      await updateCompany.mutateAsync(company);
-      setIsEditing(false);
-      toast.success("Informações da empresa atualizadas!");
+      await updateCompany.mutateAsync({ dealId: deal.id, companyId });
+      setSelectOpen(false);
+      toast.success("Empresa atualizada com sucesso!");
     } catch (error) {
-      toast.error("Erro ao atualizar informações");
+      console.error("Erro ao vincular empresa:", error);
+      toast.error("Erro ao vincular empresa");
     }
   };
 
-  if (isLoadingCompany) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-15rem)]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          <p className="text-sm text-gray-500">Carregando informações da empresa...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!company) {
+  if (!deal.company) {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-15rem)] text-gray-500">
         <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
         <p className="text-lg font-medium mb-2">Nenhuma empresa vinculada</p>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-gray-400 mb-4">
           Esta oportunidade não está vinculada a nenhuma empresa
         </p>
+        <Button
+          onClick={() => setSelectOpen(true)}
+        >
+          Vincular Empresa
+        </Button>
       </div>
     );
   }
@@ -95,170 +90,98 @@ export function DealCompanyTab({ dealId, mode }: DealCompanyTabProps) {
   );
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium text-gray-800">Empresa</h3>
-          <p className="text-sm text-gray-500">
-            Informações da empresa vinculada a esta oportunidade
-          </p>
+    <>
+      <div className="p-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-800">Empresa</h3>
+            <p className="text-sm text-gray-500">
+              Informações da empresa vinculada a esta oportunidade
+            </p>
+          </div>
         </div>
-        {mode === "edit" && (
-          <Button onClick={() => setIsEditing(true)}>
-            Editar Informações
-          </Button>
-        )}
-      </div>
 
-      {/* Company Details */}
-      <ScrollArea className="h-[calc(100vh-15rem)]">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <CompanyInfo
-            icon={Building2}
-            label="Nome da Empresa"
-            value={company.name}
-          />
+        {/* Company Details */}
+        <ScrollArea className="h-[calc(100vh-15rem)]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CompanyInfo
+              icon={Building2}
+              label="Nome da Empresa"
+              value={deal.company.name}
+            />
 
-          <CompanyInfo
-            icon={Mail}
-            label="E-mail"
-            value={company.email}
-          />
+            <CompanyInfo
+              icon={Mail}
+              label="E-mail"
+              value={deal.company.email}
+              href={deal.company.email ? `mailto:${deal.company.email}` : undefined}
+            />
 
-          <CompanyInfo
-            icon={Phone}
-            label="Telefone"
-            value={company.phone}
-          />
+            <CompanyInfo
+              icon={Phone}
+              label="Telefone"
+              value={deal.company.phone}
+              href={deal.company.phone ? `tel:${deal.company.phone}` : undefined}
+            />
 
-          <CompanyInfo
-            icon={Globe}
-            label="Website"
-            value={company.website}
-            href={company.website}
-          />
+            <CompanyInfo
+              icon={Globe}
+              label="Website"
+              value={deal.company.website}
+              href={deal.company.website}
+            />
 
-          <CompanyInfo
-            icon={MapPin}
-            label="Endereço"
-            value={[company.address, company.city, company.state, company.country]
-              .filter(Boolean)
-              .join(", ")}
-          />
+            <CompanyInfo
+              icon={MapPin}
+              label="Endereço"
+              value={[deal.company.address, deal.company.city, deal.company.state, deal.company.country]
+                .filter(Boolean)
+                .join(", ")}
+            />
 
-          <CompanyInfo
-            icon={Users}
-            label="Tamanho"
-            value={company.size}
-          />
+            <CompanyInfo
+              icon={Users}
+              label="Tamanho da Empresa"
+              value={deal.company.size}
+            />
 
-          <CompanyInfo
-            icon={DollarSign}
-            label="Faturamento"
-            value={company.revenue}
-          />
-        </div>
-      </ScrollArea>
+            <CompanyInfo
+              icon={DollarSign}
+              label="Faturamento Anual"
+              value={deal.company.revenue}
+            />
 
-      {/* Edit Dialog */}
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Informações da Empresa</DialogTitle>
-            <DialogDescription>
-              Atualize as informações da empresa vinculada a esta oportunidade
-            </DialogDescription>
-          </DialogHeader>
+            <CompanyInfo
+              icon={Building2}
+              label="Setor"
+              value={deal.company.sector}
+            />
+          </div>
+        </ScrollArea>
 
-          <form onSubmit={handleUpdateCompany} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome da Empresa *</Label>
-                <Input
-                  id="name"
-                  value={company?.name}
-                  onChange={(e) => updateCompany.mutate({ ...company, name: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  type="url"
-                  value={company?.website}
-                  onChange={(e) => updateCompany.mutate({ ...company, website: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={company?.email}
-                  onChange={(e) => updateCompany.mutate({ ...company, email: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  value={company?.phone}
-                  onChange={(e) => updateCompany.mutate({ ...company, phone: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço</Label>
-                <Input
-                  id="address"
-                  value={company?.address}
-                  onChange={(e) => updateCompany.mutate({ ...company, address: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="employees">Número de Funcionários</Label>
-                <Input
-                  id="employees"
-                  type="number"
-                  value={company?.employees_count}
-                  onChange={(e) => updateCompany.mutate({ ...company, employees_count: parseInt(e.target.value) })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="revenue">Faturamento Anual</Label>
-                <Input
-                  id="revenue"
-                  type="number"
-                  value={company?.annual_revenue}
-                  onChange={(e) => updateCompany.mutate({ ...company, annual_revenue: parseFloat(e.target.value) })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cnpj">CNPJ</Label>
-                <Input
-                  id="cnpj"
-                  value={company?.cnpj}
-                  onChange={(e) => updateCompany.mutate({ ...company, cnpj: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+        {/* Dialog de seleção de empresa */}
+        <Dialog open={selectOpen} onOpenChange={setSelectOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Selecionar Empresa</DialogTitle>
+              <DialogDescription>
+                Escolha uma empresa para vincular a este negócio
+              </DialogDescription>
+            </DialogHeader>
+            <CompanySelect onSelect={handleCompanySelect} />
+            <DialogFooter className="sm:justify-start">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setSelectOpen(false)}
+              >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar Alterações</Button>
             </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 }

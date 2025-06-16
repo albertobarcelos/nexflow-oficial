@@ -1,76 +1,54 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { getCurrentUserData } from "@/lib/auth";
 
-interface User {
+export interface User {
   id: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  name: string;
-  isCurrentUser?: boolean;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  client_id: string;
 }
 
 export function useUsers() {
-  const { data: users = [], isLoading } = useQuery({
+  return useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      // Pegar usuário atual
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (!currentUser) throw new Error("Usuário não autenticado");
+      try {
+        const collaborator = await getCurrentUserData();
 
-      // Buscar client_id do usuário atual
-      const { data: currentCollaborator, error: collaboratorError } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", currentUser.id)
-        .single();
+        const { data: collaborators, error } = await supabase
+          .from("core_client_users")
+          .select("*")
+          .eq("client_id", collaborator.client_id)
+          .order("first_name");
 
-      if (collaboratorError || !currentCollaborator) {
-        console.error("Erro ao buscar colaborador:", collaboratorError);
-        throw new Error("Colaborador não encontrado");
+        if (error) {
+          console.error("Erro ao buscar usuários:", error);
+          return [];
+        }
+
+        return (collaborators || [])
+          .filter((c: any) => c.is_active)
+          .map((c: any) => ({
+            id: c.id,
+            first_name: c.first_name,
+            last_name: c.last_name,
+            email: c.email,
+            role: c.role,
+            is_active: c.is_active,
+            created_at: c.created_at,
+            updated_at: c.updated_at,
+            client_id: c.client_id,
+          }));
+      } catch (error) {
+        console.error("Erro ao buscar usuários:", error);
+        return [];
       }
-
-      // Buscar todos os usuários do mesmo client_id
-      const { data: collaborators, error } = await supabase
-        .from("collaborators")
-        .select(`
-          auth_user_id,
-          name,
-          email
-        `)
-        .eq("client_id", currentCollaborator.client_id);
-
-      if (error) {
-        console.error("Erro ao buscar colaboradores:", error);
-        throw error;
-      }
-
-      return (collaborators || [])
-        .map(collaborator => {
-          const isCurrentUser = collaborator.auth_user_id === currentUser.id;
-          return {
-            id: collaborator.auth_user_id,
-            email: collaborator.email || "",
-            name: isCurrentUser 
-              ? `Eu (${collaborator.name || collaborator.email})` 
-              : (collaborator.name || collaborator.email || ""),
-            isCurrentUser
-          };
-        })
-        .sort((a, b) => {
-          // Usuário atual sempre primeiro
-          if (a.isCurrentUser) return -1;
-          if (b.isCurrentUser) return 1;
-          return a.name.localeCompare(b.name);
-        });
     },
-    staleTime: 1000 * 60 * 5, // 5 minutos
   });
-
-  // Encontrar o usuário atual
-  const currentUser = users.find(user => user.isCurrentUser);
-
-  return {
-    users,
-    currentUser,
-    isLoading,
-  };
 } 

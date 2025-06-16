@@ -15,29 +15,57 @@ export function LoginPage() {
     e.preventDefault();
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      
+      // Fazer login
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (authError) throw authError;
 
-      // Verificar se o usuário é um administrador
+      // Verificar se o usuário é um administrador do sistema (role = 'administrator')
       const { data: adminData, error: adminError } = await supabase
-        .from('administrators')
-        .select('*')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .from('core_client_users')
+        .select(`
+          id,
+          client_id,
+          first_name,
+          last_name,
+          email,
+          role,
+          is_active
+        `)
+        .eq('id', authData.user.id)
+        .eq('role', 'administrator')
+        .eq('is_active', true)
         .single();
 
       if (adminError || !adminData) {
-        throw new Error('Acesso não autorizado');
+        await supabase.auth.signOut();
+        throw new Error('Acesso não autorizado. Você não tem permissão para acessar o portal administrativo.');
       }
 
+      // Atualizar último login
+      await supabase
+        .from('core_client_users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', authData.user.id);
+
+      toast.success(`Bem-vindo(a) ao Portal Administrativo, ${adminData.first_name} ${adminData.last_name}!`);
       navigate("/admin");
     } catch (error) {
       console.error("Erro ao fazer login:", error);
-      toast.error("Erro ao fazer login. Verifique suas credenciais ou permissões.");
-      await supabase.auth.signOut();
+      
+      let errorMessage = "Erro ao fazer login. Tente novamente.";
+      
+      if (error.message?.includes('Invalid login credentials')) {
+        errorMessage = "Email ou senha incorretos.";
+      } else if (error.message?.includes('não autorizado')) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -88,7 +116,7 @@ export function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex space-x-4">
             <Button
               type="button"
               variant="ghost"
@@ -100,6 +128,7 @@ export function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
+              className="flex-1"
             >
               {loading ? "Entrando..." : "Entrar"}
             </Button>

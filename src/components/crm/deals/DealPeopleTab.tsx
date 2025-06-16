@@ -28,11 +28,10 @@ import {
 } from "@/components/ui/dialog";
 
 interface DealPeopleTabProps {
-  dealId: string;
-  mode: "view" | "edit";
+  deal: Deal;
 }
 
-export function DealPeopleTab({ dealId, mode }: DealPeopleTabProps) {
+export function DealPeopleTab({ deal }: DealPeopleTabProps) {
   const [isAddingPerson, setIsAddingPerson] = useState(false);
   const [newPerson, setNewPerson] = useState({
     name: "",
@@ -47,7 +46,7 @@ export function DealPeopleTab({ dealId, mode }: DealPeopleTabProps) {
     isLoadingPeople,
     addPerson,
     removePerson
-  } = usePeopleAndPartners(dealId);
+  } = usePeopleAndPartners(deal.id);
 
   const handleAddPerson = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,86 +117,84 @@ export function DealPeopleTab({ dealId, mode }: DealPeopleTabProps) {
             Gerencie os contatos envolvidos nesta oportunidade
           </p>
         </div>
-        {mode === "edit" && (
-          <Dialog open={isAddingPerson} onOpenChange={setIsAddingPerson}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Pessoa
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Adicionar Nova Pessoa</DialogTitle>
-                <DialogDescription>
-                  Preencha os dados da pessoa que você deseja adicionar a esta oportunidade.
-                </DialogDescription>
-              </DialogHeader>
+        <Dialog open={isAddingPerson} onOpenChange={setIsAddingPerson}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar Pessoa
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Adicionar Nova Pessoa</DialogTitle>
+              <DialogDescription>
+                Preencha os dados da pessoa que você deseja adicionar a esta oportunidade.
+              </DialogDescription>
+            </DialogHeader>
 
-              <form onSubmit={handleAddPerson} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    placeholder="Nome completo"
-                    value={newPerson.name}
-                    onChange={(e) => setNewPerson(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
+            <form onSubmit={handleAddPerson} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome *</Label>
+                <Input
+                  id="name"
+                  placeholder="Nome completo"
+                  value={newPerson.name}
+                  onChange={(e) => setNewPerson(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="email@exemplo.com"
-                    value={newPerson.email}
-                    onChange={(e) => setNewPerson(prev => ({ ...prev, email: e.target.value }))}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={newPerson.email}
+                  onChange={(e) => setNewPerson(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Telefone</Label>
-                  <Input
-                    id="phone"
-                    placeholder="(00) 00000-0000"
-                    value={newPerson.phone}
-                    onChange={(e) => setNewPerson(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  placeholder="(00) 00000-0000"
+                  value={newPerson.phone}
+                  onChange={(e) => setNewPerson(prev => ({ ...prev, phone: e.target.value }))}
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="role">Cargo</Label>
-                  <Input
-                    id="role"
-                    placeholder="Ex: Diretor Comercial"
-                    value={newPerson.role}
-                    onChange={(e) => setNewPerson(prev => ({ ...prev, role: e.target.value }))}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Cargo</Label>
+                <Input
+                  id="role"
+                  placeholder="Ex: Diretor Comercial"
+                  value={newPerson.role}
+                  onChange={(e) => setNewPerson(prev => ({ ...prev, role: e.target.value }))}
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="type">Tipo de Contato</Label>
-                  <Select
-                    value={newPerson.type}
-                    onValueChange={(value) => setNewPerson(prev => ({ ...prev, type: value }))}
-                  >
-                    <option value="contact">Contato</option>
-                    <option value="decision_maker">Decisor</option>
-                    <option value="influencer">Influenciador</option>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Tipo de Contato</Label>
+                <Select
+                  value={newPerson.type}
+                  onValueChange={(value) => setNewPerson(prev => ({ ...prev, type: value }))}
+                >
+                  <option value="contact">Contato</option>
+                  <option value="decision_maker">Decisor</option>
+                  <option value="influencer">Influenciador</option>
+                </Select>
+              </div>
 
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddingPerson(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit">Adicionar</Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsAddingPerson(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit">Adicionar</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Lista de Pessoas */}
@@ -207,15 +204,13 @@ export function DealPeopleTab({ dealId, mode }: DealPeopleTabProps) {
             <div className="text-center py-8 text-gray-500">
               <UserCircle2 className="h-12 w-12 mx-auto mb-2 text-gray-400" />
               <p>Nenhuma pessoa adicionada ainda</p>
-              {mode === "edit" && (
-                <Button
-                  variant="link"
-                  onClick={() => setIsAddingPerson(true)}
-                  className="mt-2"
-                >
-                  Clique aqui para adicionar
-                </Button>
-              )}
+              <Button
+                variant="link"
+                onClick={() => setIsAddingPerson(true)}
+                className="mt-2"
+              >
+                Clique aqui para adicionar
+              </Button>
             </div>
           ) : (
             people?.map((person: any) => (
@@ -307,16 +302,14 @@ export function DealPeopleTab({ dealId, mode }: DealPeopleTabProps) {
                         <Mail className="h-4 w-4" />
                       </Button>
                     )}
-                    {mode === "edit" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
-                        onClick={() => handleRemovePerson(person.id, person.name)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => handleRemovePerson(person.id, person.name)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>

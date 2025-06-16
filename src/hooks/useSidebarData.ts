@@ -28,9 +28,9 @@ export function useSidebarData() {
     queryKey: ['current-collaborator'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('collaborators')
+        .from('core_client_users')
         .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
         .single();
 
       if (error) throw error;
@@ -40,12 +40,12 @@ export function useSidebarData() {
     },
   });
 
-  const { data: pipelines = [] } = useQuery({
-    queryKey: ['pipelines', collaborator?.client_id],
+  const { data: funnels = [] } = useQuery({
+    queryKey: ['funnels', collaborator?.client_id],
     enabled: !!collaborator?.client_id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('pipeline_configs')
+        .from('web_funnels')
         .select('*')
         .eq('client_id', collaborator.client_id);
 
@@ -56,7 +56,7 @@ export function useSidebarData() {
 
   return {
     collaborator,
-    pipelines,
+    funnels,
     entities: FIXED_ENTITIES
   };
 }

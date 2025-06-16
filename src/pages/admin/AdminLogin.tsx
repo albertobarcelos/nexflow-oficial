@@ -24,20 +24,37 @@ export default function AdminLogin() {
 
       // Then, check if the user is an administrator
       const { data: adminData, error: adminError } = await supabase
-        .from('administrators')
-        .select('*')
-        .eq('auth_user_id', authData.user.id)
+        .from('core_client_users')
+        .select(`
+          id,
+          client_id,
+          first_name,
+          last_name,
+          email,
+          role,
+          is_active
+        `)
+        .eq('id', authData.user.id)
+        .eq('role', 'administrator')
+        .eq('is_active', true)
         .maybeSingle();
 
       if (adminError) throw adminError;
       
       if (!adminData) {
+        await supabase.auth.signOut();
         throw new Error('Usuário não autorizado para acessar o portal administrativo.');
       }
 
+      // Atualizar último login
+      await supabase
+        .from('core_client_users')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', authData.user.id);
+
       toast({
         title: "Login realizado com sucesso",
-        description: "Bem-vindo ao Portal Administrador",
+        description: `Bem-vindo ao Portal Administrador, ${adminData.first_name} ${adminData.last_name}`,
       });
 
       navigate("/admin/dashboard");

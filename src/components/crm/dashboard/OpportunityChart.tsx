@@ -6,32 +6,34 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recha
 const COLORS = ['#3b82f6', '#22c55e', '#ef4444'];
 
 export function OpportunityChart() {
-  const { data: opportunitiesByStatus, isLoading } = useQuery({
-    queryKey: ['opportunities-by-status'],
+  const { data: dealsByStage, isLoading } = useQuery({
+    queryKey: ['deals-by-stage'],
     queryFn: async () => {
-      const { data: { client_id } } = await supabase
-        .from('collaborators')
+      const { data: collaborator } = await supabase
+        .from('core_client_users')
         .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
         .single();
 
+      if (!collaborator) return [];
+
       const { data } = await supabase
-        .from('opportunities')
-        .select('status')
-        .eq('client_id', client_id);
+        .from('web_deals')
+        .select(`
+          *,
+          stage:web_funnel_stages(name)
+        `)
+        .eq('client_id', collaborator.client_id);
 
-      const counts = {
-        open: 0,
-        won: 0,
-        lost: 0
-      };
+      const counts: Record<string, number> = {};
 
-      data?.forEach(opp => {
-        counts[opp.status as keyof typeof counts]++;
+      data?.forEach(deal => {
+        const stageName = deal.stage?.name || 'Sem etapa';
+        counts[stageName] = (counts[stageName] || 0) + 1;
       });
 
-      return Object.entries(counts).map(([status, value]) => ({
-        name: status.charAt(0).toUpperCase() + status.slice(1),
+      return Object.entries(counts).map(([stage, value]) => ({
+        name: stage,
         value
       }));
     }
@@ -42,30 +44,28 @@ export function OpportunityChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Oportunidades</CardTitle>
+        <CardTitle>Negócios por Etapa</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={opportunitiesByStatus}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {opportunitiesByStatus?.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={dealsByStage}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+            >
+              {dealsByStage?.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );

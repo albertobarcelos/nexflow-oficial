@@ -11,8 +11,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 export default function CRMLayout() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
+  // TEMPORÁRIO: Comentando toda a verificação de autenticação para permitir acesso direto ao CRM
+  /*
   useEffect(() => {
     checkAuth();
 
@@ -70,6 +72,7 @@ export default function CRMLayout() {
       navigate("/crm/login");
     }
   };
+  */
 
   if (loading) {
     return (

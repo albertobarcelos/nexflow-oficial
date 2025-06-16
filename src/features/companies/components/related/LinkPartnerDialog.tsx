@@ -1,13 +1,14 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { usePartners } from "@/hooks/usePartners";
-import { Partner } from "@/types/database/partner";
-import { Search, Plus } from "lucide-react";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Partner } from '@/types/database/partner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { AddPartnerDialog } from "@/components/crm/partners/AddPartnerDialog";
-import { toast } from "sonner";
-import { useCompanyRelationships } from "@/features/companies/hooks/useCompanyRelationships";
 
 interface LinkPartnerDialogProps {
   open: boolean;
@@ -17,126 +18,176 @@ interface LinkPartnerDialogProps {
 }
 
 export function LinkPartnerDialog({ open, onOpenChange, companyId, onLink }: LinkPartnerDialogProps) {
-  const [search, setSearch] = useState("");
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { partners } = usePartners();
-  const { companyPartners } = useCompanyRelationships(companyId);
+  const [search, setSearch] = useState('');
+  const [linkedPartners, setLinkedPartners] = useState<string[]>([]);
+  const [isAddPartnerDialogOpen, setIsAddPartnerDialogOpen] = useState(false);
 
-  // Ids dos parceiros já vinculados
-  const linkedPartnerIds = companyPartners?.map(cp => cp.partner.id) || [];
+  // Buscar informações da empresa para obter o client_id
+  const { data: company } = useQuery({
+    queryKey: ['company', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('client_id')
+        .eq('id', companyId)
+        .single();
 
-  // Filtrar parceiros que não estão vinculados à empresa atual
-  const filteredPartners = partners?.filter((partner) => {
-    const matchesSearch =
-      partner.name?.toLowerCase().includes(search.toLowerCase()) ||
-      partner.email?.toLowerCase().includes(search.toLowerCase()) ||
-      partner.whatsapp?.toLowerCase().includes(search.toLowerCase());
+      if (error) {
+        console.error('Erro ao buscar empresa:', error);
+        return null;
+      }
 
-    return matchesSearch;
+      return data;
+    },
   });
 
-  const handleLinkPartner = async (partner: Partner) => {
-    onLink(partner);
-    onOpenChange(false);
-    toast.success("Parceiro adicionado com sucesso!");
+  // Buscar parceiros vinculados
+  const { data: companyPartners = [] } = useQuery({
+    queryKey: ['company_partners', companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('company_partners')
+        .select('partner_id')
+        .eq('company_id', companyId);
+
+      if (error) {
+        console.error('Erro ao buscar vínculos:', error);
+        return [];
+      }
+
+      const partnerIds = data.map(item => item.partner_id);
+      setLinkedPartners(partnerIds);
+      return data;
+    },
+  });
+
+  // Buscar parceiros pelo nome
+  const { data: partners = [], isLoading } = useQuery({
+    queryKey: ['partners', search],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('partners')
+        .select('*')
+        .ilike('name', `%${search}%`)
+        .limit(10);
+
+      if (error) {
+        console.error('Erro ao buscar parceiros:', error);
+        return [];
+      }
+
+      return data;
+    },
+  });
+
+  const handleLink = async (partner: Partner) => {
+    try {
+      if (!company?.client_id) {
+        toast.error('Não foi possível identificar o cliente da empresa');
+        return;
+      }
+
+      // Verificar se já existe vínculo
+      if (linkedPartners.includes(partner.id)) {
+        return;
+      }
+
+      const { error } = await supabase
+        .from('company_partners')
+        .insert({
+          company_id: companyId,
+          partner_id: partner.id,
+          client_id: company.client_id
+        });
+
+      if (error) throw error;
+
+      // Atualizar lista de vínculos
+      setLinkedPartners(prev => [...prev, partner.id]);
+      onLink(partner);
+      toast.success('Parceiro vinculado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao vincular parceiro:', error);
+      toast.error('Erro ao vincular parceiro');
+    }
   };
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Vincular Parceiro</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
-            {/* Barra de pesquisa */}
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar parceiros..."
+                  placeholder="Buscar parceiro..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8"
                 />
               </div>
               <Button
-                onClick={() => {
-                  setIsAddDialogOpen(true);
-                  onOpenChange(false);
-                }}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddPartnerDialogOpen(true)}
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Novo Parceiro
               </Button>
             </div>
 
-            {/* Lista de parceiros */}
-            <div className="border rounded-lg">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="py-3 px-4 text-left font-medium">Nome</th>
-                      <th className="py-3 px-4 text-left font-medium">Tipo</th>
-                      <th className="py-3 px-4 text-left font-medium">Email</th>
-                      <th className="py-3 px-4 text-left font-medium">WhatsApp</th>
-                      <th className="py-3 px-4 text-right font-medium">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPartners?.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="py-3 px-4 text-center text-muted-foreground">
-                          Nenhum parceiro encontrado
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredPartners?.map((partner) => (
-                        <tr key={partner.id} className="border-b">
-                          <td className="py-3 px-4">{partner.name}</td>
-                          <td className="py-3 px-4">{partner.partner_type}</td>
-                          <td className="py-3 px-4">{partner.email}</td>
-                          <td className="py-3 px-4">{partner.whatsapp}</td>
-                          <td className="py-3 px-4 text-right">
-                            {linkedPartnerIds.includes(partner.id) ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled
-                                className="text-muted-foreground"
-                              >
-                                Vinculado
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleLinkPartner(partner)}
-                              >
-                                Vincular
-                              </Button>
-                            )}
-                          </td>
-                        </tr>
-                      ))
+            <div className="space-y-2">
+              {partners.map((partner) => (
+                <div
+                  key={partner.id}
+                  className="flex items-center justify-between p-2 rounded-lg border"
+                >
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium">{partner.name}</span>
+                    {partner.email && (
+                      <span className="text-sm text-muted-foreground">
+                        {partner.email}
+                      </span>
                     )}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                  <Button
+                    variant={linkedPartners.includes(partner.id) ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => handleLink(partner)}
+                    disabled={linkedPartners.includes(partner.id)}
+                  >
+                    {linkedPartners.includes(partner.id) ? "Vinculado" : "Vincular"}
+                  </Button>
+                </div>
+              ))}
+
+              {!isLoading && partners.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground py-4">
+                  Nenhum parceiro encontrado
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      <AddPartnerDialog
-        open={isAddDialogOpen}
-        onOpenChange={(open) => {
-          setIsAddDialogOpen(open);
-          if (!open) onOpenChange(true);
-        }}
-      />
+      {isAddPartnerDialogOpen && (
+        <AddPartnerDialog
+          open={isAddPartnerDialogOpen}
+          onOpenChange={setIsAddPartnerDialogOpen}
+          onSuccess={(partner) => {
+            onLink(partner);
+            setIsAddPartnerDialogOpen(false);
+            onOpenChange(false);
+          }}
+        />
+      )}
     </>
   );
 }

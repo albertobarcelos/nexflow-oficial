@@ -28,7 +28,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { getFirstFunnel } from "@/hooks/useFunnels";
+import { getFirstFlow } from "@/hooks/useFlows";
 
 const menuItems = [
   {
@@ -57,19 +57,19 @@ const menuItems = [
     href: "/crm/partners",
   },
   {
-    title: "Negócios",
+    title: "Flow",
     icon: DollarSign,
     onClick: async (navigate: (path: string) => void) => {
       try {
-        const firstFunnel = await getFirstFunnel();
+        const firstFunnel = await getFirstFlow();
         if (firstFunnel) {
-          navigate(`/crm/funnels/${firstFunnel.id}`);
+          navigate(`/crm/flow/${firstFunnel.id}`);
         } else {
-          navigate("/crm/funnels/default");
+          navigate("/crm/flow/default");
         }
       } catch (error) {
         console.error("Erro ao carregar o primeiro funil:", error);
-        navigate("/crm/funnels/default");
+        navigate("/crm/flow/default");
       }
     },
   },

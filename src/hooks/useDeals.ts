@@ -10,6 +10,13 @@ interface Deal {
   pipeline: string;
   created_at: string;
   updated_at: string;
+  partner?: {
+    id: string;
+    name: string;
+    avatar_type?: string;
+    avatar_seed?: string;
+    custom_avatar_url?: string;
+  };
 }
 
 interface DealInput {
@@ -32,7 +39,16 @@ export function useDeals() {
     try {
       const { data, error: supabaseError } = await supabase
         .from("deals")
-        .select("*")
+        .select(`
+          *,
+          partner:partner_id (
+            id,
+            name,
+            avatar_type,
+            avatar_seed,
+            custom_avatar_url
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (supabaseError) {
@@ -155,4 +171,4 @@ export function useDeals() {
     updateDeal,
     deleteDeal,
   };
-} 
+}

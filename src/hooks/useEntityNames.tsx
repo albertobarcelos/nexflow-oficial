@@ -6,9 +6,9 @@ export function useEntityNames() {
     queryKey: ['current-collaborator'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('collaborators')
+        .from('core_client_users')
         .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
         .maybeSingle();
       return data;
     }

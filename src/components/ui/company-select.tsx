@@ -1,23 +1,12 @@
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { useCompanies } from "@/features/companies/hooks/useCompanies";
-import { Building, Check, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { CompanyQuickDialog } from "./CompanyQuickDialog";
+import { useCompanies } from "@/features/companies/hooks/useCompanies";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CompanyQuickForm } from "./company-quick-form";
 
 interface CompanySelectProps {
   value?: string;
@@ -49,120 +38,89 @@ export function CompanySelect({ value, onChange }: CompanySelectProps) {
   ) || [];
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between"
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Carregando...</span>
-            </div>
-          ) : selectedCompany ? (
-            <div className="flex items-center gap-2">
-              <Building className="h-4 w-4" />
-              <div className="flex-1 text-left">
-                <p>{selectedCompany.name}</p>
-                {selectedCompany.razao_social && (
-                  <p className="text-sm text-muted-foreground">{selectedCompany.razao_social}</p>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="text-muted-foreground">Buscar empresa...</div>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
-        <Command>
-          <CommandInput 
-            placeholder="Buscar empresa..." 
-            value={search}
-            onValueChange={setSearch}
-          />
-          <CommandList>
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between"
+            disabled={isLoading}
+          >
             {isLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="h-6 w-6 animate-spin" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Carregando...</span>
               </div>
-            ) : (
-              <>
-                <CommandEmpty className="py-6">
-                  <div className="text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">Nenhuma empresa encontrada.</p>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar Nova Empresa
-                    </Button>
-                  </div>
-                </CommandEmpty>
-                {filteredCompanies.length > 0 && (
-                  <>
-                    <CommandGroup>
-                      {filteredCompanies.map(company => (
-                        <CommandItem
-                          key={company.id}
-                          value={company.name}
-                          onSelect={() => handleSelect(company)}
-                          className="flex items-center gap-2"
-                        >
-                          <Check
-                            className={cn(
-                              "h-4 w-4",
-                              value === company.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <Building className="h-4 w-4 shrink-0" />
-                          <div className="flex-1">
-                            <p>{company.name}</p>
-                            <div className="text-sm text-muted-foreground">
-                              {company.razao_social && (
-                                <p>{company.razao_social}</p>
-                              )}
-                              {company.cnpj && (
-                                <p>{company.cnpj}</p>
-                              )}
-                            </div>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                    <CommandSeparator />
-                    <CommandGroup>
-                      <CommandItem
-                        onSelect={() => setDialogOpen(true)}
-                        className="justify-center text-muted-foreground"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Criar Nova Empresa
-                      </CommandItem>
-                    </CommandGroup>
-                  </>
-                )}
-              </>
-            )}
-          </CommandList>
-        </Command>
-      </PopoverContent>
+            ) : value
+              ? selectedCompany?.name
+              : "Selecione uma empresa"}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[400px] p-0">
+          <Command>
+            <CommandInput 
+              placeholder="Buscar empresa..." 
+              value={search}
+              onValueChange={setSearch}
+            />
+            <CommandEmpty>
+              <div className="flex flex-col items-center justify-center py-6">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Nenhuma empresa encontrada
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setDialogOpen(true);
+                    setOpen(false);
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Criar Nova Empresa
+                </Button>
+              </div>
+            </CommandEmpty>
+            <CommandGroup>
+              {filteredCompanies.map((company) => (
+                <CommandItem
+                  key={company.id}
+                  value={company.name}
+                  onSelect={() => handleSelect(company)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === company.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {company.name}
+                  {company.cnpj && (
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      ({company.cnpj})
+                    </span>
+                  )}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </Popover>
 
-      <CompanyQuickDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onCompanyCreated={handleCompanyCreated}
-        initialName={search}
-      />
-    </Popover>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Empresa</DialogTitle>
+          </DialogHeader>
+          <CompanyQuickForm
+            onSuccess={handleCompanyCreated}
+            initialName={search}
+          />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

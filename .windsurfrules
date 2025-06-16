@@ -1,0 +1,54 @@
+{
+    "rules": [
+      {
+        "id": 1,
+        "description": "Sempre explique ao usuário o que foi feito e editado, incluindo os motivos.",
+        "importance": "high"
+      },
+      {
+        "id": 2,
+        "description": "Respeite sempre a estrutura existente. Não altere sem necessidade.",
+        "importance": "high"
+      },
+      {
+        "id": 3,
+        "description": "Pesquise no codebase os arquivos existentes, antes de realizar qualquer alteração ou implementação.",
+        "importance": "medium"
+      },
+      {
+        "id": 4,
+        "description": "Não crie novos arquivos sem autorização, pois pode existir aquele mesmo arquivo, ou seja sempre pesquise e verifique se já existem arquivos relacionados ao que está sendo desenvolvido, pesquise usando codebase antes de implementar algo.",
+        "importante": "high"
+      },
+      {
+        "id": 5,
+        "description": "Mantenha a organização da estrutura existente em todos os momentos.",
+        "importance": "critical"
+      },
+      {
+        "id": 6,
+        "description": "Sempre verificar se é possível usar uma dependência antes de criar algo do zero.",
+        "importance": "high"
+      },
+      {
+        "id": 7,
+        "description": "Mantenha a linguagem e as tecnologias do projeto existentes (exemplo: Tailwind CSS).",
+        "importance": "critical"
+      },
+      {
+        "id": 8,
+        "description": "Sempre responda em portugues-brasileiro.",
+        "importance": "critical"
+      },
+      {
+        "id": 9,
+        "description": "Use clean archtecture e solid pra criar um sistema robusto e flexivel.",
+        "importance": "critical"
+      }
+      {
+      "id": 10,
+      "description": "Documente todas as principais alterações feitas no projeto, editando o arquivo `README.md`, explicando de maneira detalhada todas as mudanças e melhores práticas.",
+      "importance": "critical"
+      }
+    ]
+  }

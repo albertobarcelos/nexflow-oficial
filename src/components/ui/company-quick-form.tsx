@@ -136,29 +136,29 @@ export function CompanyQuickForm({
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
               <FormLabel>Nome da Empresa *</FormLabel>
-              <FormControl>
+                  <FormControl>
                 <Input placeholder="Digite o nome da empresa" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
+            <FormField
+              control={form.control}
           name="razao_social"
-          render={({ field }) => (
-            <FormItem>
+              render={({ field }) => (
+                <FormItem>
               <FormLabel>Razão Social</FormLabel>
-              <FormControl>
+                  <FormControl>
                 <Input placeholder="Digite a razão social" {...field} />
               </FormControl>
               <FormMessage />
@@ -174,11 +174,11 @@ export function CompanyQuickForm({
               <FormLabel>CNPJ</FormLabel>
               <FormControl>
                 <Input placeholder="00.000.000/0000-00" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
@@ -306,9 +306,9 @@ export function CompanyQuickForm({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium">Endereço</h3>
-            <Button
-              type="button"
-              variant="outline"
+              <Button
+                type="button"
+                variant="outline"
               size="sm"
               onClick={() => setShowAddress(!showAddress)}
             >
@@ -318,7 +318,7 @@ export function CompanyQuickForm({
                 <ChevronDown className="h-4 w-4 mr-2" />
               )}
               {showAddress ? "Recolher" : "Expandir"}
-            </Button>
+              </Button>
           </div>
 
           {showAddress && (
@@ -401,9 +401,9 @@ export function CompanyQuickForm({
         <div className="flex justify-end">
           <Button type="submit">
             Salvar
-          </Button>
+              </Button>
         </div>
-      </form>
-    </Form>
+          </form>
+        </Form>
   )
-}
+} 

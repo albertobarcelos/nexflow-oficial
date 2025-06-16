@@ -3,7 +3,6 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { Administrator } from "@/types/database";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -19,10 +18,21 @@ export default function AdminLayout() {
           return;
         }
 
+        // Verificar se o usuário é um administrador do sistema
         const { data: adminData, error: adminError } = await supabase
-          .from('administrators')
-          .select('*')
-          .eq('auth_user_id', session.user.id)
+          .from('core_client_users')
+          .select(`
+            id,
+            client_id,
+            first_name,
+            last_name,
+            email,
+            role,
+            is_active
+          `)
+          .eq('id', session.user.id)
+          .eq('role', 'administrator')
+          .eq('is_active', true)
           .maybeSingle();
 
         if (adminError) {
@@ -65,7 +75,7 @@ export default function AdminLayout() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AdminSidebar />
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1">
           <Outlet />
         </main>
       </div>
