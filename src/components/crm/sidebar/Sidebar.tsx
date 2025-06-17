@@ -47,17 +47,13 @@ const menuItems = [
     href: "/crm/companies",
   },
   {
-    title: "Pessoas",
+    title: "Contatos",
     icon: Users,
     href: "/crm/people",
   },
+
   {
-    title: "Parceiros",
-    icon: Handshake,
-    href: "/crm/partners",
-  },
-  {
-    title: "Flow",
+    title: "Flows",
     icon: DollarSign,
     onClick: async (navigate: (path: string) => void) => {
       try {
@@ -82,7 +78,7 @@ const reportItems = [
   },
   {
     title: "Atividades",
-    href: "/crm/reports/activities", 
+    href: "/crm/reports/activities",
   },
   {
     title: "Pipeline",
@@ -117,25 +113,25 @@ export function Sidebar() {
   const userInitials = user?.email ? getInitials(user.email.split('@')[0]) : 'U';
 
   return (
-    <div className="flex h-14 items-center justify-between px-4">
+    <div className="flex h-14 items-center justify-between px-4 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]" >
       <div className="flex items-center gap-4">
-        <h1 className="text-xl font-semibold text-white">CRM Partners</h1>
-        <div className="flex items-center gap-1">
+        <h1 className="text-xl italic text-blue-950"><strong>NEXFLOW</strong>CRM</h1>
+        <div className="flex items-center gap-3">
           {menuItems.map((item) => (
             <Button
               key={item.title}
               variant="ghost"
-              className="justify-start gap-2 text-white hover:bg-white/10"
+              className="justify-start gap-2 text-blue-950 hover:bg-blue-950 hover:text-white rounded-full px-3 py-1 text-[13px]"
               onClick={() => item.onClick ? item.onClick(navigate) : navigate(item.href as string)}
             >
-              <item.icon className="h-4 w-4" />
+              <item.icon className="h-2 w-2" />
               {item.title}
             </Button>
           ))}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 text-white hover:bg-white/10">
+              <Button variant="ghost" className="gap-2 text-blue-950 hover:bg-white/10">
                 <BarChart3 className="h-4 w-4" />
                 Relatórios
                 <ChevronDown className="h-4 w-4" />
@@ -165,7 +161,7 @@ export function Sidebar() {
           />
         </div>
 
-        <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
+        <Button variant="ghost" size="icon" className="text-blue-950 hover:bg-blue-950 hover:text-white">
           <Bell className="h-5 w-5" />
         </Button>
 
@@ -174,7 +170,7 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full bg-primary"
+              className="h-8 w-8 rounded-full bg-primary hover:bg-primary/80"
             >
               <span className="text-sm font-medium text-primary-foreground">
                 {userInitials}

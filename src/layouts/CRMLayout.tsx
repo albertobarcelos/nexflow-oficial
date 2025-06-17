@@ -86,10 +86,10 @@ export default function CRMLayout() {
     <TooltipProvider>
       <div className="min-h-screen">
         <div className="flex flex-col">
-          <div className="h-14 bg-[#212040]">
+          <div className="h-14 sticky top-0 z-10">
             <Sidebar />
           </div>
-          <main className="p-6">
+          <main className="mt-0">
             <Outlet />
           </main>
         </div>

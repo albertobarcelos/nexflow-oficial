@@ -23,6 +23,8 @@ import { CustomizationSettings } from "@/components/crm/settings/CustomizationSe
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
 import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
 import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
+import Tasks from "@/pages/crm/tasks/Tasks";
+import { Home } from "@/pages/crm/home/Home";
 
 // Páginas temporárias
 const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -69,15 +71,15 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Dashboard />,
+        element: <Home />,
       },
       {
         path: "dashboard",
-        element: <Dashboard />,
+        element: <Home />,
       },
       {
         path: "tasks",
-        element: <Dashboard />,
+        element: <Tasks />,
       },
       {
         path: "flow/:id",

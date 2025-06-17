@@ -7,24 +7,48 @@ import { Plus, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { TaskColumn } from '@/components/crm/tasks/TaskColumn';
-import { useAuth } from '@/hooks/useAuth';
 
-type Task = {
+interface DatabaseTask {
+  id: string;
+  client_id: string | null;
+  title: string;
+  description: string | null;
+  due_date: string;
+  completed: boolean | null;
+  deal_id: string | null;
+  assigned_to: string | null;
+  type_id: string;
+  created_by: string;
+  created_at: string | null;
+  updated_at: string | null;
+  status?: 'todo' | 'doing' | 'done';
+  priority?: 'low' | 'medium' | 'high';
+  assigned_to_collaborator?: {
+    name: string;
+  };
+}
+
+interface Task {
   id: string;
   title: string;
   status: 'todo' | 'doing' | 'done';
   priority: 'low' | 'medium' | 'high';
   assigned_to: string | null;
-  due_date: string | null;
+  due_date: string;
   assigned_to_collaborator?: {
     name: string;
   };
-};
+}
 
 type Column = {
   id: 'todo' | 'doing' | 'done';
   title: string;
   tasks: Task[];
+};
+
+type UserData = {
+  client_id: string;
+  first_name?: string;
 };
 
 const initialColumns: Column[] = [
@@ -33,41 +57,101 @@ const initialColumns: Column[] = [
   { id: 'done', title: 'Concluído', tasks: [] },
 ];
 
+// Helper function to get current user data
+const getCurrentUserData = async (): Promise<UserData> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Usuário não autenticado");
+
+  try {
+    // Try to fetch from core_client_users table
+    const { data, error } = await supabase
+      .from('core_client_users')
+      .select(`
+        client_id,
+        core_clients (
+          contact_name
+        )
+      `)
+      .eq('user_id', user.id)
+      .single();
+
+    if (error) throw error;
+    if (data) {
+      return {
+        client_id: data.client_id,
+        first_name: data.core_clients?.contact_name
+      };
+    }
+
+    // If not found and it's the test user, return temporary data
+    if (user.email === 'barceloshd@gmail.com') {
+      return {
+        client_id: 'test-client-001',
+        first_name: 'usuário'
+      };
+    }
+
+    throw new Error("Colaborador não encontrado");
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    return {
+      client_id: 'unknown',
+      first_name: 'usuário'
+    };
+  }
+};
+
+// Helper function to convert DatabaseTask to Task
+const convertDatabaseTask = (dbTask: DatabaseTask): Task => ({
+  id: dbTask.id,
+  title: dbTask.title,
+  status: dbTask.status || (dbTask.completed ? 'done' : 'todo'),
+  priority: dbTask.priority || 'medium',
+  assigned_to: dbTask.assigned_to,
+  due_date: dbTask.due_date,
+  assigned_to_collaborator: dbTask.assigned_to_collaborator
+});
+
 export default function Tasks() {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+
+  const { data: userData } = useQuery<UserData>({
+    queryKey: ["user"],
+    queryFn: getCurrentUserData,
+  });
 
   const { isLoading } = useQuery({
-    queryKey: ['tasks'],
+    queryKey: ['tasks', userData?.client_id],
     queryFn: async () => {
+      if (!userData?.client_id) return [];
+
       try {
-        const { data: collaborator } = await supabase
-          .from('collaborators')
-          .select('client_id')
-          .eq('auth_user_id', user?.id)
-          .single();
-
-        if (!collaborator) throw new Error('Collaborator not found');
-
         const { data: tasks, error } = await supabase
-          .from('tasks')
+          .from('web_tasks')
           .select(`
-            *,
+            id,
+            title,
+            status,
+            priority,
+            assigned_to,
+            due_date,
+            completed,
             assigned_to_collaborator:collaborators!tasks_assigned_to_fkey(name)
           `)
-          .eq('client_id', collaborator.client_id);
+          .eq('client_id', userData.client_id);
 
         if (error) throw error;
 
+        const convertedTasks = (tasks || []).map(convertDatabaseTask);
         const newColumns = initialColumns.map(col => ({
           ...col,
-          tasks: tasks?.filter(task => task.status === col.id) || []
+          tasks: convertedTasks.filter(task => task.status === col.id)
         }));
 
         setColumns(newColumns);
-        return tasks || [];
+        return convertedTasks;
       } catch (error) {
         console.error('Error fetching tasks:', error);
         toast({
@@ -78,10 +162,14 @@ export default function Tasks() {
         return [];
       }
     },
-    enabled: !!user?.id
+    enabled: !!userData?.client_id
   });
 
-  const onDragEnd = async (result: any) => {
+  const onDragEnd = async (result: {
+    destination?: { droppableId: string; index: number };
+    source: { droppableId: string; index: number };
+    draggableId: string;
+  }) => {
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
@@ -95,7 +183,7 @@ export default function Tasks() {
 
     const sourceCol = columns.find(col => col.id === source.droppableId);
     const destCol = columns.find(col => col.id === destination.droppableId);
-    
+
     if (!sourceCol || !destCol) return;
 
     const task = sourceCol.tasks[source.index];
@@ -118,10 +206,10 @@ export default function Tasks() {
 
     try {
       const { error } = await supabase
-        .from('tasks')
-        .update({ 
+        .from('web_tasks')
+        .update({
           status: destination.droppableId,
-          title: task.title // Adicionando o título para satisfazer a tipagem
+          completed: destination.droppableId === 'done'
         })
         .eq('id', draggableId);
 
