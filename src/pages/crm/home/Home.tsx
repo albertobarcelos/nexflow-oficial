@@ -66,6 +66,7 @@ export function Home() {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [showTemplates, setShowTemplates] = useState(false);
+    const [newFlowTitle, setNewFlowTitle] = useState<string | null>(null);
 
     const { data: user } = useQuery<UserData>({
         queryKey: ["user"],
@@ -92,51 +93,6 @@ export function Home() {
         // TODO: Implement template selection logic
         console.log('Selected template:', templateId);
         setShowTemplates(false);
-    };
-
-    const handleCreateFlow = async (name: string) => {
-        try {
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            if (!currentUser) throw new Error("Usuário não autenticado");
-
-            const { data: collaborator } = await supabase
-                .from('core_client_users')
-                .select('client_id')
-                .eq('auth_user_id', currentUser.id)
-                .single();
-
-            if (!collaborator) throw new Error("Colaborador não encontrado");
-
-            const { data: flow, error } = await supabase
-                .from('web_flows')
-                .insert([
-                    {
-                        name,
-                        client_id: collaborator.client_id,
-                        created_by: currentUser.id,
-                        description: 'Flow criado do zero'
-                    }
-                ])
-                .select()
-                .single();
-
-            if (error) throw error;
-
-            toast({
-                title: "Flow criado com sucesso!",
-                description: "Seu novo flow foi criado e está pronto para uso."
-            });
-
-            // Navigate to the new flow
-            navigate(`/crm/flow/${flow.id}`);
-        } catch (error) {
-            console.error('Error creating flow:', error);
-            toast({
-                title: "Erro ao criar flow",
-                description: "Ocorreu um erro ao criar o flow. Tente novamente.",
-                variant: "destructive"
-            });
-        }
     };
 
     return (
@@ -211,7 +167,7 @@ export function Home() {
                 open={showTemplates}
                 onOpenChange={setShowTemplates}
                 onSelectTemplate={handleSelectTemplate}
-                onCreateFlow={handleCreateFlow}
+                onSetNewFlowTitle={setNewFlowTitle}
             />
         </div>
     );

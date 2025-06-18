@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface FlowTemplate {
     id: string;
@@ -22,7 +23,7 @@ interface FlowTemplatesProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSelectTemplate: (templateId: string) => void;
-    onCreateFlow: (name: string) => void;
+    onSetNewFlowTitle: (title: string) => void;
 }
 
 const templates: FlowTemplate[] = [
@@ -30,32 +31,34 @@ const templates: FlowTemplate[] = [
         id: "sales-funnel",
         title: "Funil de Vendas",
         description: "Converta os leads mais qualificados com um funil de vendas eficiente",
-        image: "/templates/sales-funnel.jpg"
+        image: "https://fakjjzrucxpektnhhnjl.supabase.co/storage/v1/object/public/appimages//17.png"
     },
     {
         id: "client-onboarding",
         title: "Onboarding de Clientes",
         description: "Otimize a experiência inicial dos seus clientes com um processo estruturado",
-        image: "/templates/client-onboarding.jpg"
+        image: "https://fakjjzrucxpektnhhnjl.supabase.co/storage/v1/object/public/appimages//16.png"
     },
     {
         id: "team-tasks",
         title: "Gestão de Tarefas da Equipe",
         description: "Mantenha sua equipe alinhada e produtiva com um fluxo de trabalho organizado",
-        image: "/templates/team-tasks.jpg"
+        image: "https://fakjjzrucxpektnhhnjl.supabase.co/storage/v1/object/public/appimages//19.png"
     }
 ];
 
-export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onCreateFlow }: FlowTemplatesProps) {
+export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onSetNewFlowTitle }: FlowTemplatesProps) {
     const [showCreateFlow, setShowCreateFlow] = useState(false);
     const [flowName, setFlowName] = useState("");
+    const navigate = useNavigate();
 
     const handleCreateFlow = () => {
         if (flowName.trim()) {
-            onCreateFlow(flowName.trim());
+            onSetNewFlowTitle(flowName.trim());
             setFlowName("");
             setShowCreateFlow(false);
             onOpenChange(false);
+            navigate("/crm/flow/new/settings", { state: { title: flowName.trim() } });
         }
     };
 
@@ -70,7 +73,7 @@ export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onCreateFl
                         {templates.map((template) => (
                             <div
                                 key={template.id}
-                                className="group relative overflow-hidden rounded-lg border bg-white p-2 hover:border-orange-500 cursor-pointer transition-all hover:shadow-md"
+                                className="group relative overflow-hidden rounded-lg border bg-white  hover:border-orange-500 cursor-pointer transition-all hover:shadow-md"
                                 onClick={() => onSelectTemplate(template.id)}
                             >
                                 <div className="aspect-video overflow-hidden rounded-md">
@@ -88,7 +91,12 @@ export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onCreateFl
                         ))}
                     </div>
                     <DialogFooter className="sm:justify-between">
+
+                        <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                            Cancelar
+                        </Button>
                         <Button
+                            className="bg-orange-500 text-white hover:bg-blue-950 hover:text-white"
                             variant="ghost"
                             onClick={() => {
                                 setShowCreateFlow(true);
@@ -96,9 +104,6 @@ export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onCreateFl
                             }}
                         >
                             Iniciar do Zero
-                        </Button>
-                        <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                            Cancelar
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -120,7 +125,9 @@ export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onCreateFl
                             />
                         </div>
                     </div>
-                    <DialogFooter>
+                    <DialogFooter >
+
+
                         <Button variant="ghost" onClick={() => setShowCreateFlow(false)}>
                             Cancelar
                         </Button>

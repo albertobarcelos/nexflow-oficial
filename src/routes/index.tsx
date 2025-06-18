@@ -25,6 +25,7 @@ import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
 import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
 import Tasks from "@/pages/crm/tasks/Tasks";
 import { Home } from "@/pages/crm/home/Home";
+import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 
 // Páginas temporárias
 const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -146,6 +147,14 @@ export const router = createBrowserRouter([
             element: <EntitiesSettings />,
           },
         ],
+      },
+      {
+        path: "flow/settings",
+        element: <PipelineSettings />,
+      },
+      {
+        path: "flow/new/settings",
+        element: <NewFlowSettings />,
       },
     ],
   },

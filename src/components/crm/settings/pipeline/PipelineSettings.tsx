@@ -31,7 +31,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AllowedEntities } from "./AllowedEntities";
 
@@ -71,18 +70,19 @@ export function PipelineSettings() {
     try {
       if (!user) return;
 
-      // Primeiro, buscar o client_id do usuário autenticado
+      // Buscar o client_id do usuário autenticado
+      /*
       const { data: collaborator, error: collaboratorError } = await supabase
-        .from('collaborators')
+        .from('core_client_users')
         .select('client_id')
-        .eq('auth_user_id', user.id)
+        .eq('id', user.id)
         .single();
 
       if (collaboratorError) throw collaboratorError;
 
       // Buscar os funis do cliente
       const { data: funnels, error: funnelsError } = await supabase
-        .from('funnels')
+        .from('web_funnels')
         .select('*')
         .eq('client_id', collaborator.client_id);
 
@@ -90,12 +90,12 @@ export function PipelineSettings() {
 
       // Para cada funil, buscar suas etapas
       const pipelinesWithStages = await Promise.all(
-        funnels.map(async (funnel) => {
+        (funnels || []).map(async (funnel) => {
           const { data: stages, error: stagesError } = await supabase
-            .from('funnel_stages')
+            .from('web_funnel_stages')
             .select('*')
             .eq('funnel_id', funnel.id)
-            .order('position');
+            .order('order_index', { ascending: true });
 
           if (stagesError) throw stagesError;
 
@@ -108,6 +108,7 @@ export function PipelineSettings() {
       );
 
       setPipelines(pipelinesWithStages);
+      */
     } catch (error) {
       console.error('Erro ao carregar funis:', error);
       toast.error('Erro ao carregar funis');
@@ -134,6 +135,7 @@ export function PipelineSettings() {
 
     try {
       // Atualizar posições no banco de dados
+      /*
       const promises = updatedStages.map((stage) =>
         supabase
           .from('funnel_stages')
@@ -142,6 +144,7 @@ export function PipelineSettings() {
       );
 
       await Promise.all(promises);
+      */
 
       setPipelines(
         pipelines.map((p) =>
@@ -161,17 +164,18 @@ export function PipelineSettings() {
 
     try {
       // Buscar o client_id do usuário
+      /*
       const { data: collaborator, error: collaboratorError } = await supabase
-        .from('collaborators')
+        .from('core_client_users')
         .select('client_id')
-        .eq('auth_user_id', user.id)
+        .eq('id', user.id)
         .single();
 
       if (collaboratorError) throw collaboratorError;
 
       // Criar novo funil
       const { data: newFunnel, error: funnelError } = await supabase
-        .from('funnels')
+        .from('web_funnels')
         .insert([
           {
             name: newPipeline.name,
@@ -185,6 +189,7 @@ export function PipelineSettings() {
       if (funnelError) throw funnelError;
 
       setPipelines([...pipelines, { ...newFunnel, stages: [] }]);
+      */
       setNewPipeline({ name: "" });
       setIsNewPipelineOpen(false);
       toast.success('Funil criado com sucesso!');
@@ -199,17 +204,18 @@ export function PipelineSettings() {
 
     try {
       // Primeiro, buscar o client_id do usuário autenticado
+      /*
       const { data: collaborator, error: collaboratorError } = await supabase
-        .from('collaborators')
+        .from('core_client_users')
         .select('client_id')
-        .eq('auth_user_id', user?.id)
+        .eq('id', user?.id)
         .single();
 
       if (collaboratorError) throw collaboratorError;
 
       // Verificar se o funil pertence ao cliente
       const { data: funnel, error: funnelError } = await supabase
-        .from('funnels')
+        .from('web_funnels')
         .select('*')
         .eq('id', pipelineId)
         .eq('client_id', collaborator.client_id)
@@ -223,7 +229,7 @@ export function PipelineSettings() {
 
       // Criar nova etapa
       const { data: newStageData, error: stageError } = await supabase
-        .from('funnel_stages')
+        .from('web_funnel_stages')
         .insert([
           {
             name: newStage.name,
@@ -244,13 +250,13 @@ export function PipelineSettings() {
         pipelines.map((pipeline) =>
           pipeline.id === pipelineId
             ? {
-                ...pipeline,
-                stages: [...pipeline.stages, newStageData],
-              }
+              ...pipeline,
+              stages: [...pipeline.stages, newStageData],
+            }
             : pipeline
         )
       );
-
+      */
       setNewStage({ name: "", color: "#94A3B8" });
       setIsNewStageOpen(false);
       setSelectedPipelineId(null);
@@ -263,15 +269,16 @@ export function PipelineSettings() {
 
   const handleAllowedEntitiesChange = async (pipelineId: string, entities: string[]) => {
     try {
+      /*
       const { error } = await supabase
-        .from('funnels')
+        .from('web_funnels')
         .update({ allowed_entities: entities })
         .eq('id', pipelineId);
 
       if (error) throw error;
-
-      setPipelines(pipelines.map(pipeline => 
-        pipeline.id === pipelineId 
+      */
+      setPipelines(pipelines.map(pipeline =>
+        pipeline.id === pipelineId
           ? { ...pipeline, allowed_entities: entities }
           : pipeline
       ));
