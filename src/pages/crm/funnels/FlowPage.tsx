@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/tooltip";
 import { DealTags, TagSelect } from "@/components/crm/deals/TagSelect";
 import { DealCard } from "@/components/crm/deals/DealCard";
+import { DealDetailsDialog } from "@/components/crm/deals/DealDetailsDialog";
 
 // Tipos auxiliares para o mock
 interface MockDeal {
@@ -60,6 +61,7 @@ export default function FlowPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDealOpen, setIsAddDealOpen] = useState(false);
   const [deals, setDeals] = useState(mockFlow.deals);
+  const [selectedDeal, setSelectedDeal] = useState<MockDeal | null>(null);
 
   // MOCK DATA
   const flow = mockFlow;
@@ -74,6 +76,9 @@ export default function FlowPage() {
           : deal
       )
     );
+    if (selectedDeal && selectedDeal.id === dealId) {
+      setSelectedDeal((prev) => prev ? { ...prev, stage_id: destinationStageId, position: newPosition } : prev);
+    }
   };
   const createDeal = (data: Partial<MockDeal>) => {
     const firstStageId = stages[0]?.id || "";
@@ -171,6 +176,17 @@ export default function FlowPage() {
     if (tag.toLowerCase().includes("live")) return "bg-purple-200 text-purple-800";
     if (tag.toLowerCase().includes("clp")) return "bg-blue-100 text-blue-700";
     return "bg-slate-200 text-slate-700";
+  };
+
+  const handleStageChange = (stageId: string) => {
+    if (!selectedDeal) return;
+    // Atualiza a etapa do deal selecionado
+    setDeals((prevDeals) =>
+      prevDeals.map((deal) =>
+        deal.id === selectedDeal.id ? { ...deal, stage_id: stageId } : deal
+      )
+    );
+    setSelectedDeal((prev) => prev ? { ...prev, stage_id: stageId } : prev);
   };
 
   // Estado de carregamento com skeleton melhorado
@@ -324,9 +340,11 @@ export default function FlowPage() {
                                 <div
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
+                                  {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   className={`bg-white rounded-xl p-2 mb-2 flex flex-col gap-1 transition-all duration-200 ease-in-out transform ${snapshot.isDragging ? 'scale-[1.02] rotate-1 shadow-xl z-50' : ''}`}
-                                  style={{ ...provided.draggableProps.style, willChange: 'transform' }}
+                                  style={{ ...provided.draggableProps.style, willChange: 'transform', cursor: 'pointer' }}
+                                  onClick={() => setSelectedDeal(deal)}
                                 >
                                   <div className="flex items-center gap-1 mb-1">
                                     {/* Tags */}
@@ -386,6 +404,13 @@ export default function FlowPage() {
         onClose={() => setIsAddDealOpen(false)}
         onAdd={handleAddDeal}
         allowedEntities={flow?.allowed_entities || ["companies", "people", "partners"]}
+      />
+      <DealDetailsDialog
+        open={!!selectedDeal}
+        deal={selectedDeal}
+        stages={stages}
+        onClose={() => setSelectedDeal(null)}
+        onStageChange={handleStageChange}
       />
     </div>
   );
