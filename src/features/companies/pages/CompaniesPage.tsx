@@ -1,10 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Plus, Download, Import, MapPin, Mail, Phone } from "lucide-react";
+import { Building2, Plus, Download, Import, MapPin, Mail, Phone, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +28,7 @@ import { CompanyForm } from "@/features/companies/components/form/CompanyForm";
 import { toast } from "sonner";
 import { formatCNPJ, formatPhone } from "@/lib/format";
 import { useDebounce } from '@/hooks/useDebounce';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Company = Database["public"]["Tables"]["companies"]["Row"];
 
@@ -35,6 +43,7 @@ export function CompaniesPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [companyToEdit, setCompanyToEdit] = useState<Company | null>(null);
   const [isNewCompanyDialogOpen, setIsNewCompanyDialogOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const filteredCompanies = companies?.filter((company) =>
     company.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -74,69 +83,177 @@ export function CompaniesPage() {
     return colors[status as keyof typeof colors] || "bg-gray-500";
   };
 
+  const CompanyCard = ({ company }: { company: Company }) => (
+    <Card
+      className="cursor-pointer hover:shadow-md transition-shadow"
+      onClick={() => setSelectedCompany(company)}
+    >
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <CardTitle className="text-base truncate">{company.name}</CardTitle>
+              {company.razao_social && (
+                <p className="text-sm text-muted-foreground truncate">
+                  {company.razao_social}
+                </p>
+              )}
+            </div>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => handleEdit(e, company)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCompanyToDelete(company);
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-2">
+          {company.cnpj && (
+            <p className="text-sm font-mono">
+              {formatCNPJ(company.cnpj)}
+            </p>
+          )}
+
+          <div className="flex items-center justify-between">
+            <Badge className={getStatusColor(company.status || "ATIVO")}>
+              {company.status || "ATIVO"}
+            </Badge>
+          </div>
+
+          {(company.email || company.whatsapp) && (
+            <div className="space-y-1">
+              {company.email && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Mail className="w-3 h-3" />
+                  <span className="truncate">{company.email}</span>
+                </div>
+              )}
+              {company.whatsapp && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Phone className="w-3 h-3" />
+                  <span className="truncate">{formatPhone(company.whatsapp)}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {(company.cidade || company.estado) && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <MapPin className="w-3 h-3" />
+              <span className="truncate">
+                {[company.cidade, company.estado].filter(Boolean).join(', ')}
+              </span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <div className="space-y-4">
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Empresas</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Import className="w-4 h-4 mr-2" />
-            Importar
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Exportar
-          </Button>
-          <Button onClick={() => setIsNewCompanyDialogOpen(true)}>
+    <div className="space-y-4 p-4 md:p-6">
+      {/* Cabeçalho responsivo */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
+        <h1 className="text-xl md:text-2xl font-bold">Empresas</h1>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {!isMobile && (
+            <>
+              <Button variant="outline" size="sm">
+                <Import className="w-4 h-4 mr-2" />
+                Importar
+              </Button>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
+              </Button>
+            </>
+          )}
+          <Button
+            onClick={() => setIsNewCompanyDialogOpen(true)}
+            className="w-full sm:w-auto"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Nova Empresa
           </Button>
         </div>
       </div>
 
-      {/* Barra de pesquisa */}
+      {/* Barra de pesquisa responsiva */}
       <div className="flex items-center gap-2">
         <Input
-          placeholder="Buscar por nome, razão social, CNPJ, email ou whatsapp"
+          placeholder={isMobile ? "Buscar empresas..." : "Buscar por nome, razão social, CNPJ, email ou whatsapp"}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-xl"
+          className="w-full"
         />
       </div>
 
-      {/* Tabela */}
-      <div className="border rounded-lg">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground">Logo</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground">Empresa</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground">CNPJ</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground">Status</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground">Contato</th>
-                <th className="py-3 px-4 text-left font-medium text-muted-foreground">Localização</th>
-                <th className="py-3 px-4 text-right font-medium text-muted-foreground">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="py-3 px-4 text-center text-muted-foreground">
-                    Carregando...
-                  </td>
+      {/* Conteúdo responsivo */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Carregando empresas...</p>
+          </div>
+        </div>
+      ) : filteredCompanies?.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Nenhuma empresa encontrada</p>
+        </div>
+      ) : isMobile ? (
+        // Layout mobile: cards
+        <div className="grid gap-4">
+          {filteredCompanies?.map((company) => (
+            <CompanyCard key={company.id} company={company} />
+          ))}
+        </div>
+      ) : (
+        // Layout desktop: tabela
+        <div className="border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="py-3 px-4 text-left font-medium text-muted-foreground">Logo</th>
+                  <th className="py-3 px-4 text-left font-medium text-muted-foreground">Empresa</th>
+                  <th className="py-3 px-4 text-left font-medium text-muted-foreground">CNPJ</th>
+                  <th className="py-3 px-4 text-left font-medium text-muted-foreground">Status</th>
+                  <th className="py-3 px-4 text-left font-medium text-muted-foreground">Contato</th>
+                  <th className="py-3 px-4 text-left font-medium text-muted-foreground">Localização</th>
+                  <th className="py-3 px-4 text-right font-medium text-muted-foreground">Ações</th>
                 </tr>
-              ) : filteredCompanies?.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-3 px-4 text-center text-muted-foreground">
-                    Nenhuma empresa encontrada
-                  </td>
-                </tr>
-              ) : (
-                filteredCompanies?.map((company) => (
-                  <tr 
-                    key={company.id} 
+              </thead>
+              <tbody>
+                {filteredCompanies?.map((company) => (
+                  <tr
+                    key={company.id}
                     className="border-b hover:bg-muted/50 cursor-pointer"
                     onClick={() => setSelectedCompany(company)}
                   >
@@ -195,34 +312,41 @@ export function CompaniesPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={(e) => handleEdit(e, company)}
-                        >
-                          Editar
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setCompanyToDelete(company);
-                          }}
-                        >
-                          Excluir
-                        </Button>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => handleEdit(e, company)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCompanyToDelete(company);
+                            }}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Contador de resultados */}
       <div className="text-sm text-muted-foreground">
@@ -269,8 +393,8 @@ export function CompaniesPage() {
       />
 
       {/* Diálogo de confirmação de exclusão */}
-      <AlertDialog 
-        open={!!companyToDelete} 
+      <AlertDialog
+        open={!!companyToDelete}
         onOpenChange={() => !isDeleting && setCompanyToDelete(null)}
       >
         <AlertDialogContent>

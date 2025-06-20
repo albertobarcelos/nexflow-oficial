@@ -3,10 +3,17 @@ import { useQuery } from '@tanstack/react-query';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Plus, List } from 'lucide-react';
+import { Plus, List, Menu, Users, CheckCircle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { TaskColumn } from '@/components/crm/tasks/TaskColumn';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface DatabaseTask {
   id: string;
@@ -116,6 +123,8 @@ export default function Tasks() {
   const [columns, setColumns] = useState<Column[]>(initialColumns);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const { data: userData } = useQuery<UserData>({
     queryKey: ["user"],
@@ -229,42 +238,202 @@ export default function Tasks() {
     }
   };
 
+  const getTotalTasks = () => columns.reduce((total, col) => total + col.tasks.length, 0);
+  const getCompletedTasks = () => columns.find(col => col.id === 'done')?.tasks.length || 0;
+  const getPendingTasks = () => getTotalTasks() - getCompletedTasks();
+
+  const MobileMenu = () => (
+    <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-72">
+        <div className="py-4">
+          <h2 className="font-semibold mb-4">Menu</h2>
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nova Tarefa
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => navigate('/crm/tasks/list')}
+            >
+              <List className="mr-2 h-4 w-4" />
+              Visualizar Lista
+            </Button>
+          </div>
+
+          {/* Estatísticas no menu mobile */}
+          <div className="mt-6 space-y-3">
+            <h3 className="font-medium">Estatísticas</h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Total
+                </span>
+                <span className="font-medium">{getTotalTasks()}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-orange-500" />
+                  Pendentes
+                </span>
+                <span className="font-medium">{getPendingTasks()}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  Concluídas
+                </span>
+                <span className="font-medium">{getCompletedTasks()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
   if (isLoading) {
-    return <div>Carregando...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Carregando tarefas...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Tarefas</h1>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/crm/tasks/list')}
-          >
-            <List className="h-4 w-4 mr-2" />
-            Visualizar Lista
-          </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Tarefa
-          </Button>
+    <div className="h-screen flex flex-col">
+      {/* Header responsivo */}
+      <div className="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex-shrink-0">
+        <div className="flex items-center gap-3 md:gap-4">
+          <MobileMenu />
+
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg md:text-2xl font-bold truncate">Tarefas</h1>
+          </div>
+
+          {/* Estatísticas desktop */}
+          {!isMobile && (
+            <div className="flex items-center gap-6 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>{getTotalTasks()} Total</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-orange-500" />
+                <span>{getPendingTasks()} Pendentes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>{getCompletedTasks()} Concluídas</span>
+              </div>
+            </div>
+          )}
+
+          {/* Ações desktop */}
+          {!isMobile && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/crm/tasks/list')}
+              >
+                <List className="h-4 w-4 mr-2" />
+                Lista
+              </Button>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Tarefa
+              </Button>
+            </div>
+          )}
         </div>
+
+        {/* Estatísticas mobile */}
+        {isMobile && (
+          <div className="flex items-center justify-between mt-3 pt-3 border-t text-sm text-gray-600">
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4 text-orange-500" />
+              <span>{getPendingTasks()} pendentes</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>{getCompletedTasks()} concluídas</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {columns.map(column => (
-            <TaskColumn
-              key={column.id}
-              id={column.id}
-              title={column.title}
-              tasks={column.tasks}
-            />
-          ))}
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <DragDropContext onDragEnd={onDragEnd}>
+          {isMobile ? (
+            // Layout mobile: cards em coluna única
+            <div className="h-full overflow-y-auto p-4 space-y-4">
+              {columns.map(column => (
+                <Card key={column.id} className="overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <span>{column.title}</span>
+                      <span className="text-sm font-normal bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                        {column.tasks.length}
+                      </span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <TaskColumn
+                      id={column.id}
+                      title=""
+                      tasks={column.tasks}
+                      isMobileLayout={true}
+                    />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            // Layout desktop: kanban horizontal
+            <div className="h-full p-4 md:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                {columns.map(column => (
+                  <div key={column.id} className="flex flex-col min-h-0">
+                    <TaskColumn
+                      id={column.id}
+                      title={column.title}
+                      tasks={column.tasks}
+                      isMobileLayout={false}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DragDropContext>
+      </div>
+
+      {/* Botão flutuante mobile */}
+      {isMobile && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            size="lg"
+            className="rounded-full shadow-lg"
+          >
+            <Plus className="h-5 w-5" />
+          </Button>
         </div>
-      </DragDropContext>
+      )}
     </div>
   );
 }

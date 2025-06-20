@@ -18,20 +18,23 @@ type TaskColumnProps = {
   id: 'todo' | 'doing' | 'done';
   title: string;
   tasks: Task[];
+  isMobileLayout?: boolean;
 };
 
-export function TaskColumn({ id, title, tasks }: TaskColumnProps) {
+export function TaskColumn({ id, title, tasks, isMobileLayout = false }: TaskColumnProps) {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-muted p-4 rounded-lg">
-      <h3 className="font-semibold mb-4">{title}</h3>
+    <div className={`${isMobileLayout ? '' : 'bg-muted p-4 rounded-lg h-full flex flex-col'}`}>
+      {!isMobileLayout && title && (
+        <h3 className="font-semibold mb-4">{title}</h3>
+      )}
       <Droppable droppableId={id}>
         {(provided) => (
           <div
             {...provided.droppableProps}
             ref={provided.innerRef}
-            className="space-y-2 min-h-[200px]"
+            className={`${isMobileLayout ? 'space-y-2' : 'space-y-2 min-h-[200px] flex-1'}`}
           >
             {tasks.map((task, index) => (
               <Draggable
@@ -44,11 +47,19 @@ export function TaskColumn({ id, title, tasks }: TaskColumnProps) {
                     task={task}
                     provided={provided}
                     onClick={() => navigate(`/crm/tasks/${task.id}`)}
+                    isMobileLayout={isMobileLayout}
                   />
                 )}
               </Draggable>
             ))}
             {provided.placeholder}
+
+            {/* Empty state */}
+            {tasks.length === 0 && (
+              <div className={`flex items-center justify-center text-muted-foreground text-sm ${isMobileLayout ? 'py-4' : 'py-8'}`}>
+                Nenhuma tarefa
+              </div>
+            )}
           </div>
         )}
       </Droppable>
