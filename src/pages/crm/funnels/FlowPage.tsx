@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { mockFlow } from "@/components/crm/flows/flow_mockup_data";
 import {
@@ -7,38 +6,22 @@ import {
   Search,
   RefreshCcw,
   Download,
-  Upload,
-  Filter,
-  MoreVertical,
-  Building2,
-  User,
-  Calendar,
-  DollarSign,
-  Users2,
   Settings,
-  Phone,
-  Mail,
-  Menu
+  Menu,
+  LayoutGrid,
+  List,
+  TrendingUp,
+  Target
 } from "lucide-react";
 import { useState } from "react";
 import { AddDealDialog } from "@/components/crm/flows/AddDealDialog";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DropResult } from "@hello-pangea/dnd";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
   TooltipProvider
 } from "@/components/ui/tooltip";
-import { DealTags, TagSelect } from "@/components/crm/deals/TagSelect";
-import { DealCard } from "@/components/crm/deals/DealCard";
 import { DealDetailsDialog } from "@/components/crm/deals/DealDetailsDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -46,23 +29,15 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-
-// Tipos auxiliares para o mock
-interface MockDeal {
-  id: string;
-  title: string;
-  value?: number;
-  company_id?: string;
-  person_id?: string;
-  stage_id: string;
-  position: number;
-  created_at: string;
-  tags?: string[];
-}
+import { ListView } from "@/components/crm/flows/ListView";
+import { KanbanView } from "@/components/crm/flows/KanbanView";
+import { MockDeal } from "@/components/crm/flows/types";
 
 interface Filter {
   searchTerm: string;
 }
+
+type ViewMode = 'kanban' | 'list';
 
 export default function FlowPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -70,6 +45,7 @@ export default function FlowPage() {
   const [deals, setDeals] = useState(mockFlow.deals);
   const [selectedDeal, setSelectedDeal] = useState<MockDeal | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const isMobile = useIsMobile();
 
   // MOCK DATA
@@ -101,6 +77,7 @@ export default function FlowPage() {
       position: 1000,
       created_at: new Date().toISOString(),
       tags: [],
+      temperature: 'warm',
     };
     setDeals((prev) => [newDeal, ...prev]);
   };
@@ -127,6 +104,13 @@ export default function FlowPage() {
       ...data,
       stage_id: firstStage.id,
     });
+  };
+
+  const handleAddDealToStage = async (stageId: string) => {
+    console.log(`Criando deal no estágio: ${stageId}`);
+    // Por enquanto, apenas abre o modal geral
+    // Futuramente, podemos implementar um modal específico que já define o estágio
+    setIsAddDealOpen(true);
   };
 
   const handleDragEnd = (result: DropResult) => {
@@ -178,13 +162,40 @@ export default function FlowPage() {
     // Adicione mais lógica de filtro conforme necessário
   };
 
-  // Função para cor de tag mock
+  // Função para cor de tag melhorada
   const tagColor = (tag: string) => {
-    if (tag.toLowerCase().includes("whatsapp")) return "bg-green-200 text-green-800";
-    if (tag.toLowerCase().includes("instagram")) return "bg-orange-200 text-orange-800";
-    if (tag.toLowerCase().includes("live")) return "bg-purple-200 text-purple-800";
-    if (tag.toLowerCase().includes("clp")) return "bg-blue-100 text-blue-700";
-    return "bg-slate-200 text-slate-700";
+    if (tag.toLowerCase().includes("whatsapp")) return "bg-emerald-100 text-emerald-800";
+    if (tag.toLowerCase().includes("instagram")) return "bg-pink-100 text-pink-800";
+    if (tag.toLowerCase().includes("live")) return "bg-violet-100 text-violet-800";
+    if (tag.toLowerCase().includes("clp")) return "bg-blue-100 text-blue-800";
+    if (tag.toLowerCase().includes("urgente")) return "bg-red-100 text-red-800";
+    if (tag.toLowerCase().includes("vip")) return "bg-amber-100 text-amber-800";
+    return "bg-slate-100 text-slate-700";
+  };
+
+  // Função para tags de temperatura/status
+  const getTemperatureTag = (temperature?: string) => {
+    switch (temperature) {
+      case 'hot': return { label: 'Quente', color: 'bg-red-100 text-red-700 ' };
+      case 'warm': return { label: 'Morno', color: 'bg-orange-100 text-orange-700 ' };
+      case 'cold': return { label: 'Frio', color: 'bg-blue-100 text-blue-700 border border-blue-20' };
+      default: return { label: 'Novo', color: 'bg-gray-100 text-gray-700 ' };
+    }
+  };
+
+  // Função para cores dos stages
+  const getStageColors = (index: number) => {
+    const colors = [
+      { bg: 'from-blue-50/80 to-blue-100/60', border: 'border-blue-200/50', accent: 'from-blue-500 to-blue-600' },
+      { bg: 'from-emerald-50/80 to-emerald-100/60', border: 'border-emerald-200/50', accent: 'from-emerald-500 to-emerald-600' },
+      { bg: 'from-amber-50/80 to-amber-100/60', border: 'border-amber-200/50', accent: 'from-amber-500 to-amber-600' },
+      { bg: 'from-purple-50/80 to-purple-100/60', border: 'border-purple-200/50', accent: 'from-purple-500 to-purple-600' },
+      { bg: 'from-pink-50/80 to-pink-100/60', border: 'border-pink-200/50', accent: 'from-pink-500 to-pink-600' },
+      { bg: 'from-indigo-50/80 to-indigo-100/60', border: 'border-indigo-200/50', accent: 'from-indigo-500 to-indigo-600' },
+      { bg: 'from-teal-50/80 to-teal-100/60', border: 'border-teal-200/50', accent: 'from-teal-500 to-teal-600' },
+      { bg: 'from-rose-50/80 to-rose-100/60', border: 'border-rose-200/50', accent: 'from-rose-500 to-rose-600' },
+    ];
+    return colors[index % colors.length];
   };
 
   const handleStageChange = (stageId: string) => {
@@ -203,27 +214,27 @@ export default function FlowPage() {
     return (
       <div className="flex h-screen">
         <div className="flex-1 flex flex-col">
-          <header className="bg-white border-b p-4 md:p-6">
+          <header className="bg-white border-b p-3 md:p-4">
             <div className="animate-pulse">
-              <div className="h-6 md:h-8 w-32 md:w-48 bg-gray-200 rounded mb-4 md:mb-6" />
-              <div className="flex gap-4 mb-4">
-                <div className="h-8 md:h-10 w-full max-w-md bg-gray-200 rounded" />
-                <div className="h-8 md:h-10 w-24 md:w-32 bg-gray-200 rounded" />
+              <div className="h-5 md:h-6 w-32 md:w-48 bg-gray-200 rounded mb-3 md:mb-4" />
+              <div className="flex gap-3 mb-3">
+                <div className="h-7 md:h-8 w-full max-w-md bg-gray-200 rounded" />
+                <div className="h-7 md:h-8 w-20 md:w-24 bg-gray-200 rounded" />
               </div>
               <div className="flex gap-2">
-                <div className="h-6 w-20 md:w-24 bg-gray-200 rounded" />
-                <div className="h-6 w-24 md:w-32 bg-gray-200 rounded" />
+                <div className="h-5 w-16 md:w-20 bg-gray-200 rounded" />
+                <div className="h-5 w-20 md:w-24 bg-gray-200 rounded" />
               </div>
             </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 bg-gray-50">
-            <div className={`${isMobile ? 'space-y-4' : 'flex gap-4'}`}>
+          <main className="flex-1 p-3 md:p-4 bg-gray-50">
+            <div className={`${isMobile ? 'space-y-3' : 'flex gap-3'}`}>
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className={`${isMobile ? 'w-full' : 'flex-shrink-0 w-80'}`}>
-                  <div className="h-6 w-32 bg-gray-200 rounded mb-3" />
-                  <div className="space-y-3">
+                  <div className="h-5 w-28 bg-gray-200 rounded mb-2" />
+                  <div className="space-y-2">
                     {[1, 2, 3].map((j) => (
-                      <div key={j} className="h-20 md:h-24 bg-gray-200 rounded" />
+                      <div key={j} className="h-16 md:h-18 bg-gray-200 rounded" />
                     ))}
                   </div>
                 </div>
@@ -241,7 +252,7 @@ export default function FlowPage() {
       <div className="flex h-screen">
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
           <div className="text-center p-4">
-            <h2 className="text-xl font-semibold mb-2">Ops! Algo deu errado.</h2>
+            <h2 className="text-lg font-semibold mb-2">Ops! Algo deu errado.</h2>
             <p className="text-gray-600 mb-4">Não foi possível carregar o funil de vendas.</p>
             <Button onClick={() => window.location.reload()}>
               <RefreshCcw className="mr-2 h-4 w-4" />
@@ -256,24 +267,24 @@ export default function FlowPage() {
   const MobileMenu = () => (
     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="md:hidden h-7 w-7">
+          <Menu className="h-4 w-4" />
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-72">
         <div className="py-4">
-          <h2 className="font-semibold mb-4">Menu</h2>
+          <h2 className="font-semibold mb-4 text-sm">Menu</h2>
           <div className="space-y-2">
-            <Button variant="ghost" className="w-full justify-start" onClick={() => setIsAddDealOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button variant="ghost" className="w-full justify-start text-sm h-8" onClick={() => setIsAddDealOpen(true)}>
+              <Plus className="mr-2 h-3 w-3" />
               Adicionar negócio
             </Button>
-            <Button variant="ghost" className="w-full justify-start">
-              <Download className="mr-2 h-4 w-4" />
+            <Button variant="ghost" className="w-full justify-start text-sm h-8">
+              <Download className="mr-2 h-3 w-3" />
               Exportar
             </Button>
-            <Button variant="ghost" className="w-full justify-start" onClick={() => window.location.href = "/crm/settings/pipeline"}>
-              <Settings className="mr-2 h-4 w-4" />
+            <Button variant="ghost" className="w-full justify-start text-sm h-8" onClick={() => window.location.href = "/crm/settings/pipeline"}>
+              <Settings className="mr-2 h-3 w-3" />
               Personalizar flows
             </Button>
           </div>
@@ -283,54 +294,90 @@ export default function FlowPage() {
   );
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header responsivo */}
-      <header className="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex-shrink-0">
-        <div className="flex items-center gap-3 md:gap-4">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header ultra compacto */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/60 px-3 py-1.5 md:px-4 md:py-2 flex-shrink-0 shadow-sm">
+        <div className="flex items-center gap-2">
           <MobileMenu />
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg md:text-xl font-semibold truncate">{flow?.name || "Flow"}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-sm md:text-base font-bold text-slate-800 truncate">{flow?.name || "Pipeline"}</h1>
+              <div className={`w-1 h-1 rounded-full ${totalValue > 100000 ? 'bg-emerald-500' : totalValue > 50000 ? 'bg-amber-500' : 'bg-slate-400'} animate-pulse`} />
+            </div>
           </div>
 
-          {/* Busca sempre visível mas menor em mobile */}
-          <div className="flex-shrink-0 w-32 md:w-64">
-            <Input
-              type="search"
-              placeholder="Buscar..."
-              className="h-8 md:h-9 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          {/* Seletor de visualização ultra compacto */}
+          <div className="flex items-center bg-slate-100 rounded p-0.5">
+            <Button
+              variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+              size="sm"
+              className={`h-6 px-1.5 text-xs ${viewMode === 'kanban' ? 'bg-blue-900 shadow-sm' : ''}`}
+              onClick={() => setViewMode('kanban')}
+            >
+              <LayoutGrid className="h-3 w-3 mr-0.5" />
+              {!isMobile && 'Board'}
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              className={`h-6 px-1.5 text-xs ${viewMode === 'list' ? 'bg-blue-900 shadow-sm' : ''}`}
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-3 w-3 mr-0.5" />
+              {!isMobile && 'Lista'}
+            </Button>
           </div>
 
-          {/* Estatísticas ocultas em mobile */}
+          {/* Busca ultra compacta */}
+          <div className="flex-shrink-0 w-24 md:w-48">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
+              <Input
+                type="search"
+                placeholder="Buscar..."
+                className="h-6 text-xs pl-6 bg-white/60 border-slate-200 focus:bg-white transition-colors"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Estatísticas ultra compactas - ocultas em mobile */}
           {!isMobile && (
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span className="flex items-center gap-1">
-                <Users2 className="h-4 w-4" />
-                {filteredDeals.length}
-              </span>
-              <span className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4" />
-                {new Intl.NumberFormat("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                }).format(totalValue)}
-              </span>
+            <div className="flex items-center gap-2">
+              <div className="bg-white/60 rounded px-2 py-0.5 border border-slate-200/60">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <div className="flex items-center gap-0.5 text-slate-600">
+                    <Target className="h-2.5 w-2.5 text-blue-500" />
+                    <span className="font-medium">{filteredDeals.length}</span>
+                  </div>
+                  <div className="text-slate-300">|</div>
+                  <div className="flex items-center gap-0.5 text-slate-600">
+                    <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />
+                    <span className="font-bold text-emerald-700 text-xs">
+                      {new Intl.NumberFormat("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                        notation: "compact",
+                      }).format(totalValue)}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Ações desktop */}
+          {/* Ações desktop ultra compactas */}
           {!isMobile && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setIsAddDealOpen(true)}>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar
+            <div className="flex items-center gap-1">
+              <Button variant="outline" size="sm" className="h-6 px-1.5 text-xs bg-white/60 border-slate-200 hover:bg-white">
+                <Download className="h-2.5 w-2.5 mr-0.5" />
+                Export
               </Button>
-              <Button size="sm" onClick={() => setIsAddDealOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar
+              <Button size="sm" className="h-6 px-1.5 text-xs bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-sm" onClick={() => setIsAddDealOpen(true)}>
+                <Plus className="h-2.5 w-2.5 mr-0.5" />
+                Novo
               </Button>
               <TooltipProvider>
                 <Tooltip>
@@ -338,14 +385,14 @@ export default function FlowPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="w-9 h-9"
+                      className="w-6 h-6 hover:bg-white/60"
                       onClick={() => window.location.href = "/crm/settings/pipeline"}
                     >
-                      <Settings className="h-5 w-5" />
+                      <Settings className="h-2.5 w-2.5 text-slate-600" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Personalizar flows</p>
+                    <p className="text-xs">Configurar</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -353,225 +400,86 @@ export default function FlowPage() {
           )}
         </div>
 
-        {/* Estatísticas mobile */}
+        {/* Estatísticas mobile ultra compactas */}
         {isMobile && (
-          <div className="flex items-center justify-between mt-3 pt-3 border-t text-sm text-gray-500">
-            <span className="flex items-center gap-1">
-              <Users2 className="h-4 w-4" />
-              {filteredDeals.length} negócios
-            </span>
-            <span className="flex items-center gap-1">
-              <DollarSign className="h-4 w-4" />
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(totalValue)}
-            </span>
+          <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-slate-200/60">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-0.5 text-xs text-slate-600">
+                <Target className="h-2.5 w-2.5 text-blue-500" />
+                <span className="font-medium">{filteredDeals.length}</span>
+              </div>
+              <div className="flex items-center gap-0.5 text-xs text-slate-600">
+                <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />
+                <span className="font-bold text-emerald-700">
+                  {new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                    notation: "compact",
+                  }).format(totalValue)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-0.5">
+              <Button
+                variant={viewMode === 'kanban' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-5 px-1"
+                onClick={() => setViewMode('kanban')}
+              >
+                <LayoutGrid className="h-2.5 w-2.5" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                className="h-5 px-1"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-2.5 w-2.5" />
+              </Button>
+            </div>
           </div>
         )}
       </header>
 
       {/* Main Content */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <main className="flex-1 overflow-hidden bg-gray-50">
-          {isMobile ? (
-            // Layout mobile: vertical scroll
-            <div className="h-full overflow-y-auto p-3 space-y-4">
-              {stages.map((stage) => {
-                const stageDeals = filteredDeals.filter((deal) => deal.stage_id === stage.id);
-                const valorTotalEtapa = stageDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+      <main className="flex-1 overflow-hidden relative">
+        {/* Visualização Lista */}
+        {viewMode === 'list' && (
+          <ListView
+            deals={filteredDeals}
+            stages={stages}
+            onDealClick={setSelectedDeal}
+            onAddDeal={() => setIsAddDealOpen(true)}
+            getTemperatureTag={getTemperatureTag}
+          />
+        )}
 
-                return (
-                  <div key={stage.id} className="bg-[#f0f3fd] rounded-2xl p-3">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-base text-blue-900">{stage.name}</h3>
-                        <p className="text-xs text-gray-500">R$ {valorTotalEtapa.toLocaleString("pt-BR")}</p>
-                      </div>
-                      <span className="w-6 h-6 flex items-center justify-center rounded-full bg-white text-blue-700 font-bold text-xs">
-                        {stageDeals.length}
-                      </span>
-                    </div>
-
-                    <Droppable droppableId={stage.id}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`space-y-2 min-h-[60px] transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-blue-50/50' : ''}`}
-                        >
-                          {stageDeals.map((deal, index) => (
-                            <Draggable key={deal.id} draggableId={deal.id} index={index}>
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={`bg-white rounded-xl p-3 transition-all duration-200 ${snapshot.isDragging ? 'scale-[1.02] shadow-xl z-50' : ''}`}
-                                  style={{ ...provided.draggableProps.style }}
-                                  onClick={() => setSelectedDeal(deal)}
-                                >
-                                  <div className="flex items-start justify-between mb-2">
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="font-semibold text-blue-900 text-sm truncate">{deal.title}</h4>
-                                      <p className="font-bold text-blue-700 text-xs">R$ {deal.value?.toLocaleString("pt-BR")}</p>
-                                    </div>
-                                    <img
-                                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.id}`}
-                                      className="w-6 h-6 rounded-full object-cover ml-2"
-                                      alt="avatar"
-                                    />
-                                  </div>
-
-                                  {/* Tags mobile */}
-                                  {deal.tags && deal.tags.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-2">
-                                      {deal.tags.slice(0, 2).map(tag => (
-                                        <span key={tag} className={`text-xs px-1.5 py-0.5 rounded font-medium ${tagColor(tag)}`}>
-                                          {tag}
-                                        </span>
-                                      ))}
-                                      {deal.tags.length > 2 && (
-                                        <span className="text-xs text-gray-400">+{deal.tags.length - 2}</span>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  <div className="flex items-center gap-3 text-xs text-slate-400">
-                                    <User className="w-3 h-3" />
-                                    <Phone className="w-3 h-3" />
-                                    <Mail className="w-3 h-3" />
-                                    <span className="ml-auto">1h</span>
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-
-                          {/* Empty State */}
-                          {stageDeals.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-6 text-gray-400">
-                              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center mb-2">
-                                <Plus className="h-4 w-4 text-gray-300" />
-                              </div>
-                              <p className="text-xs">Nenhum negócio</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Droppable>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            // Layout desktop: horizontal tradicional
-            <div className="h-full flex gap-3 p-3 overflow-x-auto">
-              {stages.map((stage) => {
-                const stageDeals = filteredDeals.filter((deal) => deal.stage_id === stage.id);
-                const valorTotalEtapa = stageDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
-
-                return (
-                  <div key={stage.id} className="flex-shrink-0 bg-[#f0f3fd] rounded-2xl w-60 flex flex-col">
-                    <div className="px-4 pt-3 pb-2 mb-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-base text-blue-900">{stage.name}</h3>
-                          <p className="text-xs text-gray-500">R$ {valorTotalEtapa.toLocaleString("pt-BR")}</p>
-                        </div>
-                        <span className="w-7 h-7 flex items-center justify-center rounded-full bg-white text-blue-700 font-bold text-xs">
-                          {stageDeals.length}
-                        </span>
-                      </div>
-                    </div>
-
-                    <Droppable droppableId={stage.id}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`flex-1 p-2 min-h-[120px] transition-colors duration-200 ${snapshot.isDraggingOver ? 'bg-blue-50/50' : ''}`}
-                        >
-                          {stageDeals.map((deal, index) => (
-                            <Draggable key={deal.id} draggableId={deal.id} index={index}>
-                              {(provided, snapshot) => (
-                                <div
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className={`bg-white rounded-xl p-2 mb-2 transition-all duration-200 ${snapshot.isDragging ? 'scale-[1.02] rotate-1 shadow-xl z-50' : ''}`}
-                                  style={{ ...provided.draggableProps.style }}
-                                  onClick={() => setSelectedDeal(deal)}
-                                >
-                                  <div className="flex items-center gap-1 mb-1">
-                                    {deal.tags?.map(tag => (
-                                      <span key={tag} className={`text-xs px-1.5 py-0.5 rounded font-medium ${tagColor(tag)}`}>
-                                        {tag}
-                                      </span>
-                                    ))}
-                                    <div className="ml-auto">
-                                      <img
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.id}`}
-                                        className="w-6 h-6 rounded-full object-cover"
-                                        alt="avatar"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center justify-between mb-1">
-                                    <h4 className="font-semibold text-blue-900 text-xs truncate">{deal.title}</h4>
-                                    <p className="font-bold text-blue-700 text-xs">R$ {deal.value?.toLocaleString("pt-BR")}</p>
-                                  </div>
-
-                                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                                    <User className="w-3 h-3" />
-                                    <Phone className="w-3 h-3" />
-                                    <Mail className="w-3 h-3" />
-                                    <span className="ml-auto">1h</span>
-                                  </div>
-                                </div>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-
-                          {/* Empty State */}
-                          {stageDeals.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-400 py-6">
-                              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                <Plus className="h-5 w-5 text-gray-300" />
-                              </div>
-                              <p className="text-xs mt-2 text-center">Arraste um negócio para esta coluna</p>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setIsAddDealOpen(true)}
-                              >
-                                ou adicione um novo
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Droppable>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </main>
-      </DragDropContext>
+        {/* Visualização Kanban */}
+        {viewMode === 'kanban' && (
+          <KanbanView
+            deals={filteredDeals}
+            stages={stages}
+            isMobile={isMobile}
+            onDragEnd={handleDragEnd}
+            onDealClick={setSelectedDeal}
+            onAddDeal={() => setIsAddDealOpen(true)}
+            onAddDealToStage={handleAddDealToStage}
+            getTemperatureTag={getTemperatureTag}
+            getStageColors={getStageColors}
+            tagColor={tagColor}
+          />
+        )}
+      </main>
 
       {/* Botão flutuante mobile */}
       {isMobile && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-3 right-3 z-50">
           <Button
-            size="lg"
-            className="rounded-full shadow-lg"
+            size="sm"
+            className="rounded-full shadow-lg h-8 w-8 p-0"
             onClick={() => setIsAddDealOpen(true)}
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-3 w-3" />
           </Button>
         </div>
       )}
