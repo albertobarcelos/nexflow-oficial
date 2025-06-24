@@ -17,6 +17,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { mockTasks } from '@/components/crm/tasks/MockTaskData';
+import { useAddTaskHistory } from '@/hooks/useTaskHistory';
 
 interface DatabaseTask {
   id: string;
@@ -48,6 +49,7 @@ interface Task {
   assigned_to_collaborator?: {
     name: string;
   };
+  type?: string;
 }
 
 interface MockTask {
@@ -120,7 +122,8 @@ const convertMockTaskToBoardTask = (mockTask: MockTask): Task => {
     priority: mockTask.priority as 'low' | 'medium' | 'high',
     assigned_to: mockTask.assigned_to,
     due_date: mockTask.due_date,
-    assigned_to_collaborator: mockTask.responsible ? { name: mockTask.responsible } : undefined
+    assigned_to_collaborator: mockTask.responsible ? { name: mockTask.responsible } : undefined,
+    type: mockTask.type
   };
 };
 
@@ -147,6 +150,7 @@ export default function Tasks() {
   const { toast } = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const addTaskHistory = useAddTaskHistory();
 
   // Sync mock tasks with board columns on component mount
   useEffect(() => {
@@ -168,7 +172,7 @@ export default function Tasks() {
     setIsNewTaskDialogOpen(true);
   };
 
-  const handleSaveTask = (newTask: MockTask) => {
+  const handleSaveTask = async (newTask: MockTask) => {
     setMockTaskList(prev => [...prev, newTask]);
 
     // Also add to board if it's a board task
@@ -178,6 +182,22 @@ export default function Tasks() {
         ? { ...col, tasks: [...col.tasks, boardTask] }
         : col
     ));
+
+    // Registrar no histórico
+    try {
+      await addTaskHistory.mutateAsync({
+        taskId: newTask.id,
+        actionType: 'created',
+        description: `Tarefa criada: ${newTask.title}`,
+        metadata: {
+          priority: newTask.priority,
+          due_date: newTask.due_date,
+          assigned_to: newTask.assigned_to
+        }
+      });
+    } catch (error) {
+      console.error('Erro ao registrar histórico:', error);
+    }
 
     toast({
       title: "Tarefa criada",
@@ -230,7 +250,11 @@ export default function Tasks() {
     }
   };
 
-  const handleStatusChange = (taskId: string, newStatus: 'todo' | 'doing' | 'done') => {
+  const handleStatusChange = async (taskId: string, newStatus: 'todo' | 'doing' | 'done') => {
+    // Get current task to capture old status
+    const currentTask = mockTaskList.find(task => task.id === taskId);
+    const oldStatus = currentTask?.completed ? 'done' : currentTask?.status === 'pending' ? 'todo' : 'doing';
+
     // Update board columns
     setColumns(prev => {
       const allTasks: Task[] = [];
@@ -269,6 +293,37 @@ export default function Tasks() {
       }) : null);
     }
 
+    // Registrar mudança de status no histórico
+    if (currentTask && oldStatus !== newStatus) {
+      try {
+        const statusLabels = {
+          todo: 'A Fazer',
+          doing: 'Em Andamento',
+          done: 'Concluído'
+        };
+
+        await addTaskHistory.mutateAsync({
+          taskId: taskId,
+          actionType: 'status_changed',
+          description: `Status alterado de "${statusLabels[oldStatus as keyof typeof statusLabels]}" para "${statusLabels[newStatus]}"`,
+          fieldChanges: {
+            status: {
+              old: oldStatus,
+              new: newStatus
+            }
+          },
+          oldValues: { status: oldStatus },
+          newValues: { status: newStatus },
+          metadata: {
+            task_title: currentTask.title,
+            changed_at: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao registrar mudança de status no histórico:', error);
+      }
+    }
+
     toast({
       title: "Status atualizado",
       description: `Tarefa movida para "${newStatus === 'todo' ? 'A Fazer' : newStatus === 'doing' ? 'Em Andamento' : 'Concluído'}".`,
@@ -282,7 +337,54 @@ export default function Tasks() {
     setIsEditTaskDialogOpen(true);
   };
 
-  const handleSaveEditedTask = (updatedTask: DetailedTask) => {
+  const handleSaveEditedTask = async (updatedTask: DetailedTask) => {
+    // Get original task to compare changes
+    const originalTask = mockTaskList.find(task => task.id === updatedTask.id);
+
+    if (!originalTask) {
+      toast({
+        title: "Erro",
+        description: "Tarefa original não encontrada.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Detect changes
+    const changes: Record<string, { old: string | undefined; new: string | undefined }> = {};
+    const oldValues: Record<string, string | undefined> = {};
+    const newValues: Record<string, string | undefined> = {};
+
+    if (originalTask.title !== updatedTask.title) {
+      changes.title = { old: originalTask.title, new: updatedTask.title };
+      oldValues.title = originalTask.title;
+      newValues.title = updatedTask.title;
+    }
+
+    if (originalTask.description !== (updatedTask.description || '')) {
+      changes.description = { old: originalTask.description, new: updatedTask.description };
+      oldValues.description = originalTask.description;
+      newValues.description = updatedTask.description;
+    }
+
+    if (originalTask.priority !== updatedTask.priority) {
+      changes.priority = { old: originalTask.priority, new: updatedTask.priority };
+      oldValues.priority = originalTask.priority;
+      newValues.priority = updatedTask.priority;
+    }
+
+    if (originalTask.due_date !== updatedTask.due_date) {
+      changes.due_date = { old: originalTask.due_date, new: updatedTask.due_date };
+      oldValues.due_date = originalTask.due_date;
+      newValues.due_date = updatedTask.due_date;
+    }
+
+    if (originalTask.responsible !== updatedTask.responsible) {
+      changes.assigned_to = { old: originalTask.responsible, new: updatedTask.responsible };
+      oldValues.assigned_to = originalTask.responsible;
+      newValues.assigned_to = updatedTask.responsible;
+    }
+
     // Update mock task list
     setMockTaskList(prev => prev.map(task =>
       task.id === updatedTask.id
@@ -326,13 +428,42 @@ export default function Tasks() {
     // Update selected task if details modal will reopen
     setSelectedTask(updatedTask);
 
+    // Registrar mudanças no histórico apenas se houve alterações
+    if (Object.keys(changes).length > 0) {
+      try {
+        const changedFields = Object.keys(changes);
+        const description = changedFields.length === 1
+          ? `Campo "${changedFields[0]}" atualizado`
+          : `${changedFields.length} campos atualizados: ${changedFields.join(', ')}`;
+
+        await addTaskHistory.mutateAsync({
+          taskId: updatedTask.id,
+          actionType: 'updated',
+          description: `Tarefa editada: ${description}`,
+          fieldChanges: changes,
+          oldValues,
+          newValues,
+          metadata: {
+            task_title: updatedTask.title,
+            fields_changed: changedFields,
+            updated_at: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao registrar edição no histórico:', error);
+      }
+    }
+
     toast({
       title: "Tarefa atualizada",
       description: "As alterações foram salvas com sucesso.",
     });
   };
 
-  const handleTaskDelete = (taskId: string) => {
+  const handleTaskDelete = async (taskId: string) => {
+    // Get task to register in history before deleting
+    const taskToDelete = mockTaskList.find(task => task.id === taskId);
+
     // Remove from board columns
     setColumns(prev => prev.map(col => ({
       ...col,
@@ -345,6 +476,31 @@ export default function Tasks() {
     // Close modal
     setIsTaskDetailsOpen(false);
     setSelectedTask(null);
+
+    // Registrar exclusão no histórico
+    if (taskToDelete) {
+      try {
+        await addTaskHistory.mutateAsync({
+          taskId: taskId,
+          actionType: 'deleted',
+          description: `Tarefa excluída: ${taskToDelete.title}`,
+          oldValues: {
+            title: taskToDelete.title,
+            description: taskToDelete.description,
+            priority: taskToDelete.priority,
+            status: taskToDelete.status,
+            completed: taskToDelete.completed
+          },
+          metadata: {
+            deleted_at: new Date().toISOString(),
+            was_completed: taskToDelete.completed,
+            original_due_date: taskToDelete.due_date
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao registrar exclusão no histórico:', error);
+      }
+    }
 
     toast({
       title: "Tarefa excluída",

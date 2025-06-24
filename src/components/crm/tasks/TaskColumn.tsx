@@ -87,7 +87,6 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
         <div className={`px-4 py-3 ${theme.header} backdrop-blur-sm relative`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`w-1.5 h-1.5 rounded-full ${theme.accent}`} />
               <h3 className={`font-semibold text-sm ${theme.title}`}>
                 {title}
               </h3>
@@ -109,13 +108,11 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
           <div
             {...provided.droppableProps}
             ref={provided.innerRef}
-            className={`${isMobileLayout
-              ? 'space-y-2'
-              : 'space-y-2 p-3 flex-1 min-h-[200px]'
-              } ${snapshot.isDraggingOver
-                ? `${theme.bg} transition-all duration-200`
-                : 'transition-all duration-200'
-              }`}
+            className={
+              isMobileLayout
+                ? 'space-y-2'
+                : `space-y-3 p-3 flex-1 min-h-[200px] border ${theme.border} ${theme.bg} transition-all duration-200`
+            }
           >
             {tasks.map((task, index) => (
               <Draggable

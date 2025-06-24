@@ -6,7 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter } from 'lucide-react';
+import { Filter, Mail, Phone, Handshake, Users, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -20,6 +20,7 @@ interface Task {
     assigned_to_collaborator?: {
         name: string;
     };
+    type?: string;
 }
 
 type Column = {
@@ -38,6 +39,7 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick }: TaskBoa
     const [activeTab, setActiveTab] = useState('all');
     const [priorityFilter, setPriorityFilter] = useState('all');
     const [periodFilter, setPeriodFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
     const isMobile = useIsMobile();
     const { toast } = useToast();
 
@@ -70,6 +72,11 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick }: TaskBoa
                 filteredTasks = filteredTasks.filter(task =>
                     new Date(task.due_date) <= weekFromNow
                 );
+            }
+
+            // Filter by type
+            if (typeFilter !== 'all') {
+                filteredTasks = filteredTasks.filter(task => (task.type || 'email') === typeFilter);
             }
 
             return {
@@ -175,55 +182,66 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick }: TaskBoa
                         {/* Filtro por período */}
                         <div className="flex items-center gap-2 text-sm">
                             <span className="text-slate-600 font-medium whitespace-nowrap">Período:</span>
-                            <div className="flex gap-1 bg-slate-100 rounded-md p-1">
-                                {(['all', 'today', 'week'] as const).map((period) => (
-                                    <Button
-                                        key={period}
-                                        variant="ghost"
-                                        size="sm"
-                                        className={`h-7 px-2 text-xs transition-all ${periodFilter === period
-                                            ? 'bg-white shadow-sm text-slate-900'
-                                            : 'text-slate-600 hover:text-slate-900'
-                                            }`}
-                                        onClick={() => setPeriodFilter(period)}
-                                    >
-                                        {period === 'all' && <span className="hidden sm:inline">Todas</span>}
-                                        {period === 'all' && <span className="sm:hidden">Todas</span>}
-                                        {period === 'today' && <span className="hidden sm:inline">Hoje</span>}
-                                        {period === 'today' && <span className="sm:hidden">Hoje</span>}
-                                        {period === 'week' && <span className="hidden sm:inline">Esta semana</span>}
-                                        {period === 'week' && <span className="sm:hidden">Semana</span>}
-                                    </Button>
-                                ))}
-                            </div>
+                            <Select value={periodFilter} onValueChange={setPeriodFilter}>
+                                <SelectTrigger className="w-32 h-8 text-xs bg-slate-100 border-none focus:ring-0 focus:outline-none">
+                                    <SelectValue>{
+                                        periodFilter === 'all' ? 'Todas' :
+                                            periodFilter === 'today' ? 'Hoje' :
+                                                periodFilter === 'week' ? 'Esta semana' : ''
+                                    }</SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    <SelectItem value="today">Hoje</SelectItem>
+                                    <SelectItem value="week">Esta semana</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {/* Filtro por prioridade */}
                         <div className="flex items-center gap-2 text-sm">
                             <span className="text-slate-600 font-medium whitespace-nowrap">Prioridade:</span>
-                            <div className="flex gap-1 bg-slate-100 rounded-md p-1">
-                                {(['all', 'high', 'medium', 'low'] as const).map((priority) => (
-                                    <Button
-                                        key={priority}
-                                        variant="ghost"
-                                        size="sm"
-                                        className={`h-7 px-2 text-xs transition-all ${priorityFilter === priority
-                                            ? 'bg-white shadow-sm text-slate-900'
-                                            : 'text-slate-600 hover:text-slate-900'
-                                            }`}
-                                        onClick={() => setPriorityFilter(priority)}
-                                    >
-                                        {priority === 'all' && <span className="hidden sm:inline">Todas</span>}
-                                        {priority === 'all' && <span className="sm:hidden">Todas</span>}
-                                        {priority === 'high' && <span className="hidden sm:inline">Alta</span>}
-                                        {priority === 'high' && <span className="sm:hidden">Alta</span>}
-                                        {priority === 'medium' && <span className="hidden sm:inline">Média</span>}
-                                        {priority === 'medium' && <span className="sm:hidden">Méd</span>}
-                                        {priority === 'low' && <span className="hidden sm:inline">Baixa</span>}
-                                        {priority === 'low' && <span className="sm:hidden">Baixa</span>}
-                                    </Button>
-                                ))}
-                            </div>
+                            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                                <SelectTrigger className="w-32 h-8 text-xs bg-slate-100 border-none focus:ring-0 focus:outline-none">
+                                    <SelectValue>{
+                                        priorityFilter === 'all' ? 'Todas' :
+                                            priorityFilter === 'high' ? 'Alta' :
+                                                priorityFilter === 'medium' ? 'Média' :
+                                                    priorityFilter === 'low' ? 'Baixa' : ''
+                                    }</SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todas</SelectItem>
+                                    <SelectItem value="high">Alta</SelectItem>
+                                    <SelectItem value="medium">Média</SelectItem>
+                                    <SelectItem value="low">Baixa</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Filtro por tipo */}
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-slate-600 font-medium whitespace-nowrap">Tipo:</span>
+                            <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                <SelectTrigger className="w-36 h-8 text-xs bg-slate-100 border-none focus:ring-0 focus:outline-none">
+                                    <SelectValue>
+                                        {typeFilter === 'all' && <span className="flex items-center gap-2">Todos</span>}
+                                        {typeFilter === 'email' && <span className="flex items-center gap-2"><Mail className="w-4 h-4 text-blue-500" />E-mail</span>}
+                                        {typeFilter === 'call' && <span className="flex items-center gap-2"><Phone className="w-4 h-4 text-green-500" />Ligação</span>}
+                                        {typeFilter === 'meeting' && <span className="flex items-center gap-2"><Handshake className="w-4 h-4 text-yellow-500" />Reunião</span>}
+                                        {typeFilter === 'team' && <span className="flex items-center gap-2"><Users className="w-4 h-4 text-purple-500" />Equipe</span>}
+                                        {typeFilter === 'document' && <span className="flex items-center gap-2"><FileText className="w-4 h-4 text-orange-500" />Documento</span>}
+                                    </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all"><span className="flex items-center gap-2"><Filter className="w-4 h-4 text-slate-400" />Todos</span></SelectItem>
+                                    <SelectItem value="email"><span className="flex items-center gap-2"><Mail className="w-4 h-4 text-blue-500" />E-mail</span></SelectItem>
+                                    <SelectItem value="call"><span className="flex items-center gap-2"><Phone className="w-4 h-4 text-green-500" />Ligação</span></SelectItem>
+                                    <SelectItem value="meeting"><span className="flex items-center gap-2"><Handshake className="w-4 h-4 text-yellow-500" />Reunião</span></SelectItem>
+                                    <SelectItem value="team"><span className="flex items-center gap-2"><Users className="w-4 h-4 text-purple-500" />Equipe</span></SelectItem>
+                                    <SelectItem value="document"><span className="flex items-center gap-2"><FileText className="w-4 h-4 text-orange-500" />Documento</span></SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
                 </div>
