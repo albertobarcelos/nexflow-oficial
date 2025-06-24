@@ -1,0 +1,91 @@
+export const mockTasks = [
+    {
+        id: 'task-1',
+        title: 'Reunião',
+        description: 'Reunião com cliente para apresentação da proposta',
+        type: 'meeting',
+        status: 'pending',
+        priority: 'high',
+        due_date: new Date().toISOString(),
+        created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        assigned_to: 'João Silva',
+        opportunity_id: 'deal-1',
+        opportunity_name: 'Venda para ACME S.A.',
+        created_by: 'Maria Santos',
+        responsible: 'João Silva',
+        completed: false
+    },
+    {
+        id: 'task-2',
+        title: 'Reunião',
+        description: 'Follow-up da proposta enviada ontem',
+        type: 'meeting',
+        status: 'pending',
+        priority: 'medium',
+        due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+        assigned_to: 'Pedro Costa',
+        opportunity_id: 'deal-2',
+        opportunity_name: 'Proposta para Beta Ltda.',
+        created_by: 'Ana Silva',
+        responsible: 'Pedro Costa',
+        completed: false
+    },
+    {
+        id: 'task-3',
+        title: 'Reunião',
+        description: 'Demonstração do produto para novo cliente',
+        type: 'meeting',
+        status: 'completed',
+        priority: 'high',
+        due_date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        assigned_to: 'Carlos Oliveira',
+        opportunity_id: 'deal-3',
+        opportunity_name: 'Negociação com Gamma Inc.',
+        created_by: 'Fernanda Lima',
+        responsible: 'Carlos Oliveira',
+        completed: true
+    },
+    {
+        id: 'task-4',
+        title: 'Reunião',
+        description: 'Assinatura do contrato final',
+        type: 'meeting',
+        status: 'pending',
+        priority: 'high',
+        due_date: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+        assigned_to: 'Ana Silva',
+        opportunity_id: 'deal-4',
+        opportunity_name: 'Fechamento com Delta S/A',
+        created_by: 'Ricardo Mendes',
+        responsible: 'Ana Silva',
+        completed: false
+    },
+    {
+        id: 'task-5',
+        title: 'Reunião',
+        description: 'Primeira reunião de descoberta',
+        type: 'meeting',
+        status: 'pending',
+        priority: 'medium',
+        due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+        assigned_to: 'Juliana Pereira',
+        opportunity_id: 'deal-5',
+        opportunity_name: 'Apresentação para Epsilon Corp.',
+        created_by: 'João Silva',
+        responsible: 'Juliana Pereira',
+        completed: false
+    }
+];
+
+export const taskTypes = [
+    { id: 'meeting', name: 'Reunião', icon: 'Users' },
+    { id: 'call', name: 'Ligação', icon: 'Phone' },
+    { id: 'email', name: 'E-mail', icon: 'Mail' },
+    { id: 'follow_up', name: 'Follow-up', icon: 'Clock' },
+    { id: 'demo', name: 'Demonstração', icon: 'Monitor' },
+    { id: 'proposal', name: 'Proposta', icon: 'FileText' }
+]; 

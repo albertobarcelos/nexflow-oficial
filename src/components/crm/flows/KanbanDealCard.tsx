@@ -1,7 +1,8 @@
-import { User, Phone, Mail, Clock, MessageSquare, Calendar, MoreHorizontal } from "lucide-react";
+import { User, Phone, Mail, Clock, MessageSquare, Calendar, MoreHorizontal, Flame, Wind, Snowflake } from "lucide-react";
 import { MockDeal, TemperatureTag } from "./types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DraggableProvidedDragHandleProps, DraggableProvidedDraggableProps } from "@hello-pangea/dnd";
@@ -34,6 +35,52 @@ export function KanbanDealCard({
     stageAccentColor = 'from-blue-500 to-blue-600'
 }: KanbanDealCardProps) {
     const tempTag = getTemperatureTag(deal.temperature);
+
+    // Função para renderizar ícone de temperatura
+    const renderTemperatureIcon = (temperature?: string) => {
+        if (!temperature) return null;
+
+        const tempTag = getTemperatureTag(temperature);
+
+        let IconComponent;
+        let colorClass;
+        let backgroundClass;
+
+        switch (temperature.toLowerCase()) {
+            case 'hot':
+                IconComponent = Flame;
+                colorClass = 'text-red-500 hover:text-red-600';
+                backgroundClass = 'bg-red-500/20';
+                break;
+            case 'warm':
+                IconComponent = Wind;
+                colorClass = 'text-orange-500 hover:text-orange-600';
+                backgroundClass = 'bg-orange-500/20';
+                break;
+            case 'cold':
+                IconComponent = Snowflake;
+                colorClass = 'text-blue-500 hover:text-blue-600';
+                backgroundClass = 'bg-blue-500/20';
+                break;
+            default:
+                return null;
+        }
+
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className={`flex items-center justify-center h-5 w-5 ${backgroundClass} rounded-full`}>
+                            <IconComponent className={`w-4 h-4 p-0.5 ${colorClass} transition-colors`} />
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{tempTag.label}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    };
 
     // Calcular tempo desde criação
     const timeAgo = formatDistanceToNow(new Date(deal.created_at), {
@@ -77,7 +124,7 @@ export function KanbanDealCard({
 
             {/* Header do card com avatar proeminente */}
             <div className="p-3">
-                <div className="flex items-start gap-3 mb-3">
+                <div className="flex items-start gap-3 mb-2">
                     {/* Avatar do responsável mais proeminente */}
                     <div className="relative flex-shrink-0">
                         <img
@@ -90,49 +137,38 @@ export function KanbanDealCard({
 
                     {/* Conteúdo principal */}
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                            <h4 className="font-semibold text-slate-800 text-sm leading-tight pr-2 flex-1">
-                                {deal.title}
-                            </h4>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0 flex-shrink-0"
-                                onClick={(e) => handleActionClick(e, 'menu')}
-                            >
-                                <MoreHorizontal className="h-3 w-3 text-slate-400" />
-                            </Button>
-                        </div>
-
-                        {/* Valor e Tag de temperatura lado a lado */}
-                        <div className="flex items-center gap-2 mt-1">
-                            <p className="font-bold text-emerald-600 leading-tight" style={{ fontSize: '12px' }}>
-                                {new Intl.NumberFormat("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                    notation: "compact",
-                                }).format(deal.value || 0)}
-                            </p>
-                            <Badge className={`font-medium ${tempTag.color} border-0`} style={{ fontSize: '10px', padding: '2px 6px' }}>
-                                {tempTag.label}
-                            </Badge>
+                        <div className="flex justify-between">
+                            <div className="flex gap-2">
+                                {/* Título do deal */}
+                                <h4 className="font-semibold text-slate-800 text-sm leading-tight">
+                                    {deal.title} <span className="text-slate-400 ml-1 text-[10px]">{new Intl.NumberFormat("pt-BR", {
+                                        style: "currency",
+                                        currency: "BRL",
+                                        notation: "compact",
+                                    }).format(deal.value || 0)}</span>
+                                </h4>
+                                {/* Tag de temperatura */}
+                                <div className="flex gap-1">
+                                    {renderTemperatureIcon(deal.temperature)}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Tags de status */}
-                <div className="flex items-center gap-1 mb-3">
+                <div className="flex-col items-center gap-2 mb-2">
                     {deal.tags && deal.tags.slice(0, 2).map(tag => (
                         <Badge
                             key={tag}
                             variant="outline"
-                            className={`font-medium ${tagColor(tag)} border-0`}
+                            className={`font-medium ${tagColor(tag)} border-0 mr-1`}
                             style={{ fontSize: '10px', padding: '2px 6px' }}
                         >
                             {tag}
                         </Badge>
                     ))}
-                    {deal.tags && deal.tags.length > 2 && (
+                    {deal.tags && deal.tags.length > 3 && (
                         <Badge variant="secondary" style={{ fontSize: '10px', padding: '2px 6px' }}>
                             +{deal.tags.length - 2}
                         </Badge>
@@ -140,15 +176,15 @@ export function KanbanDealCard({
                 </div>
 
                 {/* Data e responsável */}
-                <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-                    <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{timeAgo}</span>
-                    </div>
+                <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                     <div className="flex items-center gap-1">
                         <User className="w-3 h-3" />
                         <span className="truncate max-w-20">{responsible.name}</span>
                     </div>
+                    <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-slate-400">{timeAgo.replace('há ', '').replace(' atrás', '')}</span>
+                    </div>
+
                 </div>
 
                 {/* Ações rápidas */}
