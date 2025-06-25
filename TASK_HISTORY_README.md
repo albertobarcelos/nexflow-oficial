@@ -1,242 +1,259 @@
-# Sistema de Histórico de Tarefas
+# Sistema de Histórico de Tarefas - Nexflow
 
-Este sistema foi implementado para rastrear todas as alterações feitas nas tarefas do CRM. Ele registra automaticamente criações, edições, mudanças de status e exclusões.
+## Visão Geral
 
-## 🔥 Funcionalidades Implementadas
+O sistema de histórico de tarefas do Nexflow registra automaticamente todas as ações realizadas em tarefas, incluindo criação, edição, mudanças de status, atribuições e exclusões.
 
-### 1. Migração do Banco de Dados
+## Estrutura de Dados
 
-- **Arquivo**: `migrations/020_create_task_history.sql`
-- **Tabela**: `task_history`
-- **Campos principais**:
-  - `task_id`: ID da tarefa
-  - `action_type`: Tipo de ação ('created', 'updated', 'status_changed', 'assigned', 'deleted')
-  - `description`: Descrição legível da alteração
-  - `field_changes`: JSON com campos alterados (antes/depois)
-  - `old_values`: Valores anteriores
-  - `new_values`: Novos valores
-  - `metadata`: Informações adicionais
-
-### 2. Triggers Automáticos
-
-- **Função**: `log_task_changes()`
-- **Registro automático** de:
-  - Criação de tarefas
-  - Edições de campos
-  - Mudanças de status
-  - Atribuições
-  - Exclusões
-
-### 3. Hook Personalizado
-
-- **Arquivo**: `src/hooks/useTaskHistory.ts`
-- **Funções**:
-  - `useTaskHistory(taskId)`: Busca histórico de uma tarefa
-  - `useTaskHistoryStats(taskId)`: Estatísticas do histórico
-  - `useAddTaskHistory()`: Adiciona entrada manual ao histórico
-  - `formatFieldChange()`: Formata mudanças de campos
-  - `getActionConfig()`: Configuração de ícones e cores
-
-### 4. Componente de Interface
-
-- **Arquivo**: `src/components/crm/tasks/TaskHistoryTab.tsx`
-- **Funcionalidades**:
-  - Timeline visual das alterações
-  - Estatísticas resumidas
-  - Detalhes expansíveis das mudanças
-  - Avatares dos usuários
-  - Ícones por tipo de ação
-
-### 5. Modal Atualizado
-
-- **Arquivo**: `src/components/crm/tasks/TaskDetailsDialog.tsx`
-- **Nova aba**: "Histórico" ao lado de "Detalhes"
-- **Layout responsivo** com abas
-
-### 6. Integração Automática
-
-- **Arquivo**: `src/pages/crm/tasks/Tasks.tsx`
-- **Registro automático** em:
-  - `handleSaveTask()`: Nova tarefa
-  - `handleStatusChange()`: Mudança de status
-  - `handleSaveEditedTask()`: Edição de tarefa
-  - `handleTaskDelete()`: Exclusão
-
-## 🎨 Componentes Visuais
-
-### Timeline do Histórico
-
-- **Linha temporal** vertical
-- **Ícones coloridos** por tipo de ação:
-  - 🟢 Verde: Criação
-  - 🔵 Azul: Edição
-  - 🟣 Roxo: Mudança de status
-  - 🟠 Laranja: Atribuição
-  - 🔴 Vermelho: Exclusão
-
-### Estatísticas
-
-- **Contador total** de alterações
-- **Contadores por tipo** de ação
-- **Última alteração** com timestamp
-
-### Detalhes Expansíveis
-
-- **Botão "Ver detalhes"** para cada entrada
-- **Campos alterados** com antes/depois
-- **Metadados** adicionais em JSON
-
-## 📝 Dados Mock para Desenvolvimento
-
-### Arquivo de Dados
-
-- **Arquivo**: `src/components/crm/tasks/MockTaskHistoryData.js`
-- **Funções**:
-  - `getMockHistoryByTaskId(taskId)`
-  - `getMockStatsByTaskId(taskId)`
-
-### Configuração Mock
-
-- **Variável**: `USE_MOCK_DATA = true` em `useTaskHistory.ts`
-- **Para usar dados reais**: Mudar para `false`
-
-## 🚀 Como Usar
-
-### 1. Visualizar Histórico
-
-```tsx
-// No modal de detalhes da tarefa
-<TaskDetailsDialog task={selectedTask} open={isOpen} onClose={onClose} />
-// A aba "Histórico" aparecerá automaticamente
-```
-
-### 2. Registrar Entrada Manual
-
-```tsx
-const addHistory = useAddTaskHistory();
-
-await addHistory.mutateAsync({
-  taskId: "task-123",
-  actionType: "updated",
-  description: "Campo prioridade alterado",
-  fieldChanges: {
-    priority: { old: "low", new: "high" },
-  },
-});
-```
-
-### 3. Buscar Histórico
-
-```tsx
-const { data: history, isLoading } = useTaskHistory("task-123");
-const { data: stats } = useTaskHistoryStats("task-123");
-```
-
-## 🛠️ Configuração do Banco
-
-### 1. Executar Migração
-
-```sql
--- Aplicar o arquivo migrations/020_create_task_history.sql
--- Isso criará:
--- - Tabela task_history
--- - Triggers automáticos
--- - Políticas RLS
--- - Índices de performance
-```
-
-### 2. Verificar Funcionamento
-
-```sql
--- Verificar se os triggers estão funcionando
-INSERT INTO tasks (title, description, due_date, client_id)
-VALUES ('Teste', 'Descrição teste', '2024-01-20', 'client-id');
-
--- Verificar se foi registrado no histórico
-SELECT * FROM task_history WHERE action_type = 'created';
-```
-
-## 🎯 Tipos de Ações Rastreadas
-
-### Automáticas (via Triggers)
-
-- ✅ **created**: Tarefa criada
-- ✅ **updated**: Campos editados
-- ✅ **status_changed**: Status alterado (completed/pending)
-- ✅ **assigned**: Responsável atribuído
-- ✅ **deleted**: Tarefa excluída
-
-### Manuais (via Interface)
-
-- ✅ **status_changed**: Mudança de status no kanban
-- ✅ **updated**: Edição via modal
-- ✅ **created**: Nova tarefa via formulário
-
-## 📊 Formatação de Mudanças
-
-### Campos Suportados
-
-- **title**: Título da tarefa
-- **description**: Descrição
-- **priority**: Prioridade (low/medium/high)
-- **due_date**: Data de vencimento
-- **completed**: Status de conclusão
-- **assigned_to**: Responsável
-
-### Exemplo de Formatação
+### TaskHistoryEntry
 
 ```typescript
-formatFieldChange("priority", "low", "high");
-// Retorna: "Prioridade: Baixa → Alta"
-
-formatFieldChange("due_date", "2024-01-20", "2024-01-22");
-// Retorna: "Data de vencimento: 20/01/2024 → 22/01/2024"
+interface TaskHistoryEntry {
+  id: string;
+  task_id: string;
+  user_id: string | null;
+  action_type:
+    | "created"
+    | "updated"
+    | "status_changed"
+    | "assigned"
+    | "deleted";
+  description: string;
+  field_changes?: any;
+  old_values?: any;
+  new_values?: any;
+  metadata?: any;
+  created_at: string;
+  user?: {
+    name?: string;
+    email?: string;
+    avatar_url?: string;
+  };
+}
 ```
 
-## 🔧 Customização
+## Dados Mock
 
-### Adicionar Novos Tipos de Ação
+### MockTaskData.js - Campo History
 
-1. Adicionar em `TaskHistoryEntry['action_type']`
-2. Adicionar em `getActionConfig()`
-3. Adicionar tratamento nos triggers SQL
+Cada tarefa no arquivo `MockTaskData.js` agora possui um campo `history` com dados fictícios:
 
-### Personalizar Cores e Ícones
+```javascript
+{
+  id: 'task-1',
+  title: 'Reunião',
+  // ... outros campos da tarefa
+  history: [
+    {
+      id: 'history-task-1-1',
+      task_id: 'task-1',
+      action_type: 'created',
+      description: 'Tarefa criada: Reunião com cliente para apresentação da proposta',
+      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      user: { name: 'Maria Santos', email: 'maria@nexflow.com' },
+      metadata: { priority: 'high', assigned_to: 'João Silva' }
+    },
+    {
+      id: 'history-task-1-2',
+      action_type: 'assigned',
+      description: 'Tarefa atribuída para João Silva',
+      // ... mais dados
+    }
+  ]
+}
+```
+
+## Hooks Disponíveis
+
+### 1. useTaskHistory(taskId)
+
+Busca o histórico completo de uma tarefa:
 
 ```typescript
-// Em getActionConfig()
-const configs = {
-  meu_tipo: {
-    icon: "MeuIcone",
-    color: "text-purple-600",
-    bgColor: "bg-purple-50",
-    label: "Minha Ação",
+const { data: history, isLoading, error } = useTaskHistory("task-1");
+```
+
+### 2. useTaskHistoryStats(taskId)
+
+Busca estatísticas do histórico:
+
+```typescript
+const { data: stats } = useTaskHistoryStats("task-1");
+// Retorna: { totalEntries, actionCounts, lastChange }
+```
+
+### 3. useTaskStatusChange()
+
+Hook para registrar mudanças de status automaticamente:
+
+```typescript
+const { logStatusChange } = useTaskStatusChange();
+
+// Uso:
+logStatusChange("task-1", "pending", "completed", "João Silva");
+```
+
+### 4. useTaskPriorityChange()
+
+Hook para registrar mudanças de prioridade:
+
+```typescript
+const { logPriorityChange } = useTaskPriorityChange();
+
+// Uso:
+logPriorityChange("task-1", "low", "high", "Maria Santos");
+```
+
+### 5. useTaskAssignment()
+
+Hook para registrar atribuições de tarefas:
+
+```typescript
+const { logAssignment } = useTaskAssignment();
+
+// Uso:
+logAssignment("task-1", "João Silva", "Maria Santos", "Admin");
+```
+
+## Função Utilitária
+
+### addTaskHistoryEntry()
+
+Função para adicionar entradas customizadas ao histórico:
+
+```typescript
+addTaskHistoryEntry(
+  taskId: string,
+  actionType: 'created' | 'updated' | 'status_changed' | 'assigned' | 'deleted',
+  description: string,
+  fieldChanges?: any,
+  oldValues?: any,
+  newValues?: any,
+  metadata?: any,
+  userName?: string,
+  userEmail?: string
+);
+```
+
+## Exemplos de Uso
+
+### 1. Registrar Criação de Tarefa
+
+```typescript
+// No NewTaskForm.tsx
+addTaskHistoryEntry(
+  taskId,
+  "created",
+  `Tarefa criada: ${formData.title}`,
+  undefined,
+  undefined,
+  undefined,
+  {
+    priority: formData.priority,
+    assigned_to: formData.responsible,
+    type: formData.type,
   },
+  "Usuário Atual"
+);
+```
+
+### 2. Registrar Mudança de Status
+
+```typescript
+// No TaskCard.tsx
+const { logStatusChange } = useTaskStatusChange();
+
+const handleCompleteTask = () => {
+  logStatusChange(task.id, "pending", "completed", "Usuário Atual");
+  onCompleteTask(task.id);
 };
 ```
 
-## ⚡ Performance
+### 3. Registrar Atribuição
 
-### Otimizações Implementadas
+```typescript
+// Ao atribuir uma tarefa
+const { logAssignment } = useTaskAssignment();
+logAssignment("task-1", null, "João Silva", "Maria Santos");
+```
 
-- **Índices** em campos de busca frequente
-- **RLS policies** para segurança
-- **staleTime** de 5 minutos no cache
-- **Paginação** automática no componente
+## Tipos de Ação
 
-### Monitoramento
+| Tipo             | Descrição         | Cor      |
+| ---------------- | ----------------- | -------- |
+| `created`        | Tarefa criada     | Verde    |
+| `updated`        | Tarefa atualizada | Azul     |
+| `status_changed` | Status alterado   | Roxo     |
+| `assigned`       | Tarefa atribuída  | Laranja  |
+| `deleted`        | Tarefa excluída   | Vermelho |
 
-- **Logs** detalhados de erros
-- **Fallback** para dados mock em desenvolvimento
-- **Tratamento** de erros em todas as operações
+## Interface Visual
 
-## 🎉 Pronto para Uso!
+### TaskHistoryTab Component
 
-O sistema está completamente implementado e funcional. Basta:
+- Exibe histórico completo da tarefa
+- Cards com timeline visual
+- Estatísticas resumidas
+- Detalhes expansíveis para mudanças de campo
+- Formatação segura de datas
 
-1. ✅ Executar a migração `020_create_task_history.sql`
-2. ✅ Configurar `USE_MOCK_DATA = false` para dados reais
-3. ✅ Usar o modal de tarefas normalmente
-4. ✅ O histórico será exibido automaticamente na aba "Histórico"
+### Recursos Visuais
 
-**Todas as alterações são registradas automaticamente!** 🎯
+- ✅ Timeline com ícones coloridos
+- ✅ Cards responsivos com hover effects
+- ✅ Badges para tipos de ação
+- ✅ Detalhes colapsáveis
+- ✅ Avatares de usuários
+- ✅ Formatação de data em português
+- ✅ Tratamento de erros de data inválida
+
+## Configuração
+
+### Modo Mock vs Produção
+
+```typescript
+// Em useTaskHistory.ts
+const USE_MOCK_DATA = true; // Para desenvolvimento
+```
+
+### Ordem de Prioridade dos Dados
+
+1. **MockTaskData.js** - Campo `history` da tarefa
+2. **mockHistoryData** - Dados hardcoded no hook
+3. **Supabase** - Dados reais (quando USE_MOCK_DATA = false)
+
+## Tratamento de Erros
+
+### Datas Inválidas
+
+O sistema possui tratamento robusto para datas inválidas:
+
+```typescript
+const formatSafeDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Data inválida";
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  } catch {
+    return "Data inválida";
+  }
+};
+```
+
+## Logs de Desenvolvimento
+
+O sistema registra logs no console durante desenvolvimento:
+
+```
+📝 Histórico adicionado para task-1: Tarefa criada: Reunião
+📝 Histórico adicionado para task-1: Status alterado de "A Fazer" para "Concluído"
+```
+
+## Próximos Passos
+
+1. **Integração com Supabase**: Implementar persistência real
+2. **Notificações**: Sistema de notificações para mudanças
+3. **Filtros**: Filtrar histórico por tipo de ação
+4. **Exportação**: Exportar histórico em PDF/Excel
+5. **Auditoria**: Logs de auditoria completos

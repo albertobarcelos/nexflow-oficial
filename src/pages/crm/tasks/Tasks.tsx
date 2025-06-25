@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sheet';
 import { mockTasks } from '@/components/crm/tasks/MockTaskData';
 import { useAddTaskHistory } from '@/hooks/useTaskHistory';
+import { TasksFilterBar } from '@/components/crm/tasks/TasksFilterBar';
 
 interface DatabaseTask {
   id: string;
@@ -151,6 +152,54 @@ export default function Tasks() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const addTaskHistory = useAddTaskHistory();
+  // Filtros globais
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('pending');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [periodFilter, setPeriodFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
+
+  // Função para filtrar tasks
+  const getBaseFilteredTasks = () => {
+    let filtered = mockTaskList;
+    // Prioridade
+    if (priorityFilter !== 'all') filtered = filtered.filter(t => t.priority === priorityFilter);
+    // Período
+    if (periodFilter === 'today') {
+      const today = new Date().toDateString();
+      filtered = filtered.filter(t => new Date(t.due_date).toDateString() === today);
+    } else if (periodFilter === 'week') {
+      const weekFromNow = new Date();
+      weekFromNow.setDate(weekFromNow.getDate() + 7);
+      filtered = filtered.filter(t => new Date(t.due_date) <= weekFromNow);
+    }
+    // Tipo
+    if (typeFilter !== 'all') filtered = filtered.filter(t => t.type === typeFilter);
+    return filtered;
+  };
+
+  // Para o modo lista, aplica também o filtro de status
+  const getFilteredTasks = () => {
+    let filtered = getBaseFilteredTasks();
+    if (viewMode === 'list') {
+      if (statusFilter === 'pending') filtered = filtered.filter(t => !t.completed);
+      else if (statusFilter === 'completed') filtered = filtered.filter(t => t.completed);
+    }
+    return filtered;
+  };
+  const filteredTasks = getFilteredTasks();
+
+  // Para o board, distribui as tarefas filtradas nas colunas
+  const getFilteredColumns = () => {
+    const boardFiltered = getBaseFilteredTasks();
+    // Converte as tarefas mockadas filtradas para o formato do board
+    const boardTasks = boardFiltered.map(convertMockTaskToBoardTask);
+
+    return columns.map(col => ({
+      ...col,
+      tasks: boardTasks.filter(task => task.status === col.id)
+    }));
+  };
+  const filteredColumns = getFilteredColumns();
 
   // Sync mock tasks with board columns on component mount
   useEffect(() => {
@@ -619,11 +668,9 @@ export default function Tasks() {
       <div className="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex-shrink-0 shadow-sm">
         <div className="flex items-center gap-3 md:gap-4">
           <MobileMenu />
-
           <div className="flex-1 min-w-0">
             <h1 className="text-lg md:text-2xl font-bold text-slate-900 truncate">Tarefas</h1>
           </div>
-
           {/* Estatísticas desktop */}
           {!isMobile && (
             <div className="flex items-center gap-6 text-sm text-slate-600">
@@ -641,7 +688,6 @@ export default function Tasks() {
               </div>
             </div>
           )}
-
           {/* Ações desktop */}
           {!isMobile && (
             <div className="flex items-center gap-3">
@@ -657,7 +703,6 @@ export default function Tasks() {
             </div>
           )}
         </div>
-
         {/* Estatísticas mobile */}
         {isMobile && (
           <div className="flex items-center justify-between mt-3 pt-3 border-t text-sm text-slate-600">
@@ -671,29 +716,46 @@ export default function Tasks() {
             </div>
           </div>
         )}
+        {/* Barra de filtros única */}
+        <div className="mt-6">
+          <TasksFilterBar
+            showStatusFilter={viewMode === 'list'}
+            statusFilter={statusFilter}
+            onStatusFilterChange={value => setStatusFilter(value as 'pending' | 'completed' | 'all')}
+            periodFilter={periodFilter}
+            onPeriodFilterChange={setPeriodFilter}
+            priorityFilter={priorityFilter}
+            onPriorityFilterChange={setPriorityFilter}
+            typeFilter={typeFilter}
+            onTypeFilterChange={setTypeFilter}
+            pendingCount={mockTaskList.filter(t => !t.completed).length}
+            completedCount={mockTaskList.filter(t => t.completed).length}
+            totalCount={mockTaskList.length}
+          />
+        </div>
       </div>
-
       {/* Main Content */}
       <div className="flex-1 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
         {viewMode === 'board' ? (
           <TaskBoardView
-            columns={columns}
+            columns={filteredColumns}
             onColumnsChange={setColumns}
             onTaskClick={handleTaskClick}
+            onStatusChange={handleStatusChange}
           />
         ) : (
           <div className="h-full overflow-y-auto p-4 md:p-6">
             <div className="max-w-6xl mx-auto">
               <TaskListView
-                tasks={mockTaskList}
+                tasks={filteredTasks}
                 onAddTask={handleAddTask}
                 onTaskClick={handleTaskClick}
+                onCompleteTask={(taskId) => handleStatusChange(taskId, 'done')}
               />
             </div>
           </div>
         )}
       </div>
-
       {/* Botão flutuante mobile */}
       {isMobile && (
         <div className="fixed bottom-6 right-6 z-50">
@@ -706,14 +768,12 @@ export default function Tasks() {
           </Button>
         </div>
       )}
-
       {/* Modal de Nova Tarefa */}
       <NewTaskDialog
         open={isNewTaskDialogOpen}
         onClose={() => setIsNewTaskDialogOpen(false)}
         onSave={handleSaveTask}
       />
-
       {/* Modal de Editar Tarefa */}
       <EditTaskDialog
         task={selectedTask}
@@ -727,7 +787,6 @@ export default function Tasks() {
         }}
         onSave={handleSaveEditedTask}
       />
-
       {/* Modal de Detalhes da Tarefa */}
       <TaskDetailsDialog
         task={selectedTask}

@@ -3,10 +3,12 @@ import { TaskCard } from './TaskCard';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 type Task = {
   id: string;
   title: string;
+  description?: string;
   status: 'todo' | 'doing' | 'done';
   priority: 'low' | 'medium' | 'high';
   assigned_to: string | null;
@@ -14,6 +16,11 @@ type Task = {
   assigned_to_collaborator?: {
     name: string;
   };
+  type?: string;
+  opportunity_name?: string;
+  responsible?: string;
+  completed?: boolean;
+  created_at?: string;
 };
 
 type TaskColumnProps = {
@@ -22,6 +29,7 @@ type TaskColumnProps = {
   tasks: Task[];
   isMobileLayout?: boolean;
   onTaskClick?: (taskId: string) => void;
+  onStatusChange?: (taskId: string, newStatus: 'todo' | 'doing' | 'done') => void;
 };
 
 const getColumnTheme = (id: string) => {
@@ -61,7 +69,7 @@ const getColumnTheme = (id: string) => {
   }
 };
 
-export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskClick }: TaskColumnProps) {
+export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskClick, onStatusChange }: TaskColumnProps) {
   const navigate = useNavigate();
   const theme = getColumnTheme(id);
 
@@ -72,6 +80,30 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
       navigate(`/crm/tasks/${taskId}`);
     }
   };
+
+  const handleCompleteTask = (taskId: string) => {
+    if (onStatusChange) {
+      onStatusChange(taskId, 'done');
+    }
+  };
+
+  // Convert task format for TaskCard
+  const convertTaskForListCard = (task: Task) => ({
+    id: task.id,
+    title: task.title,
+    description: task.description || '',
+    type: task.type || 'Reunião',
+    status: task.status === 'done' ? 'completed' as const : 'pending' as const,
+    priority: task.priority,
+    due_date: task.due_date || new Date().toISOString(),
+    created_at: task.created_at || new Date().toISOString(),
+    assigned_to: task.assigned_to || '',
+    opportunity_id: undefined,
+    opportunity_name: task.opportunity_name,
+    created_by: 'Sistema',
+    responsible: task.responsible || task.assigned_to_collaborator?.name || 'Não atribuído',
+    completed: task.status === 'done'
+  });
 
   return (
     <div className={`${isMobileLayout
@@ -105,7 +137,7 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
 
       <Droppable droppableId={id}>
         {(provided, snapshot) => (
-          <div
+          <motion.div
             {...provided.droppableProps}
             ref={provided.innerRef}
             className={
@@ -113,6 +145,10 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
                 ? 'space-y-2'
                 : `space-y-3 p-3 flex-1 min-h-[200px] border ${theme.border} ${theme.bg} transition-all duration-200`
             }
+            animate={{
+              backgroundColor: snapshot.isDraggingOver ? '#e0e7ff' : undefined,
+              transition: { duration: 0.25 }
+            }}
           >
             {tasks.map((task, index) => (
               <Draggable
@@ -121,13 +157,19 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
                 index={index}
               >
                 {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    {...provided.dragHandleProps}
+                    className={snapshot.isDragging ? 'opacity-75' : ''}
+                  >
                   <TaskCard
-                    task={task}
-                    provided={provided}
-                    onClick={() => handleTaskClick(task.id)}
-                    isMobileLayout={isMobileLayout}
-                    isDragging={snapshot.isDragging}
+                      task={convertTaskForListCard(task)}
+                      onTaskClick={() => handleTaskClick(task.id)}
+                      onCompleteTask={() => handleCompleteTask(task.id)}
+                      isDragging={snapshot.isDragging}
                   />
+                  </div>
                 )}
               </Draggable>
             ))}
@@ -144,7 +186,7 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
                 <span className="text-xs text-slate-300 mt-0.5">Arraste tarefas aqui</span>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
       </Droppable>
     </div>

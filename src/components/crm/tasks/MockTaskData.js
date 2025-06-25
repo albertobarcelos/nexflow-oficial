@@ -13,7 +13,29 @@ export const mockTasks = [
         opportunity_name: 'Venda para ACME S.A.',
         created_by: 'Maria Santos',
         responsible: 'João Silva',
-        completed: false
+        completed: false,
+        history: [
+            {
+                id: 'history-task-1-1',
+                task_id: 'task-1',
+                user_id: 'user-1',
+                action_type: 'created',
+                description: 'Tarefa criada: Reunião com cliente para apresentação da proposta',
+                created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Maria Santos', email: 'maria@nexflow.com' },
+                metadata: { priority: 'high', assigned_to: 'João Silva' }
+            },
+            {
+                id: 'history-task-1-2',
+                task_id: 'task-1',
+                user_id: 'user-2',
+                action_type: 'assigned',
+                description: 'Tarefa atribuída para João Silva',
+                created_at: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Maria Santos', email: 'maria@nexflow.com' },
+                field_changes: { assigned_to: { old: null, new: 'João Silva' } }
+            }
+        ]
     },
     {
         id: 'task-2',
@@ -29,7 +51,29 @@ export const mockTasks = [
         opportunity_name: 'Proposta para Beta Ltda.',
         created_by: 'Ana Silva',
         responsible: 'Pedro Costa',
-        completed: false
+        completed: false,
+        history: [
+            {
+                id: 'history-task-2-1',
+                task_id: 'task-2',
+                user_id: 'user-3',
+                action_type: 'created',
+                description: 'Tarefa criada: Ligação de follow-up após envio da proposta',
+                created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Ana Silva', email: 'ana@nexflow.com' },
+                metadata: { priority: 'medium', assigned_to: 'Pedro Costa' }
+            },
+            {
+                id: 'history-task-2-2',
+                task_id: 'task-2',
+                user_id: 'user-4',
+                action_type: 'updated',
+                description: 'Prazo da tarefa alterado',
+                created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+                user: { name: 'Pedro Costa', email: 'pedro@nexflow.com' },
+                field_changes: { due_date: { old: '2024-01-15', new: '2024-01-16' } }
+            }
+        ]
     },
     {
         id: 'task-3',
@@ -45,7 +89,31 @@ export const mockTasks = [
         opportunity_name: 'Negociação com Gamma Inc.',
         created_by: 'Fernanda Lima',
         responsible: 'Carlos Oliveira',
-        completed: true
+        completed: true,
+        history: [
+            {
+                id: 'history-task-3-1',
+                task_id: 'task-3',
+                user_id: 'user-5',
+                action_type: 'created',
+                description: 'Tarefa criada: Enviar proposta comercial por e-mail',
+                created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Fernanda Lima', email: 'fernanda@nexflow.com' },
+                metadata: { priority: 'high', assigned_to: 'Carlos Oliveira' }
+            },
+            {
+                id: 'history-task-3-2',
+                task_id: 'task-3',
+                user_id: 'user-6',
+                action_type: 'status_changed',
+                description: 'Status alterado de "A Fazer" para "Concluído"',
+                created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Carlos Oliveira', email: 'carlos@nexflow.com' },
+                field_changes: { status: { old: 'pending', new: 'completed' } },
+                old_values: { status: 'pending' },
+                new_values: { status: 'completed' }
+            }
+        ]
     },
     {
         id: 'task-4',
@@ -61,7 +129,19 @@ export const mockTasks = [
         opportunity_name: 'Fechamento com Delta S/A',
         created_by: 'Ricardo Mendes',
         responsible: 'Ana Silva',
-        completed: false
+        completed: false,
+        history: [
+            {
+                id: 'history-task-4-1',
+                task_id: 'task-4',
+                user_id: 'user-7',
+                action_type: 'created',
+                description: 'Tarefa criada: Realizar follow-up após reunião',
+                created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+                user: { name: 'Ricardo Mendes', email: 'ricardo@nexflow.com' },
+                metadata: { priority: 'high', assigned_to: 'Ana Silva' }
+            }
+        ]
     },
     {
         id: 'task-5',
@@ -77,7 +157,29 @@ export const mockTasks = [
         opportunity_name: 'Apresentação para Epsilon Corp.',
         created_by: 'João Silva',
         responsible: 'Juliana Pereira',
-        completed: false
+        completed: false,
+        history: [
+            {
+                id: 'history-task-5-1',
+                task_id: 'task-5',
+                user_id: 'user-1',
+                action_type: 'created',
+                description: 'Tarefa criada: Apresentar demo ao cliente',
+                created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'João Silva', email: 'joao@nexflow.com' },
+                metadata: { priority: 'medium', assigned_to: 'Juliana Pereira' }
+            },
+            {
+                id: 'history-task-5-2',
+                task_id: 'task-5',
+                user_id: 'user-8',
+                action_type: 'updated',
+                description: 'Descrição da tarefa atualizada',
+                created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Juliana Pereira', email: 'juliana@nexflow.com' },
+                field_changes: { description: { old: 'Demo simples', new: 'Apresentar demo completo ao cliente' } }
+            }
+        ]
     },
     {
         id: 'task-6',
@@ -93,7 +195,19 @@ export const mockTasks = [
         opportunity_name: 'Proposta para Zeta Ltda.',
         created_by: 'Juliana Pereira',
         responsible: 'Lucas Martins',
-        completed: false
+        completed: false,
+        history: [
+            {
+                id: 'history-task-6-1',
+                task_id: 'task-6',
+                user_id: 'user-8',
+                action_type: 'created',
+                description: 'Tarefa criada: Gerar documento de proposta para cliente',
+                created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Juliana Pereira', email: 'juliana@nexflow.com' },
+                metadata: { priority: 'low', assigned_to: 'Lucas Martins' }
+            }
+        ]
     },
     {
         id: 'task-7',
@@ -109,7 +223,31 @@ export const mockTasks = [
         opportunity_name: 'Negociação com Omega Ltda.',
         created_by: 'Pedro Costa',
         responsible: 'Marina Souza',
-        completed: false
+        completed: false,
+        history: [
+            {
+                id: 'history-task-7-1',
+                task_id: 'task-7',
+                user_id: 'user-4',
+                action_type: 'created',
+                description: 'Tarefa criada: Discutir condições comerciais',
+                created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Pedro Costa', email: 'pedro@nexflow.com' },
+                metadata: { priority: 'medium', assigned_to: 'Marina Souza' }
+            },
+            {
+                id: 'history-task-7-2',
+                task_id: 'task-7',
+                user_id: 'user-9',
+                action_type: 'updated',
+                description: 'Prioridade alterada de baixa para média',
+                created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+                user: { name: 'Marina Souza', email: 'marina@nexflow.com' },
+                field_changes: { priority: { old: 'low', new: 'medium' } },
+                old_values: { priority: 'low' },
+                new_values: { priority: 'medium' }
+            }
+        ]
     }
 ];
 

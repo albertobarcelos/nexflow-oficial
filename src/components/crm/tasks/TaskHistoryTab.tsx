@@ -40,6 +40,19 @@ const iconComponents = {
     Activity
 };
 
+// Função utilitária para formatação segura de datas
+const formatSafeDate = (dateString: string): string => {
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return 'Data inválida';
+        }
+        return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    } catch (error) {
+        return 'Data inválida';
+    }
+};
+
 export const TaskHistoryTab = memo(function TaskHistoryTab({
     taskId
 }: TaskHistoryTabProps) {
@@ -116,7 +129,7 @@ export const TaskHistoryTab = memo(function TaskHistoryTab({
                                     </div>
 
                                     <time className="text-xs text-slate-500 flex-shrink-0">
-                                        {format(new Date(entry.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                        {formatSafeDate(entry.created_at)}
                                     </time>
                                 </div>
 
