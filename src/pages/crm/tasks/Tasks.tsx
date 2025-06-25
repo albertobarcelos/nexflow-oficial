@@ -732,7 +732,7 @@ export default function Tasks() {
             completedCount={mockTaskList.filter(t => t.completed).length}
             totalCount={mockTaskList.length}
           />
-        </div>
+      </div>
       </div>
       {/* Main Content */}
       <div className="flex-1 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
