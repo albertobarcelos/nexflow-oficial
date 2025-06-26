@@ -34,9 +34,10 @@ interface TaskBoardViewProps {
     onColumnsChange: (columns: Column[]) => void;
     onTaskClick?: (taskId: string) => void;
     onStatusChange?: (taskId: string, newStatus: 'todo' | 'doing' | 'done') => void;
+    onTaskReorder?: (columnId: 'todo' | 'doing' | 'done', sourceIndex: number, destIndex: number) => void;
 }
 
-export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusChange }: TaskBoardViewProps) {
+export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusChange, onTaskReorder }: TaskBoardViewProps) {
     const isMobile = useIsMobile();
     const { toast } = useToast();
 
@@ -56,62 +57,56 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusC
             return;
         }
 
-        // Find the task in the original (unfiltered) columns
-        const sourceCol = columns.find(col => col.id === source.droppableId);
-        const destCol = columns.find(col => col.id === destination.droppableId);
+        const sourceColumnId = source.droppableId as 'todo' | 'doing' | 'done';
+        const destColumnId = destination.droppableId as 'todo' | 'doing' | 'done';
 
-        if (!sourceCol || !destCol) return;
+        // Criar cópia das colunas para manipulação
+        const newColumns = [...columns];
 
-        // Find the actual task in the filtered results
-        const filteredSourceCol = columns.find(col => col.id === source.droppableId);
-        if (!filteredSourceCol) return;
+        // Encontrar as colunas de origem e destino
+        const sourceColumn = newColumns.find(col => col.id === sourceColumnId);
+        const destColumn = newColumns.find(col => col.id === destColumnId);
 
-        const draggedTask = filteredSourceCol.tasks[source.index];
-        if (!draggedTask) return;
+        if (!sourceColumn || !destColumn) return;
 
-        // Find the task index in the original column
-        const originalSourceIndex = sourceCol.tasks.findIndex(task => task.id === draggedTask.id);
-        if (originalSourceIndex === -1) return;
+        // Encontrar a tarefa sendo movida
+        const [movedTask] = sourceColumn.tasks.splice(source.index, 1);
 
-        const newColumns = columns.map(col => {
-            if (col.id === source.droppableId) {
-                const newTasks = Array.from(col.tasks);
-                newTasks.splice(originalSourceIndex, 1);
-                return { ...col, tasks: newTasks };
+        if (sourceColumnId === destColumnId) {
+            // Reordenação dentro da mesma coluna
+            destColumn.tasks.splice(destination.index, 0, movedTask);
+
+            // Atualizar as colunas localmente
+            onColumnsChange(newColumns);
+
+            // Chamar callback para persistir a reordenação
+            if (onTaskReorder) {
+                onTaskReorder(sourceColumnId, source.index, destination.index);
             }
-            if (col.id === destination.droppableId) {
-                const newTasks = Array.from(col.tasks);
-                const updatedTask = { ...draggedTask, status: destination.droppableId as 'todo' | 'doing' | 'done' };
 
-                // Calculate the correct insertion index in the original column
-                let insertIndex = destination.index;
+            toast({
+                title: "Ordem atualizada",
+                description: `"${movedTask.title}" foi reordenada na coluna ${destColumn.title}.`,
+                duration: 2000,
+            });
+        } else {
+            // Mover entre colunas diferentes
+            // Atualizar o status da tarefa
+            const updatedTask = { ...movedTask, status: destColumnId };
+            destColumn.tasks.splice(destination.index, 0, updatedTask);
 
-                if (destination.index < col.tasks.length) {
-                    const taskAtIndex = col.tasks[destination.index];
-                    insertIndex = newTasks.findIndex(task => task.id === taskAtIndex.id);
-                } else {
-                    insertIndex = newTasks.length;
-                }
+            // Atualizar as colunas localmente
+            onColumnsChange(newColumns);
 
-                newTasks.splice(insertIndex, 0, updatedTask);
-                return { ...col, tasks: newTasks };
+            // Chamar callback para atualizar o status na fonte de dados principal
+            if (onStatusChange) {
+                onStatusChange(draggableId, destColumnId);
             }
-            return col;
-        });
 
-        onColumnsChange(newColumns);
-
-        try {
             toast({
                 title: "Status atualizado",
-                description: "O status da tarefa foi atualizado com sucesso.",
-            });
-        } catch (error) {
-            console.error('Error updating task status:', error);
-            toast({
-                title: "Erro ao atualizar status",
-                description: "Não foi possível atualizar o status da tarefa.",
-                variant: "destructive",
+                description: `"${movedTask.title}" foi movida para ${destColumn.title}.`,
+                duration: 2000,
             });
         }
     };
@@ -131,7 +126,7 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusC
                     {isMobile ? (
                         <div className="h-full overflow-y-auto p-4 space-y-4">
                             {columns.map(column => (
-                                <Card key={column.id} className="overflow-hidden">
+                                <Card key={column.id} className="">
                                     <CardHeader className="pb-3">
                                         <CardTitle className="flex items-center justify-between text-base">
                                             <span>{column.title}</span>
@@ -154,10 +149,10 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusC
                             ))}
                         </div>
                     ) : (
-                        <div className="h-full p-4 md:p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                        <div className="h-full p-3 sm:p-4 lg:p-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 h-full sm:max-h-[calc(100vh-200px)]">
                                 {columns.map(column => (
-                                    <div key={column.id} className="flex flex-col min-h-0">
+                                    <div key={column.id} className="flex flex-col h-full min-h-0">
                                         <TaskColumn
                                             id={column.id}
                                             title={column.title}

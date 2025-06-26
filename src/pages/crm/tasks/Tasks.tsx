@@ -108,23 +108,16 @@ const initialColumns: Column[] = [
 
 // Helper function to convert mock task to board task format
 const convertMockTaskToBoardTask = (mockTask: MockTask): Task => {
-  // Map status from mock to board format
-  let boardStatus: 'todo' | 'doing' | 'done' = 'todo';
-  if (mockTask.completed) {
-    boardStatus = 'done';
-  } else if (mockTask.status === 'pending') {
-    boardStatus = 'todo';
-  }
-
+  const status = mockTask.completed ? 'done' : mockTask.status === 'pending' ? 'todo' : (mockTask.status as 'todo' | 'doing' | 'done');
   return {
     id: mockTask.id,
     title: mockTask.title,
-    status: boardStatus,
+    status,
     priority: mockTask.priority as 'low' | 'medium' | 'high',
     assigned_to: mockTask.assigned_to,
     due_date: mockTask.due_date,
-    assigned_to_collaborator: mockTask.responsible ? { name: mockTask.responsible } : undefined,
-    type: mockTask.type
+    type: mockTask.type,
+    assigned_to_collaborator: mockTask.responsible ? { name: mockTask.responsible } : undefined
   };
 };
 
@@ -139,9 +132,41 @@ const convertDatabaseTask = (dbTask: DatabaseTask): Task => ({
   assigned_to_collaborator: dbTask.assigned_to_collaborator
 });
 
+// Interface para TaskListView
+interface TaskListViewTask {
+  id: string;
+  title: string;
+  status: 'pending' | 'completed';
+  priority: 'low' | 'medium' | 'high';
+  assigned_to: string | null;
+  due_date: string;
+  type: string;
+  assigned_to_collaborator?: { name: string };
+  description: string;
+  created_at: string;
+  created_by: string;
+  responsible: string;
+  completed: boolean;
+}
+
+const convertMockTaskToListTask = (mockTask: MockTask): TaskListViewTask => ({
+  id: mockTask.id,
+  title: mockTask.title,
+  status: mockTask.completed ? 'completed' : 'pending',
+  priority: mockTask.priority as 'low' | 'medium' | 'high',
+  assigned_to: mockTask.assigned_to,
+  due_date: mockTask.due_date,
+  type: mockTask.type ?? '',
+  assigned_to_collaborator: mockTask.responsible ? { name: mockTask.responsible } : undefined,
+  description: mockTask.description ?? '',
+  created_at: mockTask.created_at ?? '',
+  created_by: mockTask.created_by ?? '',
+  responsible: mockTask.responsible ?? '',
+  completed: mockTask.completed
+});
+
 export default function Tasks() {
-  const [columns, setColumns] = useState<Column[]>(initialColumns);
-  const [mockTaskList, setMockTaskList] = useState(mockTasks);
+  const [mockTaskList, setMockTaskList] = useState<MockTask[]>(mockTasks);
   const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);
   const [isEditTaskDialogOpen, setIsEditTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<DetailedTask | null>(null);
@@ -158,63 +183,99 @@ export default function Tasks() {
   const [periodFilter, setPeriodFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
 
-  // Função para filtrar tasks
-  const getBaseFilteredTasks = () => {
-    let filtered = mockTaskList;
-    // Prioridade
-    if (priorityFilter !== 'all') filtered = filtered.filter(t => t.priority === priorityFilter);
-    // Período
-    if (periodFilter === 'today') {
-      const today = new Date().toDateString();
-      filtered = filtered.filter(t => new Date(t.due_date).toDateString() === today);
-    } else if (periodFilter === 'week') {
-      const weekFromNow = new Date();
-      weekFromNow.setDate(weekFromNow.getDate() + 7);
-      filtered = filtered.filter(t => new Date(t.due_date) <= weekFromNow);
-    }
-    // Tipo
-    if (typeFilter !== 'all') filtered = filtered.filter(t => t.type === typeFilter);
-    return filtered;
-  };
+  // Colunas que controlam visualmente o Kanban
+  const [boardColumnsState, setBoardColumnsState] = useState<Column[]>([]);
 
-  // Para o modo lista, aplica também o filtro de status
-  const getFilteredTasks = () => {
-    let filtered = getBaseFilteredTasks();
-    if (viewMode === 'list') {
-      if (statusFilter === 'pending') filtered = filtered.filter(t => !t.completed);
-      else if (statusFilter === 'completed') filtered = filtered.filter(t => t.completed);
-    }
-    return filtered;
-  };
-  const filteredTasks = getFilteredTasks();
-
-  // Para o board, distribui as tarefas filtradas nas colunas
-  const getFilteredColumns = () => {
-    const boardFiltered = getBaseFilteredTasks();
-    // Converte as tarefas mockadas filtradas para o formato do board
-    const boardTasks = boardFiltered.map(convertMockTaskToBoardTask);
-
-    return columns.map(col => ({
-      ...col,
-      tasks: boardTasks.filter(task => task.status === col.id)
-    }));
-  };
-  const filteredColumns = getFilteredColumns();
-
-  // Sync mock tasks with board columns on component mount
+  // Atualiza colunas sempre que o mock muda
   useEffect(() => {
-    const boardTasks = mockTasks.map(convertMockTaskToBoardTask);
+    const columns: Column[] = [
+      {
+        id: 'todo',
+        title: 'A Fazer',
+        tasks: mockTaskList.filter(t => !t.completed && t.status === 'pending').map(convertMockTaskToBoardTask)
+      },
+      {
+        id: 'doing',
+        title: 'Em Andamento',
+        tasks: mockTaskList.filter(t => t.status === 'doing').map(convertMockTaskToBoardTask)
+      },
+      {
+        id: 'done',
+        title: 'Concluído',
+        tasks: mockTaskList.filter(t => t.completed).map(convertMockTaskToBoardTask)
+      }
+    ];
+    setBoardColumnsState(columns);
+  }, [mockTaskList]);
 
-    const newColumns = initialColumns.map(col => ({
-      ...col,
-      tasks: boardTasks.filter(task => task.status === col.id)
-    }));
+  // Atualiza status do mock ao mover
+  const handleStatusChange = (taskId: string, newStatus: 'todo' | 'doing' | 'done') => {
+    setMockTaskList(prev =>
+      prev.map(task =>
+        task.id === taskId
+          ? {
+            ...task,
+            status: newStatus,
+            completed: newStatus === 'done'
+          }
+          : task
+      )
+    );
+  };
 
-    setColumns(newColumns);
-  }, []);
+  // Função para reordenar tarefas na lista
+  const handleReorderTasks = (startIndex: number, endIndex: number) => {
+    let movedTaskTitle = '';
 
-  const getTotalTasks = () => columns.reduce((total, col) => total + col.tasks.length, 0);
-  const getCompletedTasks = () => columns.find(col => col.id === 'done')?.tasks.length || 0;
+    setMockTaskList(prev => {
+      const result = Array.from(prev);
+      const [removed] = result.splice(startIndex, 1);
+      movedTaskTitle = removed.title;
+      result.splice(endIndex, 0, removed);
+      return result;
+    });
+
+    // Feedback para o usuário
+    toast({
+      title: "Ordem atualizada",
+      description: `"${movedTaskTitle}" foi movida para a posição ${endIndex + 1}.`,
+      duration: 2000,
+    });
+  };
+
+  // Função para reordenar tarefas dentro de uma coluna do Kanban
+  const handleTaskReorderInColumn = (columnId: 'todo' | 'doing' | 'done', sourceIndex: number, destIndex: number) => {
+    setMockTaskList(prev => {
+      // Filtrar tarefas da coluna específica
+      const getTasksForColumn = (tasks: MockTask[], status: 'todo' | 'doing' | 'done') => {
+        if (status === 'todo') return tasks.filter(t => !t.completed && t.status === 'pending');
+        if (status === 'doing') return tasks.filter(t => t.status === 'doing');
+        if (status === 'done') return tasks.filter(t => t.completed);
+        return [];
+      };
+
+      const columnTasks = getTasksForColumn(prev, columnId);
+
+      if (sourceIndex >= columnTasks.length || destIndex >= columnTasks.length) return prev;
+
+      // Encontrar a tarefa sendo movida
+      const movedTask = columnTasks[sourceIndex];
+
+      // Separar tarefas da coluna atual das outras
+      const otherTasks = prev.filter(task => getTasksForColumn([task], columnId).length === 0);
+
+      // Reordenar tarefas da coluna
+      const reorderedColumnTasks = [...columnTasks];
+      reorderedColumnTasks.splice(sourceIndex, 1);
+      reorderedColumnTasks.splice(destIndex, 0, movedTask);
+
+      // Combinar tarefas: primeiro as reordenadas da coluna, depois as outras
+      return [...reorderedColumnTasks, ...otherTasks];
+    });
+  };
+
+  const getTotalTasks = () => boardColumnsState.reduce((total, col) => total + col.tasks.length, 0);
+  const getCompletedTasks = () => boardColumnsState.find(col => col.id === 'done')?.tasks.length || 0;
   const getPendingTasks = () => getTotalTasks() - getCompletedTasks();
 
   const handleAddTask = () => {
@@ -222,11 +283,12 @@ export default function Tasks() {
   };
 
   const handleSaveTask = async (newTask: MockTask) => {
-    setMockTaskList(prev => [...prev, newTask]);
+    // Adiciona a nova tarefa no início da lista (última inserida aparece primeiro)
+    setMockTaskList(prev => [newTask, ...prev]);
 
     // Also add to board if it's a board task
     const boardTask = convertMockTaskToBoardTask(newTask);
-    setColumns(prev => prev.map(col =>
+    setBoardColumnsState(prev => prev.map(col =>
       col.id === boardTask.status
         ? { ...col, tasks: [...col.tasks, boardTask] }
         : col
@@ -260,7 +322,7 @@ export default function Tasks() {
 
     // If not found in mock data, try to find in board columns
     if (!task) {
-      for (const column of columns) {
+      for (const column of boardColumnsState) {
         const foundTask = column.tasks.find(t => t.id === taskId);
         if (foundTask) {
           const detailedTask: DetailedTask = {
@@ -297,86 +359,6 @@ export default function Tasks() {
       setSelectedTask(detailedTask);
       setIsTaskDetailsOpen(true);
     }
-  };
-
-  const handleStatusChange = async (taskId: string, newStatus: 'todo' | 'doing' | 'done') => {
-    // Get current task to capture old status
-    const currentTask = mockTaskList.find(task => task.id === taskId);
-    const oldStatus = currentTask?.completed ? 'done' : currentTask?.status === 'pending' ? 'todo' : 'doing';
-
-    // Update board columns
-    setColumns(prev => {
-      const allTasks: Task[] = [];
-      prev.forEach(col => allTasks.push(...col.tasks));
-
-      const taskToMove = allTasks.find(t => t.id === taskId);
-      if (!taskToMove) return prev;
-
-      const updatedTask = { ...taskToMove, status: newStatus };
-
-      return prev.map(col => ({
-        ...col,
-        tasks: col.id === newStatus
-          ? [...col.tasks.filter(t => t.id !== taskId), updatedTask]
-          : col.tasks.filter(t => t.id !== taskId)
-      }));
-    });
-
-    // Update mock task list
-    setMockTaskList(prev => prev.map(task =>
-      task.id === taskId
-        ? {
-          ...task,
-          completed: newStatus === 'done',
-          status: newStatus === 'done' ? 'completed' : 'pending'
-        }
-        : task
-    ));
-
-    // Update selected task if it's currently open
-    if (selectedTask?.id === taskId) {
-      setSelectedTask((prev: DetailedTask | null) => prev ? ({
-        ...prev,
-        status: newStatus === 'done' ? 'completed' : 'pending',
-        completed: newStatus === 'done'
-      }) : null);
-    }
-
-    // Registrar mudança de status no histórico
-    if (currentTask && oldStatus !== newStatus) {
-      try {
-        const statusLabels = {
-          todo: 'A Fazer',
-          doing: 'Em Andamento',
-          done: 'Concluído'
-        };
-
-        await addTaskHistory.mutateAsync({
-          taskId: taskId,
-          actionType: 'status_changed',
-          description: `Status alterado de "${statusLabels[oldStatus as keyof typeof statusLabels]}" para "${statusLabels[newStatus]}"`,
-          fieldChanges: {
-            status: {
-              old: oldStatus,
-              new: newStatus
-            }
-          },
-          oldValues: { status: oldStatus },
-          newValues: { status: newStatus },
-          metadata: {
-            task_title: currentTask.title,
-            changed_at: new Date().toISOString()
-          }
-        });
-      } catch (error) {
-        console.error('Erro ao registrar mudança de status no histórico:', error);
-      }
-    }
-
-    toast({
-      title: "Status atualizado",
-      description: `Tarefa movida para "${newStatus === 'todo' ? 'A Fazer' : newStatus === 'doing' ? 'Em Andamento' : 'Concluído'}".`,
-    });
   };
 
   const handleTaskEdit = (task: DetailedTask) => {
@@ -465,7 +447,7 @@ export default function Tasks() {
       completed: updatedTask.completed || false
     } as MockTask);
 
-    setColumns(prev => prev.map(col => ({
+    setBoardColumnsState(prev => prev.map(col => ({
       ...col,
       tasks: col.tasks.map(task =>
         task.id === updatedTask.id
@@ -514,7 +496,7 @@ export default function Tasks() {
     const taskToDelete = mockTaskList.find(task => task.id === taskId);
 
     // Remove from board columns
-    setColumns(prev => prev.map(col => ({
+    setBoardColumnsState(prev => prev.map(col => ({
       ...col,
       tasks: col.tasks.filter(t => t.id !== taskId)
     })));
@@ -558,30 +540,32 @@ export default function Tasks() {
   };
 
   const ViewModeToggle = () => (
-    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+    <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 rounded-lg p-0.5 sm:p-1">
       <Button
         variant={viewMode === 'board' ? 'default' : 'ghost'}
         size="sm"
-        className={`h-8 px-3 transition-all ${viewMode === 'board'
+        className={`h-7 sm:h-8 px-2 sm:px-3 transition-all text-xs sm:text-sm ${viewMode === 'board'
           ? 'bg-white shadow-sm text-slate-900'
           : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
         onClick={() => setViewMode('board')}
       >
-        <LayoutGrid className="h-4 w-4 mr-2" />
-        Board
+        <LayoutGrid className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+        <span className="hidden sm:inline">Board</span>
+        <span className="sm:hidden">B</span>
       </Button>
       <Button
         variant={viewMode === 'list' ? 'default' : 'ghost'}
         size="sm"
-        className={`h-8 px-3 transition-all ${viewMode === 'list'
+        className={`h-7 sm:h-8 px-2 sm:px-3 transition-all text-xs sm:text-sm ${viewMode === 'list'
           ? 'bg-white shadow-sm text-slate-900'
           : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
           }`}
         onClick={() => setViewMode('list')}
       >
-        <List className="h-4 w-4 mr-2" />
-        Lista
+        <List className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+        <span className="hidden sm:inline">Lista</span>
+        <span className="sm:hidden">L</span>
       </Button>
     </div>
   );
@@ -665,40 +649,40 @@ export default function Tasks() {
   return (
     <div className="h-screen flex flex-col bg-slate-50">
       {/* Header responsivo */}
-      <div className="bg-white border-b px-4 py-3 md:px-6 md:py-4 flex-shrink-0 shadow-sm">
-        <div className="flex items-center gap-3 md:gap-4">
+      <div className="bg-white border-b px-3 py-3 sm:px-4 sm:py-3 lg:px-6 lg:py-4 flex-shrink-0 shadow-sm">
+        <div className="flex items-center gap-3 sm:gap-4">
           <MobileMenu />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg md:text-2xl font-bold text-slate-900 truncate">Tarefas</h1>
+            <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 truncate">Tarefas</h1>
           </div>
-          {/* Estatísticas desktop */}
+          {/* Estatísticas desktop/tablet */}
           {!isMobile && (
-            <div className="flex items-center gap-6 text-sm text-slate-600">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span>{getTotalTasks()} Total</span>
+            <div className="flex items-center gap-4 sm:gap-6 text-sm text-slate-600">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">{getTotalTasks()} Total</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-orange-500" />
-                <span>{getPendingTasks()} Pendentes</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-500" />
+                <span className="text-xs sm:text-sm">{getPendingTasks()} Pendentes</span>
               </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-500" />
-                <span>{getCompletedTasks()} Concluídas</span>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <CheckCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500" />
+                <span className="text-xs sm:text-sm">{getCompletedTasks()} Concluídas</span>
               </div>
             </div>
           )}
-          {/* Ações desktop */}
+          {/* Ações desktop/tablet */}
           {!isMobile && (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <ViewModeToggle />
               <Button
                 size="sm"
                 onClick={handleAddTask}
-                className="bg-blue-600 hover:bg-blue-700 shadow-sm"
+                className="bg-blue-600 hover:bg-blue-700 shadow-sm px-2 sm:px-3"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Tarefa
+                <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                <span className="text-xs sm:text-sm">Nova Tarefa</span>
               </Button>
             </div>
           )}
@@ -717,7 +701,7 @@ export default function Tasks() {
           </div>
         )}
         {/* Barra de filtros única */}
-        <div className="mt-6">
+        <div className="mt-4 sm:mt-6">
           <TasksFilterBar
             showStatusFilter={viewMode === 'list'}
             statusFilter={statusFilter}
@@ -732,25 +716,27 @@ export default function Tasks() {
             completedCount={mockTaskList.filter(t => t.completed).length}
             totalCount={mockTaskList.length}
           />
-      </div>
+        </div>
       </div>
       {/* Main Content */}
       <div className="flex-1 overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100">
         {viewMode === 'board' ? (
           <TaskBoardView
-            columns={filteredColumns}
-            onColumnsChange={setColumns}
+            columns={boardColumnsState}
+            onColumnsChange={setBoardColumnsState}
             onTaskClick={handleTaskClick}
             onStatusChange={handleStatusChange}
+            onTaskReorder={handleTaskReorderInColumn}
           />
         ) : (
-          <div className="h-full overflow-y-auto p-4 md:p-6">
+          <div className="h-full overflow-y-auto p-3 sm:p-4 lg:p-6">
             <div className="max-w-6xl mx-auto">
               <TaskListView
-                tasks={filteredTasks}
+                tasks={mockTaskList.map(convertMockTaskToListTask)}
                 onAddTask={handleAddTask}
                 onTaskClick={handleTaskClick}
                 onCompleteTask={(taskId) => handleStatusChange(taskId, 'done')}
+                onReorderTasks={handleReorderTasks}
               />
             </div>
           </div>

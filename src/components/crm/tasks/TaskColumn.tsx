@@ -107,8 +107,8 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
 
   return (
     <div className={`${isMobileLayout
-      ? ''
-      : `bg-white/60 backdrop-blur-sm border rounded-xl shadow-sm h-full flex flex-col ${theme.border} relative overflow-hidden`
+      ? 'h-full flex flex-col min-h-0'
+      : `backdrop-blur-sm border rounded-xl shadow-sm h-full flex flex-col min-h-0 ${theme.border} relative overflow-hidden`
       }`}>
       {/* Accent bar */}
       {!isMobileLayout && (
@@ -116,17 +116,17 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
       )}
 
       {!isMobileLayout && title && (
-        <div className={`px-4 py-3 ${theme.header} backdrop-blur-sm relative`}>
+        <div className={`px-3 sm:px-4 py-2 sm:py-3 ${theme.header} backdrop-blur-sm relative`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h3 className={`font-semibold text-sm ${theme.title}`}>
+              <h3 className={`font-semibold text-xs sm:text-sm ${theme.title}`}>
                 {title}
               </h3>
             </div>
             <div className="flex items-center gap-2">
               <Badge
                 variant="secondary"
-                className="bg-white/60 text-slate-600 text-xs font-medium border-0 shadow-sm px-2 py-0.5"
+                className="bg-white/60 text-slate-600 text-xs font-medium border-0 shadow-sm px-1.5 sm:px-2 py-0.5"
               >
                 {tasks.length}
               </Badge>
@@ -142,14 +142,15 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
             ref={provided.innerRef}
             className={
               isMobileLayout
-                ? 'space-y-2'
-                : `space-y-3 p-3 flex-1 min-h-[200px] border ${theme.border} ${theme.bg} transition-all duration-200`
+                ? 'flex-1 flex flex-col space-y-2'
+                : `flex-1 flex flex-col space-y-2 sm:space-y-3 p-2 sm:p-3 ${theme.bg} overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 transition-all duration-200`
             }
             animate={{
               backgroundColor: snapshot.isDraggingOver ? '#e0e7ff' : undefined,
               transition: { duration: 0.25 }
             }}
           >
+
             {tasks.map((task, index) => (
               <Draggable
                 key={task.id}
@@ -163,12 +164,12 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
                     {...provided.dragHandleProps}
                     className={snapshot.isDragging ? 'opacity-75' : ''}
                   >
-                  <TaskCard
+                    <TaskCard
                       task={convertTaskForListCard(task)}
                       onTaskClick={() => handleTaskClick(task.id)}
                       onCompleteTask={() => handleCompleteTask(task.id)}
                       isDragging={snapshot.isDragging}
-                  />
+                    />
                   </div>
                 )}
               </Draggable>
@@ -177,10 +178,10 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
 
             {/* Empty state */}
             {tasks.length === 0 && (
-              <div className={`flex flex-col items-center justify-center text-slate-400 text-sm rounded-lg border-2 border-dashed border-slate-200 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50/50 ${isMobileLayout ? 'py-6' : 'py-8 my-2'
-                }`}>
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-slate-200 transition-colors">
-                  <Plus className="w-5 h-5 text-slate-400" />
+              <div className={`flex flex-1 flex-col items-center justify-center text-slate-400 text-sm rounded-lg border-2 border-dashed border-slate-200 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50/50 ${isMobileLayout ? 'py-6' : 'py-6 sm:py-8 my-1 sm:my-2'}`}
+              >
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2 sm:mb-3 group-hover:bg-slate-200 transition-colors">
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
                 </div>
                 <span className="font-medium text-xs">Nenhuma tarefa</span>
                 <span className="text-xs text-slate-300 mt-0.5">Arraste tarefas aqui</span>

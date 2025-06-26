@@ -110,17 +110,17 @@ export function TaskCard({ task, onTaskClick, onCompleteTask, isDragging }: Task
         >
             <Card
                 className={clsx(
-                    'p-4 border rounded-xl transition-all duration-200 cursor-pointer',
+                    'p-3 sm:p-4 border rounded-xl transition-all duration-200 cursor-pointer',
                     isPending ? 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300' : 'bg-slate-50 border-slate-200 shadow-sm',
                     'hover:-translate-y-0.5',
                     isDragging ? 'scale-[1.03] shadow-lg ring-2 ring-blue-200' : ''
                 )}
                 onClick={() => onTaskClick?.(task.id)}
             >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
                     {/* Ícone do tipo */}
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm flex-shrink-0" style={{ background: typeColor + '22' }}>
-                        <TypeIcon className="w-4 h-4" color={typeColor} />
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center shadow-sm flex-shrink-0" style={{ background: typeColor + '22' }}>
+                        <TypeIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" color={typeColor} />
                     </div>
 
                     {/* Conteúdo principal */}
@@ -128,12 +128,12 @@ export function TaskCard({ task, onTaskClick, onCompleteTask, isDragging }: Task
                         <div className="flex items-start justify-between">
                             <div className="flex-1 min-w-0">
                                 <h4 className={clsx(
-                                    'font-semibold text-sm mb-1 ',
+                                    'font-semibold text-xs sm:text-sm mb-1 line-clamp-1 sm:line-clamp-none',
                                     isPending ? 'text-slate-900' : 'text-slate-600'
                                 )}>
                                     {task.title}
                                 </h4>
-                                <p className="text-xs text-slate-500 mb-3 line-clamp-2">
+                                <p className="text-xs text-slate-500 mb-2 sm:mb-3 line-clamp-1 sm:line-clamp-2">
                                     {task.description}
                                 </p>
                             </div>
@@ -143,48 +143,49 @@ export function TaskCard({ task, onTaskClick, onCompleteTask, isDragging }: Task
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="text-green-600 hover:bg-green-50 hover:text-green-700 ml-3 flex-shrink-0 h-8 transition-colors"
+                                    className="text-green-600 hover:bg-green-50 hover:text-green-700 ml-2 sm:ml-3 flex-shrink-0 h-7 sm:h-8 transition-colors px-2 sm:px-3"
                                     onClick={handleCompleteTask}
                                 >
-                                    <CheckCircle className="w-4 h-4" />
-                                    {!isMobile && <span className="ml-1 text-sm">Finalizar</span>}
+                                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    <span className="ml-1 text-xs sm:text-sm hidden sm:inline">Finalizar</span>
                                 </Button>
                             )}
                         </div>
 
                         {/* Metadados */}
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 mb-3">
+                        <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1 text-xs text-slate-500 mb-2 sm:mb-3">
                             {task.opportunity_name && (
                                 <div className="flex items-center gap-1">
                                     <Briefcase className="w-3 h-3 text-slate-400" />
-                                    <span className="truncate">{task.opportunity_name}</span>
+                                    <span className="truncate max-w-[120px] sm:max-w-none">{task.opportunity_name}</span>
                                 </div>
                             )}
                             <div className="flex items-center gap-1">
                                 <User className="w-3 h-3 text-slate-400" />
-                                <span>Responsável: {task.responsible}</span>
+                                <span className="truncate">Responsável: {task.responsible}</span>
                             </div>
                         </div>
 
                         {/* Footer com badges e data */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <Badge className={clsx('text-xs px-2 py-0.5 font-medium', getPriorityColor(task.priority))}>
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                <Badge className={clsx('text-xs px-1.5 sm:px-2 py-0.5 font-medium', getPriorityColor(task.priority))}>
                                     {priorityLabels[task.priority as keyof typeof priorityLabels]}
                                 </Badge>
                                 {isCompleted && (
-                                    <Badge className="bg-green-50 text-green-700 border border-green-200 text-xs px-2 py-0.5 font-medium">
+                                    <Badge className="bg-green-50 text-green-700 border border-green-200 text-xs px-1.5 sm:px-2 py-0.5 font-medium">
                                         Concluída
                                     </Badge>
                                 )}
                             </div>
 
-                            <div className="flex items-center gap-3 text-xs text-slate-400">
+                            <div className="flex items-center gap-2 sm:gap-3 text-xs text-slate-400 flex-shrink-0">
                                 <div className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
-                                    <span>{new Date(task.due_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span className="hidden sm:inline">{new Date(task.due_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                    <span className="sm:hidden">{new Date(task.due_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 </div>
-                                <span>{timeAgo.replace('há ', '').replace('cerca de ', '').replace(' atrás', '')}</span>
+                                <span className="hidden sm:inline">{timeAgo.replace('há ', '').replace('cerca de ', '').replace(' atrás', '')}</span>
                             </div>
                         </div>
                     </div>

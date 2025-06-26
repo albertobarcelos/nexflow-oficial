@@ -6,11 +6,60 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Clock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CalendarIcon, Clock, Mic, Square } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { taskTypes } from './MockTaskData';
 import { addTaskHistoryEntry } from '@/hooks/useTaskHistory';
+import { useToast } from '@/components/ui/use-toast';
+
+// Interfaces para Web Speech API
+interface SpeechRecognitionResult {
+    [index: number]: {
+        transcript: string;
+        confidence: number;
+    };
+}
+
+interface SpeechRecognitionResultList {
+    [index: number]: SpeechRecognitionResult;
+    length: number;
+}
+
+interface SpeechRecognitionEvent {
+    resultIndex: number;
+    results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent {
+    error: string;
+    message: string;
+}
+
+interface ISpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onstart: (() => void) | null;
+    onresult: ((event: SpeechRecognitionEvent) => void) | null;
+    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+    onend: (() => void) | null;
+    start(): void;
+    stop(): void;
+}
+
+// Declarações de tipos para Web Speech API
+declare global {
+    interface Window {
+        SpeechRecognition: {
+            new(): ISpeechRecognition;
+        };
+        webkitSpeechRecognition: {
+            new(): ISpeechRecognition;
+        };
+    }
+}
 
 interface NewTaskFormProps {
     onSave: (task: {
@@ -34,6 +83,7 @@ interface NewTaskFormProps {
 }
 
 export function NewTaskForm({ onSave, onCancel }: NewTaskFormProps) {
+    const { toast } = useToast();
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -44,6 +94,148 @@ export function NewTaskForm({ onSave, onCancel }: NewTaskFormProps) {
         due_date: undefined as Date | undefined,
         due_time: ''
     });
+
+    // Estados para o microfone
+    const [isListening, setIsListening] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [recognition, setRecognition] = useState<any>(null);
+    const [shouldContinueListening, setShouldContinueListening] = useState(false);
+
+    // Inicializar Speech Recognition
+    const initSpeechRecognition = () => {
+        // Verificar se a API está disponível
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            toast({
+                title: "Recurso não disponível",
+                description: "Seu navegador não suporta reconhecimento de voz.",
+                variant: "destructive"
+            });
+            return null;
+        }
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'pt-BR';
+
+        recognition.onstart = () => {
+            setIsListening(true);
+            setShouldContinueListening(true);
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onresult = (event: any) => {
+            let finalTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i] && event.results[i][0]) {
+                    // Só adiciona se for um resultado final (não intermediário)
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    }
+                }
+            }
+
+            // Só adiciona ao campo se houver texto final
+            if (finalTranscript.trim()) {
+                setFormData(prev => ({
+                    ...prev,
+                    description: prev.description + finalTranscript + ' '
+                }));
+            }
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onerror = (event: any) => {
+            console.error('Speech recognition error:', event.error);
+            setIsListening(false);
+
+            let errorMessage = 'Erro no reconhecimento de voz.';
+            if (event.error === 'not-allowed') {
+                errorMessage = 'Permissão de microfone negada. Permita o acesso ao microfone nas configurações do navegador.';
+            } else if (event.error === 'no-speech') {
+                errorMessage = 'Nenhuma fala detectada. Tente novamente.';
+            }
+
+            toast({
+                title: "Erro no reconhecimento de voz",
+                description: errorMessage,
+                variant: "destructive"
+            });
+        };
+
+        recognition.onend = () => {
+            // Se ainda deve continuar ouvindo, reinicia automaticamente
+            if (shouldContinueListening) {
+                try {
+                    setTimeout(() => {
+                        recognition.start();
+                    }, 100);
+                } catch (error) {
+                    console.log('Erro ao reiniciar reconhecimento:', error);
+                    setIsListening(false);
+                    setShouldContinueListening(false);
+                }
+            } else {
+                setIsListening(false);
+            }
+        };
+
+        return recognition;
+    };
+
+    // Solicitar permissão e iniciar gravação
+    const startVoiceRecording = async () => {
+        try {
+            // Solicitar permissão para o microfone
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            const speechRecognition = initSpeechRecognition();
+            if (speechRecognition) {
+                setRecognition(speechRecognition);
+                speechRecognition.start();
+
+                toast({
+                    title: "Gravação iniciada",
+                    description: "Fale agora para transcrever a descrição da tarefa.",
+                });
+            }
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            toast({
+                title: "Erro de permissão",
+                description: "Não foi possível acessar o microfone. Verifique as permissões do navegador.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    // Parar gravação
+    const stopVoiceRecording = () => {
+        setShouldContinueListening(false);
+        if (recognition) {
+            recognition.stop();
+            setRecognition(null);
+        }
+        setIsListening(false);
+
+        toast({
+            title: "Gravação finalizada",
+            description: "A transcrição foi adicionada à descrição.",
+        });
+    };
+
+    // Toggle do microfone
+    const toggleVoiceRecording = () => {
+        if (isListening) {
+            stopVoiceRecording();
+        } else {
+            startVoiceRecording();
+        }
+    };
 
     const isScheduled = () => {
         if (!formData.due_date) return false;
@@ -223,7 +415,23 @@ export function NewTaskForm({ onSave, onCancel }: NewTaskFormProps) {
                                     mode="single"
                                     selected={formData.due_date}
                                     onSelect={(date) => setFormData(prev => ({ ...prev, due_date: date }))}
+                                    defaultMonth={new Date()}
                                     initialFocus
+                                    className="p-2 w-[280px]"
+                                    classNames={{
+                                        month: "space-y-3 w-full",
+                                        caption: "flex justify-between items-center pt-1 mb-3",
+                                        table: "w-full border-collapse space-y-1",
+                                        head_row: "flex justify-between w-full",
+                                        head_cell: "text-muted-foreground rounded-md w-8 font-normal text-xs text-center",
+                                        row: "flex w-full mt-1 justify-between",
+                                        cell: "relative flex items-center justify-center h-8 w-8 text-center text-sm p-0",
+                                        day: "h-7 w-7 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md text-sm",
+                                        day_selected: "bg-orange-500 text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                                        day_today: "bg-accent text-accent-foreground font-semibold",
+                                        day_outside: "text-muted-foreground opacity-50",
+                                        day_disabled: "text-muted-foreground opacity-30",
+                                    }}
                                 />
                             </PopoverContent>
                         </Popover>
@@ -245,13 +453,69 @@ export function NewTaskForm({ onSave, onCancel }: NewTaskFormProps) {
 
                 <div className="flex flex-col gap-1">
                     <Label className="text-sm text-gray-600">Descrição</Label>
-                    <Textarea
-                        placeholder="Descreva os detalhes da tarefa"
-                        value={formData.description}
-                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                        rows={4}
-                        className="border-gray-300 rounded-lg"
-                    />
+                    <div className="relative">
+                        <Textarea
+                            placeholder="Descreva os detalhes da tarefa ou clique no ícone do microfone para falar"
+                            value={formData.description}
+                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                            rows={4}
+                            className="border-gray-300 rounded-lg pr-12"
+                        />
+
+                        {/* Botão do microfone sobreposto */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={toggleVoiceRecording}
+                                        className={`absolute top-2 right-2 h-8 w-8 p-0 z-10 transition-all duration-200 ${isListening
+                                            ? 'bg-red-50 border-red-300 text-red-700 hover:bg-red-100 shadow-lg'
+                                            : 'bg-white hover:bg-blue-50 hover:border-blue-300 shadow-sm'
+                                            }`}
+                                    >
+                                        {isListening ? (
+                                            <div className="relative">
+                                                <Square className="h-4 w-4 fill-current" />
+                                                {/* Animação de pulso quando ouvindo */}
+                                                <span className="absolute -top-1 -right-1 h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <Mic className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="left">
+                                    <p className="text-sm">
+                                        {isListening
+                                            ? 'Clique para parar a gravação de voz'
+                                            : 'Clique para gravar descrição por voz'
+                                        }
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {isListening && (
+                            <div className="absolute inset-0 bg-blue-50/50 border-2 border-blue-300 rounded-lg pointer-events-none flex items-center justify-center">
+                                <div className="bg-white/90 rounded-lg px-4 py-2 shadow-lg">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex space-x-1">
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                                            <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                        </div>
+                                        <span className="text-sm text-blue-700 font-medium">Ouvindo...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {isScheduled() && (

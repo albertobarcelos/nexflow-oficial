@@ -15,8 +15,8 @@ export function NewTaskDialog({ open, onClose, onSave }: NewTaskDialogProps) {
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogContent className="sm:max-w-4xl max-h-[94vh] overflow-y-auto">
+                <DialogHeader className="pb-4">
                     <DialogTitle>Nova Tarefa</DialogTitle>
                 </DialogHeader>
 
