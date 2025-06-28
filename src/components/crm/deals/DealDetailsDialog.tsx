@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     User,
     Phone,
@@ -32,22 +32,24 @@ import {
     X,
     Thermometer,
     CalendarDays,
-    PlayCircle
+    PlayCircle,
+    Pencil
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useUsers } from "@/hooks/useUsers";
+import { mockUsers } from "../flows/MockUsers";
+import { Dialog as UIDialog, DialogContent as UIDialogContent } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ClientInfoCard } from "./ClientInfoCard";
+import { DealValueCard } from "./DealValueCard";
+import { ParticipantsMultiSelect } from "./ParticipantsMultiSelect";
+import { mockFlow } from "../flows/flow_mockup_data";
+import type { MockDeal } from "@/types/deals";
 
 // Types
-interface MockDeal {
+interface Responsible {
     id: string;
-    title: string;
-    value?: number;
-    company_id?: string;
-    person_id?: string;
-    stage_id: string;
-    position: number;
-    created_at: string;
-    tags?: string[];
-    temperature?: string;
+    name: string;
 }
 
 interface Stage {
@@ -73,28 +75,6 @@ interface DealDetailsDialogProps {
     onStageChange: (stageId: string) => void;
 }
 
-// Mock data for tasks
-const mockTasks: Task[] = [
-    {
-        id: '1',
-        title: 'Ligar para cliente sobre proposta',
-        status: 'pending',
-        type: 'call',
-        assignee: 'João Silva',
-        dueDate: '2024-01-20',
-        createdAt: '2024-01-18'
-    },
-    {
-        id: '2',
-        title: 'Enviar contrato por email',
-        status: 'completed',
-        type: 'email',
-        assignee: 'Maria Santos',
-        dueDate: '2024-01-19',
-        createdAt: '2024-01-17'
-    }
-];
-
 // Quick task templates
 const taskTemplates = [
     { id: 'call', label: 'Ligar', icon: Phone, color: 'bg-blue-500' },
@@ -112,7 +92,7 @@ const taskStatusConfig = {
 
 // Quick Tasks Component
 function QuickTasksPanel({ dealId }: { dealId: string }) {
-    const [tasks, setTasks] = useState<Task[]>(mockTasks);
+    const [tasks, setTasks] = useState<Task[]>(mockFlow[dealId]?.tasks || []);
     const [newTaskTitle, setNewTaskTitle] = useState('');
 
     const addQuickTask = (type: string, title?: string) => {
@@ -321,168 +301,6 @@ function QuickTasksPanel({ dealId }: { dealId: string }) {
     );
 }
 
-// Client Info Card Component
-function ClientInfoCard({ deal }: { deal: MockDeal }) {
-    return (
-        <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
-            <CardContent className="p-5">
-                <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="h-12 w-12 ring-2 ring-white shadow-md">
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.id}`} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
-                            {deal.title.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-base text-slate-800 truncate">{deal.title}</h3>
-                        <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-                            <Building2 className="h-4 w-4" />
-                            <span className="truncate">Empresa Exemplo</span>
-                            {deal.tags && deal.tags.length > 0 && (
-                                <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-700 border-0">
-                                    {deal.tags[0]}
-                                </Badge>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <div className="flex items-center justify-center w-8 h-8 bg-slate-100 rounded-lg">
-                            <User className="h-4 w-4 text-slate-500" />
-                        </div>
-                        <span className="flex-1 truncate font-medium">João Silva</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <div className="flex items-center justify-center w-8 h-8 bg-slate-100 rounded-lg">
-                            <Phone className="h-4 w-4 text-slate-500" />
-                        </div>
-                        <span className="flex-1 truncate">+55 11 99999-9999</span>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                        >
-                            <Phone className="h-4 w-4" />
-                        </Button>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                        <div className="flex items-center justify-center w-8 h-8 bg-slate-100 rounded-lg">
-                            <Mail className="h-4 w-4 text-slate-500" />
-                        </div>
-                        <span className="flex-1 truncate">joao@empresa.com</span>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 hover:bg-green-50 hover:text-green-600 transition-colors"
-                        >
-                            <Mail className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-// Deal Value Card Component
-function DealValueCard({ deal }: { deal: MockDeal }) {
-    const getTemperatureConfig = (temp?: string) => {
-        switch (temp) {
-            case 'hot': return {
-                label: 'Quente',
-                color: 'bg-red-100 text-red-700 border-red-200',
-                icon: Thermometer,
-                iconColor: 'text-red-500'
-            };
-            case 'warm': return {
-                label: 'Morno',
-                color: 'bg-orange-100 text-orange-700 border-orange-200',
-                icon: Thermometer,
-                iconColor: 'text-orange-500'
-            };
-            case 'cold': return {
-                label: 'Frio',
-                color: 'bg-blue-100 text-blue-700 border-blue-200',
-                icon: Thermometer,
-                iconColor: 'text-blue-500'
-            };
-            default: return {
-                label: 'Novo',
-                color: 'bg-gray-100 text-gray-700 border-gray-200',
-                icon: Thermometer,
-                iconColor: 'text-gray-500'
-            };
-        }
-    };
-
-    const tempConfig = getTemperatureConfig(deal.temperature);
-    const TempIcon = tempConfig.icon;
-
-    return (
-        <div className="space-y-3">
-            {/* Card do Valor */}
-            <Card className="border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 to-green-50/60 shadow-sm">
-                <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 bg-emerald-100 rounded-xl">
-                            <DollarSign className="h-5 w-5 text-emerald-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-600 mb-1">Valor do Negócio</p>
-                            <p className="text-xl font-bold text-emerald-700 truncate">
-                                {deal.value ? deal.value.toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL"
-                                }) : "Não informado"}
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Card da Temperatura */}
-            <Card className="border-slate-200/60 bg-white/70 backdrop-blur-sm shadow-sm">
-                <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${tempConfig.icon === Thermometer ? 'bg-orange-100' : 'bg-slate-100'
-                            }`}>
-                            <TempIcon className={`h-5 w-5 ${tempConfig.iconColor}`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-600 mb-1">Temperatura</p>
-                            <Badge className={`${tempConfig.color} font-medium px-3 py-1 text-sm border-0`}>
-                                {tempConfig.label}
-                            </Badge>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Card da Data */}
-            <Card className="border-blue-200/60 bg-gradient-to-br from-blue-50/80 to-indigo-50/60 shadow-sm">
-                <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-10 h-10 bg-blue-100 rounded-xl">
-                            <CalendarDays className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-600 mb-1">Data Esperada</p>
-                            <Button
-                                variant="ghost"
-                                className="h-auto p-0 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                            >
-                                + Adicionar data
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
-}
-
 // Main Component
 export function DealDetailsDialog({ open, deal, stages, onClose, onStageChange }: DealDetailsDialogProps) {
     const [activeTab, setActiveTab] = useState<string>('overview');
@@ -499,6 +317,21 @@ export function DealDetailsDialog({ open, deal, stages, onClose, onStageChange }
         date: string;
         author: string;
     }>>([]);
+    const { data: users = [] } = useUsers();
+    const [participants, setParticipants] = useState<string[]>(() => {
+        if (deal?.responsibles && Array.isArray(deal.responsibles) && deal.responsibles.length > 0) {
+            return deal.responsibles.map(r => r.id);
+        } else if (deal?.responsible_id && ((deal as unknown) as { [key: string]: unknown })['responsible_name']) {
+            const name = ((deal as unknown) as { [key: string]: unknown })['responsible_name'] as string;
+            deal.responsibles = [{ id: deal.responsible_id, name }];
+            return [deal.responsible_id];
+        } else {
+            return [];
+        }
+    });
+    const [editParticipants, setEditParticipants] = useState(false);
+    const [notes, setNotes] = useState(deal?.notes || "");
+    useEffect(() => { setNotes(deal?.notes || ""); }, [deal]);
 
     if (!deal) return null;
 
@@ -537,109 +370,113 @@ export function DealDetailsDialog({ open, deal, stages, onClose, onStageChange }
         { id: 'activities', label: 'Atividades', icon: MessageSquare },
         { id: 'attachments', label: 'Anexos', icon: Paperclip },
         { id: 'history', label: 'Histórico', icon: History },
+        { id: 'notes', label: 'Notas', icon: FileText },
     ];
 
+    // Helper para pegar dados do usuário
+    const getUser = (id: string) => users.find((u) => u.id === id);
+
+    // Handler para salvar seleção
+    const handleSaveParticipants = (newIds: string[]) => {
+        setParticipants(newIds);
+        setEditParticipants(false);
+        // Aqui você pode chamar API para salvar de verdade
+    };
+
     return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <style>{scrollbarStyles}</style>
-            <DialogContent className="max-w-7xl w-full h-[88vh] p-0 overflow-hidden">
-                {/* Grid Layout with aligned headers */}
-                <div className="grid grid-cols-[320px_1fr_280px] grid-rows-[auto_1fr] h-full">
-                    {/* Headers Row - All aligned horizontally */}
-                    <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-5 py-3 flex items-center">
-                        <DialogHeader>
-                            <DialogTitle className="text-base font-semibold text-slate-800">
-                                Detalhes do Negócio
-                            </DialogTitle>
-                        </DialogHeader>
-                    </div>
-
-                    <div className="bg-white border-b border-slate-200/60 px-5 py-3 flex items-center">
-                        <div className="flex items-center gap-0">
-                            {tabs.map((tab) => {
-                                const Icon = tab.icon;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        className={cn(
-                                            "relative px-3 py-2 text-sm font-medium transition-all duration-300 ease-out",
-                                            "hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded-md",
-                                            activeTab === tab.id
-                                                ? "text-blue-600 bg-blue-50/50"
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50/50"
-                                        )}
-                                        onClick={() => setActiveTab(tab.id)}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Icon className="h-4 w-4" />
-                                            {tab.label}
-                                        </div>
-                                        {/* Active indicator */}
-                                        {activeTab === tab.id && (
-                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
-                                        )}
-                                    </button>
-                                );
-                            })}
+        <>
+            <Dialog open={open} onOpenChange={onClose}>
+                <style>{scrollbarStyles}</style>
+                <DialogContent className="max-w-7xl w-full h-[95vh] p-0 overflow-hidden rounded-2xl shadow-2xl border border-slate-200">
+                    <div className="grid grid-cols-[340px_1fr_280px] grid-rows-[auto_1fr] h-full">
+                        {/* Header */}
+                        <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-3 py-2 flex items-center min-h-[38px]">
+                            <DialogHeader>
+                                <DialogTitle className="text-xs font-semibold text-slate-800 tracking-tight truncate max-w-[90vw]">
+                                    {deal?.title || 'Detalhes do Negócio'}
+                                </DialogTitle>
+                            </DialogHeader>
                         </div>
-                    </div>
+                        <div className="bg-white border-b border-slate-200/60 px-3 py-2 flex items-center min-h-[38px]">
 
-                    <div className="bg-white/95 backdrop-blur-sm border-b border-l border-slate-200/60 px-4 py-3 flex items-center">
-                        <h3 className="text-base font-semibold text-slate-800">Ações do Negócio</h3>
-                    </div>
-
-                    {/* Content Row - All with independent scroll */}
-                    {/* Left Sidebar - Client Info */}
-                    <div className="bg-slate-50/80 border-r border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
-                        <div className="px-5 py-5 space-y-5">
-                            <ClientInfoCard deal={deal} />
-                            <DealValueCard deal={deal} />
-                            {/* Adicionando mais conteúdo para testar scroll */}
-                            <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
-                                <CardContent className="p-4">
-                                    <h4 className="font-semibold text-sm text-slate-800 mb-3">Histórico de Interações</h4>
-                                    <div className="space-y-2 text-xs text-slate-600">
-                                        <div className="flex justify-between">
-                                            <span>Última ligação:</span>
-                                            <span>15/01/2024</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Último email:</span>
-                                            <span>10/01/2024</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Reunião agendada:</span>
-                                            <span>20/01/2024</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                            <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
-                                <CardContent className="p-4">
-                                    <h4 className="font-semibold text-sm text-slate-800 mb-3">Observações</h4>
-                                    <p className="text-xs text-slate-600">
-                                        Cliente demonstrou interesse em expandir os serviços.
-                                        Próxima reunião para apresentar proposta completa.
-                                    </p>
-                                </CardContent>
-                            </Card>
                         </div>
-                    </div>
+                        <div className="bg-white/95 backdrop-blur-sm border-b border-l border-slate-200/60 px-2 py-2 flex items-center min-h-[38px]">
+                            <h3 className="text-xs font-semibold text-slate-800">Ações</h3>
+                        </div>
+                        {/* Sidebar Esquerda */}
+                        <div className="bg-slate-50/80 border-r border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(90vh - 38px)' }}>
+                            <div className="px-3 py-3 space-y-3">
+                                {/* Tabs */}
+                                <div className="flex flex-wrap items-center gap-1 max-w-full overflow-hidden">
+                                    {tabs.map((tab) => {
+                                        const Icon = tab.icon;
+                                        return (
+                                            <Button
+                                                key={tab.id}
+                                                variant={activeTab === tab.id ? "default" : "outline"}
+                                                size="sm"
+                                                className={cn(
+                                                    "flex items-center gap-1 px-2 py-1 text-xs font-medium rounded transition-all",
+                                                    activeTab === tab.id ? "bg-blue-600 text-white" : "bg-white text-slate-600 hover:bg-slate-100 border-slate-200"
+                                                )}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                style={{ minWidth: 0 }}
+                                            >
+                                                <Icon className="h-3 w-3" />
+                                                <span className="truncate">{tab.label}</span>
+                                            </Button>
+                                        );
+                                    })}
+                                </div>
+                                <ClientInfoCard deal={deal} participants={participants} setEditParticipants={setEditParticipants} editParticipants={editParticipants} users={users} setParticipants={setParticipants} />
 
-                    {/* Main Content Area */}
-                    <div className="bg-white overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
-                        <div className="px-5 py-5 min-h-full">
-                            <div className={cn(
-                                "transition-all duration-300 ease-out",
-                                "animate-in fade-in-0 slide-in-from-bottom-2"
-                            )}>
-                                {activeTab === 'overview' && (
-                                    <Card className="border-slate-200/60 shadow-sm">
-                                        <CardHeader className="pb-4 border-b border-slate-100">
-                                            <CardTitle className="text-lg font-semibold text-slate-800">Informações do Negócio</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="pt-6">
-                                            <div className="space-y-5">
+                                <DealValueCard deal={deal} />
+
+
+                                {/* Adicionando mais conteúdo para testar scroll */}
+                                <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
+                                    <CardContent className="p-4">
+                                        <h4 className="font-semibold text-sm text-slate-800 mb-3">Histórico de Interações</h4>
+                                        <div className="space-y-2 text-xs text-slate-600">
+                                            <div className="flex justify-between">
+                                                <span>Última ligação:</span>
+                                                <span>15/01/2024</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Último email:</span>
+                                                <span>10/01/2024</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Reunião agendada:</span>
+                                                <span>20/01/2024</span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
+                                    <CardContent className="p-4">
+                                        <h4 className="font-semibold text-sm text-slate-800 mb-3">Observações</h4>
+                                        <p className="text-xs text-slate-600">
+                                            Cliente demonstrou interesse em expandir os serviços.
+                                            Próxima reunião para apresentar proposta completa.
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                        {/* Conteúdo Principal */}
+                        <div className="bg-white overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(90vh - 38px)' }}>
+                            <div className="px-3 py-3 min-h-full">
+                                <div className={cn(
+                                    "transition-all duration-300 ease-out",
+                                    "animate-in fade-in-0 slide-in-from-bottom-2"
+                                )}>
+                                    {activeTab === 'overview' && (
+                                        <Card className="border-slate-200/60 shadow-sm">
+                                            <CardHeader className="pb-2 border-b border-slate-100">
+                                                <CardTitle className="text-base font-semibold text-slate-800 text-xs">Informações do Negócio</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="pt-3 space-y-2">
                                                 <div>
                                                     <label className="block text-sm font-medium text-slate-700 mb-2">
                                                         Quais serviços o cliente está adquirindo?
@@ -711,260 +548,302 @@ export function DealDetailsDialog({ open, deal, stages, onClose, onStageChange }
                                                         className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
                                                     />
                                                 </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
+                                            </CardContent>
+                                        </Card>
+                                    )}
 
-                                {activeTab === 'tasks' && (
-                                    <QuickTasksPanel dealId={deal.id} />
-                                )}
+                                    {activeTab === 'tasks' && (
+                                        <QuickTasksPanel dealId={deal.id} />
+                                    )}
 
-                                {activeTab === 'activities' && (
-                                    <Card className="border-slate-200/60 shadow-sm">
-                                        <CardHeader className="pb-4 border-b border-slate-100">
-                                            <CardTitle className="text-lg font-semibold text-slate-800">Atividades e Comentários</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="pt-6 space-y-4">
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    value={activity}
-                                                    onChange={e => setActivity(e.target.value)}
-                                                    placeholder="Escreva seu comentário aqui..."
-                                                    className="flex-1"
-                                                    onKeyDown={e => {
-                                                        if (e.key === "Enter" && activity.trim()) {
-                                                            setActivities(a => [
-                                                                {
-                                                                    id: Date.now(),
-                                                                    text: activity,
-                                                                    date: new Date().toISOString(),
-                                                                    author: 'Você'
-                                                                },
-                                                                ...a
-                                                            ]);
-                                                            setActivity("");
-                                                            e.preventDefault();
-                                                        }
-                                                    }}
-                                                />
-                                                <Button
-                                                    onClick={() => {
-                                                        if (activity.trim()) {
-                                                            setActivities(a => [
-                                                                {
-                                                                    id: Date.now(),
-                                                                    text: activity,
-                                                                    date: new Date().toISOString(),
-                                                                    author: 'Você'
-                                                                },
-                                                                ...a
-                                                            ]);
-                                                            setActivity("");
-                                                        }
-                                                    }}
-                                                >
-                                                    <Send className="h-4 w-4" />
-                                                </Button>
-                                            </div>
+                                    {activeTab === 'activities' && (
+                                        <Card className="border-slate-200/60 shadow-sm">
+                                            <CardHeader className="pb-4 border-b border-slate-100">
+                                                <CardTitle className="text-lg font-semibold text-slate-800">Atividades e Comentários</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="pt-6 space-y-4">
+                                                <div className="flex gap-2">
+                                                    <Input
+                                                        value={activity}
+                                                        onChange={e => setActivity(e.target.value)}
+                                                        placeholder="Escreva seu comentário aqui..."
+                                                        className="flex-1"
+                                                        onKeyDown={e => {
+                                                            if (e.key === "Enter" && activity.trim()) {
+                                                                setActivities(a => [
+                                                                    {
+                                                                        id: Date.now(),
+                                                                        text: activity,
+                                                                        date: new Date().toISOString(),
+                                                                        author: 'Você'
+                                                                    },
+                                                                    ...a
+                                                                ]);
+                                                                setActivity("");
+                                                                e.preventDefault();
+                                                            }
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        onClick={() => {
+                                                            if (activity.trim()) {
+                                                                setActivities(a => [
+                                                                    {
+                                                                        id: Date.now(),
+                                                                        text: activity,
+                                                                        date: new Date().toISOString(),
+                                                                        author: 'Você'
+                                                                    },
+                                                                    ...a
+                                                                ]);
+                                                                setActivity("");
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Send className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
 
-                                            <div className="space-y-3">
-                                                {activities.length === 0 ? (
-                                                    <div className="text-center py-8 text-muted-foreground">
-                                                        <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                                                        <p className="text-sm">Nenhuma atividade registrada</p>
-                                                        <p className="text-xs">Adicione um comentário para começar</p>
-                                                    </div>
-                                                ) : (
-                                                    activities.map(activity => (
-                                                        <div key={activity.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                                                            <Avatar className="h-8 w-8">
-                                                                <AvatarFallback className="text-xs">
-                                                                    {activity.author.substring(0, 2).toUpperCase()}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div className="flex-1">
-                                                                <div className="flex items-center gap-2 mb-1">
-                                                                    <span className="text-sm font-medium">{activity.author}</span>
-                                                                    <span className="text-xs text-muted-foreground">
-                                                                        {new Date(activity.date).toLocaleString('pt-BR')}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-sm">{activity.text}</p>
-                                                            </div>
+                                                <div className="space-y-3">
+                                                    {activities.length === 0 ? (
+                                                        <div className="text-center py-8 text-muted-foreground">
+                                                            <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                            <p className="text-sm">Nenhuma atividade registrada</p>
+                                                            <p className="text-xs">Adicione um comentário para começar</p>
                                                         </div>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
+                                                    ) : (
+                                                        activities.map(activity => (
+                                                            <div key={activity.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                                                                <Avatar className="h-8 w-8">
+                                                                    <AvatarFallback className="text-xs">
+                                                                        {activity.author.substring(0, 2).toUpperCase()}
+                                                                    </AvatarFallback>
+                                                                </Avatar>
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <span className="text-sm font-medium">{activity.author}</span>
+                                                                        <span className="text-xs text-muted-foreground">
+                                                                            {new Date(activity.date).toLocaleString('pt-BR')}
+                                                                        </span>
+                                                                    </div>
+                                                                    <p className="text-sm">{activity.text}</p>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
 
-                                {activeTab === 'attachments' && (
-                                    <Card className="border-slate-200/60 shadow-sm">
-                                        <CardHeader className="pb-4 border-b border-slate-100">
-                                            <CardTitle className="text-lg font-semibold text-slate-800">Anexos</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                                                <Paperclip className="h-8 w-8 mx-auto mb-3 text-gray-400" />
-                                                <p className="text-sm text-muted-foreground mb-3">
-                                                    Arraste arquivos para cá ou clique para selecionar
-                                                </p>
-                                                <Button size="sm">
-                                                    <Plus className="h-3 w-3 mr-2" />
-                                                    Adicionar arquivos
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
+                                    {activeTab === 'attachments' && (
+                                        <Card className="border-slate-200/60 shadow-sm">
+                                            <CardHeader className="pb-4 border-b border-slate-100">
+                                                <CardTitle className="text-lg font-semibold text-slate-800">Anexos</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                                    <Paperclip className="h-8 w-8 mx-auto mb-3 text-gray-400" />
+                                                    <p className="text-sm text-muted-foreground mb-3">
+                                                        Arraste arquivos para cá ou clique para selecionar
+                                                    </p>
+                                                    <Button size="sm">
+                                                        <Plus className="h-3 w-3 mr-2" />
+                                                        Adicionar arquivos
+                                                    </Button>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    )}
 
-                                {activeTab === 'history' && (
-                                    <Card className="border-slate-200/60 shadow-sm">
-                                        <CardHeader className="pb-4 border-b border-slate-100">
-                                            <CardTitle className="text-lg font-semibold text-slate-800">Histórico do Negócio</CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <div className="space-y-4">
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                                                    <div>
-                                                        <p className="text-sm font-medium">Negócio criado</p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {new Date(deal.created_at).toLocaleString('pt-BR')}
-                                                        </p>
+                                    {activeTab === 'history' && (
+                                        <Card className="border-slate-200/60 shadow-sm">
+                                            <CardHeader className="pb-4 border-b border-slate-100">
+                                                <CardTitle className="text-lg font-semibold text-slate-800">Histórico do Negócio</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="space-y-4">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                                                        <div>
+                                                            <p className="text-sm font-medium">Negócio criado</p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {new Date(deal.created_at).toLocaleString('pt-BR')}
+                                                            </p>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
+                                            </CardContent>
+                                        </Card>
+                                    )}
+
+                                    {activeTab === 'notes' && (
+                                        <Card className="border-slate-200/60 shadow-sm">
+                                            <CardHeader className="pb-4 border-b border-slate-100">
+                                                <CardTitle className="text-lg font-semibold text-slate-800">Notas</CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="pt-6 space-y-3">
+                                                <Textarea
+                                                    value={notes}
+                                                    onChange={e => setNotes(e.target.value)}
+                                                    placeholder="Adicione observações importantes sobre este negócio..."
+                                                    rows={6}
+                                                    className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                                                />
+                                                <Button size="sm" className="mt-2">Salvar</Button>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        {/* Sidebar Direita */}
+                        <div className="bg-slate-50/80 border-l border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(90vh - 38px)' }}>
+                            <div className="px-2 py-3 space-y-2">
+                                <Card className="border-slate-200/60 shadow-sm">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-medium text-slate-700">Mover para Etapa</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2">
+                                        {stages.map(stage => (
+                                            <button
+                                                key={stage.id}
+                                                className={cn(
+                                                    "w-full flex items-center justify-start px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+                                                    "hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+                                                    stage.id === deal.stage_id
+                                                        ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                                        : "text-slate-600 hover:text-slate-700 border border-transparent"
+                                                )}
+                                                onClick={() => onStageChange(stage.id)}
+                                                disabled={stage.id === deal.stage_id}
+                                            >
+                                                {stage.id === deal.stage_id && (
+                                                    <CheckCircle2 className="h-4 w-4 mr-2 text-blue-600" />
+                                                )}
+                                                <span className="truncate flex-1 text-left">{stage.name}</span>
+                                                {stage.id === deal.stage_id && (
+                                                    <ChevronRight className="h-4 w-4 ml-2 text-blue-600" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-slate-200/60 shadow-sm">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-medium text-slate-700">Ações Rápidas</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-8 text-xs justify-start"
+                                            onClick={() => setActiveTab('notes')}
+                                        >
+                                            <FileText className="h-3 w-3 mr-2" />
+                                            Notas
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-8 text-xs justify-start"
+                                        >
+                                            <Phone className="h-3 w-3 mr-2" />
+                                            Ligar para Cliente
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-8 text-xs justify-start"
+                                        >
+                                            <Mail className="h-3 w-3 mr-2" />
+                                            Enviar Email
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-8 text-xs justify-start"
+                                        >
+                                            <Calendar className="h-3 w-3 mr-2" />
+                                            Agendar Reunião
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-8 text-xs justify-start"
+                                        >
+                                            <FileText className="h-3 w-3 mr-2" />
+                                            Gerar Proposta
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-slate-200/60 shadow-sm">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-medium text-slate-700">Informações</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3 text-xs text-slate-600">
+                                        <div>
+                                            <span className="font-medium">Criado em:</span>
+                                            <p>{new Date(deal.created_at).toLocaleDateString('pt-BR')}</p>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-medium">
+                                                {participants.length > 1 ? "Participantes:" : "Participante:"}
+                                            </span>
+                                            {participants.map((id) => {
+                                                const u = getUser(id);
+                                                return u ? (
+                                                    <Badge key={id} className="flex items-center gap-1 px-2 py-1 text-xs">
+                                                        <Avatar className="h-4 w-4"><AvatarFallback>{u.first_name[0]}{u.last_name[0]}</AvatarFallback></Avatar>
+                                                        {u.first_name}
+                                                    </Badge>
+                                                ) : null;
+                                            })}
+                                            <Button size="icon" variant="ghost" className="h-6 w-6 p-0 ml-1" onClick={() => setEditParticipants(true)}>
+                                                <Pencil className="h-4 w-4 text-slate-500" />
+                                            </Button>
+                                        </div>
+                                        {editParticipants && (
+                                            <div className="absolute z-[9999] mt-2"><ParticipantsMultiSelect value={participants} onChange={setParticipants} setEditParticipants={setEditParticipants} /></div>
+                                        )}
+                                        <div>
+                                            <span className="font-medium">Origem:</span>
+                                            <p>Website</p>
+                                        </div>
+                                        <div>
+                                            <span className="font-medium">Prioridade:</span>
+                                            <Badge variant="secondary" className="text-xs">Alta</Badge>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                <Card className="border-slate-200/60 shadow-sm">
+                                    <CardContent className="p-4 space-y-3">
+                                        <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            className="w-full h-9 text-sm font-medium"
+                                        >
+                                            <X className="h-4 w-4 mr-2" />
+                                            Marcar como Perdido
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-9 text-sm font-medium border-slate-200 hover:bg-slate-50"
+                                            onClick={onClose}
+                                        >
+                                            Fechar
+                                        </Button>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                     </div>
-
-                    {/* Right Sidebar - Stage Actions */}
-                    <div className="bg-slate-50/80 border-l border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
-                        <div className="px-4 py-5 space-y-4">
-                            <Card className="border-slate-200/60 shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-medium text-slate-700">Mover para Etapa</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    {stages.map(stage => (
-                                        <button
-                                            key={stage.id}
-                                            className={cn(
-                                                "w-full flex items-center justify-start px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
-                                                "hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
-                                                stage.id === deal.stage_id
-                                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                                    : "text-slate-600 hover:text-slate-700 border border-transparent"
-                                            )}
-                                            onClick={() => onStageChange(stage.id)}
-                                            disabled={stage.id === deal.stage_id}
-                                        >
-                                            {stage.id === deal.stage_id && (
-                                                <CheckCircle2 className="h-4 w-4 mr-2 text-blue-600" />
-                                            )}
-                                            <span className="truncate flex-1 text-left">{stage.name}</span>
-                                            {stage.id === deal.stage_id && (
-                                                <ChevronRight className="h-4 w-4 ml-2 text-blue-600" />
-                                            )}
-                                        </button>
-                                    ))}
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-slate-200/60 shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-medium text-slate-700">Ações Rápidas</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-8 text-xs justify-start"
-                                    >
-                                        <Phone className="h-3 w-3 mr-2" />
-                                        Ligar para Cliente
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-8 text-xs justify-start"
-                                    >
-                                        <Mail className="h-3 w-3 mr-2" />
-                                        Enviar Email
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-8 text-xs justify-start"
-                                    >
-                                        <Calendar className="h-3 w-3 mr-2" />
-                                        Agendar Reunião
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-8 text-xs justify-start"
-                                    >
-                                        <FileText className="h-3 w-3 mr-2" />
-                                        Gerar Proposta
-                                    </Button>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-slate-200/60 shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-medium text-slate-700">Informações</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3 text-xs text-slate-600">
-                                    <div>
-                                        <span className="font-medium">Criado em:</span>
-                                        <p>{new Date(deal.created_at).toLocaleDateString('pt-BR')}</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Responsável:</span>
-                                        <p>João Silva</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Origem:</span>
-                                        <p>Website</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Prioridade:</span>
-                                        <Badge variant="secondary" className="text-xs">Alta</Badge>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-slate-200/60 shadow-sm">
-                                <CardContent className="p-4 space-y-3">
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="w-full h-9 text-sm font-medium"
-                                    >
-                                        <X className="h-4 w-4 mr-2" />
-                                        Marcar como Perdido
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-9 text-sm font-medium border-slate-200 hover:bg-slate-50"
-                                        onClick={onClose}
-                                    >
-                                        Fechar
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 } 

@@ -67,6 +67,10 @@ export const mockFlow = {
             probability: 65,
             responsible_name: 'João Silva',
             responsible_id: 'user-1',
+            responsibles: [
+                { id: 'user-1', name: 'João Silva' },
+                { id: 'user-2', name: 'Maria Santos' }
+            ],
             notes: 'Cliente interessado em solução completa',
             last_activity: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
         },
@@ -85,6 +89,9 @@ export const mockFlow = {
             probability: 85,
             responsible_name: 'Maria Santos',
             responsible_id: 'user-2',
+            responsibles: [
+                { id: 'user-2', name: 'Maria Santos' }
+            ],
             notes: 'Precisa da proposta até amanhã',
             last_activity: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
         },
@@ -103,6 +110,10 @@ export const mockFlow = {
             probability: 72,
             responsible_name: 'Pedro Costa',
             responsible_id: 'user-3',
+            responsibles: [
+                { id: 'user-3', name: 'Pedro Costa' },
+                { id: 'user-4', name: 'Ana Silva' }
+            ],
             notes: 'Aguardando aprovação do orçamento',
             last_activity: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
         },
@@ -121,6 +132,9 @@ export const mockFlow = {
             probability: 95,
             responsible_name: 'Ana Silva',
             responsible_id: 'user-4',
+            responsibles: [
+                { id: 'user-4', name: 'Ana Silva' }
+            ],
             notes: 'Pronto para assinatura do contrato',
             last_activity: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
         },
@@ -139,6 +153,9 @@ export const mockFlow = {
             probability: 45,
             responsible_name: 'Carlos Oliveira',
             responsible_id: 'user-5',
+            responsibles: [
+                { id: 'user-5', name: 'Carlos Oliveira' }
+            ],
             notes: 'Demonstração agendada para quinta-feira',
             last_activity: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
         },
@@ -157,6 +174,9 @@ export const mockFlow = {
             probability: 55,
             responsible_name: 'Fernanda Lima',
             responsible_id: 'user-6',
+            responsibles: [
+                { id: 'user-6', name: 'Fernanda Lima' }
+            ],
             notes: 'Lead qualificado, fazer contato hoje',
             last_activity: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
         },
@@ -175,6 +195,9 @@ export const mockFlow = {
             probability: 78,
             responsible_name: 'Ricardo Mendes',
             responsible_id: 'user-7',
+            responsibles: [
+                { id: 'user-7', name: 'Ricardo Mendes' }
+            ],
             notes: 'Cliente VIP, dar prioridade',
             last_activity: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
         },
@@ -193,6 +216,9 @@ export const mockFlow = {
             probability: 68,
             responsible_name: 'Juliana Pereira',
             responsible_id: 'user-8',
+            responsibles: [
+                { id: 'user-8', name: 'Juliana Pereira' }
+            ],
             notes: 'Negociação em andamento, resposta até sexta',
             last_activity: new Date(Date.now() - 1 * 60 * 1000).toISOString(),
         },

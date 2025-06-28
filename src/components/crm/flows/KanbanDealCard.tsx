@@ -1,4 +1,4 @@
-import { User, Phone, Mail, Clock, MessageSquare, Calendar, MoreHorizontal, Flame, Wind, Snowflake } from "lucide-react";
+import { User, Phone, Mail, Clock, MessageSquare, Calendar, MoreHorizontal, Flame, Wind, Snowflake, Instagram, Video } from "lucide-react";
 import { MockDeal, TemperatureTag } from "./types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -89,8 +89,15 @@ export function KanbanDealCard({
     });
 
     // Usar dados reais do responsável
+    let responsibleName = "Sem responsável";
+    const responsiblesArr = ((deal as unknown) as { responsibles?: { id: string, name: string }[] }).responsibles;
+    if (responsiblesArr && Array.isArray(responsiblesArr) && responsiblesArr.length > 0) {
+        responsibleName = responsiblesArr.map(r => r.name).join(", ");
+    } else if (((deal as unknown) as { [key: string]: unknown })['responsible_name']) {
+        responsibleName = ((deal as unknown) as { [key: string]: unknown })['responsible_name'] as string;
+    }
     const responsible = {
-        name: deal.responsible_name || "Sem responsável",
+        name: responsibleName,
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.responsible_id || deal.id}`
     };
 
@@ -157,7 +164,7 @@ export function KanbanDealCard({
                 </div>
 
                 {/* Tags de status */}
-                <div className="flex-col items-center gap-2 mb-2">
+                <div className="flex items-center gap-1 mb-2">
                     {deal.tags && deal.tags.slice(0, 2).map(tag => (
                         <Badge
                             key={tag}
@@ -168,6 +175,27 @@ export function KanbanDealCard({
                             {tag}
                         </Badge>
                     ))}
+                    {/* Ícones especiais para Instagram e Live */}
+                    {deal.tags && deal.tags.includes('Instagram') && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Instagram className="w-4 h-4 text-pink-500" />
+                                </TooltipTrigger>
+                                <TooltipContent>Instagram</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                    {deal.tags && deal.tags.includes('Live') && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Video className="w-4 h-4 text-purple-500" />
+                                </TooltipTrigger>
+                                <TooltipContent>Live</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
                     {deal.tags && deal.tags.length > 3 && (
                         <Badge variant="secondary" style={{ fontSize: '10px', padding: '2px 6px' }}>
                             +{deal.tags.length - 2}

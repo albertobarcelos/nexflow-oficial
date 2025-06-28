@@ -68,13 +68,13 @@ export function ListView({ deals, stages, onDealClick, onAddDeal, getTemperature
 
                                     {/* Responsável */}
                                     <div className="hidden md:block">
-                                        <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-2">
                                             <img
-                                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.id}`}
-                                                className="w-5 h-5 rounded-full object-cover"
-                                                alt="avatar"
+                                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.responsible_id || deal.id}`}
+                                                className="w-7 h-7 rounded-full object-cover"
+                                                alt={deal.responsible_name || "Sem responsável"}
                                             />
-                                            <span className="text-xs text-slate-600">João</span>
+                                            <span className="text-xs text-slate-600">{deal.responsible_name || "Sem responsável"}</span>
                                         </div>
                                     </div>
 
@@ -108,9 +108,9 @@ export function ListView({ deals, stages, onDealClick, onAddDeal, getTemperature
                                             </span>
                                         </div>
                                         <img
-                                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.id}`}
-                                            className="w-5 h-5 rounded-full object-cover"
-                                            alt="avatar"
+                                            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.responsible_id || deal.id}`}
+                                            className="w-7 h-7 rounded-full object-cover"
+                                            alt={deal.responsible_name || "Sem responsável"}
                                         />
                                     </div>
                                 </div>

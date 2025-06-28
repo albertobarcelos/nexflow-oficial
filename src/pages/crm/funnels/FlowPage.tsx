@@ -22,7 +22,7 @@ import {
   TooltipTrigger,
   TooltipProvider
 } from "@/components/ui/tooltip";
-import { DealDetailsDialog } from "@/components/crm/deals/DealDetailsDialog";
+import { DealViewDialog } from "@/components/crm/deals/DealViewDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sheet,
@@ -491,7 +491,7 @@ export default function FlowPage() {
         allowedEntities={flow?.allowed_entities || ["companies", "people", "partners"]}
       />
 
-      <DealDetailsDialog
+      <DealViewDialog
         open={!!selectedDeal}
         deal={selectedDeal}
         stages={stages}

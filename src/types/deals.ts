@@ -54,4 +54,26 @@ export interface Deal {
   updated_at: string;
 }
 
+export interface Responsible {
+  id: string;
+  name: string;
+}
+
+export interface MockDeal {
+  id: string;
+  title: string;
+  value?: number;
+  company_id?: string;
+  person_id?: string;
+  stage_id: string;
+  position: number;
+  created_at: string;
+  tags?: string[];
+  temperature?: string;
+  responsible_id?: string;
+  responsibles?: Responsible[];
+  notes?: string;
+  [key: string]: unknown;
+}
+
 export type DealRow = Database["public"]["Tables"]["deals"]["Row"];
