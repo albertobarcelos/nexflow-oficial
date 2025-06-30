@@ -1,10 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Thermometer, CalendarDays } from "lucide-react";
+import { useState, useRef } from "react";
+import { Input } from "@/components/ui/input";
 
 interface MockDeal { value?: number; temperature?: string; created_at: string; }
 
-export function DealValueCard({ deal }: { deal: MockDeal }) {
+export function DealValueCard({ deal, onChangeValue }: { deal: MockDeal; onChangeValue?: (value: number) => void }) {
+    const [editing, setEditing] = useState(false);
+    const [inputValue, setInputValue] = useState(deal.value ? deal.value.toString() : "");
+    const inputRef = useRef<HTMLInputElement>(null);
+
     const getTemperatureConfig = (temp?: string) => {
         switch (temp) {
             case 'hot': return {
@@ -35,6 +41,27 @@ export function DealValueCard({ deal }: { deal: MockDeal }) {
     };
     const tempConfig = getTemperatureConfig(deal.temperature);
     const TempIcon = tempConfig.icon;
+
+    const handleValueClick = () => {
+        setEditing(true);
+        setTimeout(() => inputRef.current?.focus(), 0);
+    };
+    const handleInputBlur = () => {
+        setEditing(false);
+        const parsed = parseFloat(inputValue.replace(/[^\d,.]/g, '').replace(',', '.'));
+        if (!isNaN(parsed) && parsed !== deal.value) {
+            onChangeValue?.(parsed);
+        }
+    };
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            inputRef.current?.blur();
+        } else if (e.key === 'Escape') {
+            setEditing(false);
+            setInputValue(deal.value ? deal.value.toString() : "");
+        }
+    };
+
     return (
         <div className="space-y-3">
             <Card className="border-emerald-200/60 bg-gradient-to-br from-emerald-50/80 to-green-50/60 shadow-sm">
@@ -45,12 +72,33 @@ export function DealValueCard({ deal }: { deal: MockDeal }) {
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-slate-600 mb-1">Valor do Negócio</p>
-                            <p className="text-xl font-bold text-emerald-700 truncate">
-                                {deal.value ? deal.value.toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL"
-                                }) : "Não informado"}
-                            </p>
+                            {editing ? (
+                                <Input
+                                    ref={inputRef}
+                                    value={inputValue}
+                                    onChange={e => setInputValue(e.target.value)}
+                                    onBlur={handleInputBlur}
+                                    onKeyDown={handleInputKeyDown}
+                                    className="text-xl font-bold text-emerald-700 h-9 px-2"
+                                    placeholder="Digite o valor"
+                                    type="text"
+                                    inputMode="decimal"
+                                />
+                            ) : (
+                                <span
+                                    className="text-xl font-bold text-emerald-700 truncate cursor-pointer hover:underline"
+                                    onClick={handleValueClick}
+                                    tabIndex={0}
+                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleValueClick(); }}
+                                    role="button"
+                                    aria-label="Editar valor do negócio"
+                                >
+                                    {deal.value ? deal.value.toLocaleString("pt-BR", {
+                                        style: "currency",
+                                        currency: "BRL"
+                                    }) : <span className="text-slate-400">Não informado</span>}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </CardContent>

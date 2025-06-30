@@ -1,20 +1,77 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { MoreVertical, X, Edit2, User, Building2, Mail, Phone, FileText, Calendar as CalendarIcon, FilePlus, ChevronRight, ChevronLeft, Thermometer, StickyNote, History, Paperclip, TrendingUp, CheckSquare, MessageCircle, DollarSign, Tag, Plus, ChevronDown, Smile, Activity, Type } from "lucide-react";
-import type { MockDeal } from "@/types/deals";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
-import { Calendar } from "@/components/ui/calendar";
-import { ContactSelector } from './ContactSelector';
-import { CompanySelector } from './CompanySelector';
-import { DealValueEditor } from './DealValueEditor';
-import { DealDateEditor } from './DealDateEditor';
-import { DealTemperatureEditor } from './DealTemperatureEditor';
+import {
+    User,
+    Phone,
+    Mail,
+    Building2,
+    Calendar,
+    DollarSign,
+    Clock,
+    CheckCircle2,
+    Circle,
+    Plus,
+    FileText,
+    Paperclip,
+    MessageSquare,
+    History,
+    Target,
+    Users,
+    Video,
+    Send,
+    AlertCircle,
+    ChevronRight,
+    X,
+    Thermometer,
+    CalendarDays,
+    PlayCircle,
+    StickyNote,
+    Edit2
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import ReactToyFace from "react-toy-face";
+import { ClientInfoCard } from "./ClientInfoCard";
+import { DealCompanyCard } from "./DealCompanyCard";
+import { DealValueCard } from "./DealValueCard";
 
-interface Stage { id: string; name: string; }
+// Types
+export interface MockDeal {
+    id: string;
+    title: string;
+    value?: number;
+    company_id?: string;
+    person_id?: string;
+    stage_id: string;
+    position: number;
+    created_at: string;
+    tags?: string[];
+    temperature?: string;
+}
 
-interface DealViewDialogProps {
+interface Stage {
+    id: string;
+    name: string;
+}
+
+interface Task {
+    id: string;
+    title: string;
+    status: 'pending' | 'in_progress' | 'completed';
+    type: 'call' | 'email' | 'meeting' | 'custom';
+    assignee?: string;
+    dueDate?: string;
+    createdAt: string;
+}
+
+interface DealDetailsDialogProps {
     open: boolean;
     deal: MockDeal | null;
     stages: Stage[];
@@ -22,498 +79,800 @@ interface DealViewDialogProps {
     onStageChange: (stageId: string) => void;
 }
 
-// Move getTemperatureTag to the top-level scope so Sidebar can access it
-const getTemperatureTag = (temperature?: string) => {
-    switch (temperature) {
-        case 'hot': return { label: 'Quente', color: 'bg-red-100 text-red-700 ' };
-        case 'warm': return { label: 'Morno', color: 'bg-orange-100 text-orange-700 ' };
-        case 'cold': return { label: 'Frio', color: 'bg-blue-100 text-blue-700 border border-blue-20' };
-        default: return { label: 'Novo', color: 'bg-gray-100 text-gray-700 ' };
+// Mock data for tasks
+const mockTasks: Task[] = [
+    {
+        id: '1',
+        title: 'Ligar para cliente sobre proposta',
+        status: 'pending',
+        type: 'call',
+        assignee: 'João Silva',
+        dueDate: '2024-01-20',
+        createdAt: '2024-01-18'
+    },
+    {
+        id: '2',
+        title: 'Enviar contrato por email',
+        status: 'completed',
+        type: 'email',
+        assignee: 'Maria Santos',
+        dueDate: '2024-01-19',
+        createdAt: '2024-01-17'
     }
+];
+
+// Quick task templates
+const taskTemplates = [
+    { id: 'call', label: 'Ligar', icon: Phone, color: 'bg-blue-500' },
+    { id: 'email', label: 'Enviar Email', icon: Mail, color: 'bg-green-500' },
+    { id: 'meeting', label: 'Agendar Reunião', icon: Video, color: 'bg-purple-500' },
+    { id: 'followup', label: 'Follow-up', icon: Clock, color: 'bg-orange-500' }
+];
+
+// Task status config
+const taskStatusConfig = {
+    pending: { label: 'Pendente', icon: Circle, color: 'text-orange-500' },
+    in_progress: { label: 'Em andamento', icon: Clock, color: 'text-blue-500' },
+    completed: { label: 'Concluída', icon: CheckCircle2, color: 'text-green-500' }
 };
 
-// --- SelectContactCompany Component ---
-// Minimal, but visually close to the image: search, add, list, select
-function SelectContactCompany({
-    type, // 'contact' | 'company'
-    options,
-    value,
-    onChange,
-    onAdd,
-    placeholder = "Pesquisar...",
-}: {
-    type: 'contact' | 'company',
-    options: { id: string; name: string; email?: string; phone?: string; }[];
-    value?: string;
-    onChange: (id: string) => void;
-    onAdd?: () => void;
-    placeholder?: string;
-}) {
-    const [search, setSearch] = useState("");
-    const filtered = options.filter(opt => opt.name.toLowerCase().includes(search.toLowerCase()));
+// Quick Tasks Component
+function QuickTasksPanel({ dealId }: { dealId: string }) {
+    const [tasks, setTasks] = useState<Task[]>(mockTasks);
+    const [newTaskTitle, setNewTaskTitle] = useState('');
+
+    const addQuickTask = (type: string, title?: string) => {
+        const template = taskTemplates.find(t => t.id === type);
+        const taskTitle = title || `${template?.label} - ${new Date().toLocaleDateString()}`;
+
+        const newTask: Task = {
+            id: Date.now().toString(),
+            title: taskTitle,
+            status: 'pending',
+            type: type as Task['type'],
+            assignee: 'Você',
+            dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            createdAt: new Date().toISOString()
+        };
+
+        setTasks(prev => [newTask, ...prev]);
+        setNewTaskTitle('');
+    };
+
+    const addCustomTask = () => {
+        if (newTaskTitle.trim()) {
+            addQuickTask('custom', newTaskTitle);
+        }
+    };
+
+    const toggleTaskStatus = (taskId: string) => {
+        setTasks(prev => prev.map(task =>
+            task.id === taskId
+                ? { ...task, status: task.status === 'completed' ? 'pending' : 'completed' }
+                : task
+        ));
+    };
+
     return (
-        <div className="w-full bg-white border border-slate-200 rounded-xl shadow-lg p-3 z-30">
-            <div className="flex items-center gap-2 mb-2">
-                <input
-                    className="flex-1 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none"
-                    placeholder={placeholder}
-                    value={String(search ?? '')}
-                    onChange={e => setSearch(e.target.value)}
-                />
-                {onAdd && (
-                    <button className="text-xs text-blue-600 font-semibold ml-2" onClick={onAdd}>+ Adicionar {type === 'contact' ? 'contato' : 'empresa'}</button>
-                )}
-            </div>
-            <div className="max-h-48 overflow-y-auto flex flex-col gap-2">
-                {filtered.map(opt => (
-                    <button
-                        key={opt.id}
-                        className={`w-full text-left rounded-lg border border-slate-100 px-3 py-2 flex flex-col gap-0.5 hover:bg-blue-50 ${value === opt.id ? 'ring-2 ring-blue-400' : ''}`}
-                        onClick={() => onChange(opt.id)}
-                    >
-                        <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-cyan-400" />
-                            <span className="font-semibold text-xs text-slate-900">{opt.name}</span>
+        <div className="space-y-5">
+            {/* Input Direto para Nova Tarefa */}
+            <Card className="border-slate-200/60 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                    <CardTitle className="text-base font-semibold text-slate-800 flex items-center gap-2">
+                        <PlayCircle className="h-5 w-5 text-emerald-500" />
+                        Nova Tarefa Rápida
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 space-y-4">
+                    {/* Input Principal */}
+                    <div className="flex gap-2">
+                        <Input
+                            placeholder="Digite uma tarefa e pressione Enter..."
+                            value={newTaskTitle}
+                            onChange={(e) => setNewTaskTitle(e.target.value)}
+                            className="flex-1 h-8 text-sm"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    addCustomTask();
+                                    e.preventDefault();
+                                }
+                            }}
+                        />
+                        <Button
+                            onClick={addCustomTask}
+                            disabled={!newTaskTitle.trim()}
+                            size="sm"
+                            className="h-8 px-3"
+                        >
+                            <Plus className="h-3 w-3" />
+                        </Button>
+                    </div>
+
+                    {/* Botões Pré-configurados */}
+                    <div className="grid grid-cols-3 gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 h-8 text-xs"
+                            onClick={() => addQuickTask('call')}
+                        >
+                            <Phone className="h-3 w-3 text-blue-500" />
+                            Ligar
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 h-8 text-xs"
+                            onClick={() => addQuickTask('email')}
+                        >
+                            <Mail className="h-3 w-3 text-green-500" />
+                            Email
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 h-8 text-xs"
+                            onClick={() => addQuickTask('meeting')}
+                        >
+                            <Video className="h-3 w-3 text-purple-500" />
+                            Reunião
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Tasks List */}
+            <Card className="border-slate-200/60 shadow-sm">
+                <CardHeader className="pb-3 border-b border-slate-100">
+                    <CardTitle className="text-base font-semibold text-slate-800 flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            Tarefas ({tasks.length})
+                        </span>
+                        <Badge variant="secondary" className="text-xs bg-slate-100 text-slate-600 border-0">
+                            {tasks.filter(t => t.status === 'pending').length} pendentes
+                        </Badge>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="max-h-64 overflow-y-auto custom-scrollbar">
+                        <div className="space-y-2">
+                            {tasks.map((task) => {
+                                const StatusIcon = taskStatusConfig[task.status].icon;
+                                const getTaskTypeIcon = () => {
+                                    switch (task.type) {
+                                        case 'call': return { icon: Phone, color: 'text-blue-500', bg: 'bg-blue-100' };
+                                        case 'email': return { icon: Mail, color: 'text-green-500', bg: 'bg-green-100' };
+                                        case 'meeting': return { icon: Video, color: 'text-purple-500', bg: 'bg-purple-100' };
+                                        default: return { icon: Target, color: 'text-gray-500', bg: 'bg-gray-100' };
+                                    }
+                                };
+                                const typeConfig = getTaskTypeIcon();
+                                const TypeIcon = typeConfig.icon;
+
+                                return (
+                                    <div
+                                        key={task.id}
+                                        className={cn(
+                                            "flex items-center gap-2 p-2 rounded border transition-all hover:shadow-sm",
+                                            task.status === 'completed'
+                                                ? "bg-green-50/50 border-green-200/50"
+                                                : "bg-white hover:bg-gray-50 border-gray-200"
+                                        )}
+                                    >
+                                        {/* Ícone do Tipo */}
+                                        <div className={`p-1.5 rounded ${typeConfig.bg}`}>
+                                            <TypeIcon className={`h-3 w-3 ${typeConfig.color}`} />
+                                        </div>
+
+                                        {/* Checkbox de Status */}
+                                        <button
+                                            onClick={() => toggleTaskStatus(task.id)}
+                                            className="flex-shrink-0 hover:scale-110 transition-transform"
+                                        >
+                                            <StatusIcon
+                                                className={cn(
+                                                    "h-4 w-4 transition-colors",
+                                                    taskStatusConfig[task.status].color
+                                                )}
+                                            />
+                                        </button>
+
+                                        {/* Conteúdo da Tarefa */}
+                                        <div className="flex-1 min-w-0">
+                                            <p className={cn(
+                                                "text-xs font-medium truncate",
+                                                task.status === 'completed' && "line-through text-muted-foreground"
+                                            )}>
+                                                {task.title}
+                                            </p>
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <span className="text-xs text-muted-foreground truncate">
+                                                    {task.assignee}
+                                                </span>
+                                                {task.dueDate && (
+                                                    <>
+                                                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
+                                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                                            <Calendar className="h-2 w-2" />
+                                                            {new Date(task.dueDate).toLocaleDateString('pt-BR')}
+                                                        </span>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Avatar do Responsável */}
+                                        <Avatar className="h-6 w-6 border border-white shadow-sm">
+                                            <AvatarFallback className="text-xs font-semibold">
+                                                {task.assignee?.substring(0, 2).toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    </div>
+                                );
+                            })}
+
+                            {tasks.length === 0 && (
+                                <div className="text-center py-6 text-muted-foreground">
+                                    <Clock className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                                    <p className="text-xs">Nenhuma tarefa criada</p>
+                                    <p className="text-xs">Use as ações rápidas acima para começar</p>
+                                </div>
+                            )}
                         </div>
-                        {opt.email && <div className="text-[11px] text-slate-500">{opt.email}</div>}
-                        {opt.phone && <div className="text-[11px] text-slate-500">{opt.phone}</div>}
-                    </button>
-                ))}
-                {filtered.length === 0 && <div className="text-xs text-slate-400 px-2 py-4">Nenhum encontrado</div>}
-            </div>
-        </div>
-    );
-}
-
-// --- ContactSelector ---
-function ContactSelector({ value, options, onChange }: { value?: string; options: { id: string; name: string; email?: string; phone?: string; }[]; onChange: (id: string) => void }) {
-    const [editing, setEditing] = useState(false);
-    return (
-        <div className="flex flex-col gap-0.5 mt-0.5">
-            <div className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-slate-700">Contato</span>
-                {!editing && (
-                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setEditing(true)}><Edit2 className="w-3 h-3" /></Button>
-                )}
-            </div>
-            {editing ? (
-                <SelectContactCompany
-                    type="contact"
-                    options={options}
-                    value={value}
-                    onChange={id => { onChange(id); setEditing(false); }}
-                    onAdd={() => { }}
-                />
-            ) : (
-                <>
-                    <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-cyan-400" />
-                        <span className="text-xs text-slate-900">{String(options.find(c => c.id === value)?.name || '-')}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs text-slate-500">{String(options.find(c => c.id === value)?.email || '-')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-400" />
-                        <span className="text-xs text-slate-500">{String(options.find(c => c.id === value)?.phone || '-')}</span>
-                    </div>
-                </>
-            )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
 
-// --- CompanySelector ---
-function CompanySelector({ value, options, onChange }: { value?: string; options: { id: string; name: string; }[]; onChange: (id: string) => void }) {
-    const [editing, setEditing] = useState(false);
-    return (
-        <div className="flex flex-col gap-0.5 mt-0.5">
-            <div className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-slate-700">Empresa</span>
-                {!editing && (
-                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setEditing(true)}><Edit2 className="w-3 h-3" /></Button>
-                )}
-            </div>
-            {editing ? (
-                <SelectContactCompany
-                    type="company"
-                    options={options}
-                    value={value}
-                    onChange={id => { onChange(id); setEditing(false); }}
-                    onAdd={() => { }}
-                />
-            ) : (
-                <span className="text-xs text-slate-900">{String(options.find(c => c.id === value)?.name || '-')}</span>
-            )}
-        </div>
-    );
-}
 
-// --- DealValueEditor ---
-function DealValueEditor({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-    const [editing, setEditing] = useState(false);
-    const [input, setInput] = useState(value.toString());
-    return (
-        <div className="flex flex-col gap-0.5 mt-0.5">
-            <div className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-slate-700">Valor do negócio</span>
-                {!editing && (
-                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setEditing(true)}><Edit2 className="w-3 h-3" /></Button>
-                )}
-            </div>
-            {editing ? (
-                <input
-                    type="number"
-                    className="text-xs border border-slate-200 rounded px-2 py-1 w-32"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onBlur={() => { onChange(Number(input)); setEditing(false); }}
-                    autoFocus
-                />
-            ) : (
-                <span className="text-xs text-slate-900">{value ? value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'}</span>
-            )}
-        </div>
-    );
-}
+// Main Component
+export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: DealDetailsDialogProps) {
+    const [activeTab, setActiveTab] = useState<string>('overview');
+    const [form, setForm] = useState({
+        services: "",
+        discounts: "",
+        validity: "",
+        proposal: "",
+    });
+    const [activity, setActivity] = useState("");
+    const [activities, setActivities] = useState<Array<{
+        id: number;
+        text: string;
+        date: string;
+        author: string;
+    }>>([]);
 
-// --- DealTemperatureEditor ---
-function DealTemperatureEditor({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
-    const [editing, setEditing] = useState(false);
-    const options = [
-        { value: 'hot', label: 'Quente' },
-        { value: 'warm', label: 'Morno' },
-        { value: 'cold', label: 'Frio' },
-        { value: 'new', label: 'Novo' },
-    ];
-    return (
-        <div className="flex flex-col gap-0.5 mt-0.5">
-            <div className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-slate-700">Temperatura do negócio</span>
-                {!editing && (
-                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setEditing(true)}><Edit2 className="w-3 h-3" /></Button>
-                )}
-            </div>
-            {editing ? (
-                <select
-                    className="text-xs border border-slate-200 rounded px-2 py-1 w-32"
-                    value={value}
-                    onChange={e => { onChange(e.target.value); setEditing(false); }}
-                    autoFocus
-                >
-                    {options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-            ) : (
-                <span className="text-xs text-slate-900">{getTemperatureTag(value).label}</span>
-            )}
-        </div>
-    );
-}
+    // Notes state
+    const [notes, setNotes] = useState<Array<{ id: number; text: string; date: string; editing?: boolean }>>([
+        { id: 1, text: 'Primeira nota sobre o negócio.', date: new Date().toISOString() },
+        { id: 2, text: 'Cliente pediu revisão de valores.', date: new Date(Date.now() - 86400000).toISOString() },
+    ]);
+    const [newNote, setNewNote] = useState("");
 
-export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: DealViewDialogProps) {
-    const [activeTab, setActiveTab] = useState("necessidades");
-    const [notes, setNotes] = useState(deal?.notes || "");
-    const [editingTitle, setEditingTitle] = useState(false);
-    const [title, setTitle] = useState(deal?.title || "");
-    // --- Editable Contact/Company ---
-    const [editingContact, setEditingContact] = useState(false);
-    const [editingCompany, setEditingCompany] = useState(false);
-    const [selectedContact, setSelectedContact] = useState(deal?.contact_id || "");
-    const [selectedCompany, setSelectedCompany] = useState(deal?.company_id || "");
-    // Mock options for demo
-    const contactOptions = [
-        { id: "1", name: "Bruce Wayne", email: "brucewayne@pipefymail.com", phone: "+55 99 99999-9999" },
-        { id: "2", name: "Willy Wonka", email: "willywonka@pipefymail.com", phone: "+55 99 99999-9999" },
-        { id: "3", name: "Gustavo Fring", email: "gustavo@pipefymail.com", phone: "+55 99 99999-9999" },
-    ];
-    const companyOptions = [
-        { id: "a", name: "Indústrias Wonka" },
-        { id: "b", name: "Wayne Enterprises" },
-        { id: "c", name: "Los Pollos Hermanos" },
-    ];
+    // State for delete confirmation dialog
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
+
+    const handleAddNote = () => {
+        if (newNote.trim()) {
+            setNotes(prevNotes => [
+                { id: Date.now(), text: newNote, date: new Date().toISOString() },
+                ...prevNotes,
+            ]);
+            setNewNote("");
+        }
+    };
+    const handleEditNote = (id: number, text: string) => {
+        setNotes(notes.map(n => n.id === id ? { ...n, text, editing: false } : n));
+    };
+    const handleDeleteNote = (id: number) => {
+        setNotes(notes.filter(n => n.id !== id));
+    };
+    const setNoteEditing = (id: number, editing: boolean) => {
+        setNotes(notes.map(n => n.id === id ? { ...n, editing } : { ...n, editing: false }));
+    };
+    const handleRequestDeleteNote = (id: number) => {
+        setNoteToDelete(id);
+        setDeleteDialogOpen(true);
+    };
+    const handleConfirmDeleteNote = () => {
+        if (noteToDelete !== null) {
+            setNotes(notes.filter(n => n.id !== noteToDelete));
+            setNoteToDelete(null);
+            setDeleteDialogOpen(false);
+        }
+    };
+    const handleCancelDeleteNote = () => {
+        setDeleteDialogOpen(false);
+        setNoteToDelete(null);
+    };
 
     if (!deal) return null;
 
-    // Helpers
-    const getTemperature = (temp?: string) => {
-        switch (temp) {
-            case "hot": return { label: "Quente", color: "bg-red-100 text-red-700" };
-            case "warm": return { label: "Morno", color: "bg-orange-100 text-orange-700" };
-            case "cold": return { label: "Frio", color: "bg-blue-100 text-blue-700" };
-            default: return { label: "Novo", color: "bg-gray-100 text-gray-700" };
+    // Adicionar estilos customizados para scrollbar
+    const scrollbarStyles = `
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgb(148 163 184) rgb(241 245 249);
+            overflow-y: scroll !important;
         }
-    };
-    const temp = getTemperature(deal.temperature);
-    const contact = deal.responsibles?.[0]?.name || deal.responsible_name || "—";
-    const contactEmail = deal.contact_email || "—";
-    const contactPhone = deal.contact_phone || "—";
-    const company = deal.company_name || deal.company_id || "—";
-    const industry = deal.industry || "—";
-    const value = typeof deal.value === "number" ? deal.value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
-    const closingDate = deal.closing_date || null;
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+            display: block;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgb(241 245 249);
+            border-radius: 4px;
+            margin: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgb(148 163 184);
+            border-radius: 4px;
+            border: 1px solid rgb(226 232 240);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgb(100 116 139);
+        }
+        .custom-scrollbar::-webkit-scrollbar-corner {
+            background: rgb(241 245 249);
+        }
+    `;
 
-    // --- Header ---
-    const Header = () => (
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-3 border-b border-slate-200 bg-white/95 backdrop-blur-md">
-            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-5 w-5" /></Button>
-            <div className="flex-1 flex justify-center">
-                {editingTitle ? (
-                    <input
-                        className="text-lg font-bold text-slate-900 bg-slate-100 rounded px-2 py-1 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                        value={String(title)}
-                        onChange={e => setTitle(e.target.value)}
-                        onBlur={() => setEditingTitle(false)}
-                        autoFocus
-                    />
-                ) : (
-                    <button className="text-lg font-bold text-slate-900 hover:underline" onClick={() => setEditingTitle(true)}>{String(title || '')}</button>
-                )}
-            </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}><X className="h-5 w-5" /></Button>
-        </div>
-    );
-
-    // --- Sidebar ---
-    const Sidebar = () => (
-        <aside className="bg-white border-r border-slate-200/60 px-7 py-7 min-w-[340px] max-w-[400px] flex flex-col h-full overflow-y-auto gap-8">
-            {/* Header: Title and Quick Actions */}
-            <div>
-                {/* Deal Title (editable) */}
-                <div className="flex items-center gap-2 mb-2">
-                    <button className="text-2xl font-extrabold text-slate-900 hover:underline focus:outline-none break-words whitespace-normal w-full text-left">{String(deal?.title || 'Negócio')}</button>
-                </div>
-                {/* Quick Actions: Add Responsible, Due Date, Temperature */}
-                <div className="flex items-center gap-2 mb-4">
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs flex gap-1"><User className="w-4 h-4" />Adicionar responsável</Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs flex gap-1"><CalendarIcon className="w-4 h-4" />Vencimento</Button>
-                    <Badge className={`h-7 px-2 text-xs font-semibold rounded-full ${getTemperatureTag(deal?.temperature).color}`}>{String(getTemperatureTag(deal?.temperature).label)}</Badge>
-                </div>
-            </div>
-            {/* Row of Compact Icon Buttons */}
-            <div className="flex flex-wrap gap-2 mb-2">
-                <Button variant="secondary" size="sm" className="h-8 px-2 flex gap-1 items-center"><TrendingUp className="w-4 h-4" />Nova oportunidade</Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><Paperclip className="w-4 h-4" />Anexos</Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><CheckSquare className="w-4 h-4" />Checklists</Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><MessageCircle className="w-4 h-4" />Comentários</Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><Mail className="w-4 h-4" />Email</Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><FileText className="w-4 h-4" />PDF</Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><Smile className="w-4 h-4" />Onboarding</Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><Building2 className="w-4 h-4" />Empresas <span className="ml-1 bg-slate-200 rounded-full px-1 text-xs">1</span></Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><Phone className="w-4 h-4" />Contatos <span className="ml-1 bg-slate-200 rounded-full px-1 text-xs">1</span></Button>
-                <Button variant="outline" size="sm" className="h-8 px-2 flex gap-1 items-center"><Activity className="w-4 h-4" />Atividades</Button>
-                <Button variant="secondary" size="icon" className="h-8 w-8"><Plus className="w-4 h-4" /></Button>
-            </div>
-            {/* Initial Form Section */}
-            <section>
-                <header className="text-xs font-bold text-slate-700 mb-1">Formulário Inicial</header>
-                <div className="text-xs text-slate-500 mb-3">Criado por Pipebot • há um mês</div>
-                <div className="flex flex-col gap-4">
-                    {/* Business Block */}
-                    <div className="flex items-start gap-3">
-                        <Type className="w-5 h-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Negócio</span>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0"><Edit2 className="w-3 h-3" /></Button>
-                            </div>
-                            <div className="text-xs text-slate-900 mt-0.5">{String(deal?.title || '-')}</div>
-                        </div>
-                    </div>
-                    {/* Contact Block - editable */}
-                    <div className="flex items-start gap-3">
-                        <Phone className="w-5 h-5 text-cyan-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Contato</span>
-                                {editingContact ? null : (
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setEditingContact(true)}><Edit2 className="w-3 h-3" /></Button>
-                                )}
-                            </div>
-                            {editingContact ? (
-                                <ContactSelector
-                                    value={String(selectedContact ?? '')}
-                                    options={contactOptions}
-                                    onChange={id => { setSelectedContact(id); setEditingContact(false); }}
-                                />
-                            ) : (
-                                <ContactSelector
-                                    value={String(selectedContact ?? '')}
-                                    options={contactOptions}
-                                    onChange={id => { setSelectedContact(id); setEditingContact(false); }}
-                                />
-                            )}
-                        </div>
-                    </div>
-                    {/* Company Block - editable */}
-                    <div className="flex items-start gap-3">
-                        <Building2 className="w-5 h-5 text-cyan-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Empresa</span>
-                                {editingCompany ? null : (
-                                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setEditingCompany(true)}><Edit2 className="w-3 h-3" /></Button>
-                                )}
-                            </div>
-                            {editingCompany ? (
-                                <CompanySelector
-                                    value={String(selectedCompany ?? '')}
-                                    options={companyOptions}
-                                    onChange={id => { setSelectedCompany(id); setEditingCompany(false); }}
-                                />
-                            ) : (
-                                <CompanySelector
-                                    value={String(selectedCompany ?? '')}
-                                    options={companyOptions}
-                                    onChange={id => { setSelectedCompany(id); setEditingCompany(false); }}
-                                />
-                            )}
-                        </div>
-                    </div>
-                    {/* Value Block */}
-                    <div className="flex items-start gap-3">
-                        <DollarSign className="w-5 h-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Valor do negócio</span>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0"><Edit2 className="w-3 h-3" /></Button>
-                            </div>
-                            <div className="text-xs text-slate-900 mt-0.5">{String(deal?.value ? deal.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) ?? '-' : '-')}</div>
-                        </div>
-                    </div>
-                    {/* Expected Close Date Block */}
-                    <div className="flex items-start gap-3">
-                        <CalendarIcon className="w-5 h-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Data de fechamento esperado</span>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0"><Edit2 className="w-3 h-3" /></Button>
-                            </div>
-                            <div className="text-xs text-slate-900 mt-0.5">{typeof deal?.expected_close_date === 'string' ? deal.expected_close_date : <button className="text-xs text-blue-600 underline">Clique aqui para adicionar</button>}</div>
-                        </div>
-                    </div>
-                    {/* Temperature Block */}
-                    <div className="flex items-start gap-3">
-                        <Thermometer className="w-5 h-5 text-orange-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Temperatura do negócio</span>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0"><Edit2 className="w-3 h-3" /></Button>
-                            </div>
-                            <div className="flex items-center gap-2 mt-0.5">
-                                <span className={`h-4 w-4 rounded-full ${getTemperatureTag(deal?.temperature).color}`}></span>
-                                <span className="text-xs text-slate-900">{String(getTemperatureTag(deal?.temperature).label)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    {/* Notes Block */}
-                    <div className="flex items-start gap-3">
-                        <StickyNote className="w-5 h-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Notas sobre o negócio</span>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0"><Edit2 className="w-3 h-3" /></Button>
-                            </div>
-                            <div className="text-xs text-slate-900 mt-0.5">{typeof deal?.notes === 'string' ? deal.notes : <button className="text-xs text-blue-600 underline">Clique aqui para adicionar</button>}</div>
-                        </div>
-                    </div>
-                    {/* Documents Block */}
-                    <div className="flex items-start gap-3">
-                        <Paperclip className="w-5 h-5 text-slate-400 mt-0.5" />
-                        <div className="flex-1">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs font-semibold text-slate-700">Documentos</span>
-                                <Button variant="ghost" size="icon" className="h-5 w-5 p-0"><Edit2 className="w-3 h-3" /></Button>
-                            </div>
-                            <div className="text-xs text-slate-900 mt-0.5"><button className="text-xs text-blue-600 underline">Clique aqui para adicionar</button></div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            {/* History Section */}
-            <section>
-                <header className="text-xs font-bold text-slate-700 mb-1">Histórico</header>
-                <div className="flex flex-col gap-2">
-                    {/* Example history item */}
-                    {Array.isArray(deal?.history) ? deal.history.map((h, i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs text-slate-600">
-                            <Badge className="bg-yellow-100 text-yellow-700 h-5 px-2 font-medium rounded">{h.stage}</Badge>
-                            <span>{h.timeAgo}</span>
-                            <span className="text-slate-400">{h.date}</span>
-                        </div>
-                    )) : null}
-                    <Button variant="ghost" size="sm" className="mt-2 text-xs text-blue-600 underline flex items-center gap-1"><ChevronDown className="w-4 h-4" />Mostrar mais</Button>
-                </div>
-            </section>
-            {/* Card View Edit Button */}
-            <Button variant="outline" size="sm" className="w-full mt-4 flex items-center gap-2"><Plus className="w-4 h-4" />Editar visualização do card</Button>
-        </aside>
-    );
-
-    // --- Main Panel ---
-    const MainPanel = () => (
-        <main className="bg-slate-50 flex flex-col h-full px-8 py-8 min-w-0 flex-1 overflow-y-auto">
-            <div className="flex items-center gap-2 pb-4 border-b border-slate-200/60 mb-4">
-                <div className="text-xs font-bold text-slate-500">Fase atual</div>
-                <Badge className="bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full text-xs shadow-none">{String(stages.find(s => s.id === deal.stage_id)?.name || '—')}</Badge>
-            </div>
-            <div className="flex gap-2 mb-4 flex-wrap">
-                <Button variant={activeTab === "necessidades" ? "default" : "outline"} size="sm" className="rounded-full px-4 py-1 text-xs font-semibold flex items-center gap-1" onClick={() => setActiveTab("necessidades")}> <StickyNote className="h-3 w-3" /> <span>Necessidades do cliente</span></Button>
-                <Button variant={activeTab === "atividades" ? "default" : "outline"} size="sm" className="rounded-full px-4 py-1 text-xs font-semibold flex items-center gap-1" onClick={() => setActiveTab("atividades")}> <History className="h-3 w-3" /> <span>Atividades</span></Button>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-                {activeTab === "necessidades" && (
-                    <div className="mb-6">
-                        <div className="font-bold text-xs text-slate-700 mb-2">Necessidades do cliente</div>
-                        <Textarea placeholder="Digite aqui ..." className="mb-4 border border-slate-200 rounded-lg bg-white/80" defaultValue={String(deal.needs || '')} />
-                    </div>
-                )}
-                {activeTab === "atividades" && (
-                    <div className="mb-6">
-                        <div className="font-bold text-xs text-slate-700 mb-2">Atividades</div>
-                        <Badge className="bg-purple-100 text-purple-700 font-bold px-3 py-1 rounded-full text-xs mb-2 shadow-none">Marketing</Badge>
-                        <Textarea placeholder="Escreva seu comentário aqui" className="mb-2 border border-slate-200 rounded-lg bg-white/80" />
-                        <div className="text-xs text-slate-400 mt-4">Não há atividades que correspondem aos filtros atuais. Limpe os filtros para ver todas as atividades.</div>
-                    </div>
-                )}
-            </div>
-        </main>
-    );
-
-    // --- Move Panel ---
-    const MovePanel = () => (
-        <aside className="bg-white border-l border-slate-200/60 px-6 py-8 min-w-[260px] max-w-[300px] flex flex-col h-full overflow-y-auto">
-            <div className="font-bold text-xs text-slate-700 mb-2">Mover card para fase</div>
-            {stages.filter(s => s.id !== deal.stage_id).map((stage, idx) => (
-                <Button key={stage.id} variant="outline" className="w-full justify-between mb-2 rounded-full border-2 border-slate-200 font-semibold text-slate-700 hover:bg-blue-50 transition-colors flex items-center gap-2 px-4 py-2" onClick={() => onStageChange(stage.id)}>
-                    {stage.id < deal.stage_id ? <ChevronLeft className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
-                    <span className="flex-1 text-left">{stage.name}</span>
-                </Button>
-            ))}
-            <div className="mt-4">
-                <Button variant="ghost" className="w-full text-xs justify-start text-slate-400 hover:text-blue-600">Configurar mover cards</Button>
-            </div>
-        </aside>
-    );
+    const tabs = [
+        { id: 'overview', label: 'Visão Geral', icon: FileText },
+        { id: 'tasks', label: 'Tarefas', icon: CheckCircle2 },
+        { id: 'activities', label: 'Notas', icon: MessageSquare },
+        { id: 'attachments', label: 'Anexos', icon: Paperclip },
+        { id: 'history', label: 'Histórico', icon: History },
+    ];
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w-full max-w-[95vw] h-[95vh] p-0  overflow-hidden rounded-2xl shadow-xl">
-                {/* Close button absolute top right */}
-                <button
-                    onClick={onClose}
-                    aria-label="Fechar"
-                    className="absolute top-4 right-4 z-20 bg-white/80 hover:bg-white rounded-full p-2 shadow border border-slate-200 transition-colors"
-                >
-                    <X className="w-5 h-5 text-slate-700" />
-                </button>
-                {/* Modal columns layout */}
-                <div className="flex flex-1 h-full min-h-0">
-                    <Sidebar />
-                    <MainPanel />
-                    <MovePanel />
+            <style>{scrollbarStyles}</style>
+            <DialogContent className="max-w-7xl w-full h-[88vh] p-0 overflow-hidden">
+                {/* Grid Layout with aligned headers */}
+                <div className="grid grid-cols-[320px_1fr_280px] grid-rows-[auto_1fr] h-full">
+                    {/* Headers Row - All aligned horizontally */}
+                    <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-5 py-3 flex items-center">
+                        <DialogHeader>
+                            <DialogTitle className="text-base font-semibold text-slate-800">
+                                Detalhes do Negócio
+                            </DialogTitle>
+                        </DialogHeader>
+                    </div>
+
+                    <div className="bg-white border-b border-slate-200/60 px-5 py-2 flex items-center">
+                        <div className="flex items-center gap-0">
+                            {tabs.map((tab) => {
+                                const Icon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        className={cn(
+                                            "relative px-3 py-2 text-sm font-medium transition-all duration-300 ease-out",
+                                            "hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded-md",
+                                            activeTab === tab.id
+                                                ? "text-blue-600 bg-blue-50/50"
+                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50/50"
+                                        )}
+                                        onClick={() => setActiveTab(tab.id)}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Icon className="h-4 w-4" />
+                                            {tab.label}
+                                        </div>
+                                        {/* Active indicator */}
+                                        {activeTab === tab.id && (
+                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="bg-white/95 backdrop-blur-sm border-b border-l border-slate-200/60 px-4 py-3 flex items-center">
+                        <h3 className="text-base font-semibold text-slate-800">Ações do Negócio</h3>
+                    </div>
+
+                    {/* Content Row - All with independent scroll */}
+                    {/* Left Sidebar - Client Info */}
+                    <div className="bg-slate-50/80 border-r border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
+                        <div className="px-5 py-5 space-y-5">
+                            <ClientInfoCard deal={deal} />
+                            <DealCompanyCard company={{
+                                id: "1",
+                                name: "Empresa Exemplo",
+                                cnpj: "12.345.678/0001-99",
+                                address: "Rua Exemplo, 123, São Paulo - SP",
+                                phone: "+55 11 1234-5678",
+                                email: "contato@empresa.com",
+                                tags: ["Cliente A", "VIP"]
+                            }} />
+                            <DealValueCard deal={deal} onChangeValue={() => { }} />
+                            {/* Adicionando mais conteúdo para testar scroll */}
+                            <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
+                                <CardContent className="p-4">
+                                    <h4 className="font-semibold text-sm text-slate-800 mb-3">Histórico de Interações</h4>
+                                    <div className="space-y-2 text-xs text-slate-600">
+                                        <div className="flex justify-between">
+                                            <span>Última ligação:</span>
+                                            <span>15/01/2024</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Último email:</span>
+                                            <span>10/01/2024</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Reunião agendada:</span>
+                                            <span>20/01/2024</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="bg-white overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
+                        <div className="px-5 py-5 min-h-full">
+                            <div className={cn(
+                                "transition-all duration-300 ease-out",
+                                "animate-in fade-in-0 slide-in-from-bottom-2"
+                            )}>
+                                {activeTab === 'overview' && (
+                                    <Card className="border-slate-200/60 shadow-sm">
+                                        <CardHeader className="pb-4 border-b border-slate-100">
+                                            <CardTitle className="text-lg font-semibold text-slate-800">Informações do Negócio</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-6">
+                                            <div className="space-y-5">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                        Quais serviços o cliente está adquirindo?
+                                                    </label>
+                                                    <Input
+                                                        value={form.services}
+                                                        onChange={e => setForm(f => ({ ...f, services: e.target.value }))}
+                                                        placeholder="Digite os serviços..."
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Descontos</label>
+                                                    <Input
+                                                        value={form.discounts}
+                                                        onChange={e => setForm(f => ({ ...f, discounts: e.target.value }))}
+                                                        placeholder="Digite os descontos..."
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                        Data de validade da proposta
+                                                    </label>
+                                                    <Input
+                                                        value={form.validity}
+                                                        onChange={e => setForm(f => ({ ...f, validity: e.target.value }))}
+                                                        placeholder="DD/MM/AAAA"
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Proposta</label>
+                                                    <Textarea
+                                                        value={form.proposal}
+                                                        onChange={e => setForm(f => ({ ...f, proposal: e.target.value }))}
+                                                        placeholder="Digite a proposta detalhada..."
+                                                        rows={4}
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Observações Adicionais</label>
+                                                    <Textarea
+                                                        placeholder="Adicione observações importantes sobre este negócio..."
+                                                        rows={3}
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Próximos Passos</label>
+                                                    <Textarea
+                                                        placeholder="Defina os próximos passos para este negócio..."
+                                                        rows={3}
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Concorrência</label>
+                                                    <Input
+                                                        placeholder="Informe sobre a concorrência..."
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Budget do Cliente</label>
+                                                    <Input
+                                                        placeholder="Qual o orçamento disponível?"
+                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {activeTab === 'tasks' && (
+                                    <QuickTasksPanel dealId={deal.id} />
+                                )}
+
+                                {activeTab === 'activities' && (
+                                    <Card className="border-slate-200/60 shadow-sm">
+                                        <CardHeader className="pb-4 border-b border-slate-100">
+                                            <CardTitle className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                                                <MessageSquare className="h-5 w-5 text-blue-500" /> Notas
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-6 space-y-4">
+                                            {/* Add Note */}
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    value={newNote}
+                                                    onChange={e => setNewNote(e.target.value)}
+                                                    placeholder="Escreva uma nova nota..."
+                                                    className="flex-1"
+                                                    onKeyDown={e => {
+                                                        if (e.key === "Enter" && newNote.trim()) {
+                                                            handleAddNote();
+                                                            e.preventDefault();
+                                                        }
+                                                    }}
+                                                />
+                                                <Button
+                                                    onClick={handleAddNote}
+                                                    disabled={!newNote.trim()}
+                                                    size="sm"
+                                                >
+                                                    <Plus className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                            {/* Notes List */}
+                                            <div className="space-y-3">
+                                                {notes.length === 0 ? (
+                                                    <div className="text-center py-8 text-muted-foreground">
+                                                        <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                        <p className="text-sm">Nenhuma nota registrada</p>
+                                                        <p className="text-xs">Adicione uma nota para começar</p>
+                                                    </div>
+                                                ) : (
+                                                    notes.map(note => (
+                                                        <div key={note.id} className="flex gap-3 p-3 bg-blue-50 rounded-lg items-start">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className="text-xs text-muted-foreground">
+                                                                        {new Date(note.date).toLocaleString('pt-BR')}
+                                                                    </span>
+                                                                </div>
+                                                                {note.editing ? (
+                                                                    <div className="flex gap-2">
+                                                                        <Textarea
+                                                                            value={note.text}
+                                                                            onChange={e => setNotes(notes.map(n => n.id === note.id ? { ...n, text: e.target.value } : n))}
+                                                                            rows={2}
+                                                                            className="flex-1 text-sm"
+                                                                        />
+                                                                        <Button size="sm" variant="outline" onClick={() => handleEditNote(note.id, note.text)}>
+                                                                            Salvar
+                                                                        </Button>
+                                                                        <Button size="sm" variant="ghost" onClick={() => setNoteEditing(note.id, false)}>
+                                                                            Cancelar
+                                                                        </Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center justify-between">
+                                                                        <p className="text-sm flex-1">{note.text}</p>
+                                                                        <div className="flex gap-1 ml-2">
+                                                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setNoteEditing(note.id, true)}>
+                                                                                <Edit2 className="h-4 w-4 text-blue-600" />
+                                                                            </Button>
+                                                                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleRequestDeleteNote(note.id)}>
+                                                                                <X className="h-4 w-4 text-red-500" />
+                                                                            </Button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {activeTab === 'attachments' && (
+                                    <Card className="border-slate-200/60 shadow-sm">
+                                        <CardHeader className="pb-4 border-b border-slate-100">
+                                            <CardTitle className="text-lg font-semibold text-slate-800">Anexos</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                                <Paperclip className="h-8 w-8 mx-auto mb-3 text-gray-400" />
+                                                <p className="text-sm text-muted-foreground mb-3">
+                                                    Arraste arquivos para cá ou clique para selecionar
+                                                </p>
+                                                <Button size="sm">
+                                                    <Plus className="h-3 w-3 mr-2" />
+                                                    Adicionar arquivos
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {activeTab === 'history' && (
+                                    <Card className="border-slate-200/60 shadow-sm">
+                                        <CardHeader className="pb-4 border-b border-slate-100">
+                                            <CardTitle className="text-lg font-semibold text-slate-800">Histórico do Negócio</CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="space-y-4">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                                                    <div>
+                                                        <p className="text-sm font-medium">Negócio criado</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {new Date(deal.created_at).toLocaleString('pt-BR')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Sidebar - Stage Actions */}
+                    <div className="bg-slate-50/80 border-l border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
+                        <div className="px-4 py-5 space-y-4">
+                            <Card className="border-slate-200/60 shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-medium text-slate-700">Mover para Etapa</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    {stages.map(stage => (
+                                        <button
+                                            key={stage.id}
+                                            className={cn(
+                                                "w-full flex items-center justify-start px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
+                                                "hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
+                                                stage.id === deal.stage_id
+                                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                                    : "text-slate-600 hover:text-slate-700 border border-transparent"
+                                            )}
+                                            onClick={() => onStageChange(stage.id)}
+                                            disabled={stage.id === deal.stage_id}
+                                        >
+                                            {stage.id === deal.stage_id && (
+                                                <CheckCircle2 className="h-4 w-4 mr-2 text-blue-600" />
+                                            )}
+                                            <span className="truncate flex-1 text-left">{stage.name}</span>
+                                            {stage.id === deal.stage_id && (
+                                                <ChevronRight className="h-4 w-4 ml-2 text-blue-600" />
+                                            )}
+                                        </button>
+                                    ))}
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-slate-200/60 shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-medium text-slate-700">Ações Rápidas</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full h-8 text-xs justify-start"
+                                    >
+                                        <Phone className="h-3 w-3 mr-2" />
+                                        Ligar para Cliente
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full h-8 text-xs justify-start"
+                                    >
+                                        <Mail className="h-3 w-3 mr-2" />
+                                        Enviar Email
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full h-8 text-xs justify-start"
+                                    >
+                                        <Calendar className="h-3 w-3 mr-2" />
+                                        Agendar Reunião
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full h-8 text-xs justify-start"
+                                    >
+                                        <FileText className="h-3 w-3 mr-2" />
+                                        Gerar Proposta
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-slate-200/60 shadow-sm">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-medium text-slate-700">Informações</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3 text-xs text-slate-600">
+                                    <div>
+                                        <span className="font-medium">Criado em:</span>
+                                        <p>{new Date(deal.created_at).toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">Responsável:</span>
+                                        <p>João Silva</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">Origem:</span>
+                                        <p>Website</p>
+                                    </div>
+                                    <div>
+                                        <span className="font-medium">Prioridade:</span>
+                                        <Badge variant="secondary" className="text-xs">Alta</Badge>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-slate-200/60 shadow-sm">
+                                <CardContent className="p-4 space-y-3">
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="w-full h-9 text-sm font-medium"
+                                    >
+                                        <X className="h-4 w-4 mr-2" />
+                                        Marcar como Perdido
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full h-9 text-sm font-medium border-slate-200 hover:bg-slate-50"
+                                        onClick={onClose}
+                                    >
+                                        Fechar
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
                 </div>
             </DialogContent>
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="max-w-xs">
+                    <DialogHeader>
+                        <DialogTitle>Excluir nota?</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2 text-sm text-slate-600">
+                        Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita.
+                    </div>
+                    <DialogFooter className="flex gap-2 justify-end mt-4">
+                        <Button variant="outline" onClick={handleCancelDeleteNote}>Cancelar</Button>
+                        <Button variant="destructive" onClick={handleConfirmDeleteNote}>Excluir</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 } 
