@@ -19,48 +19,31 @@ type Flow = {
     description: string | null;
 };
 
-// Função helper para obter dados do usuário (incluindo usuário de teste)
+// Função helper para obter dados do usuário
 const getCurrentUserData = async (): Promise<UserData> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Usuário não autenticado");
 
-    try {
-        // Tentar buscar na tabela core_client_users
-        const { data, error } = await supabase
-            .from('core_client_users')
-            .select(`
-                client_id,
-                core_clients (
-                    contact_name
-                )
-            `)
-            .eq('user_id', user.id)
-            .single();
+    // A função agora busca diretamente pelo ID do usuário
+    const { data, error } = await supabase
+        .from('core_client_users')
+        .select('client_id, first_name')
+        .eq('id', user.id) // CORRIGIDO: usa a coluna 'id'
+        .single();
 
-        if (error) throw error;
-        if (data) {
-            return {
-                client_id: data.client_id,
-                first_name: data.core_clients?.contact_name
-            };
-        }
-
-        // Se não encontrou e é o usuário de teste, retorna dados temporários
-        if (user.email === 'barceloshd@gmail.com') {
-            return {
-                client_id: 'test-client-001',
-                first_name: 'usuário'
-            };
-        }
-
-        throw new Error("Colaborador não encontrado");
-    } catch (error) {
+    if (error) {
         console.error('Error fetching user data:', error);
-        return {
-            client_id: 'unknown',
-            first_name: 'usuário'
-        };
+        throw error;
     }
+
+    if (!data) {
+        throw new Error("Dados do colaborador não encontrados.");
+    }
+
+    return {
+        client_id: data.client_id,
+        first_name: data.first_name
+    };
 };
 
 export function Home() {

@@ -2,9 +2,10 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { MoreVertical, X, Edit2, User, Building2, Mail, Phone, FileText, Calendar, FilePlus, ChevronRight, ChevronLeft, Thermometer, StickyNote, History, Paperclip, TrendingUp, CheckSquare, MessageCircle, DollarSign, Tag, Plus, ChevronDown, Smile, Activity, Type } from "lucide-react";
+import { MoreVertical, X, Edit2, User, Building2, Mail, Phone, FileText, Calendar as CalendarIcon, FilePlus, ChevronRight, ChevronLeft, Thermometer, StickyNote, History, Paperclip, TrendingUp, CheckSquare, MessageCircle, DollarSign, Tag, Plus, ChevronDown, Smile, Activity, Type } from "lucide-react";
 import type { MockDeal } from "@/types/deals";
 import { useState } from "react";
+import { Calendar } from "@/components/ui/calendar";
 import { ContactSelector } from './ContactSelector';
 import { CompanySelector } from './CompanySelector';
 import { DealValueEditor } from './DealValueEditor';
@@ -177,34 +178,6 @@ function DealValueEditor({ value, onChange }: { value: number; onChange: (v: num
     );
 }
 
-// --- DealDateEditor ---
-import { Calendar } from "@/components/ui/calendar";
-function DealDateEditor({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
-    const [editing, setEditing] = useState(false);
-    const [date, setDate] = useState(value || "");
-    return (
-        <div className="flex flex-col gap-0.5 mt-0.5">
-            <div className="flex items-center gap-1">
-                <span className="text-xs font-semibold text-slate-700">Data de fechamento esperado</span>
-                {!editing && (
-                    <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={() => setEditing(true)}><Edit2 className="w-3 h-3" /></Button>
-                )}
-            </div>
-            {editing ? (
-                <div className="z-40 bg-white rounded shadow p-2 mt-1">
-                    <Calendar
-                        mode="single"
-                        selected={date ? new Date(date) : undefined}
-                        onSelect={d => { if (d) { setDate(d.toISOString()); onChange(d.toISOString()); setEditing(false); } }}
-                    />
-                </div>
-            ) : (
-                <span className="text-xs text-slate-900">{value || <button className="text-xs text-blue-600 underline">Clique aqui para adicionar</button>}</span>
-            )}
-        </div>
-    );
-}
-
 // --- DealTemperatureEditor ---
 function DealTemperatureEditor({ value, onChange }: { value?: string; onChange: (v: string) => void }) {
     const [editing, setEditing] = useState(false);
@@ -313,7 +286,7 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                 {/* Quick Actions: Add Responsible, Due Date, Temperature */}
                 <div className="flex items-center gap-2 mb-4">
                     <Button variant="ghost" size="sm" className="h-7 px-2 text-xs flex gap-1"><User className="w-4 h-4" />Adicionar responsável</Button>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs flex gap-1"><Calendar className="w-4 h-4" />Vencimento</Button>
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs flex gap-1"><CalendarIcon className="w-4 h-4" />Vencimento</Button>
                     <Badge className={`h-7 px-2 text-xs font-semibold rounded-full ${getTemperatureTag(deal?.temperature).color}`}>{String(getTemperatureTag(deal?.temperature).label)}</Badge>
                 </div>
             </div>
@@ -410,7 +383,7 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                     </div>
                     {/* Expected Close Date Block */}
                     <div className="flex items-start gap-3">
-                        <Calendar className="w-5 h-5 text-slate-400 mt-0.5" />
+                        <CalendarIcon className="w-5 h-5 text-slate-400 mt-0.5" />
                         <div className="flex-1">
                             <div className="flex items-center gap-1">
                                 <span className="text-xs font-semibold text-slate-700">Data de fechamento esperado</span>

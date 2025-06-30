@@ -1,5 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
-import CRMLayout from "@/layouts/CRMLayout";
+import { ProtectedRoute } from './ProtectedRoute';
 import { SettingsLayout } from "@/layouts/SettingsLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import ResellerLayout from "@/layouts/ResellerLayout";
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/crm",
-    element: <CRMLayout />,
+    element: <ProtectedRoute />,
     children: [
       {
         index: true,

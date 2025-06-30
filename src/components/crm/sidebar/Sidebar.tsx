@@ -51,24 +51,6 @@ const menuItems = [
     icon: Users,
     href: "/crm/people",
   },
-
-  {
-    title: "Flows",
-    icon: DollarSign,
-    onClick: async (navigate: (path: string) => void) => {
-      try {
-        const firstFunnel = await getFirstFlow();
-        if (firstFunnel) {
-          navigate(`/crm/flow/${firstFunnel.id}`);
-        } else {
-          navigate("/crm/flow/default");
-        }
-      } catch (error) {
-        console.error("Erro ao carregar o primeiro funil:", error);
-        navigate("/crm/flow/default");
-      }
-    },
-  },
 ];
 
 const reportItems = [

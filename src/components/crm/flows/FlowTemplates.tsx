@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useFlowBuilder } from "@/contexts/FlowBuilderContext";
 
 interface FlowTemplate {
     id: string;
@@ -22,8 +23,6 @@ interface FlowTemplate {
 interface FlowTemplatesProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onSelectTemplate: (templateId: string) => void;
-    onSetNewFlowTitle: (title: string) => void;
 }
 
 const templates: FlowTemplate[] = [
@@ -47,18 +46,20 @@ const templates: FlowTemplate[] = [
     }
 ];
 
-export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onSetNewFlowTitle }: FlowTemplatesProps) {
+export function FlowTemplates({ open, onOpenChange }: FlowTemplatesProps) {
     const [showCreateFlow, setShowCreateFlow] = useState(false);
     const [flowName, setFlowName] = useState("");
     const navigate = useNavigate();
+    const { setTitle, resetFlow } = useFlowBuilder();
 
     const handleCreateFlow = () => {
         if (flowName.trim()) {
-            onSetNewFlowTitle(flowName.trim());
+            resetFlow();
+            setTitle(flowName.trim());
             setFlowName("");
             setShowCreateFlow(false);
             onOpenChange(false);
-            navigate("/crm/flow/new/settings", { state: { title: flowName.trim() } });
+            navigate("/crm/flow/new/settings");
         }
     };
 
@@ -74,7 +75,6 @@ export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onSetNewFl
                             <div
                                 key={template.id}
                                 className="group relative overflow-hidden rounded-lg border bg-white  hover:border-orange-500 cursor-pointer transition-all hover:shadow-md"
-                                onClick={() => onSelectTemplate(template.id)}
                             >
                                 <div className="aspect-video overflow-hidden rounded-md">
                                     <img
@@ -91,7 +91,6 @@ export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onSetNewFl
                         ))}
                     </div>
                     <DialogFooter className="sm:justify-between">
-
                         <Button variant="ghost" onClick={() => onOpenChange(false)}>
                             Cancelar
                         </Button>
@@ -126,8 +125,6 @@ export function FlowTemplates({ open, onOpenChange, onSelectTemplate, onSetNewFl
                         </div>
                     </div>
                     <DialogFooter >
-
-
                         <Button variant="ghost" onClick={() => setShowCreateFlow(false)}>
                             Cancelar
                         </Button>

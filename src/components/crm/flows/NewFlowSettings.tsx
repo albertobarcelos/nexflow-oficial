@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,12 +12,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserData } from "@/lib/auth";
 import { toast } from "sonner";
+import { useFlowBuilder } from "@/contexts/FlowBuilderContext";
 
 const NewFlowSettings: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const flowTitle = location.state?.title || "Novo Flow";
-    const [stages, setStages] = useState<Stage[]>([]);
+    const { 
+        title: flowTitle, 
+        stages, 
+        setStages,
+        addStage, 
+        updateStage, 
+        removeStage, 
+        resetFlow 
+    } = useFlowBuilder();
+
+    // Redireciona se a página for acessada sem um título de flow
+    useEffect(() => {
+        if (!flowTitle) {
+            navigate("/crm");
+        }
+    }, [flowTitle, navigate]);
+
     const [modalOpen, setModalOpen] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const [stageDraft, setStageDraft] = useState<Stage | undefined>(undefined);
@@ -42,15 +58,15 @@ const NewFlowSettings: React.FC = () => {
 
     const handleSaveStage = (stage: Stage) => {
         if (editingIndex === null) {
-            setStages([...stages, stage]);
+            addStage(stage);
         } else {
-            setStages(stages.map((s, i) => (i === editingIndex ? stage : s)));
+            updateStage(editingIndex, stage);
         }
         setModalOpen(false);
     };
 
     const handleDeleteStage = (idx: number) => {
-        setStages(stages => stages.filter((_, i) => i !== idx));
+        removeStage(idx);
         setConfirmStageIdx(null);
     };
 
@@ -81,11 +97,7 @@ const NewFlowSettings: React.FC = () => {
             // 1. Criar o flow
             const { data: flow, error: flowError } = await supabase
                 .from("web_flows")
-                .insert({
-                    client_id: user.client_id,
-                    name: capitalize(flowTitle),
-                    created_by: user.id,
-                })
+                .insert({ client_id: user.client_id, name: capitalize(flowTitle) })
                 .select()
                 .single();
             if (flowError || !flow) throw flowError || new Error("Erro ao criar flow");
@@ -94,19 +106,17 @@ const NewFlowSettings: React.FC = () => {
             if (stages.length > 0) {
                 const stageInserts = stages.map((stage, idx) => ({
                     client_id: user.client_id,
-                    funnel_id: flow.id,
+                    flow_id: flow.id,
                     name: stage.name,
                     description: stage.description,
                     color: stage.color,
                     order_index: idx + 1,
                 }));
-                const { error: stagesError } = await supabase
-                    .from("web_funnel_stages")
-                    .insert(stageInserts);
-                if (stagesError) throw stagesError;
+                await supabase.from("web_flow_stages").insert(stageInserts);
             }
 
             toast.success("Flow criado com sucesso!");
+            resetFlow();
             navigate(`/crm/flow/${flow.id}`);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : String(err);
