@@ -432,7 +432,7 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <style>{scrollbarStyles}</style>
-            <DialogContent className="max-w-7xl w-full h-[88vh] p-0 overflow-hidden">
+            <DialogContent className="h-[95vh] max-w-[95%] p-0 overflow-hidden">
                 {/* Grid Layout with aligned headers */}
                 <div className="grid grid-cols-[320px_1fr_280px] grid-rows-[auto_1fr] h-full">
                     {/* Headers Row - All aligned horizontally */}
