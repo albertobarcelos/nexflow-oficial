@@ -39,7 +39,6 @@ import {
 import { cn } from "@/lib/utils";
 import ReactToyFace from "react-toy-face";
 import { ClientInfoCard } from "./ClientInfoCard";
-import { DealCompanyCard } from "./DealCompanyCard";
 import { DealValueCard } from "./DealValueCard";
 
 // Types
@@ -48,12 +47,16 @@ export interface MockDeal {
     title: string;
     value?: number;
     company_id?: string;
+    company_name?: string;
+    company_cnpj?: string;
     person_id?: string;
     stage_id: string;
     position: number;
     created_at: string;
     tags?: string[];
     temperature?: string;
+    instagram_link?: string;
+    live_link?: string;
 }
 
 interface Stage {
@@ -483,15 +486,6 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                     <div className="bg-slate-50/80 border-r border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
                         <div className="px-5 py-5 space-y-5">
                             <ClientInfoCard deal={deal} />
-                            <DealCompanyCard company={{
-                                id: "1",
-                                name: "Empresa Exemplo",
-                                cnpj: "12.345.678/0001-99",
-                                address: "Rua Exemplo, 123, São Paulo - SP",
-                                phone: "+55 11 1234-5678",
-                                email: "contato@empresa.com",
-                                tags: ["Cliente A", "VIP"]
-                            }} />
                             <DealValueCard deal={deal} onChangeValue={() => { }} />
                             {/* Adicionando mais conteúdo para testar scroll */}
                             <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
