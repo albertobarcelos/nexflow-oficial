@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { User } from "@supabase/supabase-js";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -9,7 +9,9 @@ export function useAuth() {
   useEffect(() => {
     // Tenta pegar a sessão existente ao carregar
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       setLoading(false);
     };
@@ -31,4 +33,4 @@ export function useAuth() {
   }, []);
 
   return { user, loading };
-} 
+}

@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   User,
+  LucideProps,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getFirstFlow } from "@/hooks/useFlows";
 
-const menuItems = [
+interface MenuItem {
+  title: string;
+  icon: React.ForwardRefExoticComponent<Omit<LucideProps, "ref"> & React.RefAttributes<SVGSVGElement>>;
+  href: string;
+  onClick?: (navigate: (path: string) => void) => void;
+}
+
+const menuItems: MenuItem[] = [
   {
     title: "Início",
     icon: Home,
@@ -167,7 +175,7 @@ export function Sidebar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/crm/account/profile")}>
               <User className="mr-2 h-4 w-4" />
               Minha conta
             </DropdownMenuItem>

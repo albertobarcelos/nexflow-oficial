@@ -87,17 +87,15 @@ export default function CRMLayout() {
   return (
     <FlowBuilderProvider>
       <TooltipProvider>
-        <div className="min-h-screen">
-          <div className="flex flex-col">
-            <div className="h-14 sticky top-0 z-10">
-              <Sidebar />
-            </div>
-            <main className="mt-0">
-              <Outlet />
-            </main>
-          </div>
-          <Toaster />
+        <div className="flex flex-col min-h-screen">
+          <header className="h-14 flex-shrink-0 fixed top-0 left-0 right-0 z-10 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]">
+            <Sidebar />
+          </header>
+          <main className="flex-grow overflow-y-auto mt-14">
+            <Outlet />
+          </main>
         </div>
+        <Toaster />
       </TooltipProvider>
     </FlowBuilderProvider>
   );

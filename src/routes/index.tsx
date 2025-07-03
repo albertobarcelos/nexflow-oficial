@@ -26,6 +26,7 @@ import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSett
 import Tasks from "@/pages/crm/tasks/Tasks";
 import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
+import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 
 // Páginas temporárias
 const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -109,6 +110,10 @@ export const router = createBrowserRouter([
       {
         path: "deals",
         element: <DealsPage />,
+      },
+      {
+        path: "account/profile",
+        element: <AccountProfilePage />,
       },
       {
         path: "settings",
