@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 type Company = Database["public"]["Tables"]["web_companies"]["Row"];
 
-interface CompanyWithRelations extends Company {
+export interface CompanyWithRelations extends Company {
   cidade?: string;
   estado?: string;
   uf?: string;
@@ -41,11 +41,17 @@ interface CreateCompanyData {
 export function useCompanies({ search }: { search?: string } = {}) {
   const queryClient = useQueryClient();
 
-  const { data: companies, isLoading, refetch: refreshCompanies } = useQuery({
-    queryKey: ['companies', search],
+  const {
+    data: companies,
+    isLoading,
+    refetch: refreshCompanies,
+  } = useQuery({
+    queryKey: ["companies", search],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         toast.error("Usuário não autenticado");
         return [];
@@ -64,7 +70,8 @@ export function useCompanies({ search }: { search?: string } = {}) {
 
       let query = supabase
         .from("web_companies")
-        .select(`
+        .select(
+          `
           *,
           city:web_cities (
             id,
@@ -75,7 +82,8 @@ export function useCompanies({ search }: { search?: string } = {}) {
             name,
             uf
           )
-        `)
+        `
+        )
         .eq("client_id", collaborator.client_id);
 
       if (search) {
@@ -92,7 +100,7 @@ export function useCompanies({ search }: { search?: string } = {}) {
         return [];
       }
 
-      return data.map(company => ({
+      return data.map((company) => ({
         ...company,
         cidade: company.city?.name,
         estado: company.state?.name,
@@ -102,8 +110,8 @@ export function useCompanies({ search }: { search?: string } = {}) {
           rua: company.rua,
           numero: company.numero,
           complemento: company.complemento,
-          bairro: company.bairro
-        }
+          bairro: company.bairro,
+        },
       })) as CompanyWithRelations[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
@@ -112,8 +120,10 @@ export function useCompanies({ search }: { search?: string } = {}) {
 
   const createCompany = useMutation({
     mutationFn: async (data: CreateCompanyData) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error("Usuário não autenticado");
       }
@@ -134,7 +144,7 @@ export function useCompanies({ search }: { search?: string } = {}) {
           ...data,
           client_id: collaborator.client_id,
           creator_id: user.id,
-          company_type: 'cliente' // valor padrão
+          company_type: "cliente", // valor padrão
         })
         .select()
         .single();
@@ -147,7 +157,7 @@ export function useCompanies({ search }: { search?: string } = {}) {
       return newCompany;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
       toast.success("Empresa criada com sucesso!");
     },
     onError: (error) => {
@@ -157,7 +167,13 @@ export function useCompanies({ search }: { search?: string } = {}) {
   });
 
   const updateCompany = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateCompanyData> }) => {
+    mutationFn: async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Partial<CreateCompanyData>;
+    }) => {
       const { data: updatedCompany, error } = await supabase
         .from("web_companies")
         .update(data)
@@ -173,7 +189,7 @@ export function useCompanies({ search }: { search?: string } = {}) {
       return updatedCompany;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
       toast.success("Empresa atualizada com sucesso!");
     },
     onError: (error) => {
@@ -195,7 +211,7 @@ export function useCompanies({ search }: { search?: string } = {}) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ["companies"] });
       toast.success("Empresa deletada com sucesso!");
     },
     onError: (error) => {

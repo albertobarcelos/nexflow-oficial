@@ -1,14 +1,37 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database';
+import { appConfig, logger } from './config';
+import { logRLSInstructions } from './supabase/rls';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Usar configurações centralizadas
+const supabaseUrl = appConfig.supabase.url;
+const supabaseKey = appConfig.supabase.anonKey;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Supabase URL e chave anônima são necessárias');
-}
+// Validação já é feita no config.ts
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'nexflow-crm',
+    },
+  },
+  // Configurar realtime baseado na config
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+});
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+// Log da inicialização
+logger.info('🔗 Cliente Supabase inicializado', {
+  url: supabaseUrl,
+  realtimeEnabled: appConfig.app.enableRealtime,
+});
 
 // =====================================================
 // TIPOS AUXILIARES PARA A NOVA ARQUITETURA
@@ -98,9 +121,9 @@ export type TaskUpdate = WebTaskUpdate;
 // =====================================================
 
 /**
- * Função para buscar empresas com relacionamentos
+ * Função para buscar empresas com relacionamentos (Confia na RLS para segurança)
  */
-export const getCompaniesWithRelations = async (clientId: string) => {
+export const getCompaniesWithRelations = async () => {
   return await supabase
     .from('web_companies')
     .select(`
@@ -109,28 +132,26 @@ export const getCompaniesWithRelations = async (clientId: string) => {
       state:web_states(name, uf),
       creator:core_client_users(first_name, last_name, email)
     `)
-    .eq('client_id', clientId)
     .order('created_at', { ascending: false });
 };
 
 /**
- * Função para buscar pessoas com relacionamentos
+ * Função para buscar pessoas com relacionamentos (Confia na RLS para segurança)
  */
-export const getPeopleWithRelations = async (clientId: string) => {
+export const getPeopleWithRelations = async () => {
   return await supabase
     .from('web_people')
     .select(`
       *,
       company:web_companies(name, email)
     `)
-    .eq('client_id', clientId)
     .order('created_at', { ascending: false });
 };
 
 /**
- * Função para buscar deals com relacionamentos
+ * Função para buscar deals com relacionamentos (Confia na RLS para segurança)
  */
-export const getDealsWithRelations = async (clientId: string) => {
+export const getDealsWithRelations = async () => {
   return await supabase
     .from('web_deals')
     .select(`
@@ -139,14 +160,13 @@ export const getDealsWithRelations = async (clientId: string) => {
       stage:web_funnel_stages(name, color),
       funnel:web_funnels(name)
     `)
-    .eq('client_id', clientId)
     .order('created_at', { ascending: false });
 };
 
 /**
- * Função para buscar tarefas com relacionamentos
+ * Função para buscar tarefas com relacionamentos (Confia na RLS para segurança)
  */
-export const getTasksWithRelations = async (clientId: string) => {
+export const getTasksWithRelations = async () => {
   return await supabase
     .from('web_tasks')
     .select(`
@@ -154,29 +174,45 @@ export const getTasksWithRelations = async (clientId: string) => {
       deal:web_deals(title),
       created_by_person:web_people!web_tasks_created_by_fkey(name, email)
     `)
-    .eq('client_id', clientId)
     .order('due_date', { ascending: true });
 };
 
 /**
  * Obtém o core_client_id do usuário autenticado
+ * ATUALIZADO: Usa a nova estrutura RLS
  */
 export async function getCurrentClientId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   
-  if (!user) return null;
+  if (!user) {
+    logger.warn('getCurrentClientId: Usuário não autenticado.');
+    return null;
+  }
 
-  const { data: clientUser } = await supabase
+  const { data: clientUser, error } = await supabase
     .from('core_client_users')
-    .select('core_client_id')
-    .eq('auth_user_id', user.id)
+    .select('client_id')
+    .eq('id', user.id)
     .single();
 
-  return clientUser?.core_client_id || null;
+  if (error) {
+    logger.error('Erro ao buscar client_id:', { userId: user.id, error });
+    logRLSInstructions('core_client_users');
+    return null;
+  }
+  
+  if (!clientUser) {
+    logger.warn('getCurrentClientId: Nenhum registro encontrado em core_client_users para o usuário.', { userId: user.id });
+    logRLSInstructions('core_client_users');
+    return null;
+  }
+
+  return clientUser.client_id;
 }
 
 /**
- * Obtém dados do usuário autenticado com informações do cliente
+ * Obtém dados do usuário autenticado com informações do cliente  
+ * ATUALIZADO: Usa a nova estrutura RLS
  */
 export async function getCurrentUserWithClient() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -187,9 +223,9 @@ export async function getCurrentUserWithClient() {
     .from('core_client_users')
     .select(`
       *,
-      core_clients:core_client_id (*)
+      core_clients:client_id (*)
     `)
-    .eq('auth_user_id', user.id)
+    .eq('id', user.id)
     .single();
 
   return clientUser;
@@ -197,6 +233,7 @@ export async function getCurrentUserWithClient() {
 
 /**
  * Verifica se o usuário tem permissão para acessar um recurso
+ * ATUALIZADO: Sistema de permissões aprimorado
  */
 export async function checkUserPermission(permission: string): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -205,8 +242,8 @@ export async function checkUserPermission(permission: string): Promise<boolean> 
 
   const { data: clientUser } = await supabase
     .from('core_client_users')
-    .select('permissions, role')
-    .eq('auth_user_id', user.id)
+    .select('role')
+    .eq('id', user.id)
     .single();
 
   if (!clientUser) return false;
@@ -214,7 +251,52 @@ export async function checkUserPermission(permission: string): Promise<boolean> 
   // Administradores têm todas as permissões
   if (clientUser.role === 'administrator') return true;
 
-  // Verificar permissões específicas
-  const permissions = clientUser.permissions as Record<string, boolean>;
-  return permissions?.[permission] === true;
+  // Definir permissões por role
+  const rolePermissions: Record<string, string[]> = {
+    administrator: ['*'], // Todas as permissões
+    closer: [
+      'read_companies',
+      'write_companies',
+      'read_people',
+      'write_people',
+      'read_deals',
+      'write_deals',
+      'read_tasks',
+      'write_tasks',
+    ],
+    partnership_director: [
+      'read_companies',
+      'write_companies',
+      'read_people',
+      'write_people',
+      'read_deals',
+      'write_deals',
+      'read_tasks',
+      'write_tasks',
+      'manage_partners',
+    ],
+    partner: [
+      'read_companies',
+      'read_people',
+      'read_deals',
+      'read_tasks',
+    ],
+  };
+
+  const userPermissions = rolePermissions[clientUser.role] || [];
+  return userPermissions.includes('*') || userPermissions.includes(permission);
+}
+
+// Exportar funções RLS para facilitar o uso
+export { 
+  getCurrentClientId as getRLSClientId,
+  hasAccessToClient,
+  getCurrentUserWithClient as getRLSUserWithClient,
+  checkUserPermission as checkRLSPermission,
+  logRLSInstructions
+} from './supabase/rls';
+
+// Log das instruções RLS na inicialização (desenvolvimento)
+if (appConfig.app.debugMode) {
+  logRLSInstructions();
 } 

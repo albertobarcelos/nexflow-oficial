@@ -1,5 +1,5 @@
 import { createBrowserRouter } from "react-router-dom";
-import CRMLayout from "@/layouts/CRMLayout";
+import { ProtectedRoute } from './ProtectedRoute';
 import { SettingsLayout } from "@/layouts/SettingsLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import ResellerLayout from "@/layouts/ResellerLayout";
@@ -23,6 +23,10 @@ import { CustomizationSettings } from "@/components/crm/settings/CustomizationSe
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
 import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
 import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
+import Tasks from "@/pages/crm/tasks/Tasks";
+import { Home } from "@/pages/crm/home/Home";
+import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
+import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 
 // Páginas temporárias
 const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -65,19 +69,19 @@ export const router = createBrowserRouter([
   },
   {
     path: "/crm",
-    element: <CRMLayout />,
+    element: <ProtectedRoute />,
     children: [
       {
         index: true,
-        element: <Dashboard />,
+        element: <Home />,
       },
       {
         path: "dashboard",
-        element: <Dashboard />,
+        element: <Home />,
       },
       {
         path: "tasks",
-        element: <Dashboard />,
+        element: <Tasks />,
       },
       {
         path: "flow/:id",
@@ -106,6 +110,10 @@ export const router = createBrowserRouter([
       {
         path: "deals",
         element: <DealsPage />,
+      },
+      {
+        path: "account/profile",
+        element: <AccountProfilePage />,
       },
       {
         path: "settings",
@@ -144,6 +152,14 @@ export const router = createBrowserRouter([
             element: <EntitiesSettings />,
           },
         ],
+      },
+      {
+        path: "flow/settings",
+        element: <PipelineSettings />,
+      },
+      {
+        path: "flow/new/settings",
+        element: <NewFlowSettings />,
       },
     ],
   },

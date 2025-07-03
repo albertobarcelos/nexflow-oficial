@@ -5,17 +5,20 @@ Um sistema de CRM (Customer Relationship Management) moderno e eficiente para ge
 ## 🚀 Funcionalidades
 
 ### Autenticação
+
 - Sistema de login multi-portal (CRM, Admin, Partner)
 - Autenticação segura via Supabase
 - Proteção de rotas por perfil de usuário
 
 ### Dashboard
+
 - Visão geral das métricas principais
 - Contadores de empresas, pessoas e oportunidades
 - Lista de tarefas recentes
 - Gráficos de performance (em desenvolvimento)
 
 ### Gestão de Empresas
+
 - Cadastro completo de empresas
 - Busca por nome
 - Detalhes da empresa incluindo:
@@ -25,18 +28,21 @@ Um sistema de CRM (Customer Relationship Management) moderno e eficiente para ge
   - Histórico de interações
 
 ### Gestão de Pessoas
+
 - Cadastro de contatos
 - Vinculação com empresas
 - Histórico de interações
 - Informações de contato
 
 ### Tarefas
+
 - Sistema de gestão de tarefas
 - Categorização
 - Atribuição a usuários
 - Acompanhamento de status
 
 ### Configurações
+
 - Personalização de campos customizados
 - Configurações do sistema
 - Preferências do usuário
@@ -44,6 +50,7 @@ Um sistema de CRM (Customer Relationship Management) moderno e eficiente para ge
 ## 🛠 Tecnologias
 
 - **Frontend**:
+
   - React + Vite
   - TypeScript
   - TailwindCSS
@@ -102,6 +109,7 @@ src/
 O módulo de empresas segue uma arquitetura limpa e organizada:
 
 #### 1. Estrutura
+
 ```
 companies/
 ├── application/           # Lógica de negócios e hooks
@@ -122,7 +130,9 @@ companies/
 #### 2. Componentes Principais
 
 ##### CompanyForm
+
 Componente de formulário para criação e edição de empresas.
+
 - Validação com Zod
 - Gestão de estado com React Hook Form
 - Carregamento dinâmico de estados/cidades
@@ -130,7 +140,9 @@ Componente de formulário para criação e edição de empresas.
 - Suporte a campos customizados
 
 ##### EntityLinker
+
 HOC para vincular entidades (empresas, pessoas, etc):
+
 - Lista de itens vinculados
 - Ações de vincular/desvincular
 - Loading state
@@ -139,7 +151,9 @@ HOC para vincular entidades (empresas, pessoas, etc):
 #### 3. Hooks
 
 ##### useCompanyForm
+
 Hook personalizado para gerenciar formulários de empresa:
+
 - Validação integrada
 - Carregamento de estados/cidades
 - Gestão de estado do formulário
@@ -147,17 +161,19 @@ Hook personalizado para gerenciar formulários de empresa:
 - Suporte a criação/edição
 
 #### 4. Validação (Zod)
+
 ```typescript
 const companySchema = z.object({
   name: z.string().min(3),
   cnpj: z.string().regex(/^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/),
   state_id: z.string().uuid(),
   city_id: z.string().uuid(),
-  address: z.string().optional()
+  address: z.string().optional(),
 });
 ```
 
 #### 5. Testes
+
 - Testes unitários para hooks
 - Cobertura de:
   - Inicialização
@@ -167,18 +183,22 @@ const companySchema = z.object({
   - Validação
 
 #### 6. Funcionalidades
+
 1. **Gestão de Empresas**
+
    - CRUD completo
    - Validação robusta
    - Feedback visual
    - Campos customizados
 
 2. **Relacionamentos**
+
    - Vinculação dinâmica
    - Interface intuitiva
    - Gestão de múltiplos vínculos
 
 3. **Localização**
+
    - Estados/Cidades do Brasil
    - Busca por CEP
    - Endereço completo
@@ -213,6 +233,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica_do_supabase
 ### Tabelas por Domínio
 
 #### 1. Gestão de Clientes e Usuários
+
 - `clients` - Clientes do sistema (multi-tenant)
 - `administrators` - Administradores do sistema
 - `collaborators` - Colaboradores dos clientes
@@ -220,16 +241,19 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica_do_supabase
 - `licenses` - Licenças dos clientes
 
 #### 2. Empresas e Contatos
+
 - `companies` - Cadastro de empresas
 - `company_types` - Tipos de empresas
 - `people` - Pessoas/contatos
 - `addresses` - Endereços
 
 #### 3. Parceiros
+
 - `partners` - Cadastro de parceiros
 - `leads` - Leads gerados
 
 #### 4. Funis e Negócios
+
 - `funnels` - Funis de vendas
 - `funnel_stages` - Estágios dos funis
 - `deals` - Negócios/oportunidades
@@ -240,30 +264,37 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica_do_supabase
 - `opportunity_relationships` - Relacionamentos entre oportunidades
 
 #### 5. Gestão de Tarefas
+
 - `tasks` - Tarefas do sistema
 
 #### 6. Campos Customizados
+
 - `field_definitions` - Definições de campos customizados
 - `field_values` - Valores dos campos customizados
 
 #### 7. Localização
+
 - `states` - Estados
 - `cities` - Cidades
 
 #### 8. Relatórios
+
 - `reports` - Relatórios do sistema
 
 ### Relacionamentos Principais
 
 1. **Multi-tenant**:
+
    - Todas as tabelas possuem `client_id` para isolamento de dados
    - Relacionamento com `clients` para controle de acesso
 
 2. **Empresas e Contatos**:
+
    - Empresas podem ter múltiplos contatos (`people`)
    - Endereços vinculados a empresas e pessoas
 
 3. **Funis e Negócios**:
+
    - Funis contêm múltiplos estágios
    - Negócios são associados a estágios e podem ter tags
    - Oportunidades podem ter relacionamentos entre si
@@ -275,12 +306,14 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica_do_supabase
 ## 🔄 Fluxos Principais
 
 1. **Cadastro de Empresa**
+
    - Preenchimento de dados básicos
    - Validação de CNPJ
    - Criação de registro
    - Notificação de sucesso
 
 2. **Gestão de Tarefas**
+
    - Criação de tarefa
    - Atribuição
    - Acompanhamento
@@ -296,15 +329,18 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica_do_supabase
 
 1. Clone o repositório
 2. Instale as dependências:
+
 ```bash
 npm install
 ```
 
 3. Configure as variáveis de ambiente:
+
 - Crie um arquivo `.env` na raiz do projeto
 - Adicione as variáveis necessárias
 
 4. Execute o projeto:
+
 ```bash
 npm run dev
 ```
@@ -348,6 +384,7 @@ Cliente (client)
 ### 2. Isolamento por Cliente
 
 Cada cliente possui:
+
 - Um registro na tabela `clients`
 - Uma licença ativa na tabela `licenses`
 - Seus próprios colaboradores em `collaborators`
@@ -357,11 +394,13 @@ Cada cliente possui:
 ### 3. Controle de Acesso
 
 1. **Nível Cliente**:
+
    - Cada registro em TODAS as tabelas possui um `client_id`
    - O `client_id` é usado para isolar dados entre clientes
    - Políticas RLS garantem que usuários só vejam dados do seu cliente
 
 2. **Nível Colaborador**:
+
    - Colaboradores são vinculados a um cliente específico
    - O token JWT do usuário contém o `auth.uid()`
    - A tabela `collaborators` mapeia `auth.uid()` para `client_id`
@@ -372,8 +411,8 @@ Cada cliente possui:
    CREATE POLICY "Acesso aos dados do cliente" ON nome_tabela
    FOR ALL USING (
      client_id IN (
-       SELECT client_id 
-       FROM collaborators 
+       SELECT client_id
+       FROM collaborators
        WHERE auth_user_id = auth.uid()
      )
    );
@@ -382,6 +421,7 @@ Cada cliente possui:
 ### 4. Propagação de client_id
 
 1. **Inserção Automática**:
+
    - Triggers automáticos em tabelas principais
    - Exemplo: Tags herdam `client_id` do funil associado
 
@@ -410,11 +450,13 @@ Cliente B
 ### 6. Benefícios da Estrutura
 
 1. **Segurança**:
+
    - Isolamento completo entre clientes
    - Impossibilidade de vazamento entre tenants
    - Auditoria facilitada por client_id
 
 2. **Performance**:
+
    - Índices otimizados por client_id
    - Queries naturalmente particionadas
    - Cache eficiente por tenant
@@ -441,6 +483,7 @@ O sistema possui um robusto sistema de tags para categorização de deals:
 #### Tabelas Principais:
 
 1. `tags`:
+
    - Armazena todas as tags disponíveis
    - Cada tag pertence a um funil específico (`funnel_id`)
    - Tags são automaticamente associadas ao cliente do funil (`client_id`)
@@ -463,6 +506,7 @@ O sistema possui um robusto sistema de tags para categorização de deals:
 #### Políticas de Segurança (RLS):
 
 1. Tags:
+
    - Colaboradores podem ver tags dos clientes aos quais têm acesso
    - Colaboradores podem gerenciar (criar/editar/deletar) tags dos clientes aos quais têm acesso
 
@@ -473,11 +517,13 @@ O sistema possui um robusto sistema de tags para categorização de deals:
 #### Funcionalidades:
 
 1. Criação de Tags:
+
    - Tags são criadas dentro do contexto de um funil
    - O `client_id` é automaticamente preenchido baseado no funil
    - Cada tag pode ter nome, descrição e cor personalizada
 
 2. Associação com Deals:
+
    - Deals podem ter múltiplas tags
    - Tags podem ser adicionadas/removidas através do DealDialog
    - A interface mostra as tags de forma visual com suas cores
@@ -497,16 +543,19 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
 ### Componentes Principais
 
 1. `DealDialog`:
+
    - Interface principal de gerenciamento de deals
    - Gerenciamento de tags
    - Campos customizados do deal
 
 2. `TagSelect`:
+
    - Componente para seleção e gerenciamento de tags
    - Exibição visual com cores
    - Interface para criar novas tags
 
 3. `useTags` (Hook):
+
    - Gerenciamento do estado das tags
    - Integração com Supabase para CRUD de tags
    - Cache e otimizações de performance
@@ -521,6 +570,7 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
 ### Modais e Diálogos
 
 1. **EditPartnerDialog**:
+
    - Utiliza o componente base `Dialog` do shadcn/ui
    - Props:
      - `open`: Controla a visibilidade do modal
@@ -533,6 +583,7 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
      - Formulário com validação Zod
 
 2. **Melhores Práticas de UI**:
+
    - Botões de fechar (X):
      ```tsx
      <Button
@@ -549,18 +600,14 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
    - Transições suaves
 
 3. **Estado do Modal**:
+
    ```tsx
    const [isOpen, setIsOpen] = useState(false);
-   
+
    // Componente
-   <Dialog 
-     open={isOpen} 
-     onOpenChange={setIsOpen}
-   >
-     <DialogContent>
-       {/* Conteúdo */}
-     </DialogContent>
-   </Dialog>
+   <Dialog open={isOpen} onOpenChange={setIsOpen}>
+     <DialogContent>{/* Conteúdo */}</DialogContent>
+   </Dialog>;
    ```
 
 4. **Validação de Formulários**:
@@ -572,18 +619,21 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
 ### Boas Práticas de UX
 
 1. **Feedback Visual**:
+
    - Hover states para interatividade
    - Transições suaves
    - Indicadores de loading
    - Mensagens de sucesso/erro
 
 2. **Acessibilidade**:
+
    - Labels semânticos
    - Textos para leitores de tela
    - Navegação por teclado
    - Contraste adequado
 
 3. **Performance**:
+
    - Lazy loading de modais
    - Otimização de re-renders
    - Memoização quando necessário
@@ -600,11 +650,13 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
 ### Melhorias no Drag and Drop do Funil (07/02/2024)
 
 #### Otimizações de Performance
+
 - Adicionada aceleração por hardware usando `transform-gpu`
 - Otimização de re-renders com `willChange`
 - Transições suaves com `duration-200` e `ease-in-out`
 
 #### Melhorias Visuais
+
 - Efeito consistente ao arrastar cards:
   - Escala suave (scale-[1.02])
   - Rotação sutil (rotate-1)
@@ -615,11 +667,13 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
 - Transições fluidas em todas as interações
 
 #### Correções de Bugs
+
 - Resolvido problema de "piscar" ao soltar cards
 - Corrigida referência à tabela `users` no histórico
 - Adicionados índices para melhor performance no banco de dados
 
 #### Boas Práticas Implementadas
+
 - Otimização de cache para reduzir requisições
 - Tratamento silencioso de erros não-críticos
 - Uso de animações performáticas com GPU
@@ -629,6 +683,7 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para garantir que:
 A função `validateCNPJ` foi implementada em `src/lib/utils.ts` para validar o formato e os dígitos verificadores do CNPJ. Essa função é utilizada pelo schema de validação (definido com Zod) em `src/features/companies/validation.ts` para garantir que somente CNPJs válidos sejam aceitos nos formulários.
 
 A validação realiza as seguintes etapas:
+
 - Remove caracteres não numéricos
 - Verifica se o CNPJ possui 14 dígitos
 - Checa se os dígitos não são todos iguais
@@ -638,13 +693,12 @@ A validação realiza as seguintes etapas:
 
 ```typescript
 // Validação direta
-validateCNPJ('12.345.678/0001-95') // retorna true/false
+validateCNPJ("12.345.678/0001-95"); // retorna true/false
 
 // No formulário (via Zod)
 const companySchema = z.object({
-  document: z.string().refine(validateCNPJ, 'CNPJ inválido')
+  document: z.string().refine(validateCNPJ, "CNPJ inválido"),
 });
-
 ```
 
 ## Estrutura do Sistema
@@ -652,12 +706,14 @@ const companySchema = z.object({
 ### Relacionamentos e Permissões
 
 #### Usuários e Clientes
+
 - Cada usuário está vinculado a um cliente através da tabela `users_clients`
 - A tabela `users_clients` contém:
   - `user_id`: ID do usuário (auth.users)
   - `client_id`: ID do cliente (clients)
 
 #### Pessoas
+
 - Ao criar uma nova pessoa, é necessário:
   1. `client_id`: Obtido da tabela `users_clients` usando o ID do usuário logado
   2. `responsavel_id`: ID do usuário logado que está criando a pessoa
@@ -667,23 +723,24 @@ const companySchema = z.object({
      - Cargo (opcional)
 
 #### Fluxo de Criação de Pessoas
+
 ```typescript
 // Exemplo de como obter o client_id do usuário logado
 const { data: userInfo } = useQuery({
-  queryKey: ['user-client', user?.id],
+  queryKey: ["user-client", user?.id],
   queryFn: async () => {
     const { data } = await supabase
-      .from('users_clients')
-      .select('client_id')
-      .eq('user_id', user?.id)
+      .from("users_clients")
+      .select("client_id")
+      .eq("user_id", user?.id)
       .single();
     return data;
   },
 });
 
 // Criação da pessoa
-await supabase.from('people').insert({
-  name: 'Nome da Pessoa',
+await supabase.from("people").insert({
+  name: "Nome da Pessoa",
   responsavel_id: user?.id,
   client_id: userInfo.client_id,
   created_at: new Date().toISOString(),
@@ -691,6 +748,7 @@ await supabase.from('people').insert({
 ```
 
 #### Boas Práticas
+
 1. Sempre verificar se o usuário tem um `client_id` antes de criar registros
 2. Usar o React Query para gerenciar o estado e cache das consultas
 3. Tratar erros apropriadamente com feedback visual ao usuário
@@ -701,6 +759,7 @@ await supabase.from('people').insert({
 O sistema de gestão de tarefas foi implementado para permitir um acompanhamento eficiente das atividades relacionadas a cada negócio. Principais características:
 
 ### Tipos de Tarefas
+
 - Tipos de tarefas personalizáveis armazenados na tabela `task_types`
 - Cada tipo possui:
   - Nome descritivo
@@ -709,6 +768,7 @@ O sistema de gestão de tarefas foi implementado para permitir um acompanhamento
   - Descrição opcional
 
 ### Funcionalidades
+
 - Criação, edição e exclusão de tarefas
 - Marcação de tarefas como concluídas
 - Agendamento com data e hora
@@ -746,13 +806,128 @@ CREATE TABLE tasks (
 ```
 
 ### Componentes Principais
+
 - `DealTasksTab`: Interface principal de gerenciamento de tarefas
 - `useTasks`: Hook React para interação com o backend
 - Tipos TypeScript em `types/tasks.ts`
 
 ### Dependências
+
 - `@tanstack/react-query`: Gerenciamento de estado e cache
 - `date-fns`: Formatação de datas
 - `lucide-react`: Ícones
 - `react-hook-form`: Gerenciamento de formulários
 - `zod`: Validação de dados
+
+## 🎨 Responsividade Implementada
+
+### Páginas Principais Responsivas
+
+#### 🏠 Home Page
+
+- **Grid responsivo**: `grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5`
+- **Cards adaptativos**: Ajuste automático de tamanho e espaçamento
+- **Header inteligente**: Estatísticas ocultas em mobile
+- **Ações rápidas**: Grid de botões para acesso rápido em mobile
+
+#### 📊 Flow Page (Kanban)
+
+- **Layout dual**:
+  - **Mobile**: Layout vertical com scroll, uma coluna por vez
+  - **Desktop**: Layout horizontal tradicional com scroll lateral
+- **Menu mobile**: Sheet/Drawer com opções principais
+- **Cards adaptativos**: Diferentes tamanhos e informações conforme tela
+- **Drag & drop**: Funcional em ambos os layouts
+- **Botão flutuante**: Para adicionar negócios em mobile
+
+#### ✅ Tasks Page
+
+- **Layouts específicos**:
+  - **Mobile**: Cards em coluna única com informações condensadas
+  - **Desktop**: Kanban horizontal com três colunas
+- **Header responsivo**: Estatísticas visíveis conforme espaço
+- **Menu lateral mobile**: Com estatísticas e ações principais
+- **TaskColumn adaptativo**: Componente ajusta layout automaticamente
+
+#### 🏢 Companies Page
+
+- **Visualização dupla**:
+  - **Mobile**: Cards com informações essenciais e dropdown de ações
+  - **Desktop**: Tabela completa com todas as informações
+- **Busca responsiva**: Placeholder adaptativo
+- **Ações em dropdown**: Menu compacto em mobile, botões em desktop
+
+#### 📈 Dashboard
+
+- **Grid responsivo**: `grid-cols-2 lg:grid-cols-4` para estatísticas
+- **Cards adaptativos**: Textos e tamanhos ajustados por tela
+- **Layout principal**: Reorganização automática dos blocos
+- **Ações rápidas**: Grid especial de cartões para mobile
+- **Gráficos responsivos**: Ajuste de número de itens por tela
+
+### 🛠️ Componentes e Hooks
+
+#### `useIsMobile()`
+
+- **Breakpoint**: 768px
+- **Hook personalizado** para detecção de mobile
+- **Listener de resize**: Atualização automática
+
+#### Componentes Adaptativos
+
+- **TaskColumn**: Prop `isMobileLayout` para diferentes estilos
+- **TaskCard**: Layout compacto em mobile
+- **CompanyCard**: Card específico para mobile
+- **RecentDeals**: Componente responsivo com prop `isMobile`
+
+### 📱 Padrões de Design Responsivo
+
+#### Grids Responsivos
+
+```css
+/* Padrão principal */
+grid-cols-2 md:grid-cols-3 lg:grid-cols-4
+
+/* Estatísticas */
+grid-cols-2 lg:grid-cols-4
+
+/* Flows e Bases */
+grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5
+```
+
+#### Espaçamentos
+
+- **Mobile**: `p-3`, `gap-3`, `space-y-3`
+- **Desktop**: `p-4 md:p-6`, `gap-4 md:gap-6`, `space-y-4 md:space-y-6`
+
+#### Tipografia
+
+- **Títulos**: `text-lg md:text-xl`, `text-xl md:text-2xl`
+- **Conteúdo**: `text-xs md:text-sm`, `text-sm md:text-base`
+
+#### Navegação Mobile
+
+- **Menu Sheet**: Drawer lateral com navegação principal
+- **Botões flutuantes**: Para ações primárias
+- **Dropdowns**: Para ações secundárias
+
+### ✨ Melhorias de UX
+
+1. **Touch-friendly**: Botões e áreas clicáveis adequadas para mobile
+2. **Performance**: Componentes condicionais evitam renderização desnecessária
+3. **Acessibilidade**: Textos legíveis e contrastes adequados
+4. **Navegação intuitiva**: Padrões consistentes entre páginas
+5. **Loading states**: Estados de carregamento responsivos
+
+## Tecnologias Utilizadas
+
+### Frontend
+
+- React 18 com TypeScript
+- Vite como bundler
+- TailwindCSS para estilização
+- React Query para gerenciamento de estado
+- React Router para navegação
+- Shadcn/ui para componentes base
+- React Hook Form para formulários
+- React Beautiful DnD para drag and drop

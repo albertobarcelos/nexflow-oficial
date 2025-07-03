@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { User } from "@supabase/supabase-js";
 
@@ -7,28 +7,30 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca o usuário atual
-    console.log("useAuth - Verificando sessão atual");
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("useAuth - Sessão encontrada:", !!session);
+    // Tenta pegar a sessão existente ao carregar
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
       setLoading(false);
-    });
+    };
 
-    // Inscreve para mudanças na autenticação
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("useAuth - Mudança de estado de autenticação:", !!session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    getSession();
 
-    return () => subscription.unsubscribe();
+    // Ouve as mudanças no estado de autenticação
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    // Limpa o listener quando o componente é desmontado
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
-  return {
-    user,
-    loading,
-  };
-} 
+  return { user, loading };
+}

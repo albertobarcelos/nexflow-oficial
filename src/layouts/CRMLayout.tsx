@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Sidebar } from "@/components/crm/sidebar/Sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
+import { FlowBuilderProvider } from "@/contexts/FlowBuilderContext";
 
 export default function CRMLayout() {
   const navigate = useNavigate();
@@ -83,17 +85,18 @@ export default function CRMLayout() {
   }
 
   return (
-    <TooltipProvider>
-      <div className="min-h-screen">
-        <div className="flex flex-col">
-          <div className="h-14 bg-[#212040]">
+    <FlowBuilderProvider>
+      <TooltipProvider>
+        <div className="flex flex-col min-h-screen">
+          <header className="h-14 flex-shrink-0 fixed top-0 left-0 right-0 z-10 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]">
             <Sidebar />
-          </div>
-          <main className="p-6">
+          </header>
+          <main className="flex-grow overflow-y-auto mt-14">
             <Outlet />
           </main>
         </div>
-      </div>
-    </TooltipProvider>
+        <Toaster />
+      </TooltipProvider>
+    </FlowBuilderProvider>
   );
 }

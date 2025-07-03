@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, Target, CheckSquare } from "lucide-react";
+import { Building2, Users, Target, CheckSquare, TrendingUp, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Database } from "@/types/database";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Atualizar tipo para usar web_deals ao invés de opportunities
 type Deal = Database["public"]["Tables"]["web_deals"]["Row"] & {
@@ -39,6 +40,7 @@ const getCurrentUserData = async () => {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ["dashboard-stats"],
@@ -103,7 +105,7 @@ export function Dashboard() {
           `)
           .eq("client_id", collaborator.client_id)
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(isMobile ? 3 : 5);
 
         return data || [];
       } catch (error) {
@@ -143,96 +145,107 @@ export function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+      {/* Header responsivo */}
+      <div className="space-y-2">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground text-sm md:text-base">
           Visão geral do seu CRM
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card 
+      {/* Grid responsivo de estatísticas */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <Card
           className="cursor-pointer hover:bg-accent/50 transition-colors"
           onClick={() => navigate("/crm/companies")}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Empresas</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Empresas</CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statsData.companies}</div>
+            <div className="text-xl md:text-2xl font-bold">{statsData.companies}</div>
             <p className="text-xs text-muted-foreground">
-              Total de empresas cadastradas
+              {isMobile ? "Total" : "Total de empresas cadastradas"}
             </p>
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer hover:bg-accent/50 transition-colors"
           onClick={() => navigate("/crm/people")}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pessoas</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Pessoas</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statsData.people}</div>
+            <div className="text-xl md:text-2xl font-bold">{statsData.people}</div>
             <p className="text-xs text-muted-foreground">
-              Total de contatos
+              {isMobile ? "Contatos" : "Total de contatos"}
             </p>
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer hover:bg-accent/50 transition-colors"
           onClick={() => navigate("/crm/deals")}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Negócios</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Negócios</CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statsData.deals}</div>
+            <div className="text-xl md:text-2xl font-bold">{statsData.deals}</div>
             <p className="text-xs text-muted-foreground">
-              Oportunidades ativas
+              {isMobile ? "Ativas" : "Oportunidades ativas"}
             </p>
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="cursor-pointer hover:bg-accent/50 transition-colors"
           onClick={() => navigate("/crm/tasks")}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tarefas</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium">Tarefas</CardTitle>
             <CheckSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{statsData.tasks}</div>
+            <div className="text-xl md:text-2xl font-bold">{statsData.tasks}</div>
             <p className="text-xs text-muted-foreground">
-              Tarefas pendentes
+              {isMobile ? "Pendentes" : "Tarefas pendentes"}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      {/* Grid principal responsivo */}
+      <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-7">
+        {/* Negócios Recentes */}
+        <Card className={`${isMobile ? 'col-span-full' : 'md:col-span-2 lg:col-span-4'}`}>
           <CardHeader>
-            <CardTitle>Negócios Recentes</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Negócios Recentes
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <RecentDeals deals={recentDeals} />
+            <RecentDeals deals={recentDeals} isMobile={isMobile} />
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
+        {/* Resumo de Atividades */}
+        <Card className={`${isMobile ? 'col-span-full' : 'md:col-span-2 lg:col-span-3'}`}>
           <CardHeader>
-            <CardTitle>Resumo de Atividades</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Resumo
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                 <div className="flex-1">
@@ -254,18 +267,74 @@ export function Dashboard() {
                   <p className="text-xs text-muted-foreground">{statsData.deals} oportunidades</p>
                 </div>
               </div>
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Tarefas pendentes</p>
+                  <p className="text-xs text-muted-foreground">{statsData.tasks} itens</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Ações rápidas mobile */}
+      {isMobile && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Ações Rápidas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Card
+                className="cursor-pointer hover:bg-accent/50 transition-colors p-3"
+                onClick={() => navigate("/crm/companies/new")}
+              >
+                <div className="text-center">
+                  <Building2 className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-medium">Nova Empresa</p>
+                </div>
+              </Card>
+              <Card
+                className="cursor-pointer hover:bg-accent/50 transition-colors p-3"
+                onClick={() => navigate("/crm/people/new")}
+              >
+                <div className="text-center">
+                  <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-medium">Novo Contato</p>
+                </div>
+              </Card>
+              <Card
+                className="cursor-pointer hover:bg-accent/50 transition-colors p-3"
+                onClick={() => navigate("/crm/deals/new")}
+              >
+                <div className="text-center">
+                  <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-medium">Novo Negócio</p>
+                </div>
+              </Card>
+              <Card
+                className="cursor-pointer hover:bg-accent/50 transition-colors p-3"
+                onClick={() => navigate("/crm/tasks/new")}
+              >
+                <div className="text-center">
+                  <CheckSquare className="h-6 w-6 mx-auto mb-2 text-primary" />
+                  <p className="text-sm font-medium">Nova Tarefa</p>
+                </div>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
 
-function RecentDeals({ deals }: { deals: Deal[] | undefined }) {
+function RecentDeals({ deals, isMobile }: { deals: Deal[] | undefined; isMobile: boolean }) {
   if (!deals?.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
+      <div className="flex flex-col items-center justify-center py-6 md:py-8 text-center">
         <p className="text-sm text-muted-foreground">
           Nenhum negócio encontrado
         </p>
@@ -274,19 +343,19 @@ function RecentDeals({ deals }: { deals: Deal[] | undefined }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {deals.map((deal) => (
         <div
           key={deal.id}
           className="flex items-center justify-between border-b pb-2 last:border-0"
         >
-          <div>
-            <p className="font-medium">{deal.title}</p>
-            <p className="text-sm text-muted-foreground">
+          <div className="min-w-0 flex-1">
+            <p className={`font-medium truncate ${isMobile ? 'text-sm' : ''}`}>{deal.title}</p>
+            <p className={`text-muted-foreground truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>
               {deal.company?.name}
             </p>
           </div>
-          <div className="text-sm font-medium">
+          <div className={`font-medium flex-shrink-0 ml-2 ${isMobile ? 'text-sm' : ''}`}>
             {new Intl.NumberFormat("pt-BR", {
               style: "currency",
               currency: "BRL",
