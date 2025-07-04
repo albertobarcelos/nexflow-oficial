@@ -5,6 +5,9 @@ import { useAccountProfile } from "@/hooks/useAccountProfile";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileSidebar } from "@/components/crm/account/ProfileSidebar";
 import { ClientInfoForm } from "@/components/crm/account/ClientInfoForm";
+import { TeamInfoPanel } from "@/components/crm/account/TeamInfoPanel";
+import ReactToyFace from "react-toy-face";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AccountProfilePage() {
     const { user, isLoadingUser, updateUserProfile, changeUserPassword, uploadAvatar } = useAccountProfile();
@@ -12,11 +15,24 @@ export default function AccountProfilePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>('user-data-section');
+
+    // Itens do menu (usados no sidebar e no select)
+    const menuItems = [
+        { id: 'user-data-section', label: 'Meu Perfil' },
+        { id: 'change-password-section', label: 'Opções de Segurança' },
+        { id: 'team-info-section', label: 'Informações da Equipe' },
+        { id: 'chat-section', label: 'Chat' },
+        { id: 'preferences-section', label: 'Preferências' },
+        { id: 'notifications-section', label: 'Notificações' },
+    ];
+
+    // Classe utilitária para slide up/down + fade
+    const tabTransition = "transition-all duration-300 ease-in-out animate-slide-fade";
 
     const handleProfileSave = async (data: { first_name?: string; last_name?: string; email?: string; avatar_file?: File | null }) => {
         setIsSaving(true);
         let avatarUrl: string | null = user?.avatar_url || null;
-
         try {
             if (data.avatar_file) {
                 avatarUrl = await uploadAvatar(data.avatar_file);
@@ -61,13 +77,6 @@ export default function AccountProfilePage() {
         }
     };
 
-    const handleNavigate = (sectionId: string) => {
-        const section = document.getElementById(sectionId);
-        if (section) {
-            section.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
-
     if (isLoadingUser) {
         return (
             <div className="flex justify-center items-center h-screen">
@@ -85,32 +94,68 @@ export default function AccountProfilePage() {
     }
 
     return (
-        <div className="">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="w-[300px] h-full sm:w-full flex flex-col overflow-hidden bg-muted ">
-                    <section className="fixed dark:bg-muted shadow-sm p-6 m-0 h-full flex flex-col justify-between">
-                        <ProfileSidebar onNavigate={handleNavigate} />
-                    </section>
-                </div>
-
-                <div className="col-span-2 space-y-6 overflow-y-auto pr-3">
-                    <div className="mb-6 mt-16" id="user-data-section"></div>
-                    <section className="bg-white dark:bg-muted rounded-xl shadow-sm p-6">
-                        <UserProfileForm user={user} onSave={handleProfileSave} isLoading={isSaving} isEditing={isEditing} onToggleEdit={() => setIsEditing(prev => !prev)} />
-                    </section>
-
-                    <div className="mb-6 pt-4" id="change-password-section">
-                    </div>
-                    <section className="bg-white dark:bg-muted rounded-xl shadow-sm p-6">
-                        <PasswordChangeForm onChangePassword={handlePasswordChange} isLoading={isChangingPassword} />
-                    </section>
-
-                    <div className="mb-6 pt-4" id="team-info-section">
-                    </div>
-                    <section className="bg-white dark:bg-muted rounded-xl shadow-sm p-6">
-                        <ClientInfoForm user={user} />
-                    </section>
-                </div>
+        <div className="w-full min-h-screen bg-[#f7f8fa] flex flex-col md:flex-row justify-center mdjustify-start items-start  p-2 md:py-12">
+            {/* Topbar para mobile/tablet */}
+            <div className="md:hidden w-full  top-0 bg-white border-b mb-2 flex flex-col gap-2 px-2 py-3 shadow-sm rounded-lg">
+                <div className="text-lg font-bold">Configurações</div>
+                <Select value={activeTab} onValueChange={setActiveTab}>
+                    <SelectTrigger className="w-full">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {menuItems.map(item => (
+                            <SelectItem key={item.id} value={item.id}>{item.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex flex-col md:flex-row gap-2 md:gap-8 w-full max-w-full md:max-w-6xl px-1 md:px-0">
+                {/* Sidebar só em desktop */}
+                <aside className="hidden md:block w-72 bg-white border rounded-2xl shadow p-8 h-fit mb-2 md:mb-0">
+                    <ProfileSidebar onNavigate={setActiveTab} activeSection={activeTab} />
+                </aside>
+                {/* Main Content */}
+                <main className="flex-1">
+                    {activeTab === 'user-data-section' && (
+                        <section className={`relative bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
+                            <div className="mb-4 md:mb-10">
+                                <UserProfileForm
+                                    user={user}
+                                    onSave={handleProfileSave}
+                                    isLoading={isSaving}
+                                />
+                            </div>
+                        </section>
+                    )}
+                    {activeTab === 'change-password-section' && (
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
+                            <PasswordChangeForm onChangePassword={handlePasswordChange} isLoading={isChangingPassword} />
+                        </section>
+                    )}
+                    {activeTab === 'team-info-section' && (
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
+                            <TeamInfoPanel />
+                        </section>
+                    )}
+                    {activeTab === 'chat-section' && (
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
+                            <h3 className="text-lg font-semibold mb-2">Chat</h3>
+                            <p className="text-muted-foreground">Configurações de chat em breve.</p>
+                        </section>
+                    )}
+                    {activeTab === 'preferences-section' && (
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
+                            <h3 className="text-lg font-semibold mb-2">Preferências</h3>
+                            <p className="text-muted-foreground">Configurações de preferências em breve.</p>
+                        </section>
+                    )}
+                    {activeTab === 'notifications-section' && (
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
+                            <h3 className="text-lg font-semibold mb-2">Notificações</h3>
+                            <p className="text-muted-foreground">Configurações de notificações em breve.</p>
+                        </section>
+                    )}
+                </main>
             </div>
         </div>
     );
