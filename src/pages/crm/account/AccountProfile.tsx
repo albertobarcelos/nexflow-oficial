@@ -27,6 +27,9 @@ export default function AccountProfilePage() {
         { id: 'notifications-section', label: 'Notificações' },
     ];
 
+    // Classe utilitária para slide up/down + fade
+    const tabTransition = "transition-all duration-300 ease-in-out animate-slide-fade";
+
     const handleProfileSave = async (data: { first_name?: string; last_name?: string; email?: string; avatar_file?: File | null }) => {
         setIsSaving(true);
         let avatarUrl: string | null = user?.avatar_url || null;
@@ -114,7 +117,7 @@ export default function AccountProfilePage() {
                 {/* Main Content */}
                 <main className="flex-1">
                     {activeTab === 'user-data-section' && (
-                        <section className="relative bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10">
+                        <section className={`relative bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
                             <div className="mb-4 md:mb-10">
                                 <UserProfileForm
                                     user={user}
@@ -125,29 +128,29 @@ export default function AccountProfilePage() {
                         </section>
                     )}
                     {activeTab === 'change-password-section' && (
-                        <section className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10">
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
                             <PasswordChangeForm onChangePassword={handlePasswordChange} isLoading={isChangingPassword} />
                         </section>
                     )}
                     {activeTab === 'team-info-section' && (
-                        <section className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10">
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
                             <TeamInfoPanel />
                         </section>
                     )}
                     {activeTab === 'chat-section' && (
-                        <section className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10">
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
                             <h3 className="text-lg font-semibold mb-2">Chat</h3>
                             <p className="text-muted-foreground">Configurações de chat em breve.</p>
                         </section>
                     )}
                     {activeTab === 'preferences-section' && (
-                        <section className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10">
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
                             <h3 className="text-lg font-semibold mb-2">Preferências</h3>
                             <p className="text-muted-foreground">Configurações de preferências em breve.</p>
                         </section>
                     )}
                     {activeTab === 'notifications-section' && (
-                        <section className="bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10">
+                        <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
                             <h3 className="text-lg font-semibold mb-2">Notificações</h3>
                             <p className="text-muted-foreground">Configurações de notificações em breve.</p>
                         </section>
