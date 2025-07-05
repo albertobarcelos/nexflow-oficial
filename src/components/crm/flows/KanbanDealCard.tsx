@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DraggableProvidedDragHandleProps, DraggableProvidedDraggableProps } from "@hello-pangea/dnd";
 
 interface KanbanDealCardProps {
     deal: MockDeal;
@@ -15,9 +14,6 @@ interface KanbanDealCardProps {
     tagColor: (tag: string) => string;
     isDragging?: boolean;
     isMobile?: boolean;
-    dragHandleProps?: DraggableProvidedDragHandleProps | null;
-    draggableProps?: DraggableProvidedDraggableProps;
-    innerRef?: (element: HTMLElement | null) => void;
     stageAccentColor?: string;
 }
 
@@ -29,9 +25,6 @@ export function KanbanDealCard({
     tagColor,
     isDragging = false,
     isMobile = false,
-    dragHandleProps,
-    draggableProps,
-    innerRef,
     stageAccentColor = 'from-blue-500 to-blue-600'
 }: KanbanDealCardProps) {
     const tempTag = getTemperatureTag(deal.temperature);
@@ -112,22 +105,27 @@ export function KanbanDealCard({
         // Aqui você pode implementar as ações específicas
     };
 
+    const handleCardClick = (e: React.MouseEvent) => {
+        // Não abre o modal se está sendo arrastado
+        if (isDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        onClick(deal);
+    };
+
     return (
         <div
-            ref={innerRef}
-            {...draggableProps}
-            {...dragHandleProps}
-            className={`group relative bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-300 cursor-pointer
+            className={`group relative bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-300 
                 ${isDragging
-                    ? 'shadow-2xl scale-105 rotate-2 z-50 border-blue-300'
-                    : 'hover:shadow-lg hover:border-slate-300/80 hover:-translate-y-1'
+                    ? 'shadow-2xl scale-105 rotate-2 z-50 border-blue-300 ring-2 ring-blue-200'
+                    : 'hover:shadow-lg hover:border-slate-300/80 hover:-translate-y-1 cursor-pointer'
                 } 
                 ${!isMobile ? 'mb-2' : 'mb-1.5'}
                 `}
-            style={{ ...draggableProps?.style }}
-            onClick={() => onClick(deal)}
+            onClick={handleCardClick}
         >
-
 
             {/* Header do card com avatar proeminente */}
             <div className="p-3">
@@ -198,79 +196,102 @@ export function KanbanDealCard({
                     )}
                     {deal.tags && deal.tags.length > 3 && (
                         <Badge variant="secondary" style={{ fontSize: '10px', padding: '2px 6px' }}>
-                            +{deal.tags.length - 2}
+                            +{deal.tags.length - 3}
                         </Badge>
                     )}
                 </div>
 
-                {/* Data e responsável */}
-                <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                    <div className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        <span className="truncate max-w-20">{responsible.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-400">{timeAgo.replace('há ', '').replace(' atrás', '')}</span>
-                    </div>
-
+                {/* Informações da empresa/pessoa */}
+                <div className="flex items-center gap-2 mb-2">
+                    <User className="w-3 h-3 text-slate-400" />
+                    <span className="text-xs text-slate-600 truncate">
+                        {deal.companies?.name || deal.people?.name || "Sem empresa/pessoa"}
+                    </span>
                 </div>
 
-                {/* Ações rápidas */}
+                {/* Valor e ações */}
                 <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            onClick={(e) => handleActionClick(e, 'call')}
-                            title="Ligar"
-                        >
-                            <Phone className="h-3 w-3" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-                            onClick={(e) => handleActionClick(e, 'email')}
-                            title="Email"
-                        >
-                            <Mail className="h-3 w-3" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                            onClick={(e) => handleActionClick(e, 'notes')}
-                            title="Notas"
-                        >
-                            <MessageSquare className="h-3 w-3" />
-                        </Button>
-                    </div>
-
-                    {/* Indicador de tempo e probabilidade */}
-                    <div className="flex items-center gap-2 text-slate-400">
-                        <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            <span className="text-xs">
-                                {hasRecentActivity ? 'Ativo' : 'Parado'}
-                            </span>
-                        </div>
-                        {deal.probability && (
-                            <div className="text-xs font-medium text-slate-600">
-                                {deal.probability}%
-                            </div>
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-emerald-700 text-sm">
+                            {new Intl.NumberFormat("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                                notation: "compact",
+                            }).format(deal.value || 0)}
+                        </span>
+                        {hasRecentActivity && (
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                         )}
                     </div>
+
+                    {/* Ações rápidas - apenas se não estiver sendo arrastado */}
+                    {!isDragging && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            onClick={(e) => handleActionClick(e, 'call')}
+                                        >
+                                            <Phone className="h-3 w-3 text-slate-500" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Ligar</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            onClick={(e) => handleActionClick(e, 'email')}
+                                        >
+                                            <Mail className="h-3 w-3 text-slate-500" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>E-mail</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            onClick={(e) => handleActionClick(e, 'message')}
+                                        >
+                                            <MessageSquare className="h-3 w-3 text-slate-500" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Mensagem</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    )}
+                </div>
+
+                {/* Timestamp */}
+                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-100">
+                    <Clock className="w-3 h-3 text-slate-400" />
+                    <span className="text-xs text-slate-500">{timeAgo}</span>
+                    <span className="text-xs text-slate-400 ml-auto">
+                        {responsible.name}
+                    </span>
                 </div>
             </div>
 
-            {/* Barra de progresso com cor do stage */}
-            <div className="h-1 bg-gradient-to-r from-slate-100 to-slate-200 rounded-b-xl">
-                <div
-                    className={`h-full rounded-b-xl transition-all duration-500 bg-gradient-to-r ${stageAccentColor}`}
-                    style={{ width: `${deal.probability || 50}%` }}
-                />
-            </div>
+            {/* Indicador de drag melhorado */}
+            {isDragging && (
+                <div className="absolute inset-0 bg-blue-500/10 rounded-xl pointer-events-none" />
+            )}
         </div>
     );
 } 

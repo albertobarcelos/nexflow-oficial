@@ -1,7 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, List, Phone, Mail, ArrowRight } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Building2, 
+  User, 
+  Calendar, 
+  DollarSign, 
+  Thermometer, 
+  Plus, 
+  Activity,
+  Loader2,
+  ChevronLeft,
+  ChevronRight
+} from "lucide-react";
 import { MockDeal, Stage, TemperatureTag } from "./types";
+import { useRef, useEffect } from "react";
+import { useElementScrollToBottom } from "@/hooks/useVirtualPagination";
 
 interface ListViewProps {
     deals: MockDeal[];
@@ -9,11 +23,41 @@ interface ListViewProps {
     onDealClick: (deal: MockDeal) => void;
     onAddDeal: () => void;
     getTemperatureTag: (temperature?: string) => TemperatureTag;
+    // Propriedades de scroll infinito
+    hasNextPage: boolean;
+    isFetchingNextPage: boolean;
+    onLoadMore: () => void;
 }
 
-export function ListView({ deals, stages, onDealClick, onAddDeal, getTemperatureTag }: ListViewProps) {
+export function ListView({ 
+    deals, 
+    stages, 
+    onDealClick, 
+    onAddDeal, 
+    getTemperatureTag,
+    hasNextPage,
+    isFetchingNextPage,
+    onLoadMore
+}: ListViewProps) {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // Hook para detectar scroll e carregar mais dados
+    useElementScrollToBottom(
+        scrollContainerRef,
+        200, // threshold de 200px
+        () => {
+            if (hasNextPage && !isFetchingNextPage && onLoadMore) {
+                onLoadMore();
+            }
+        },
+        hasNextPage && !isFetchingNextPage
+    );
+
     return (
-        <div className="h-full overflow-y-auto p-2 md:p-3">
+        <div 
+            ref={scrollContainerRef}
+            className="h-full overflow-y-auto p-2 md:p-3"
+        >
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
                 {/* Header da tabela */}
                 <div className="bg-slate-50 px-3 py-1.5 border-b border-slate-200">
@@ -119,8 +163,25 @@ export function ListView({ deals, stages, onDealClick, onAddDeal, getTemperature
                     })}
                 </div>
 
+                {/* Indicador de carregamento */}
+                {isFetchingNextPage && (
+                    <div className="flex justify-center items-center py-6 border-t border-slate-200">
+                        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                        <span className="ml-2 text-sm text-slate-600">Carregando mais deals...</span>
+                    </div>
+                )}
+
+                {/* Indicador de fim dos dados */}
+                {!hasNextPage && deals.length > 0 && (
+                    <div className="flex justify-center items-center py-4 border-t border-slate-200">
+                        <div className="text-xs text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                            Todos os deals foram carregados
+                        </div>
+                    </div>
+                )}
+
                 {/* Empty State Lista */}
-                {deals.length === 0 && (
+                {deals.length === 0 && !isFetchingNextPage && (
                     <div className="flex flex-col items-center justify-center py-6 text-slate-400">
                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center mb-2">
                             <List className="h-4 w-4 text-slate-300" />

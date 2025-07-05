@@ -12,9 +12,8 @@ import {
   TrendingUp,
   Target
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AddDealDialog } from "@/components/crm/flows/AddDealDialog";
-import { DropResult } from "@hello-pangea/dnd";
 import {
   Tooltip,
   TooltipContent,
@@ -30,10 +29,11 @@ import {
 } from "@/components/ui/sheet";
 import { ListView } from "@/components/crm/flows/ListView";
 import { KanbanView } from "@/components/crm/flows/KanbanView";
-import { MockDeal } from "@/components/crm/flows/types";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase, WebDeal, WebDealInsert } from "@/lib/supabase";
+import { useVirtualPagination } from "@/hooks/useVirtualPagination";
+import { DragEndEvent } from "@dnd-kit/core";
 
 interface Filter {
   searchTerm: string;
@@ -108,19 +108,168 @@ const getFlowStages = async (flowId: string): Promise<StageData[]> => {
   return data;
 };
 
-// Função para buscar os deals de um Flow (SIMPLIFICADA)
-const getDealsByFlow = async (flowId: string): Promise<WebDeal[]> => {
-  console.log('🔍 Buscando deals do flow (simplificado):', flowId);
-  const { data, error } = await supabase
+// Função para contar deals por stage no banco
+const getDealsCountByStage = async (flowId: string, stageId: string): Promise<number> => {
+  console.log('🔢 Contando deals por stage:', { flowId, stageId });
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('❌ Usuário não autenticado para contagem por stage');
+    return 0;
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    console.error('❌ Usuário sem cliente associado para contagem por stage');
+    return 0;
+  }
+
+  // Consulta para contar deals por stage
+  const { count, error } = await supabase
     .from('web_deals')
-    .select('*') // Apenas os dados da própria tabela
-    .eq('flow_id', flowId);
+    .select('*', { count: 'exact', head: true })
+    .eq('flow_id', flowId)
+    .eq('stage_id', stageId)
+    .eq('client_id', clientUser.client_id); // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
+
+  if (error) {
+    console.error('❌ Erro ao contar deals por stage:', error);
+    return 0;
+  }
+
+  console.log(`✅ Total de deals no stage ${stageId}: ${count}`);
+  return count || 0;
+};
+
+// Função para contar o total real de deals no banco
+const getTotalDealsCount = async (flowId: string): Promise<number> => {
+  console.log('🔢 Contando total de deals no banco para flow:', flowId);
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    console.error('❌ Usuário não autenticado para contagem');
+    return 0;
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    console.error('❌ Usuário sem cliente associado para contagem');
+    return 0;
+  }
+
+  // Consulta para contar o total real de deals no banco
+  const { count, error } = await supabase
+    .from('web_deals')
+    .select('*', { count: 'exact', head: true })
+    .eq('flow_id', flowId)
+    .eq('client_id', clientUser.client_id); // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
+
+  if (error) {
+    console.error('❌ Erro ao contar deals:', error);
+    return 0;
+  }
+
+  console.log(`✅ Total de deals no banco: ${count}`);
+  return count || 0;
+};
+
+// Função OTIMIZADA para buscar deals com paginação + SEGURANÇA EXTRA
+const getDealsByFlowPaginated = async (
+  flowId: string, 
+  { page, limit }: { page: number; limit: number }
+): Promise<WebDeal[]> => {
+  console.log(`🔍 Buscando deals do flow (página ${page}, limite ${limit}):`, flowId);
+  
+  const offset = page * limit;
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  // 1. Busca os deals com paginação + FILTRO EXPLÍCITO DE SEGURANÇA
+  const { data: baseDeals, error } = await supabase
+    .from('web_deals')
+    .select('*')
+    .eq('flow_id', flowId)
+    .eq('client_id', clientUser.client_id) // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
   if (error) {
     console.error('❌ Erro ao buscar deals:', error);
     throw new Error(error.message);
   }
-  console.log('✅ Deals base encontrados:', data);
-  return data || [];
+
+  if (!baseDeals || baseDeals.length === 0) {
+    console.log('✅ Nenhum deal encontrado para esta página');
+    return [];
+  }
+
+  // 2. Coleta os IDs para enriquecimento
+  const companyIds = [...new Set(baseDeals.map(d => d.company_id).filter(Boolean))];
+  const personIds = [...new Set(baseDeals.map(d => d.person_id).filter(Boolean))];
+
+  if (companyIds.length === 0 && personIds.length === 0) {
+    console.log('✅ Deals sem empresas/pessoas associadas');
+    return baseDeals;
+  }
+  
+  // 3. Busca os dados de enriquecimento em paralelo (também com filtro de segurança)
+  const [companiesRes, peopleRes] = await Promise.all([
+    companyIds.length > 0 ? supabase
+      .from('web_companies')
+      .select('id, name')
+      .in('id', companyIds)
+      .eq('client_id', clientUser.client_id) // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
+      : Promise.resolve({ data: [], error: null }),
+    personIds.length > 0 ? supabase
+      .from('web_people')
+      .select('id, name')
+      .in('id', personIds)
+      .eq('client_id', clientUser.client_id) // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
+      : Promise.resolve({ data: [], error: null })
+  ]);
+
+  if (companiesRes.error) console.error("Erro ao buscar empresas:", companiesRes.error);
+  if (peopleRes.error) console.error("Erro ao buscar pessoas:", peopleRes.error);
+
+  const companiesMap = new Map(companiesRes.data?.map(c => [c.id, c.name]));
+  const peopleMap = new Map(peopleRes.data?.map(p => [p.id, p.name]));
+  
+  // 4. Mapeia os dados de volta para os deals
+  const enrichedDeals = baseDeals.map(deal => ({
+    ...deal,
+    // Adiciona os objetos aninhados que o resto do componente espera
+    companies: deal.company_id ? { name: companiesMap.get(deal.company_id) || 'N/A' } : null,
+    people: deal.person_id ? { name: peopleMap.get(deal.person_id) || 'N/A' } : null,
+  }));
+
+  console.log(`✅ ${enrichedDeals.length} deals enriquecidos para a página ${page}`);
+  return enrichedDeals;
 };
 
 export default function FlowPage() {
@@ -159,10 +308,6 @@ export default function FlowPage() {
 
       if (!clientUser) {
         console.log('⚠️ Usuário sem associação direta, verificando outras permissões...');
-        
-        // Aqui você pode adicionar outras verificações de permissão se necessário
-        // Por exemplo, verificar se o usuário é admin, etc.
-        
         return;
       }
 
@@ -212,52 +357,51 @@ export default function FlowPage() {
     enabled: !!flowId,
   });
 
-  const { data: deals, isLoading: isLoadingDeals, isError: isErrorDeals } = useQuery<WebDeal[]>({
-    queryKey: ['deals', flowId],
+  // 🔢 NOVA QUERY: Buscar contagem total real de deals no banco
+  const { data: totalDealsCount = 0, isLoading: isLoadingTotalCount } = useQuery<number>({
+    queryKey: ['totalDealsCount', flowId],
+    queryFn: () => getTotalDealsCount(flowId!),
+    enabled: !!flowId,
+  });
+
+  // 🔢 NOVA QUERY: Buscar contagem de deals por stage
+  const { data: stageDealsCount = {}, isLoading: isLoadingStageCount } = useQuery<Record<string, number>>({
+    queryKey: ['stageDealsCount', flowId],
     queryFn: async () => {
-      if (!flowId) return [];
-
-      // 1. Busca os deals
-      const baseDeals = await getDealsByFlow(flowId);
-
-      // 2. Coleta os IDs para enriquecimento
-      const companyIds = [...new Set(baseDeals.map(d => d.company_id).filter(Boolean))];
-      const personIds = [...new Set(baseDeals.map(d => d.person_id).filter(Boolean))];
-
-      if (companyIds.length === 0 && personIds.length === 0) {
-        return baseDeals;
-      }
+      if (!stages || stages.length === 0) return {};
       
-      // 3. Busca os dados de enriquecimento em paralelo
-      const [companiesRes, peopleRes] = await Promise.all([
-        companyIds.length > 0 ? supabase.from('web_companies').select('id, name').in('id', companyIds) : Promise.resolve({ data: [], error: null }),
-        personIds.length > 0 ? supabase.from('web_people').select('id, name').in('id', personIds) : Promise.resolve({ data: [], error: null })
-      ]);
-
-      if (companiesRes.error) console.error("Erro ao buscar empresas:", companiesRes.error);
-      if (peopleRes.error) console.error("Erro ao buscar pessoas:", peopleRes.error);
-
-      const companiesMap = new Map(companiesRes.data?.map(c => [c.id, c.name]));
-      const peopleMap = new Map(peopleRes.data?.map(p => [p.id, p.name]));
+      const countPromises = stages.map(stage => 
+        getDealsCountByStage(flowId!, stage.id).then(count => [stage.id, count])
+      );
       
-      // 4. Mapeia os dados de volta para os deals
-      const enrichedDeals = baseDeals.map(deal => ({
-        ...deal,
-        // Adiciona os objetos aninhados que o resto do componente espera
-        companies: deal.company_id ? { name: companiesMap.get(deal.company_id) || 'N/A' } : null,
-        people: deal.person_id ? { name: peopleMap.get(deal.person_id) || 'N/A' } : null,
-      }));
-
-      console.log('✅ Deals enriquecidos:', enrichedDeals);
-      return enrichedDeals;
+      const results = await Promise.all(countPromises);
+      return Object.fromEntries(results);
     },
+    enabled: !!flowId && !!stages && stages.length > 0,
+  });
+
+  // 🚀 IMPLEMENTAÇÃO: Scroll Infinito com Janela de Memória Otimizada
+  const {
+    items: deals,
+    isLoading: isLoadingDeals,
+    isError: isErrorDeals,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    refetch,
+    totalItems
+  } = useVirtualPagination<WebDeal>({
+    queryKey: ['deals', flowId],
+    queryFn: ({ page, limit }) => getDealsByFlowPaginated(flowId!, { page, limit }),
+    pageSize: 20, // Carrega 20 deals por vez
+    maxPages: 3, // Mantém apenas 3 páginas na memória (últimas páginas)
     enabled: !!flowId,
   });
 
   const createDealMutation = useMutation({
     mutationFn: (newDeal: WebDealInsert) => supabase.from('web_deals').insert(newDeal).select().single(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deals', flowId] });
+      refetch();
       setIsAddDealOpen(false);
     },
   });
@@ -266,11 +410,11 @@ export default function FlowPage() {
     mutationFn: ({ dealId, stageId, position }: { dealId: string; stageId: string; position: number }) =>
       supabase.from('web_deals').update({ stage_id: stageId, position }).eq('id', dealId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['deals', flowId] });
+      refetch();
     },
   });
 
-  const isLoading = isLoadingFlow || isLoadingStages || isLoadingDeals;
+  const isLoading = isLoadingFlow || isLoadingStages || isLoadingDeals || isLoadingTotalCount || isLoadingStageCount;
   const isError = isErrorFlow || isErrorStages || isErrorDeals;
 
   const filteredDeals = (deals || [])
@@ -295,36 +439,33 @@ export default function FlowPage() {
     setIsAddDealOpen(true);
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || !deals) return;
+  // 🚀 NOVA IMPLEMENTAÇÃO: Drag and Drop com @dnd-kit
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || !deals) return;
 
-    const { source, destination, draggableId } = result;
-    const destinationStageId = destination.droppableId;
+    const activeId = active.id as string;
+    const overId = over.id as string;
     
     // Lógica para calcular a nova posição
     const dealsInDestination = deals
-      .filter(deal => deal.stage_id === destinationStageId)
+      .filter(deal => deal.stage_id === overId)
       .sort((a, b) => (a.position || 0) - (b.position || 0));
       
-    const dealsWithoutCurrent = source.droppableId === destinationStageId
-      ? dealsInDestination.filter(d => d.id !== draggableId)
-      : dealsInDestination;
-      
     let newPosition: number;
-    if (dealsWithoutCurrent.length === 0) {
+    if (dealsInDestination.length === 0) {
       newPosition = 1000;
-    } else if (destination.index === 0) {
-      newPosition = (dealsWithoutCurrent[0].position || 1000) - 500;
-    } else if (destination.index >= dealsWithoutCurrent.length) {
-      newPosition = (dealsWithoutCurrent[dealsWithoutCurrent.length - 1].position || 0) + 1000;
     } else {
-      const before = dealsWithoutCurrent[destination.index - 1];
-      const after = dealsWithoutCurrent[destination.index];
-      newPosition = Math.floor(((before.position || 0) + (after.position || 0)) / 2);
+      newPosition = (dealsInDestination[dealsInDestination.length - 1].position || 0) + 1000;
     }
 
-    updateDealStageMutation.mutate({ dealId: draggableId, stageId: destinationStageId, position: newPosition });
-  };
+    updateDealStageMutation.mutate({ 
+      dealId: activeId, 
+      stageId: overId, 
+      position: newPosition 
+    });
+  }, [deals, updateDealStageMutation]);
   
   const handleStageChange = (stageId: string) => {
     if (!selectedDeal) return;
@@ -513,7 +654,7 @@ export default function FlowPage() {
                 <div className="flex items-center gap-1.5 text-xs">
                   <div className="flex items-center gap-0.5 text-slate-600">
                     <Target className="h-2.5 w-2.5 text-blue-500" />
-                    <span className="font-medium">{filteredDeals.length}</span>
+                    <span className="font-medium">{totalDealsCount}</span>
                   </div>
                   <div className="text-slate-300">|</div>
                   <div className="flex items-center gap-0.5 text-slate-600">
@@ -569,7 +710,7 @@ export default function FlowPage() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-0.5 text-xs text-slate-600">
                 <Target className="h-2.5 w-2.5 text-blue-500" />
-                <span className="font-medium">{filteredDeals.length}</span>
+                <span className="font-medium">{totalDealsCount}</span>
               </div>
               <div className="flex items-center gap-0.5 text-xs text-slate-600">
                 <TrendingUp className="h-2.5 w-2.5 text-emerald-500" />
@@ -614,6 +755,9 @@ export default function FlowPage() {
             onDealClick={setSelectedDeal}
             onAddDeal={() => setIsAddDealOpen(true)}
             getTemperatureTag={getTemperatureTag}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={fetchNextPage}
           />
         )}
 
@@ -630,6 +774,10 @@ export default function FlowPage() {
             getTemperatureTag={getTemperatureTag}
             getStageColors={getStageColors}
             tagColor={tagColor}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={fetchNextPage}
+            stageDealsCount={stageDealsCount}
           />
         )}
       </main>
