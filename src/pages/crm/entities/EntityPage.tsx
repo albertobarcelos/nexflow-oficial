@@ -219,188 +219,173 @@ const EntityPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8faff] p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-[#f8faff] ">
+      <div className="mx-auto">
         {/* Header */}
         <div className="mb-4">
-          <div className="flex items-center gap-4 mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/crm')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar
-            </Button>
-
+          <div className="flex justify-between items-center gap-4 mb-4 bg-white shadow-sm py-3 px-6">
+            {/* Title */}
             <div className="flex items-center gap-3">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                className="w-10 h-10 rounded-full flex items-center justify-center text-xl p-2"
                 style={{ backgroundColor: `${entity.color}20` }}
               >
                 {getEntityIcon(entity.icon)}
               </div>
-              <div>
-                <h1 className="text-2xl font-bold" style={{ color: entity.color }}>
+              <div >
+                <h1 className="text-lg font-bold" style={{ color: entity.color }}>
                   {entity.name}
                 </h1>
-                <p className="text-gray-600">{entity.description}</p>
+                <p className="text-gray-600 text-sm">{entity.description}</p>
               </div>
             </div>
 
-            <div className="ml-auto flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <MoreHorizontal className="w-4 h-4" />
+            {/* Toolbar */}
+            <div className=' flex items-center gap-4' >
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                  <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)}>
+                    <Filter className="w-4 h-4 mr-2" />
+                    Filtros
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate(`/crm/entity/${entity.id}/settings`)}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurações
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Importar Dados
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Download className="w-4 h-4 mr-2" />
-                    Exportar Dados
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-red-600">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Excluir Base
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-
-        {/* Toolbar */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1">
-              <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)}>
-                <Filter className="w-4 h-4 mr-2" />
-                Filtros
-              </Button>
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Buscar registros..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+                  <div className="relative flex-1 ">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Buscar registros..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={() => setShowCreateRecord(true)}
+                  className="bg-orange-500 hover:bg-orange-600"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Registro
+                </Button>
               </div>
 
-
+              <div className=" flex items-center mr-2 ">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate(`/crm/entity/${entity.id}/settings`)}>
+                      <Settings className="w-4 h-4 mr-2" />
+                      Configurações
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Importar Dados
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar Dados
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-red-600">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Excluir Base
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
-
-            <Button
-              onClick={() => setShowCreateRecord(true)}
-              className="bg-orange-500 hover:bg-orange-600"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Registro
-            </Button>
           </div>
         </div>
+
 
         {/* Tabela de Registros */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Registros</CardTitle>
-            <CardDescription>
-              {filteredRecords.length} de {records.length} registros
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recordsLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-pulse">Carregando registros...</div>
-              </div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="text-center py-8">
-                <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Nenhum registro encontrado
-                </h3>
-                <p className="text-gray-500 mb-4">
-                  {searchTerm ? 'Tente ajustar sua busca' : 'Comece criando seu primeiro registro'}
-                </p>
-                {!searchTerm && (
-                  <Button onClick={() => setShowCreateRecord(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Criar Primeiro Registro
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Título</TableHead>
-                      {fields?.slice(0, 4).map((field) => (
-                        <TableHead key={field.id}>{field.name}</TableHead>
-                      ))}
-                      <TableHead>Criado em</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRecords.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">
-                          {record.title}
-                        </TableCell>
+        <div className='px-6'>
+          <div className="bg-white rounded-xl shadow-sm mb-6 pt-2">
+            <div className=" pb-6">
+              {recordsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-pulse">Carregando registros...</div>
+                </div>
+              ) : filteredRecords.length === 0 ? (
+                <div className="text-center py-8">
+                  <Database className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Nenhum registro encontrado
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    {searchTerm ? 'Tente ajustar sua busca' : 'Comece criando seu primeiro registro'}
+                  </p>
+                  {!searchTerm && (
+                    <Button onClick={() => setShowCreateRecord(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Criar Primeiro Registro
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Título</TableHead>
                         {fields?.slice(0, 4).map((field) => (
-                          <TableCell key={field.id}>
-                            {renderFieldValue(field, record.data[field.slug])}
-                          </TableCell>
+                          <TableHead key={field.id}>{field.name}</TableHead>
                         ))}
-                        <TableCell>
-                          {new Date(record.created_at).toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={() => {
-                                  setSelectedRecord(record);
-                                  setShowDeleteConfirm(true);
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        <TableHead>Criado em</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-medium">
+                            {record.title}
+                          </TableCell>
+                          {fields?.slice(0, 4).map((field) => (
+                            <TableCell key={field.id}>
+                              {renderFieldValue(field, record.data[field.slug])}
+                            </TableCell>
+                          ))}
+                          <TableCell>
+                            {new Date(record.created_at).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={() => {
+                                    setSelectedRecord(record);
+                                    setShowDeleteConfirm(true);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          </div>
 
+        </div>
         {/* Modal de Criação de Registro */}
         <CreateRecordModal
           open={showCreateRecord}

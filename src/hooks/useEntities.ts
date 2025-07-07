@@ -14,6 +14,7 @@ import {
   EntityWithFields,
   EntityRecordWithData,
 } from "@/types/entities";
+import { mockEntity, mockRecords } from "@/test/mockEntityData";
 
 // Hook principal para entidades
 export function useEntities() {
@@ -121,6 +122,7 @@ export function useEntityFields(entityId?: string) {
     queryKey: ["entity-fields", entityId],
     queryFn: async () => {
       if (!entityId) return [];
+      if (entityId === "mock") return mockEntity.fields;
 
       const { data, error } = await supabase
         .from("web_entity_fields")
