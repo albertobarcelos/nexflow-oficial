@@ -11,7 +11,7 @@ import { LoginPage as ResellerLoginPage } from "@/pages/auth/reseller/LoginPage"
 import { Dashboard } from "@/pages/crm/Dashboard";
 import FlowPage from "@/pages/crm/funnels/FlowPage";
 import OpportunityDetails from "@/pages/crm/OpportunityDetails";
-import { CompaniesPage } from "@/features/companies/pages/CompaniesPage";
+import { CompaniesPage } from "@/pages/crm/companies/CompaniesPage";
 import { CompanyDetailsPage } from "@/features/companies/pages/CompanyDetailsPage";
 import { PeoplePage } from "@/pages/crm/people/PeoplePage";
 import { EditPersonPage } from "@/pages/crm/people/EditPersonPage";

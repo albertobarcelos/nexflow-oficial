@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CompanyQuickForm } from "./company-quick-form";
+import { QuickCompanyDialog } from "./QuickCompanyDialog";
 
 interface CompanySelectProps {
   value?: string;
@@ -18,6 +19,7 @@ export function CompanySelect({ value, onChange }: CompanySelectProps) {
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [quickDialogOpen, setQuickDialogOpen] = useState(false);
 
   const selectedCompany = companies?.find(company => company.id === value);
 
@@ -32,7 +34,7 @@ export function CompanySelect({ value, onChange }: CompanySelectProps) {
     setOpen(false);
   };
 
-  const filteredCompanies = companies?.filter(company => 
+  const filteredCompanies = companies?.filter(company =>
     company.name.toLowerCase().includes(search.toLowerCase()) ||
     (company.cnpj && company.cnpj.includes(search))
   ) || [];
@@ -61,30 +63,24 @@ export function CompanySelect({ value, onChange }: CompanySelectProps) {
         </PopoverTrigger>
         <PopoverContent className="w-[400px] p-0">
           <Command>
-            <CommandInput 
-              placeholder="Buscar empresa..." 
+            <CommandInput
+              placeholder="Buscar empresa..."
               value={search}
               onValueChange={setSearch}
             />
-            <CommandEmpty>
-              <div className="flex flex-col items-center justify-center py-6">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Nenhuma empresa encontrada
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setDialogOpen(true);
-                    setOpen(false);
-                  }}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar Nova Empresa
-                </Button>
-              </div>
-            </CommandEmpty>
             <CommandGroup>
+              <CommandItem
+                key="create-new-company"
+                value="nova-empresa"
+                onSelect={() => {
+                  setQuickDialogOpen(true);
+                  setOpen(false);
+                }}
+                className="text-primary font-semibold"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nova Empresa
+              </CommandItem>
               {filteredCompanies.map((company) => (
                 <CommandItem
                   key={company.id}
@@ -105,22 +101,26 @@ export function CompanySelect({ value, onChange }: CompanySelectProps) {
                   )}
                 </CommandItem>
               ))}
+              {filteredCompanies.length === 0 && !search.trim() && (
+                <CommandEmpty>
+                  <div className="flex flex-col items-center justify-center py-6">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Nenhuma empresa encontrada
+                    </p>
+                  </div>
+                </CommandEmpty>
+              )}
             </CommandGroup>
           </Command>
         </PopoverContent>
       </Popover>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Empresa</DialogTitle>
-          </DialogHeader>
-          <CompanyQuickForm
-            onSuccess={handleCompanyCreated}
-            initialName={search}
-          />
-        </DialogContent>
-      </Dialog>
+      <QuickCompanyDialog
+        open={quickDialogOpen}
+        onOpenChange={setQuickDialogOpen}
+        onCompanyCreated={handleCompanyCreated}
+        initialName={search}
+      />
     </>
   );
 }

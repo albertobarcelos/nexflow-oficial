@@ -57,7 +57,7 @@ export function AddPersonDialog({ open, onOpenChange }: AddPersonDialogProps) {
         ...data,
         company_id: selectedCompanyId || undefined,
       });
-      
+
       toast.success("Pessoa criada com sucesso!");
       handleClose();
     } catch (error) {
@@ -76,7 +76,7 @@ export function AddPersonDialog({ open, onOpenChange }: AddPersonDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[425px]" aria-describedby="dialog-description">
+      <DialogContent className="max-w-xl md:max-w-3xl w-full p-6 md:p-10 rounded-2xl max-h-[90vh] overflow-y-auto" aria-describedby="dialog-description">
         <DialogHeader>
           <DialogTitle>Nova Pessoa</DialogTitle>
           <p id="dialog-description" className="text-sm text-muted-foreground">
@@ -207,8 +207,8 @@ export function AddPersonDialog({ open, onOpenChange }: AddPersonDialogProps) {
 
             <div className="space-y-2">
               <FormLabel>Empresa</FormLabel>
-              <CompanySelect 
-                value={selectedCompanyId} 
+              <CompanySelect
+                value={selectedCompanyId}
                 onChange={setSelectedCompanyId}
               />
             </div>
@@ -220,9 +220,9 @@ export function AddPersonDialog({ open, onOpenChange }: AddPersonDialogProps) {
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Ex: Pessoa responsável por..." 
-                      {...field} 
+                    <Textarea
+                      placeholder="Ex: Pessoa responsável por..."
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
