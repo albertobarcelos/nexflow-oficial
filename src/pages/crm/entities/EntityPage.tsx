@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useEntity, useEntityRecords } from '@/hooks/useEntities';
+import { useEntity, useEntityRecords, useEntityFields } from '@/hooks/useEntities';
 import {
   Database,
   Plus,
@@ -59,6 +59,7 @@ const EntityPage: React.FC = () => {
 
   // Buscar dados da entidade
   const { data: entity, isLoading: entityLoading, error: entityError } = useEntity(id);
+  const { fields, isLoading: fieldsLoading, error: fieldsError } = useEntityFields(id);
   const {
     records,
     isLoading: recordsLoading,
@@ -99,7 +100,7 @@ const EntityPage: React.FC = () => {
   }
 
   // Descobrir campos do tipo select (single_select ou multi_select)
-  const typeFields = entity.fields?.filter((f: any) => f.field_type === 'single_select' || f.field_type === 'multi_select') || [];
+  const typeFields = fields?.filter((f: any) => f.field_type === 'single_select' || f.field_type === 'multi_select') || [];
 
   // Filtrar registros baseado na busca
   const filteredRecords = records.filter(record => {
@@ -345,7 +346,7 @@ const EntityPage: React.FC = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Título</TableHead>
-                      {entity.fields?.slice(0, 4).map((field) => (
+                      {fields?.slice(0, 4).map((field) => (
                         <TableHead key={field.id}>{field.name}</TableHead>
                       ))}
                       <TableHead>Criado em</TableHead>
@@ -358,7 +359,7 @@ const EntityPage: React.FC = () => {
                         <TableCell className="font-medium">
                           {record.title}
                         </TableCell>
-                        {entity.fields?.slice(0, 4).map((field) => (
+                        {fields?.slice(0, 4).map((field) => (
                           <TableCell key={field.id}>
                             {renderFieldValue(field, record.data[field.slug])}
                           </TableCell>
@@ -405,6 +406,7 @@ const EntityPage: React.FC = () => {
           open={showCreateRecord}
           onOpenChange={setShowCreateRecord}
           entity={entity}
+          fields={fields}
           onSave={handleCreateRecord}
           isLoading={isCreating}
         />
@@ -496,6 +498,7 @@ interface CreateRecordModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entity: any;
+  fields: any[];
   onSave: (data: any) => void;
   isLoading: boolean;
 }
@@ -504,6 +507,7 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
   open,
   onOpenChange,
   entity,
+  fields,
   onSave,
   isLoading
 }) => {
@@ -519,7 +523,7 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
     }
 
     // Validar campos obrigatórios
-    const missingFields = entity.fields?.filter((field: any) =>
+    const missingFields = fields?.filter((field: any) =>
       field.is_required && !formData.data[field.slug]
     ) || [];
 
@@ -541,6 +545,18 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
     }));
   };
 
+  if (!fields || fields.length === 0) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Carregando campos...</DialogTitle>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
@@ -558,7 +574,7 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
             />
           </div>
 
-          {entity.fields?.map((field: any) => (
+          {fields.map((field: any) => (
             <div key={field.id}>
               <label className="text-sm font-medium">
                 {field.name}

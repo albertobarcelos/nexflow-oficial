@@ -14,7 +14,6 @@ import {
   EntityWithFields,
   EntityRecordWithData,
 } from "@/types/entities";
-import { mockEntity, mockRecords } from "@/test/mockEntityData";
 
 // Hook principal para entidades
 export function useEntities() {
@@ -359,13 +358,7 @@ export function useEntity(entityId?: string) {
 
       const { data, error } = await supabase
         .from("web_entities")
-        .select(
-          `
-          *,
-          fields:web_entity_fields(*),
-          relationships:web_entity_relationships(*)
-        `
-        )
+        .select("*")
         .eq("id", entityId)
         .single();
 

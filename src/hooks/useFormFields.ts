@@ -90,7 +90,7 @@ export function useFormFields(flowId: string, formType: 'initial' | 'stage' = 'i
     queryKey: ['form-fields', flowId, formType, stageId],
     queryFn: async () => {
       let query = supabase
-        .from('web_form_fields')
+        .from('web_entity_fields')
         .select('*')
         .eq('flow_id', flowId)
         .eq('form_type', formType)
@@ -120,7 +120,7 @@ export function useFormFields(flowId: string, formType: 'initial' | 'stage' = 'i
       if (field.id.startsWith('field_')) {
         // Novo campo
         const { data, error } = await supabase
-          .from('web_form_fields')
+          .from('web_entity_fields')
           .insert(fieldData)
           .select()
           .single();
@@ -130,7 +130,7 @@ export function useFormFields(flowId: string, formType: 'initial' | 'stage' = 'i
       } else {
         // Campo existente
         const { data, error } = await supabase
-          .from('web_form_fields')
+          .from('web_entity_fields')
           .update(fieldData)
           .eq('id', field.id)
           .select()
@@ -154,7 +154,7 @@ export function useFormFields(flowId: string, formType: 'initial' | 'stage' = 'i
   const deleteFieldMutation = useMutation({
     mutationFn: async (fieldId: string) => {
       const { error } = await supabase
-        .from('web_form_fields')
+        .from('web_entity_fields')
         .delete()
         .eq('id', fieldId);
 
@@ -179,7 +179,7 @@ export function useFormFields(flowId: string, formType: 'initial' | 'stage' = 'i
       }));
 
       const { error } = await supabase
-        .from('web_form_fields')
+        .from('web_entity_fields')
         .upsert(updates);
 
       if (error) throw error;
