@@ -93,14 +93,14 @@ export function Home() {
         queryKey: ['entities', user?.client_id],
         queryFn: async () => {
             if (!user?.client_id) return [];
-            
+
             try {
                 // Buscar dados reais das tabelas existentes
                 const [companiesResult, peopleResult] = await Promise.all([
                     supabase.from('web_companies').select('*', { count: 'exact', head: true }),
                     supabase.from('web_people').select('*', { count: 'exact', head: true })
                 ]);
-                
+
                 // Dados das entidades baseados no que existe no banco
                 const realEntities = [
                     {
@@ -134,7 +134,7 @@ export function Home() {
                         table: 'web_partners'
                     }
                 ];
-                
+
                 return realEntities;
             } catch (err) {
                 console.error('Erro ao buscar dados das entidades:', err);
@@ -222,16 +222,16 @@ export function Home() {
                                     key={flow.id}
                                     className="bg-[#F1F3F9] rounded-xl p-4 md:p-6 cursor-pointer hover:bg-[#E9EBF1] min-h-[100px] md:min-h-[120px] relative group"
                                 >
-                                    <div 
+                                    <div
                                         className="space-y-1 md:space-y-2 h-full"
                                         onClick={() => navigate(`/crm/flow/${flow.id}`)}
                                     >
                                         <h3 className="text-xs md:text-sm font-medium line-clamp-2">{flow.name}</h3>
                                         <p className="text-xs text-gray-500 line-clamp-2 hidden sm:block">{flow.description || 'Sem descrição'}</p>
                                     </div>
-                                    
+
                                     {/* Botão de configuração */}
-                                    <div 
+                                    <div
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={(e) => e.stopPropagation()}
                                     >
@@ -251,25 +251,25 @@ export function Home() {
                             <Info className="w-4 h-4 text-gray-400" />
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                            <div 
+                            <div
                                 onClick={() => setShowEntityTemplates(true)}
                                 className="border border-orange-500 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-pointer hover:bg-orange-50/50 min-h-[100px] md:min-h-[120px]"
                             >
                                 <Plus className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
                                 <span className="text-orange-500 text-xs md:text-sm text-center">Criar Base</span>
                             </div>
-                            
+
                             {/* Entidades dinâmicas */}
                             {entities?.map((entity) => (
                                 <div
                                     key={entity.id}
                                     className="rounded-xl p-4 md:p-6 cursor-pointer hover:shadow-md transition-all min-h-[100px] md:min-h-[120px] relative overflow-hidden group"
-                                    style={{ 
+                                    style={{
                                         backgroundColor: `${entity.color}10`,
                                         borderLeft: `4px solid ${entity.color}`
                                     }}
                                 >
-                                    <div 
+                                    <div
                                         className="space-y-1 md:space-y-2 h-full"
                                         onClick={() => navigate(`/crm/entity/${entity.id}`)}
                                     >
@@ -286,9 +286,9 @@ export function Home() {
                                             {entity.count || 0} registros
                                         </p>
                                     </div>
-                                    
+
                                     {/* Botão de configuração */}
-                                    <div 
+                                    <div
                                         className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                         onClick={(e) => e.stopPropagation()}
                                     >

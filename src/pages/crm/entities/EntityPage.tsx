@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
 } from '@/components/ui/dialog';
-import { 
+import {
   Table,
   TableBody,
   TableCell,
@@ -20,13 +20,13 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEntity, useEntityRecords } from '@/hooks/useEntities';
-import { 
-  Database, 
-  Plus, 
-  Search, 
-  Filter, 
-  MoreHorizontal, 
-  Edit, 
+import {
+  Database,
+  Plus,
+  Search,
+  Filter,
+  MoreHorizontal,
+  Edit,
   Trash2,
   ArrowLeft,
   Settings,
@@ -41,26 +41,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Dialog as FilterDialog, DialogContent as FilterDialogContent, DialogHeader as FilterDialogHeader, DialogTitle as FilterDialogTitle, DialogFooter as FilterDialogFooter } from '@/components/ui/dialog';
+import { format, isWithinInterval, parseISO } from 'date-fns';
 
 const EntityPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateRecord, setShowCreateRecord] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterDate, setFilterDate] = useState<string | null>(null);
+  const [filterPeriod, setFilterPeriod] = useState<{ start: string; end: string } | null>(null);
+  const [filterType, setFilterType] = useState<string | null>(null);
 
   // Buscar dados da entidade
   const { data: entity, isLoading: entityLoading, error: entityError } = useEntity(id);
-  const { 
-    records, 
-    isLoading: recordsLoading, 
-    createRecord, 
-    updateRecord, 
+  const {
+    records,
+    isLoading: recordsLoading,
+    createRecord,
+    updateRecord,
     deleteRecord,
     isCreating,
-    isDeleting 
+    isDeleting
   } = useEntityRecords(id);
 
   if (entityLoading) {
@@ -80,9 +86,9 @@ const EntityPage: React.FC = () => {
         <div className="text-center">
           <Database className="w-8 h-8 mx-auto mb-4 text-red-400" />
           <p className="text-red-500">Erro ao carregar base de dados</p>
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/crm')} 
+          <Button
+            variant="outline"
+            onClick={() => navigate('/crm')}
             className="mt-4"
           >
             Voltar ao CRM
@@ -92,11 +98,42 @@ const EntityPage: React.FC = () => {
     );
   }
 
+  // Descobrir campos do tipo select (single_select ou multi_select)
+  const typeFields = entity.fields?.filter((f: any) => f.field_type === 'single_select' || f.field_type === 'multi_select') || [];
+
   // Filtrar registros baseado na busca
-  const filteredRecords = records.filter(record => 
-    record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    JSON.stringify(record.data).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRecords = records.filter(record => {
+    let match = true;
+    if (filterDate) {
+      const created = record.created_at ? format(new Date(record.created_at), 'yyyy-MM-dd') : '';
+      match = match && created === filterDate;
+    }
+    if (filterPeriod) {
+      const created = record.created_at ? parseISO(record.created_at) : null;
+      if (created) {
+        match = match && isWithinInterval(created, {
+          start: parseISO(filterPeriod.start),
+          end: parseISO(filterPeriod.end)
+        });
+      }
+    }
+    if (filterType && typeFields.length > 0) {
+      // Considera o primeiro campo select encontrado
+      const typeField = typeFields[0];
+      match = match && record.data[typeField.slug]?.toLowerCase().includes(filterType.toLowerCase());
+    } else if (filterType) {
+      // Se não houver campo select, busca em todos os campos string
+      match = match && Object.values(record.data).some(val =>
+        typeof val === 'string' && val.toLowerCase().includes(filterType.toLowerCase())
+      );
+    }
+    // Filtro de busca já existente
+    match = match && (
+      record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      JSON.stringify(record.data).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    return match;
+  });
 
   const handleCreateRecord = async (recordData: any) => {
     try {
@@ -106,7 +143,7 @@ const EntityPage: React.FC = () => {
         data: recordData.data,
         tags: recordData.tags || []
       });
-      
+
       toast.success("Registro criado com sucesso!");
       setShowCreateRecord(false);
     } catch (error: any) {
@@ -116,7 +153,7 @@ const EntityPage: React.FC = () => {
 
   const handleDeleteRecord = async () => {
     if (!selectedRecord) return;
-    
+
     try {
       await deleteRecord(selectedRecord.id);
       toast.success("Registro excluído com sucesso!");
@@ -147,34 +184,34 @@ const EntityPage: React.FC = () => {
   // Renderizar valor do campo baseado no tipo
   const renderFieldValue = (field: any, value: any) => {
     if (!value && value !== 0) return '-';
-    
+
     switch (field.field_type) {
       case 'currency':
         return new Intl.NumberFormat('pt-BR', {
           style: 'currency',
           currency: 'BRL'
         }).format(value);
-      
+
       case 'date':
         return new Date(value).toLocaleDateString('pt-BR');
-      
+
       case 'datetime':
         return new Date(value).toLocaleString('pt-BR');
-      
+
       case 'checkbox':
         return value ? '✅' : '❌';
-      
+
       case 'email':
         return <a href={`mailto:${value}`} className="text-blue-600 hover:underline">{value}</a>;
-      
+
       case 'phone':
         return <a href={`tel:${value}`} className="text-blue-600 hover:underline">{value}</a>;
-      
+
       case 'url':
         return <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
           {value}
         </a>;
-      
+
       default:
         return String(value).substring(0, 50) + (String(value).length > 50 ? '...' : '');
     }
@@ -186,8 +223,8 @@ const EntityPage: React.FC = () => {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-4 mb-4">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => navigate('/crm')}
               className="flex items-center gap-2"
@@ -195,9 +232,9 @@ const EntityPage: React.FC = () => {
               <ArrowLeft className="w-4 h-4" />
               Voltar
             </Button>
-            
+
             <div className="flex items-center gap-3">
-              <div 
+              <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
                 style={{ backgroundColor: `${entity.color}20` }}
               >
@@ -253,7 +290,7 @@ const EntityPage: React.FC = () => {
                 <div className="text-2xl font-bold">{records.length}</div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">
@@ -264,7 +301,7 @@ const EntityPage: React.FC = () => {
                 <div className="text-2xl font-bold">{entity.fields?.length || 0}</div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">
@@ -277,7 +314,7 @@ const EntityPage: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600">
@@ -297,7 +334,11 @@ const EntityPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-1">
-              <div className="relative flex-1 max-w-md">
+              <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)}>
+                <Filter className="w-4 h-4 mr-2" />
+                Filtros
+              </Button>
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Buscar registros..."
@@ -306,14 +347,11 @@ const EntityPage: React.FC = () => {
                   className="pl-10"
                 />
               </div>
-              
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filtros
-              </Button>
+
+
             </div>
-            
-            <Button 
+
+            <Button
               onClick={() => setShowCreateRecord(true)}
               className="bg-orange-500 hover:bg-orange-600"
             >
@@ -391,7 +429,7 @@ const EntityPage: React.FC = () => {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 className="text-red-600"
                                 onClick={() => {
                                   setSelectedRecord(record);
@@ -436,8 +474,8 @@ const EntityPage: React.FC = () => {
               <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>
                 Cancelar
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={handleDeleteRecord}
                 disabled={isDeleting}
               >
@@ -446,6 +484,59 @@ const EntityPage: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Modal de Filtros */}
+        <FilterDialog open={showFilterModal} onOpenChange={setShowFilterModal}>
+          <FilterDialogContent>
+            <FilterDialogHeader>
+              <FilterDialogTitle>Filtros Avançados</FilterDialogTitle>
+            </FilterDialogHeader>
+            <div className="space-y-4 py-2">
+              <div>
+                <label className="text-sm font-medium">Data específica</label>
+                <Input type="date" value={filterDate || ''} onChange={e => setFilterDate(e.target.value || null)} />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-sm font-medium">Período - Início</label>
+                  <Input type="date" value={filterPeriod?.start || ''} onChange={e => setFilterPeriod(p => ({ start: e.target.value, end: p?.end || '' }))} />
+                </div>
+                <div className="flex-1">
+                  <label className="text-sm font-medium">Período - Fim</label>
+                  <Input type="date" value={filterPeriod?.end || ''} onChange={e => setFilterPeriod(p => ({ start: p?.start || '', end: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Tipo</label>
+                {typeFields.length > 0 ? (
+                  <select
+                    className="w-full border rounded-md p-2 mt-1"
+                    value={filterType || ''}
+                    onChange={e => setFilterType(e.target.value || null)}
+                  >
+                    <option value="">Todos</option>
+                    {/* Considera o primeiro campo select encontrado */}
+                    {typeFields[0].options?.map((opt: string) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <Input
+                    placeholder="Digite o tipo..."
+                    value={filterType || ''}
+                    onChange={e => setFilterType(e.target.value)}
+                  />
+                )}
+              </div>
+            </div>
+            <FilterDialogFooter>
+              <Button variant="ghost" onClick={() => {
+                setFilterDate(null); setFilterPeriod(null); setFilterType(null); setShowFilterModal(false);
+              }}>Limpar</Button>
+              <Button onClick={() => setShowFilterModal(false)}>Aplicar</Button>
+            </FilterDialogFooter>
+          </FilterDialogContent>
+        </FilterDialog>
       </div>
     </div>
   );
@@ -479,7 +570,7 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
     }
 
     // Validar campos obrigatórios
-    const missingFields = entity.fields?.filter((field: any) => 
+    const missingFields = entity.fields?.filter((field: any) =>
       field.is_required && !formData.data[field.slug]
     ) || [];
 
@@ -507,7 +598,7 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
         <DialogHeader>
           <DialogTitle>Novo Registro - {entity.name}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4 py-4">
           <div>
             <label className="text-sm font-medium">Título *</label>
@@ -524,7 +615,7 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
                 {field.name}
                 {field.is_required && <span className="text-red-500 ml-1">*</span>}
               </label>
-              
+
               {field.field_type === 'long_text' ? (
                 <textarea
                   className="w-full mt-1 p-2 border rounded-md"
@@ -545,11 +636,11 @@ const CreateRecordModal: React.FC<CreateRecordModalProps> = ({
                 </div>
               ) : (
                 <Input
-                  type={field.field_type === 'number' ? 'number' : 
-                        field.field_type === 'date' ? 'date' :
-                        field.field_type === 'datetime' ? 'datetime-local' :
+                  type={field.field_type === 'number' ? 'number' :
+                    field.field_type === 'date' ? 'date' :
+                      field.field_type === 'datetime' ? 'datetime-local' :
                         field.field_type === 'email' ? 'email' :
-                        field.field_type === 'url' ? 'url' : 'text'}
+                          field.field_type === 'url' ? 'url' : 'text'}
                   value={formData.data[field.slug] || ''}
                   onChange={(e) => updateFieldValue(field.slug, e.target.value)}
                   placeholder={field.description}
