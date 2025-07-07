@@ -221,7 +221,7 @@ const EntityPage: React.FC = () => {
     <div className="min-h-screen bg-[#f8faff] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4">
           <div className="flex items-center gap-4 mb-4">
             <Button
               variant="ghost"
@@ -256,7 +256,7 @@ const EntityPage: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate(`/crm/entity/${entity.id}/settings`)}>
                     <Settings className="w-4 h-4 mr-2" />
                     Configurações
                   </DropdownMenuItem>
@@ -277,61 +277,10 @@ const EntityPage: React.FC = () => {
               </DropdownMenu>
             </div>
           </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Total de Registros
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{records.length}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Campos Configurados
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{entity.fields?.length || 0}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Criado em
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm">
-                  {new Date(entity.created_at).toLocaleDateString('pt-BR')}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">
-                  Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Badge variant="outline" className="text-green-600 border-green-600">
-                  Ativo
-                </Badge>
-              </CardContent>
-            </Card>
-          </div>
         </div>
 
         {/* Toolbar */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-1">
               <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)}>

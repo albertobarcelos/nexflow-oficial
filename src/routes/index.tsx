@@ -31,6 +31,7 @@ import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import NewEntitySettings from "@/pages/crm/entities/NewEntitySettings";
 import EntityPage from "@/pages/crm/entities/EntityPage";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
+import EntitySettings from '@/pages/crm/entities/EntitySettings';
 
 // Páginas temporárias
 const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -172,6 +173,10 @@ export const router = createBrowserRouter([
       {
         path: "entity/new/settings",
         element: <NewEntitySettings />
+      },
+      {
+        path: "entity/:id/settings",
+        element: <EntitySettings />,
       },
     ],
   },

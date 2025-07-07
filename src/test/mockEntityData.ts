@@ -1,0 +1,106 @@
+// Mock de entidade e registros para EntityPage
+
+export const mockEntity = {
+  id: "entity-1",
+  name: "Clientes",
+  description: "Base de clientes cadastrados",
+  color: "#FF9800",
+  icon: "users",
+  created_at: "2024-01-01T12:00:00Z",
+  fields: [
+    {
+      id: "f1",
+      name: "E-mail",
+      slug: "email",
+      field_type: "email",
+      is_required: true,
+      description: "E-mail principal do cliente",
+    },
+    {
+      id: "f2",
+      name: "Telefone",
+      slug: "phone",
+      field_type: "phone",
+      is_required: false,
+      description: "Telefone de contato",
+    },
+    {
+      id: "f3",
+      name: "Status",
+      slug: "status",
+      field_type: "single_select",
+      is_required: true,
+      options: ["Ativo", "Inativo", "Pendente"],
+      description: "Status do cliente",
+    },
+    {
+      id: "f4",
+      name: "Data de Cadastro",
+      slug: "signup_date",
+      field_type: "date",
+      is_required: false,
+      description: "Quando o cliente foi cadastrado",
+    },
+    {
+      id: "f5",
+      name: "Valor Contrato",
+      slug: "contract_value",
+      field_type: "currency",
+      is_required: false,
+      description: "Valor do contrato",
+    },
+    {
+      id: "f6",
+      name: "Observações",
+      slug: "notes",
+      field_type: "long_text",
+      is_required: false,
+      description: "Observações gerais",
+    },
+  ],
+};
+
+export const mockRecords = [
+  {
+    id: "r1",
+    title: "Acme Ltda",
+    created_at: "2024-04-01T10:00:00Z",
+    data: {
+      email: "contato@acme.com",
+      phone: "+5511999999999",
+      status: "Ativo",
+      signup_date: "2024-03-15",
+      contract_value: 15000,
+      notes: "Cliente importante, renovar em julho.",
+    },
+    tags: ["vip"],
+  },
+  {
+    id: "r2",
+    title: "Beta Corp",
+    created_at: "2024-04-02T11:30:00Z",
+    data: {
+      email: "beta@corp.com",
+      phone: "+5511888888888",
+      status: "Pendente",
+      signup_date: "2024-03-20",
+      contract_value: 8000,
+      notes: "Aguardando documentação.",
+    },
+    tags: [],
+  },
+  {
+    id: "r3",
+    title: "Gamma S/A",
+    created_at: "2024-04-03T09:15:00Z",
+    data: {
+      email: "gamma@sa.com",
+      phone: "+5511777777777",
+      status: "Inativo",
+      signup_date: "2023-12-10",
+      contract_value: 0,
+      notes: "Contrato encerrado.",
+    },
+    tags: ["ex"],
+  },
+];

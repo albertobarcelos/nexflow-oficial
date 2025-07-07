@@ -258,7 +258,18 @@ export function Home() {
                                 <Plus className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
                                 <span className="text-orange-500 text-xs md:text-sm text-center">Criar Base</span>
                             </div>
-
+                            {/* Link para EntityPage de mock, só em dev */}
+                            {process.env.NODE_ENV === 'development' && (
+                                <Button
+                                    variant="outline"
+                                    className="rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 min-h-[100px] md:min-h-[120px] border border-blue-400 text-blue-700 hover:bg-blue-50"
+                                    onClick={() => navigate('/crm/entity/mock')}
+                                    style={{ gridColumn: 'auto' }}
+                                >
+                                    <span className="text-lg">🧪</span>
+                                    <span className="text-xs md:text-sm text-center">Abrir Mock EntityPage</span>
+                                </Button>
+                            )}
                             {/* Entidades dinâmicas */}
                             {entities?.map((entity) => (
                                 <div
