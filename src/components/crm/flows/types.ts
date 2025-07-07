@@ -2,10 +2,16 @@ export interface MockDeal {
   id: string;
   title: string;
   value?: number;
+  description?: string;
+  expected_close_date?: string;
   company_id?: string;
   person_id?: string;
   stage_id: string;
   position: number;
+  entity_type?: "company" | "person" | "partner";
+  category_id?: string;
+  origin_id?: string;
+  origin_name?: string;
   created_at: string;
   updated_at?: string;
   tags?: string[];
@@ -15,6 +21,16 @@ export interface MockDeal {
   probability?: number;
   notes?: string;
   last_activity?: string;
+  
+  companies?: { name: string };
+  people?: { name: string };
+  responsible?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    avatar_url?: string;
+  };
 }
 
 export interface Stage {

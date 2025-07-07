@@ -1,25 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import {
   Plus,
   Search,
   RefreshCcw,
-  Download,
   Settings,
   Menu,
   LayoutGrid,
   List,
   TrendingUp,
-  Target
+  Target,
+  Filter,
+  Calendar,
+  X
 } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AddDealDialog } from "@/components/crm/flows/AddDealDialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  TooltipProvider
-} from "@/components/ui/tooltip";
 import { DealViewDialog } from "@/components/crm/deals/DealViewDialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -34,10 +32,55 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase, WebDeal, WebDealInsert } from "@/lib/supabase";
 import { useVirtualPagination } from "@/hooks/useVirtualPagination";
 import { DragEndEvent } from "@dnd-kit/core";
+import { format, subDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { createPortal } from "react-dom";
+import { FormBuilderModal } from "@/components/crm/flows/FormBuilderModal";
 
 interface Filter {
   searchTerm: string;
+  dateFilter: DateFilter;
 }
+
+// 🚀 NOVOS TIPOS: Filtros de data para vendas
+interface DateFilter {
+  type: 'created_at' | 'updated_at' | 'last_activity' | 'expected_close_date' | 'closed_at';
+  range: 'all' | 'today' | 'week' | 'month' | 'quarter' | 'year' | 'custom' | 'last_90_days';
+  startDate?: Date;
+  endDate?: Date;
+}
+
+// 🚀 FUNÇÃO PARA ADICIONAR ESTILOS CSS GLOBAIS PARA Z-INDEX DOS DROPDOWNS
+const addGlobalSelectStyles = () => {
+  if (typeof document === 'undefined') return;
+  
+  const existingStyle = document.getElementById('select-dropdown-zindex');
+  if (existingStyle) return;
+  
+  const style = document.createElement('style');
+  style.id = 'select-dropdown-zindex';
+  style.innerHTML = `
+    /* Força z-index alto para dropdowns do Radix UI */
+    [data-radix-portal] {
+      z-index: 999999 !important;
+    }
+    
+    [data-radix-popper-content-wrapper] {
+      z-index: 999999 !important;
+    }
+    
+    .select-dropdown-content {
+      z-index: 999999 !important;
+    }
+    
+    /* Força z-index para todos os portals do Radix */
+    [data-radix-select-content] {
+      z-index: 999999 !important;
+    }
+  `;
+  
+  document.head.appendChild(style);
+};
 
 type ViewMode = 'kanban' | 'list';
 
@@ -55,7 +98,9 @@ type StageData = {
 
 // Função para buscar os detalhes de um Flow
 const getFlowDetails = async (flowId: string): Promise<FlowData> => {
+  if (process.env.NODE_ENV === 'development') {
   console.log('🔍 Buscando detalhes do flow:', flowId);
+  }
   
   // Primeiro busca o client_id do usuário
   const { data: { user } } = await supabase.auth.getUser();
@@ -88,13 +133,17 @@ const getFlowDetails = async (flowId: string): Promise<FlowData> => {
     throw new Error('Flow não encontrado ou sem permissão');
   }
 
+  if (process.env.NODE_ENV === 'development') {
   console.log('✅ Flow encontrado:', data);
+  }
   return data;
 };
 
 // Função para buscar as etapas de um Flow
 const getFlowStages = async (flowId: string): Promise<StageData[]> => {
+  if (process.env.NODE_ENV === 'development') {
   console.log('🔍 Buscando etapas do flow:', flowId);
+  }
   const { data, error } = await supabase
     .from('web_flow_stages')
     .select('id, name, order_index')
@@ -104,7 +153,9 @@ const getFlowStages = async (flowId: string): Promise<StageData[]> => {
     console.error('❌ Erro ao buscar etapas:', error);
     throw new Error(error.message);
   }
+  if (process.env.NODE_ENV === 'development') {
   console.log('✅ Etapas encontradas:', data);
+  }
   return data;
 };
 
@@ -185,14 +236,14 @@ const getTotalDealsCount = async (flowId: string): Promise<number> => {
   return count || 0;
 };
 
-// Função OTIMIZADA para buscar deals com paginação + SEGURANÇA EXTRA
-const getDealsByFlowPaginated = async (
+// 🚀 FUNÇÃO SIMPLIFICADA: Buscar deals com paginação simples
+const getDealsByFlow = async (
   flowId: string, 
   { page, limit }: { page: number; limit: number }
 ): Promise<WebDeal[]> => {
-  console.log(`🔍 Buscando deals do flow (página ${page}, limite ${limit}):`, flowId);
-  
-  const offset = page * limit;
+  if (process.env.NODE_ENV === 'development') {
+  console.log(`🔍 Buscando deals simples (página ${page}, limite ${limit})`);
+  }
   
   // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
   const { data: { user } } = await supabase.auth.getUser();
@@ -210,66 +261,735 @@ const getDealsByFlowPaginated = async (
     throw new Error('Usuário sem cliente associado');
   }
 
-  // 1. Busca os deals com paginação + FILTRO EXPLÍCITO DE SEGURANÇA
-  const { data: baseDeals, error } = await supabase
+  const offset = page * limit;
+  
+  // 🚀 QUERY SIMPLES: Apenas os campos essenciais
+  const { data: deals, error } = await supabase
     .from('web_deals')
-    .select('*')
+    .select(`
+      id,
+      title,
+      value,
+      stage_id,
+      position,
+      temperature,
+      tags,
+      created_at,
+      last_activity,
+      probability,
+      responsible_id,
+      responsible_name,
+      flow_id,
+      client_id,
+      companies:company_id(id, name),
+      people:person_id(id, name)
+    `)
     .eq('flow_id', flowId)
-    .eq('client_id', clientUser.client_id) // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
+    .eq('client_id', clientUser.client_id)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
   if (error) {
     console.error('❌ Erro ao buscar deals:', error);
-    throw new Error(error.message);
+    throw error;
   }
 
-  if (!baseDeals || baseDeals.length === 0) {
-    console.log('✅ Nenhum deal encontrado para esta página');
-    return [];
+  if (process.env.NODE_ENV === 'development') {
+  console.log(`✅ ${deals?.length || 0} deals carregados`);
   }
+  return deals || [];
+};
 
-  // 2. Coleta os IDs para enriquecimento
-  const companyIds = [...new Set(baseDeals.map(d => d.company_id).filter(Boolean))];
-  const personIds = [...new Set(baseDeals.map(d => d.person_id).filter(Boolean))];
+// NOVA FUNÇÃO: Buscar deals de um stage específico
+const getDealsByStage = async (
+  flowId: string,
+  stageId: string,
+  { page, limit }: { page: number; limit: number }
+): Promise<WebDeal[]> => {
+  return getDealsByFlow(flowId, { page, limit });
+};
 
-  if (companyIds.length === 0 && personIds.length === 0) {
-    console.log('✅ Deals sem empresas/pessoas associadas');
-    return baseDeals;
+// 🚀 NOVA FUNÇÃO OTIMIZADA: Buscar contagem real de deals por etapa (SEMPRE DO BANCO)
+const getStageDealsCount = async (
+  flowId: string, 
+  dateFilter?: DateFilter
+): Promise<Record<string, number>> => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔢 Buscando contagem REAL de deals por etapa (sempre do banco):', flowId);
   }
   
-  // 3. Busca os dados de enriquecimento em paralelo (também com filtro de segurança)
-  const [companiesRes, peopleRes] = await Promise.all([
-    companyIds.length > 0 ? supabase
-      .from('web_companies')
-      .select('id, name')
-      .in('id', companyIds)
-      .eq('client_id', clientUser.client_id) // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
-      : Promise.resolve({ data: [], error: null }),
-    personIds.length > 0 ? supabase
-      .from('web_people')
-      .select('id, name')
-      .in('id', personIds)
-      .eq('client_id', clientUser.client_id) // 🔐 FILTRO EXPLÍCITO DE SEGURANÇA
-      : Promise.resolve({ data: [], error: null })
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  // 🚀 PRIMEIRA QUERY: Buscar todas as etapas do flow
+  const { data: stages, error: stagesError } = await supabase
+    .from('web_flow_stages')
+    .select('id, name, order_index')
+    .eq('flow_id', flowId)
+    .eq('client_id', clientUser.client_id)
+    .order('order_index');
+
+  if (stagesError) {
+    console.error('❌ Erro ao buscar etapas:', stagesError);
+    throw stagesError;
+  }
+
+  // 🚀 CONTAR DEALS POR ETAPA USANDO SUBQUERIES (EVITA LEFT JOIN)
+  const stageCount: Record<string, number> = {};
+  
+  if (stages && stages.length > 0) {
+    await Promise.all(
+      stages.map(async (stage) => {
+        let query = supabase
+          .from('web_deals')
+          .select('*', { count: 'exact', head: true })
+          .eq('stage_id', stage.id)
+          .eq('client_id', clientUser.client_id)
+          .eq('flow_id', flowId);
+
+        // 🚀 APLICAR FILTRO DE DATA se fornecido
+        if (dateFilter && dateFilter.range !== 'all') {
+          const now = new Date();
+          let startDate: Date | null = null;
+
+          switch (dateFilter.range) {
+            case 'today':
+              startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              break;
+            case 'week':
+              startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              break;
+            case 'month':
+              startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+              break;
+            case 'quarter':
+              startDate = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+              break;
+            case 'year':
+              startDate = new Date(now.getFullYear(), 0, 1);
+              break;
+            case 'last_90_days':
+              startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+              break;
+            case 'custom':
+              if (dateFilter.startDate) {
+                startDate = dateFilter.startDate;
+              }
+              break;
+          }
+
+          if (startDate) {
+            query = query.gte(dateFilter.type, startDate.toISOString());
+          }
+
+          if (dateFilter.range === 'custom' && dateFilter.endDate) {
+            query = query.lte(dateFilter.type, dateFilter.endDate.toISOString());
+          }
+        }
+
+        const { count, error } = await query;
+
+        if (error) {
+          console.error(`❌ Erro ao contar deals da etapa ${stage.name}:`, error);
+          stageCount[stage.id] = 0;
+        } else {
+          stageCount[stage.id] = count || 0;
+        }
+      })
+    );
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('✅ Contagem de deals por etapa:', stageCount);
+  }
+
+  return stageCount;
+};
+
+// 🚀 NOVA FUNÇÃO: Calcular intervalo de datas baseado no filtro
+const getDateRange = (dateFilter: DateFilter): { startDate: Date; endDate: Date } => {
+  const now = new Date();
+  let startDate: Date;
+  let endDate: Date = now;
+
+  switch (dateFilter.range) {
+    case 'today':
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      break;
+    case 'week':
+      startDate = subDays(now, 7);
+      break;
+    case 'month':
+      startDate = startOfMonth(now);
+      endDate = endOfMonth(now);
+      break;
+    case 'quarter':
+      startDate = subMonths(now, 3);
+      break;
+    case 'year':
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      break;
+    case 'last_90_days':
+      startDate = subDays(now, 90);
+      console.log('📅 Filtro últimos 90 dias:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+      break;
+    case 'custom':
+      startDate = dateFilter.startDate || subDays(now, 30);
+      endDate = dateFilter.endDate || now;
+      break;
+    default:
+      startDate = subDays(now, 30);
+  }
+
+  return { startDate, endDate };
+};
+
+// 🚀 NOVA FUNÇÃO OTIMIZADA: Buscar deals específicos de uma etapa com paginação
+const getDealsByStageWithPagination = async (
+  flowId: string,
+  stageId: string,
+  { page, limit }: { page: number; limit: number }
+): Promise<WebDeal[]> => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 Buscando deals da etapa ${stageId} (página ${page}, limite ${limit})`);
+  }
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  const offset = page * limit;
+  
+  // 🚀 QUERY OTIMIZADA: Buscar apenas deals de uma etapa específica
+  const { data: deals, error } = await supabase
+    .from('web_deals')
+    .select(`
+      id,
+      title,
+      value,
+      stage_id,
+      position,
+      temperature,
+      tags,
+      created_at,
+      last_activity,
+      probability,
+      responsible_id,
+      responsible_name,
+      flow_id,
+      client_id,
+      companies:company_id(id, name),
+      people:person_id(id, name),
+      responsible:responsible_id(id, first_name, last_name, avatar_url)
+    `)
+    .eq('flow_id', flowId)
+    .eq('stage_id', stageId)
+    .eq('client_id', clientUser.client_id)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('❌ Erro ao buscar deals da etapa:', error);
+    throw error;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`✅ ${deals?.length || 0} deals carregados da etapa ${stageId}`);
+  }
+
+  return deals || [];
+};
+
+// 🚀 NOVA FUNÇÃO OTIMIZADA: Buscar resumo completo do flow (contagens + amostra de deals)
+const getFlowSummary = async (flowId: string): Promise<{
+  stageDealsCount: Record<string, number>;
+  totalDealsCount: number;
+  recentDeals: WebDeal[]; // Últimos 20 deals para exibição inicial
+}> => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🚀 Buscando resumo completo do flow:', flowId);
+  }
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  // 🚀 QUERY PARALELA: Buscar contagem e deals recentes em paralelo
+  const [countResult, recentDealsResult] = await Promise.all([
+    // Contagem por etapa
+    supabase
+      .from('web_deals')
+      .select('stage_id')
+      .eq('flow_id', flowId)
+      .eq('client_id', clientUser.client_id),
+    
+    // Deals recentes para exibição inicial
+    supabase
+    .from('web_deals')
+    .select(`
+      id,
+      title,
+      value,
+      stage_id,
+      position,
+      temperature,
+      tags,
+      created_at,
+      last_activity,
+      probability,
+      responsible_id,
+      responsible_name,
+      flow_id,
+      client_id,
+        companies:company_id(id, name),
+        people:person_id(id, name),
+        responsible:responsible_id(id, first_name, last_name, avatar_url)
+    `)
+    .eq('flow_id', flowId)
+    .eq('client_id', clientUser.client_id)
+      .order('created_at', { ascending: false })
+      .limit(20)
   ]);
 
-  if (companiesRes.error) console.error("Erro ao buscar empresas:", companiesRes.error);
-  if (peopleRes.error) console.error("Erro ao buscar pessoas:", peopleRes.error);
+  if (countResult.error) {
+    console.error('❌ Erro ao buscar contagem:', countResult.error);
+    throw countResult.error;
+  }
 
-  const companiesMap = new Map(companiesRes.data?.map(c => [c.id, c.name]));
-  const peopleMap = new Map(peopleRes.data?.map(p => [p.id, p.name]));
+  if (recentDealsResult.error) {
+    console.error('❌ Erro ao buscar deals recentes:', recentDealsResult.error);
+    throw recentDealsResult.error;
+  }
+
+  // 🚀 PROCESSAMENTO EM MEMÓRIA: Contar deals por etapa
+  const stageDealsCount: Record<string, number> = {};
+  if (countResult.data) {
+    countResult.data.forEach(deal => {
+    stageDealsCount[deal.stage_id] = (stageDealsCount[deal.stage_id] || 0) + 1;
+  });
+  }
+
+  const totalDealsCount = countResult.data?.length || 0;
+  const recentDeals = recentDealsResult.data || [];
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('✅ Resumo do flow:', {
+      totalDealsCount,
+    stagesCounts: Object.keys(stageDealsCount).length,
+      recentDealsCount: recentDeals.length
+  });
+  }
+
+  return {
+    stageDealsCount,
+    totalDealsCount,
+    recentDeals
+  };
+};
+
+// 🚀 NOVA FUNÇÃO OTIMIZADA: Buscar todos os deals de uma etapa (para kanban)
+const getAllDealsByStage = async (
+  flowId: string,
+  stageId: string
+): Promise<WebDeal[]> => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 Buscando TODOS os deals da etapa ${stageId}`);
+  }
   
-  // 4. Mapeia os dados de volta para os deals
-  const enrichedDeals = baseDeals.map(deal => ({
-    ...deal,
-    // Adiciona os objetos aninhados que o resto do componente espera
-    companies: deal.company_id ? { name: companiesMap.get(deal.company_id) || 'N/A' } : null,
-    people: deal.person_id ? { name: peopleMap.get(deal.person_id) || 'N/A' } : null,
-  }));
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
 
-  console.log(`✅ ${enrichedDeals.length} deals enriquecidos para a página ${page}`);
-  return enrichedDeals;
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  // 🚀 QUERY OTIMIZADA: Buscar todos os deals de uma etapa específica
+  const { data: deals, error } = await supabase
+    .from('web_deals')
+    .select(`
+      id,
+      title,
+      value,
+      stage_id,
+      position,
+      temperature,
+      tags,
+      created_at,
+      last_activity,
+      probability,
+      responsible_id,
+      responsible_name,
+      flow_id,
+      client_id,
+      companies:company_id(id, name),
+      people:person_id(id, name),
+      responsible:responsible_id(id, first_name, last_name, avatar_url)
+    `)
+    .eq('flow_id', flowId)
+    .eq('stage_id', stageId)
+    .eq('client_id', clientUser.client_id)
+    .order('position', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('❌ Erro ao buscar todos os deals da etapa:', error);
+    throw error;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`✅ ${deals?.length || 0} deals carregados da etapa ${stageId}`);
+  }
+
+  return deals || [];
+};
+
+// 🚀 FUNÇÃO OTIMIZADA: Paginação inteligente usando RPC do Supabase
+const getDealsPageOptimized = async (
+  flowId: string,
+  page: number,
+  limit: number
+): Promise<WebDeal[]> => {
+  console.log(`🚀 PAGINAÇÃO OTIMIZADA: Página ${page}, limite ${limit}`);
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  const offset = page * limit;
+  
+  // 🚀 QUERY OTIMIZADA: Apenas campos essenciais para paginação
+  const { data: deals, error } = await supabase
+    .from('web_deals')
+    .select(`
+      id,
+      title,
+      value,
+      stage_id,
+      position,
+      temperature,
+      tags,
+      created_at,
+      last_activity,
+      probability,
+      responsible_id,
+      responsible_name,
+      flow_id,
+      client_id,
+      companies:company_id(id, name),
+      people:person_id(id, name),
+      responsible:responsible_id(id, first_name, last_name, avatar_url)
+    `)
+    .eq('flow_id', flowId)
+    .eq('client_id', clientUser.client_id)
+    .order('stage_id', { ascending: true })
+    .order('position', { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('❌ Erro na paginação otimizada:', error);
+    throw error;
+  }
+
+  console.log(`✅ PAGINAÇÃO OTIMIZADA: ${deals?.length || 0} deals carregados`);
+  return deals || [];
+};
+
+// 🚀 NOVA FUNÇÃO: Buscar deals com filtros de data aplicados
+const getDealsByFlowWithFilters = async (
+  flowId: string, 
+  { page, limit }: { page: number; limit: number },
+  dateFilter?: DateFilter
+): Promise<WebDeal[]> => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 Buscando deals com filtros (página ${page}, limite ${limit})`, { dateFilter });
+  }
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  const offset = page * limit;
+  
+  // 🚀 QUERY COM FILTROS: Aplicar filtros de data
+  let query = supabase
+    .from('web_deals')
+    .select(`
+      id,
+      title,
+      value,
+      stage_id,
+      position,
+      temperature,
+      tags,
+      created_at,
+      last_activity,
+      probability,
+      responsible_id,
+      responsible_name,
+      flow_id,
+      client_id,
+      companies:company_id(id, name),
+      people:person_id(id, name)
+    `)
+    .eq('flow_id', flowId)
+    .eq('client_id', clientUser.client_id);
+
+  // 🚀 APLICAR FILTROS DE DATA se fornecidos
+  if (dateFilter && dateFilter.range !== 'all') {
+    const { startDate, endDate } = getDateRange(dateFilter);
+    if (startDate && endDate) {
+      console.log(`📅 Aplicando filtro de data: ${dateFilter.type} entre ${startDate.toISOString()} e ${endDate.toISOString()}`);
+      query = query
+        .gte(dateFilter.type, startDate.toISOString())
+        .lte(dateFilter.type, endDate.toISOString());
+    }
+  } else {
+    console.log('📅 Sem filtros de data aplicados - retornando todos os deals');
+  }
+
+  const { data: deals, error } = await query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    console.error('❌ Erro ao buscar deals com filtros:', error);
+    throw error;
+  }
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`✅ ${deals?.length || 0} deals carregados com filtros (página ${page})`);
+    if (deals && deals.length > 0) {
+      console.log('📊 Primeiro deal:', {
+        id: deals[0].id,
+        title: deals[0].title,
+        created_at: deals[0].created_at,
+        stage_id: deals[0].stage_id
+      });
+    }
+  }
+  return deals || [];
+};
+
+// 🚀 NOVA FUNÇÃO: Buscar resumo do flow com filtros de data
+const getFlowSummaryWithFilters = async (
+  flowId: string, 
+  dateFilter?: DateFilter
+): Promise<{
+  stageDealsCount: Record<string, number>;
+  totalDealsCount: number;
+  recentDeals: WebDeal[];
+}> => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🚀 Buscando resumo do flow com filtros:', { flowId, dateFilter });
+  }
+  
+  // 🔐 SEGURANÇA: Obter client_id do usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('Usuário não autenticado');
+  }
+
+  const { data: clientUser } = await supabase
+    .from('core_client_users')
+    .select('client_id')
+    .eq('id', user.id)
+    .single();
+
+  if (!clientUser) {
+    throw new Error('Usuário sem cliente associado');
+  }
+
+  // 🚀 QUERY BASE: Filtros aplicados
+  let baseQuery = supabase
+    .from('web_deals')
+    .eq('flow_id', flowId)
+    .eq('client_id', clientUser.client_id);
+
+  // 🚀 APLICAR FILTROS DE DATA se fornecidos
+  if (dateFilter && dateFilter.range !== 'all') {
+    const { startDate, endDate } = getDateRange(dateFilter);
+    if (startDate && endDate) {
+      baseQuery = baseQuery
+        .gte(dateFilter.type, startDate.toISOString())
+        .lte(dateFilter.type, endDate.toISOString());
+    }
+  }
+
+  // 🚀 QUERY PARALELA: Contagem e deals recentes com filtros
+  const [countResult, recentDealsResult] = await Promise.all([
+    // Contagem por etapa com filtros
+    baseQuery.select('stage_id'),
+    
+    // Deals recentes com filtros
+    baseQuery
+      .select(`
+        id,
+        title,
+        value,
+        stage_id,
+        position,
+        temperature,
+        tags,
+        created_at,
+        last_activity,
+        probability,
+        responsible_id,
+        responsible_name,
+        flow_id,
+        client_id,
+        companies:company_id(id, name),
+        people:person_id(id, name),
+        responsible:responsible_id(id, first_name, last_name, avatar_url)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(20)
+  ]);
+
+  if (countResult.error) {
+    console.error('❌ Erro ao buscar contagem com filtros:', countResult.error);
+    throw countResult.error;
+  }
+
+  if (recentDealsResult.error) {
+    console.error('❌ Erro ao buscar deals recentes com filtros:', recentDealsResult.error);
+    throw recentDealsResult.error;
+  }
+
+  // 🚀 PROCESSAMENTO EM MEMÓRIA: Contar deals por etapa
+  const stageDealsCount: Record<string, number> = {};
+  if (countResult.data) {
+    countResult.data.forEach(deal => {
+      stageDealsCount[deal.stage_id] = (stageDealsCount[deal.stage_id] || 0) + 1;
+    });
+  }
+
+  const totalDealsCount = countResult.data?.length || 0;
+  const recentDeals = recentDealsResult.data || [];
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('✅ Resumo do flow com filtros:', {
+      totalDealsCount,
+      stagesCounts: Object.keys(stageDealsCount).length,
+      recentDealsCount: recentDeals.length,
+      dateFilter
+    });
+  }
+
+  return {
+    stageDealsCount,
+    totalDealsCount,
+    recentDeals
+  };
+};
+
+// 🚀 FUNÇÃO OTIMIZADA: Gerar condições SQL para filtros de data
+const getDateFilterCondition = (filter: DateFilter) => {
+  if (filter.range === 'all') return '';
+
+  const column = filter.type;
+  const now = new Date();
+  
+  switch (filter.range) {
+    case 'today':
+      return `AND ${column} >= CURRENT_DATE AND ${column} < CURRENT_DATE + INTERVAL '1 day'`;
+    
+    case 'week':
+      return `AND ${column} >= CURRENT_DATE - INTERVAL '7 days'`;
+      
+    case 'month':
+      return `AND ${column} >= DATE_TRUNC('month', CURRENT_DATE)`;
+      
+    case 'quarter':
+      return `AND ${column} >= DATE_TRUNC('quarter', CURRENT_DATE)`;
+      
+    case 'year':
+      return `AND ${column} >= DATE_TRUNC('year', CURRENT_DATE)`;
+      
+    case 'last_90_days':
+      return `AND ${column} >= CURRENT_DATE - INTERVAL '90 days'`;
+      
+    case 'custom':
+      if (filter.startDate && filter.endDate) {
+        return `AND ${column} >= '${filter.startDate.toISOString()}' AND ${column} <= '${filter.endDate.toISOString()}'`;
+      }
+      return '';
+      
+    default:
+      return '';
+  }
 };
 
 export default function FlowPage() {
@@ -280,150 +1000,262 @@ export default function FlowPage() {
   const [selectedDeal, setSelectedDeal] = useState<WebDeal | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFlowConfigOpen, setIsFlowConfigOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Verificação de acesso do usuário
-  useEffect(() => {
-    const checkUserAccess = async () => {
-      console.log('🔐 Verificando acesso do usuário...');
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('❌ Usuário não autenticado');
-        return;
-      }
-      console.log('👤 Usuário autenticado:', user.id);
-      
-      // Primeiro verifica se o usuário tem associação direta
-      const { data: clientUser, error: clientUserError } = await supabase
-        .from('core_client_users')
-        .select('client_id, role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (clientUserError) {
-        console.error('❌ Erro ao verificar associação do usuário:', clientUserError);
-        return;
-      }
-
-      if (!clientUser) {
-        console.log('⚠️ Usuário sem associação direta, verificando outras permissões...');
-        return;
-      }
-
-      console.log('✅ Associação do usuário encontrada:', {
-        clientId: clientUser.client_id,
-        role: clientUser.role
-      });
-    };
-    
-    checkUserAccess();
-  }, []);
-
-  // Verificação do flow
-  useEffect(() => {
-    if (!flowId) return;
-    
-    const checkFlow = async () => {
-      console.log('🔍 Verificando existência do flow:', flowId);
-      
-      const { data, error } = await supabase
-        .from('web_flows')
-        .select('id, client_id, name')
-        .eq('id', flowId)
-        .single();
-        
-      if (error) {
-        console.error('❌ Erro ao verificar flow:', error);
-      } else {
-        console.log('✅ Flow verificado:', data);
-      }
-    };
-    
-    checkFlow();
-  }, [flowId]);
-
-  // Buscar detalhes do Flow
-  const { data: flow, isLoading: isLoadingFlow, isError: isErrorFlow } = useQuery<FlowData>({
-    queryKey: ['flow', flowId],
-    queryFn: () => getFlowDetails(flowId!),
-    enabled: !!flowId,
+  // 🚀 NOVOS ESTADOS: Filtros de data avançados
+  const [dateFilter, setDateFilter] = useState<DateFilter>({
+    type: 'created_at',
+    range: 'last_90_days' // 🔥 FILTRO PADRÃO: últimos 90 dias (para kanban)
   });
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Buscar etapas do Flow
-  const { data: stages, isLoading: isLoadingStages, isError: isErrorStages } = useQuery<StageData[]>({
+  // 🚀 NOVO ESTADO: Gerenciar carregamento de deals por etapa
+  const [stageDealsState, setStageDealsState] = useState<Record<string, {
+    deals: WebDeal[];
+    hasNextPage: boolean;
+    isFetching: boolean;
+    page: number;
+  }>>({});
+
+  // 🚀 FILTRO EFETIVO: Para modo lista, usar filtro menos restritivo por padrão
+  const effectiveDateFilter = useMemo(() => {
+    if (viewMode === 'list' && dateFilter.range === 'last_90_days') {
+      // Para modo lista, usar filtro 'all' se ainda estiver no padrão
+      return { ...dateFilter, range: 'all' as const };
+    }
+    return dateFilter;
+  }, [dateFilter, viewMode]);
+
+  // 🚀 QUERIES OTIMIZADAS: Separar responsabilidades
+  const { data: stages, isLoading: isLoadingStages } = useQuery<StageData[]>({
     queryKey: ['flowStages', flowId],
     queryFn: () => getFlowStages(flowId!),
     enabled: !!flowId,
   });
 
-  // 🔢 NOVA QUERY: Buscar contagem total real de deals no banco
-  const { data: totalDealsCount = 0, isLoading: isLoadingTotalCount } = useQuery<number>({
-    queryKey: ['totalDealsCount', flowId],
-    queryFn: () => getTotalDealsCount(flowId!),
+  // 🚀 NOVA QUERY: Buscar resumo do flow (contagens reais + amostra)
+  const { 
+    data: flowSummary, 
+    isLoading: isLoadingFlowSummary,
+    refetch: refetchFlowSummary 
+  } = useQuery({
+    queryKey: ['flowSummary', flowId],
+    queryFn: () => getFlowSummary(flowId!),
     enabled: !!flowId,
+    staleTime: 2 * 60 * 1000, // 2 minutos de cache
   });
 
-  // 🔢 NOVA QUERY: Buscar contagem de deals por stage
-  const { data: stageDealsCount = {}, isLoading: isLoadingStageCount } = useQuery<Record<string, number>>({
-    queryKey: ['stageDealsCount', flowId],
-    queryFn: async () => {
-      if (!stages || stages.length === 0) return {};
-      
-      const countPromises = stages.map(stage => 
-        getDealsCountByStage(flowId!, stage.id).then(count => [stage.id, count])
-      );
-      
-      const results = await Promise.all(countPromises);
-      return Object.fromEntries(results);
-    },
-    enabled: !!flowId && !!stages && stages.length > 0,
+  // 🚀 NOVA QUERY: Buscar contagem real de deals por etapa (COM FILTROS DE DATA)
+  const { 
+    data: realStageDealsCount, 
+    isLoading: isLoadingStageCount,
+    refetch: refetchStageCount 
+  } = useQuery({
+    queryKey: ['stageDealsCount', flowId, dateFilter],
+    queryFn: () => getStageDealsCount(flowId!, dateFilter),
+    enabled: !!flowId,
+    staleTime: 30 * 1000, // 30 segundos de cache para dados mais atualizados
   });
 
-  // 🚀 IMPLEMENTAÇÃO: Scroll Infinito com Janela de Memória Otimizada
+  // 🚀 PAGINAÇÃO TRADICIONAL: Manter para modo lista (COM FILTROS DE DATA)
   const {
-    items: deals,
+    items: allDeals,
     isLoading: isLoadingDeals,
-    isError: isErrorDeals,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-    refetch,
-    totalItems
+    refetch: refetchDeals,
   } = useVirtualPagination<WebDeal>({
-    queryKey: ['deals', flowId],
-    queryFn: ({ page, limit }) => getDealsByFlowPaginated(flowId!, { page, limit }),
-    pageSize: 20, // Carrega 20 deals por vez
-    maxPages: 3, // Mantém apenas 3 páginas na memória (últimas páginas)
+    queryKey: ['deals', flowId, effectiveDateFilter],
+    queryFn: ({ page, limit }) => getDealsByFlowWithFilters(flowId!, { page, limit }, effectiveDateFilter),
+    pageSize: 50,
+    maxPages: 5,
     enabled: !!flowId,
   });
 
+  // 🚀 MEMOIZAÇÃO OTIMIZADA: Contagem real de deals por etapa (SEMPRE DO BANCO)
+  const stageDealsCount = useMemo(() => {
+    // 🔥 USAR SEMPRE A CONTAGEM REAL DO BANCO
+    return realStageDealsCount || {};
+  }, [realStageDealsCount]);
+
+  // 🚀 CALCULAR TOTAL DE DEALS A PARTIR DA CONTAGEM REAL DAS ETAPAS
+  const totalDealsCount = useMemo(() => {
+    return Object.values(stageDealsCount).reduce((sum, count) => sum + count, 0);
+  }, [stageDealsCount]);
+
+  // 🚀 OTIMIZAÇÃO: filteredDeals com debounce implícito
+  const filteredDeals = useMemo(() => {
+    // Para modo lista, usar paginação tradicional
+    if (viewMode === 'list') {
+      if (!allDeals) return [];
+      
+      if (!searchTerm.trim()) return allDeals;
+      
+      const lowercaseSearch = searchTerm.toLowerCase().trim();
+      return allDeals.filter((deal) => deal.title.toLowerCase().includes(lowercaseSearch));
+    }
+    
+    // Para modo kanban, usar deals por etapa
+    const allStageDeals: WebDeal[] = [];
+    Object.values(stageDealsState).forEach(stageState => {
+      // 🚀 VERIFICAÇÃO DE SEGURANÇA: Garantir que stageState e stageState.deals existem
+      if (stageState && stageState.deals && Array.isArray(stageState.deals)) {
+        allStageDeals.push(...stageState.deals);
+      }
+    });
+    
+    if (!searchTerm.trim()) return allStageDeals;
+    
+    const lowercaseSearch = searchTerm.toLowerCase().trim();
+    return allStageDeals.filter((deal) => deal.title.toLowerCase().includes(lowercaseSearch));
+  }, [viewMode, allDeals, stageDealsState, searchTerm]);
+
+  // 🚀 NOVA FUNÇÃO: Carregar deals de uma etapa específica
+  const loadStageDeals = useCallback(async (stageId: string, page: number = 0) => {
+    if (!flowId) return;
+    
+    setStageDealsState(prev => ({
+      ...prev,
+      [stageId]: {
+        deals: prev[stageId]?.deals || [], // 🚀 INICIALIZAÇÃO SEGURA
+        hasNextPage: prev[stageId]?.hasNextPage || false,
+        isFetching: true,
+        page: prev[stageId]?.page || 0
+      }
+    }));
+
+    try {
+      const newDeals = await getDealsByStageWithPagination(flowId, stageId, { page, limit: 20 });
+      
+      setStageDealsState(prev => ({
+        ...prev,
+        [stageId]: {
+          deals: page === 0 ? newDeals : [...(prev[stageId]?.deals || []), ...newDeals],
+          hasNextPage: newDeals.length === 20,
+          isFetching: false,
+          page: page + 1
+        }
+      }));
+    } catch (error) {
+      console.error('❌ Erro ao carregar deals da etapa:', error);
+      setStageDealsState(prev => ({
+        ...prev,
+        [stageId]: {
+          deals: prev[stageId]?.deals || [], // 🚀 MANTER DEALS EXISTENTES EM CASO DE ERRO
+          hasNextPage: prev[stageId]?.hasNextPage || false,
+          isFetching: false,
+          page: prev[stageId]?.page || 0
+        }
+      }));
+    }
+  }, [flowId]);
+
+  // 🚀 NOVA FUNÇÃO: Carregar mais deals de uma etapa
+  const loadMoreStageDeals = useCallback((stageId: string) => {
+    const stageState = stageDealsState[stageId];
+    // 🚀 VERIFICAÇÃO DE SEGURANÇA: Garantir que stageState existe e tem dados válidos
+    if (!stageState?.hasNextPage || stageState.isFetching) return;
+    
+    loadStageDeals(stageId, stageState.page);
+  }, [stageDealsState, loadStageDeals]);
+
+  // 🚀 EFEITO: Fechar painel de filtros quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showFilters && !(event.target as Element).closest('.filters-panel')) {
+        setShowFilters(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFilters]);
+
+  // 🚀 EFEITO: Carregar deals iniciais das etapas quando entrar no modo kanban
+  useEffect(() => {
+    if (viewMode === 'kanban' && stages && stages.length > 0) {
+      stages.forEach(stage => {
+        // 🚀 VERIFICAÇÃO SIMPLIFICADA: Só carregar se a etapa não foi inicializada
+        if (!stageDealsState[stage.id]) {
+          loadStageDeals(stage.id, 0);
+        }
+      });
+    }
+  }, [viewMode, stages, loadStageDeals]); // 🚀 REMOVER stageDealsState das dependências para evitar loops
+
+  // 🚀 EFEITO: Aplicar estilos CSS globais para z-index dos dropdowns
+  useEffect(() => {
+    addGlobalSelectStyles();
+  }, []);
+
+  // 🚀 OTIMIZAÇÃO: totalValue calculado apenas quando filteredDeals muda
+  const totalValue = useMemo(() => {
+    return filteredDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+  }, [filteredDeals]);
+
+  const isLoading = isLoadingStages || isLoadingFlowSummary;
+  const flowName = "Flow de Vendas";
+
+  // 🚀 OTIMIZAÇÃO: mutation com onSuccess otimizado
   const createDealMutation = useMutation({
     mutationFn: (newDeal: WebDealInsert) => supabase.from('web_deals').insert(newDeal).select().single(),
     onSuccess: () => {
-      refetch();
+      // 🚀 REFETCH OTIMIZADO: Atualizar apenas os dados necessários
+      if (viewMode === 'list') {
+      refetchDeals();
+      } else {
+        refetchFlowSummary();
+        refetchStageCount();
+        // Recarregar deals das etapas afetadas
+        Object.keys(stageDealsState).forEach(stageId => {
+          loadStageDeals(stageId, 0);
+        });
+      }
       setIsAddDealOpen(false);
     },
   });
 
+  // 🚀 OTIMIZAÇÃO: mutation com onSuccess otimizado
   const updateDealStageMutation = useMutation({
-    mutationFn: ({ dealId, stageId, position }: { dealId: string; stageId: string; position: number }) =>
-      supabase.from('web_deals').update({ stage_id: stageId, position }).eq('id', dealId),
-    onSuccess: () => {
-      refetch();
+    mutationFn: async ({ dealId, stageId, position }: { dealId: string; stageId: string; position: number }) => {
+      console.log('🔄 Atualizando deal no banco:', { dealId, stageId, position });
+      
+      const { error } = await supabase
+        .from('web_deals')
+        .update({ stage_id: stageId, position })
+        .eq('id', dealId);
+
+      if (error) {
+        console.error('❌ Erro na mutation do Supabase:', error);
+        throw error;
+      }
+      
+      console.log('✅ Deal atualizado com sucesso no banco de dados');
+      return { dealId, stageId, position };
     },
+    onSuccess: (data) => {
+      console.log('✅ Mutation bem-sucedida, atualizando UI...', data);
+      // 🚀 REFETCH OTIMIZADO: Atualizar apenas os dados necessários
+      if (viewMode === 'list') {
+        refetchDeals();
+      } else {
+        refetchFlowSummary();
+        refetchStageCount();
+        // Recarregar deals das etapas afetadas
+        Object.keys(stageDealsState).forEach(stageId => {
+          loadStageDeals(stageId, 0);
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('❌ Erro na mutation:', error);
+    }
   });
 
-  const isLoading = isLoadingFlow || isLoadingStages || isLoadingDeals || isLoadingTotalCount || isLoadingStageCount;
-  const isError = isErrorFlow || isErrorStages || isErrorDeals;
-
-  const filteredDeals = (deals || [])
-    .filter((deal) => deal.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => (a.position || 0) - (b.position || 0));
-
-  const totalValue = filteredDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
-
-  const handleAddDeal = (data: Partial<WebDealInsert>) => {
+  // 🚀 OTIMIZAÇÃO: handleAddDeal com useCallback
+  const handleAddDeal = useCallback((data: Partial<WebDealInsert>) => {
     const firstStage = stages?.[0];
     if (!firstStage || !flowId) return;
 
@@ -432,42 +1264,156 @@ export default function FlowPage() {
       flow_id: flowId,
       stage_id: firstStage.id,
     });
-  };
+  }, [stages, flowId, createDealMutation]);
 
-  const handleAddDealToStage = (stageId: string) => {
+  // 🚀 OTIMIZAÇÃO: handleAddDealToStage com useCallback otimizado
+  const handleAddDealToStage = useCallback((stageId: string) => {
+    if (process.env.NODE_ENV === 'development') {
     console.log(`Abrindo modal para adicionar deal no estágio: ${stageId}`);
+    }
     setIsAddDealOpen(true);
-  };
+  }, []);
 
-  // 🚀 NOVA IMPLEMENTAÇÃO: Drag and Drop com @dnd-kit
+  // 🚀 NOVA IMPLEMENTAÇÃO: Drag and Drop COM OPTIMISTIC UPDATES
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (!over || !deals) return;
+    if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
     
-    // Lógica para calcular a nova posição
-    const dealsInDestination = deals
-      .filter(deal => deal.stage_id === overId)
-      .sort((a, b) => (a.position || 0) - (b.position || 0));
-      
-    let newPosition: number;
-    if (dealsInDestination.length === 0) {
-      newPosition = 1000;
-    } else {
-      newPosition = (dealsInDestination[dealsInDestination.length - 1].position || 0) + 1000;
+    console.log('🚀 DRAG END - Active:', activeId, 'Over:', overId);
+    
+    // Encontrar o deal sendo arrastado
+    const draggedDeal = filteredDeals.find(deal => deal.id === activeId);
+    if (!draggedDeal) {
+      console.log('❌ Deal não encontrado:', activeId);
+      return;
     }
 
+    // 🚀 LÓGICA MELHORADA: Extrair stageId do target
+    let targetStageId = overId;
+    
+    // Se é uma drop zone (contém hífen), extrair apenas o stageId
+    if (overId.includes('-')) {
+      targetStageId = overId.split('-')[0];
+      console.log('🔄 Drop zone detectada, stageId extraído:', targetStageId);
+    } else {
+      // Verificar se o overId é diretamente um stage válido
+      const directStageMatch = stages.find(s => s.id === overId);
+      if (directStageMatch) {
+        targetStageId = overId;
+        console.log('🔄 Stage direto detectado:', targetStageId);
+      } else {
+        // Pode ser outro deal - pegar o stage do deal
+        const targetDeal = filteredDeals.find(d => d.id === overId);
+        if (targetDeal) {
+          targetStageId = targetDeal.stage_id;
+          console.log('🔄 Deal target detectado, stageId:', targetStageId);
+        } else {
+          // 🚀 FALLBACK: Tentar encontrar stage por ID parcial (para casos de ID truncado)
+          const partialStageMatch = stages.find(s => s.id.startsWith(overId) || overId.startsWith(s.id.substring(0, 8)));
+          if (partialStageMatch) {
+            targetStageId = partialStageMatch.id;
+            console.log('🔄 Stage por ID parcial detectado:', targetStageId);
+          } else {
+            console.log('❌ Target inválido - não é stage nem deal:', overId);
+            console.log('❌ Stages disponíveis:', stages.map(s => ({ id: s.id, name: s.name })));
+            return;
+          }
+        }
+      }
+    }
+    
+    // Se não mudou de stage, não fazer nada
+    if (draggedDeal.stage_id === targetStageId) {
+      console.log('ℹ️ Deal já está na etapa correta');
+      return;
+    }
+    
+    console.log('🔄 Movendo deal:', draggedDeal.title, 'de', draggedDeal.stage_id, 'para etapa:', targetStageId);
+    
+    // Calcular nova posição
+    const dealsInDestination = filteredDeals
+      .filter(deal => deal.stage_id === targetStageId)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
+      
+    const newPosition = dealsInDestination.length === 0 
+      ? 1000 
+      : (dealsInDestination[dealsInDestination.length - 1].position || 0) + 1000;
+
+    console.log('🔄 Nova posição calculada:', newPosition);
+
+    // 🚀 OPTIMISTIC UPDATE: Atualizar imediatamente o estado local das etapas
+    const originalStageId = draggedDeal.stage_id;
+    
+    setStageDealsState(prev => {
+      const newState = { ...prev };
+      
+      // Remover deal da etapa original
+      if (newState[originalStageId]) {
+        newState[originalStageId] = {
+          ...newState[originalStageId],
+          deals: newState[originalStageId].deals.filter(d => d.id !== activeId)
+        };
+      }
+      
+      // Adicionar deal na nova etapa
+      if (newState[targetStageId]) {
+        const updatedDeal = { 
+          ...draggedDeal, 
+          stage_id: targetStageId, 
+          position: newPosition 
+        };
+        newState[targetStageId] = {
+          ...newState[targetStageId],
+          deals: [...newState[targetStageId].deals, updatedDeal]
+            .sort((a, b) => (a.position || 0) - (b.position || 0))
+        };
+      }
+      
+      return newState;
+    });
+
+    // 🚀 MUTAÇÃO COM ROLLBACK: Executar mutation com rollback em caso de erro
     updateDealStageMutation.mutate({ 
       dealId: activeId, 
-      stageId: overId, 
+      stageId: targetStageId, 
       position: newPosition 
+    }, {
+      onError: (error) => {
+        console.error('❌ Erro na mutation, fazendo rollback:', error);
+        
+        // 🚀 ROLLBACK: Reverter mudança em caso de erro
+        setStageDealsState(prev => {
+          const newState = { ...prev };
+          
+          // Remover deal da etapa de destino (onde foi colocado otimisticamente)
+          if (newState[targetStageId]) {
+            newState[targetStageId] = {
+              ...newState[targetStageId],
+              deals: newState[targetStageId].deals.filter(d => d.id !== activeId)
+            };
+          }
+          
+          // Adicionar deal de volta na etapa original
+          if (newState[originalStageId]) {
+            newState[originalStageId] = {
+              ...newState[originalStageId],
+              deals: [...newState[originalStageId].deals, draggedDeal]
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
+            };
+          }
+          
+          return newState;
+        });
+      }
     });
-  }, [deals, updateDealStageMutation]);
+  }, [filteredDeals, stages, updateDealStageMutation, setStageDealsState]);
   
-  const handleStageChange = (stageId: string) => {
+  // 🚀 OTIMIZAÇÃO: handleStageChange com useCallback
+  const handleStageChange = useCallback((stageId: string) => {
     if (!selectedDeal) return;
     updateDealStageMutation.mutate(
       { dealId: selectedDeal.id, stageId, position: selectedDeal.position || 999999 },
@@ -475,10 +1421,10 @@ export default function FlowPage() {
         onSuccess: () => setSelectedDeal(prev => prev ? { ...prev, stage_id: stageId } : null)
       }
     );
-  };
+  }, [selectedDeal, updateDealStageMutation]);
 
-  // Função para cor de tag melhorada
-  const tagColor = (tag: string) => {
+  // 🚀 OTIMIZAÇÃO: Função para cor de tag melhorada com useCallback
+  const tagColor = useCallback((tag: string) => {
     if (tag.toLowerCase().includes("whatsapp")) return "bg-emerald-100 text-emerald-800";
     if (tag.toLowerCase().includes("instagram")) return "bg-pink-100 text-pink-800";
     if (tag.toLowerCase().includes("live")) return "bg-violet-100 text-violet-800";
@@ -486,20 +1432,20 @@ export default function FlowPage() {
     if (tag.toLowerCase().includes("urgente")) return "bg-red-100 text-red-800";
     if (tag.toLowerCase().includes("vip")) return "bg-amber-100 text-amber-800";
     return "bg-slate-100 text-slate-700";
-  };
+  }, []);
 
-  // Função para tags de temperatura/status
-  const getTemperatureTag = (temperature?: string) => {
+  // 🚀 OTIMIZAÇÃO: Função para tags de temperatura/status com useCallback
+  const getTemperatureTag = useCallback((temperature?: string) => {
     switch (temperature) {
       case 'hot': return { label: 'Quente', color: 'bg-red-100 text-red-700 ' };
       case 'warm': return { label: 'Morno', color: 'bg-orange-100 text-orange-700 ' };
       case 'cold': return { label: 'Frio', color: 'bg-blue-100 text-blue-700 border border-blue-20' };
       default: return { label: 'Novo', color: 'bg-gray-100 text-gray-700 ' };
     }
-  };
+  }, []);
 
-  // Função para cores dos stages
-  const getStageColors = (index: number) => {
+  // 🚀 OTIMIZAÇÃO: Função para cores dos stages com useCallback
+  const getStageColors = useCallback((index: number) => {
     const colors = [
       { bg: 'from-blue-50/80 to-blue-100/60', border: 'border-blue-200/50', accent: 'from-blue-500 to-blue-600' },
       { bg: 'from-emerald-50/80 to-emerald-100/60', border: 'border-emerald-200/50', accent: 'from-emerald-500 to-emerald-600' },
@@ -511,7 +1457,57 @@ export default function FlowPage() {
       { bg: 'from-rose-50/80 to-rose-100/60', border: 'border-rose-200/50', accent: 'from-rose-500 to-rose-600' },
     ];
     return colors[index % colors.length];
-  };
+  }, []);
+
+  // 🚀 FUNÇÕES PARA MANIPULAR FILTROS DE DATA
+  const applyDateFilter = useCallback((newDateFilter: DateFilter) => {
+    setDateFilter(newDateFilter);
+    // Refetch imediato das contagens para atualizar números das etapas
+    refetchStageCount();
+    refetchFlowSummary();
+    if (viewMode === 'list') {
+      refetchDeals();
+    }
+  }, [viewMode, refetchStageCount, refetchFlowSummary, refetchDeals]);
+
+  const clearDateFilter = useCallback(() => {
+    if (viewMode === 'list') {
+      // Para modo lista, usar 'all' por padrão
+      setDateFilter({ type: 'created_at', range: 'all' });
+    } else {
+      // Para modo kanban, usar filtro padrão
+      setDateFilter({ type: 'created_at', range: 'last_90_days' });
+    }
+    refetchStageCount();
+    refetchFlowSummary();
+    if (viewMode === 'list') {
+      refetchDeals();
+    }
+  }, [viewMode, refetchStageCount, refetchFlowSummary, refetchDeals]);
+
+  const getDateFilterLabel = useCallback((filter: DateFilter) => {
+    // Use o effectiveDateFilter para mostrar o label correto
+    const activeFilter = viewMode === 'list' && filter.range === 'last_90_days' 
+      ? { ...filter, range: 'all' as const } 
+      : filter;
+      
+    if (activeFilter.range === 'all') return 'Todos os períodos';
+    if (activeFilter.range === 'today') return 'Hoje';
+    if (activeFilter.range === 'week') return 'Esta semana';
+    if (activeFilter.range === 'month') return 'Este mês';
+    if (activeFilter.range === 'quarter') return 'Este trimestre';
+    if (activeFilter.range === 'year') return 'Este ano';
+    if (activeFilter.range === 'last_90_days') return 'Últimos 90 dias';
+    if (activeFilter.range === 'custom' && activeFilter.startDate && activeFilter.endDate) {
+      return `${format(activeFilter.startDate, 'dd/MM')} - ${format(activeFilter.endDate, 'dd/MM')}`;
+    }
+    return 'Filtro personalizado';
+  }, [viewMode]);
+
+  const hasActiveFilters = useMemo(() => {
+    const activeFilter = effectiveDateFilter;
+    return activeFilter.range !== 'all' || searchTerm.trim() !== '';
+  }, [effectiveDateFilter, searchTerm]);
 
   // Estado de carregamento com skeleton melhorado
   if (isLoading) {
@@ -550,24 +1546,6 @@ export default function FlowPage() {
     );
   }
 
-  // Estado de erro
-  if (isError) {
-    return (
-      <div className="flex h-screen">
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
-          <div className="text-center p-4">
-            <h2 className="text-lg font-semibold mb-2">Ops! Algo deu errado.</h2>
-            <p className="text-gray-600 mb-4">Não foi possível carregar o funil de vendas.</p>
-            <Button onClick={() => window.location.reload()}>
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Tentar novamente
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const MobileMenu = () => (
     <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
       <SheetTrigger asChild>
@@ -584,12 +1562,8 @@ export default function FlowPage() {
               Adicionar negócio
             </Button>
             <Button variant="ghost" className="w-full justify-start text-sm h-8">
-              <Download className="mr-2 h-3 w-3" />
-              Exportar
-            </Button>
-            <Button variant="ghost" className="w-full justify-start text-sm h-8" onClick={() => { window.location.href = "/crm/settings/pipeline"; setIsMenuOpen(false); }}>
-              <Settings className="mr-2 h-3 w-3" />
-              Personalizar flows
+              <RefreshCcw className="mr-2 h-3 w-3" />
+              Atualizar
             </Button>
           </div>
         </div>
@@ -600,15 +1574,125 @@ export default function FlowPage() {
   return (
     <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header ultra compacto */}
-      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/60 px-3 py-1.5 md:px-4 md:py-2 flex-shrink-0 shadow-sm">
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/60 px-3 py-1.5 md:px-4 md:py-2 flex-shrink-0 shadow-sm relative">
         <div className="flex items-center gap-2">
           <MobileMenu />
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-sm md:text-base font-bold text-slate-800 truncate">{flow?.name || "Pipeline"}</h1>
+              <h1 className="text-sm md:text-base font-bold text-slate-800 truncate">{flowName}</h1>
               <div className={`w-1 h-1 rounded-full ${totalValue > 100000 ? 'bg-emerald-500' : totalValue > 50000 ? 'bg-amber-500' : 'bg-slate-400'} animate-pulse`} />
+              
+              {/* Botão de Configuração do Flow */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0 hover:bg-slate-100"
+                onClick={() => setIsFlowConfigOpen(true)}
+              >
+                <Settings className="h-3 w-3 text-slate-600" />
+              </Button>
             </div>
+          </div>
+
+          {/* Filtros de data - Ultra compacto */}
+          <div className="flex items-center gap-1 relative">
+            <Button
+              variant={hasActiveFilters ? 'default' : 'outline'}
+              size="sm"
+              className={`h-6 px-1.5 text-xs ${hasActiveFilters ? 'bg-blue-600' : 'bg-white/60 border-slate-200'}`}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-2.5 w-2.5 mr-0.5" />
+              {isMobile ? '' : 'Filtros'}
+            </Button>
+
+            {hasActiveFilters && (
+              <Badge 
+                variant="secondary" 
+                className="h-6 px-1.5 text-xs bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
+                onClick={() => setShowFilters(true)}
+              >
+                {getDateFilterLabel(dateFilter)}
+                <X 
+                  className="h-2.5 w-2.5 ml-0.5 hover:bg-blue-300 rounded-full" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clearDateFilter();
+                  }}
+                />
+              </Badge>
+            )}
+
+            {/* 🚀 PAINEL DE FILTROS DENTRO DO HEADER (POSITION RELATIVE GARANTE Z-INDEX) */}
+            {showFilters && (
+              <div className="absolute top-full left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-xl p-4 mt-1 min-w-96">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Tipo de filtro */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Campo de data
+                    </label>
+                    <select 
+                      value={dateFilter.type} 
+                      onChange={(e) => applyDateFilter({ ...dateFilter, type: e.target.value as any })}
+                      className="w-full h-8 text-xs border border-slate-200 rounded px-2 bg-white"
+                    >
+                      <option value="created_at">Data de criação</option>
+                      <option value="updated_at">Última atualização</option>
+                      <option value="last_activity">Última atividade</option>
+                      <option value="expected_close_date">Data prevista</option>
+                    </select>
+                  </div>
+
+                  {/* Período */}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Período
+                    </label>
+                    <select 
+                      value={dateFilter.range} 
+                      onChange={(e) => applyDateFilter({ ...dateFilter, range: e.target.value as any })}
+                      className="w-full h-8 text-xs border border-slate-200 rounded px-2 bg-white"
+                    >
+                      <option value="all">Todos os períodos</option>
+                      <option value="today">Hoje</option>
+                      <option value="week">Esta semana</option>
+                      <option value="month">Este mês</option>
+                      <option value="quarter">Este trimestre</option>
+                      <option value="year">Este ano</option>
+                      <option value="last_90_days">Últimos 90 dias</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                  <span className="text-xs text-slate-500">
+                    Filtros aplicados: {getDateFilterLabel(dateFilter)}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={clearDateFilter}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Limpar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setShowFilters(false)}
+                    >
+                      Fechar
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Seletor de visualização ultra compacto */}
@@ -675,31 +1759,10 @@ export default function FlowPage() {
           {/* Ações desktop ultra compactas */}
           {!isMobile && (
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" className="h-6 px-1.5 text-xs bg-white/60 border-slate-200 hover:bg-white">
-                <Download className="h-2.5 w-2.5 mr-0.5" />
-                Export
-              </Button>
               <Button size="sm" className="h-6 px-1.5 text-xs bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-sm" onClick={() => setIsAddDealOpen(true)}>
                 <Plus className="h-2.5 w-2.5 mr-0.5" />
                 Novo
               </Button>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="w-6 h-6 hover:bg-white/60"
-                      onClick={() => window.location.href = "/crm/settings/pipeline"}
-                    >
-                      <Settings className="h-2.5 w-2.5 text-slate-600" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">Configurar</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
             </div>
           )}
         </div>
@@ -758,6 +1821,7 @@ export default function FlowPage() {
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             onLoadMore={fetchNextPage}
+            totalDealsCount={totalDealsCount}
           />
         )}
 
@@ -778,6 +1842,9 @@ export default function FlowPage() {
             isFetchingNextPage={isFetchingNextPage}
             onLoadMore={fetchNextPage}
             stageDealsCount={stageDealsCount}
+            onLoadMoreForStage={loadMoreStageDeals}
+            stagePagination={stageDealsState}
+            stageDealsState={stageDealsState}
           />
         )}
       </main>
@@ -808,6 +1875,14 @@ export default function FlowPage() {
         stages={stages || []}
         onClose={() => setSelectedDeal(null)}
         onStageChange={handleStageChange}
+      />
+
+      {/* Modal de Configuração do Flow */}
+      <FormBuilderModal
+        open={isFlowConfigOpen}
+        onOpenChange={setIsFlowConfigOpen}
+        flowId={flowId || ''}
+        flowName={flowName}
       />
     </div>
   );

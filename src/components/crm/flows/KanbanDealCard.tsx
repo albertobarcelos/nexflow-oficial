@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { memo, useMemo, useCallback } from "react";
 
 interface KanbanDealCardProps {
     deal: MockDeal;
@@ -17,7 +18,8 @@ interface KanbanDealCardProps {
     stageAccentColor?: string;
 }
 
-export function KanbanDealCard({
+// 🚀 OTIMIZAÇÃO: Componente memoizado para evitar re-renderizações desnecessárias
+export const KanbanDealCard = memo(function KanbanDealCard({
     deal,
     index,
     onClick,
@@ -29,8 +31,45 @@ export function KanbanDealCard({
 }: KanbanDealCardProps) {
     const tempTag = getTemperatureTag(deal.temperature);
 
-    // Função para renderizar ícone de temperatura
-    const renderTemperatureIcon = (temperature?: string) => {
+    // 🚀 OTIMIZAÇÃO: Memoizar dados calculados
+    const timeAgo = useMemo(() => {
+        return formatDistanceToNow(new Date(deal.created_at), {
+            addSuffix: true,
+            locale: ptBR
+        });
+    }, [deal.created_at]);
+
+    // 🚀 OTIMIZAÇÃO: Memoizar dados do responsável
+    const responsible = useMemo(() => {
+        let responsibleName = "Sem responsável";
+        let responsibleAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.responsible_id || deal.id}`;
+        
+        // 🆕 USAR DADOS REAIS DO RESPONSÁVEL
+        if (deal.responsible) {
+            responsibleName = `${deal.responsible.first_name || ''} ${deal.responsible.last_name || ''}`.trim();
+            if (deal.responsible.avatar_url) {
+                responsibleAvatar = deal.responsible.avatar_url;
+            }
+        } else if (deal.responsible_name) {
+            responsibleName = deal.responsible_name;
+        }
+        
+        return {
+            name: responsibleName,
+            avatar: responsibleAvatar,
+            email: deal.responsible?.email
+        };
+    }, [deal.responsible, deal.responsible_name, deal.responsible_id, deal.id]);
+
+    // 🚀 OTIMIZAÇÃO: Memoizar verificação de atividade recente
+    const hasRecentActivity = useMemo(() => {
+        return deal.last_activity
+            ? new Date(deal.last_activity) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+            : new Date(deal.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+    }, [deal.last_activity, deal.created_at]);
+
+    // 🚀 OTIMIZAÇÃO: Memoizar função para renderizar ícone de temperatura
+    const renderTemperatureIcon = useCallback((temperature?: string) => {
         if (!temperature) return null;
 
         const tempTag = getTemperatureTag(temperature);
@@ -73,39 +112,40 @@ export function KanbanDealCard({
                 </Tooltip>
             </TooltipProvider>
         );
-    };
+    }, [getTemperatureTag]);
 
-    // Calcular tempo desde criação
-    const timeAgo = formatDistanceToNow(new Date(deal.created_at), {
-        addSuffix: true,
-        locale: ptBR
-    });
+    // 🚀 OTIMIZAÇÃO: Memoizar função para renderizar barra de probabilidade
+    const renderProbabilityBar = useCallback((probability?: number) => {
+        if (!probability) return null;
+        
+        const getColorClass = (prob: number) => {
+            if (prob >= 80) return 'bg-emerald-500';
+            if (prob >= 60) return 'bg-yellow-500';
+            if (prob >= 40) return 'bg-orange-500';
+            return 'bg-red-500';
+        };
 
-    // Usar dados reais do responsável
-    let responsibleName = "Sem responsável";
-    const responsiblesArr = ((deal as unknown) as { responsibles?: { id: string, name: string }[] }).responsibles;
-    if (responsiblesArr && Array.isArray(responsiblesArr) && responsiblesArr.length > 0) {
-        responsibleName = responsiblesArr.map(r => r.name).join(", ");
-    } else if (((deal as unknown) as { [key: string]: unknown })['responsible_name']) {
-        responsibleName = ((deal as unknown) as { [key: string]: unknown })['responsible_name'] as string;
-    }
-    const responsible = {
-        name: responsibleName,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.responsible_id || deal.id}`
-    };
+        return (
+            <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 bg-slate-200 rounded-full h-1.5">
+                    <div 
+                        className={`h-1.5 rounded-full transition-all duration-300 ${getColorClass(probability)}`}
+                        style={{ width: `${probability}%` }}
+                    />
+                </div>
+                <span className="text-xs text-slate-500 font-medium">{probability}%</span>
+            </div>
+        );
+    }, []);
 
-    // Determinar se tem atividade recente (últimas 24h)
-    const hasRecentActivity = deal.last_activity
-        ? new Date(deal.last_activity) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-        : new Date(deal.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    const handleActionClick = (e: React.MouseEvent, action: string) => {
+    // 🚀 OTIMIZAÇÃO: Handlers memoizados
+    const handleActionClick = useCallback((e: React.MouseEvent, action: string) => {
         e.stopPropagation();
         console.log(`Ação ${action} para deal ${deal.id}`);
         // Aqui você pode implementar as ações específicas
-    };
+    }, [deal.id]);
 
-    const handleCardClick = (e: React.MouseEvent) => {
+    const handleCardClick = useCallback((e: React.MouseEvent) => {
         // Não abre o modal se está sendo arrastado
         if (isDragging) {
             e.preventDefault();
@@ -113,14 +153,14 @@ export function KanbanDealCard({
             return;
         }
         onClick(deal);
-    };
+    }, [isDragging, onClick, deal]);
 
     return (
         <div
-            className={`group relative bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-300 
+            className={`group relative bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-200 
                 ${isDragging
-                    ? 'shadow-2xl scale-105 rotate-2 z-50 border-blue-300 ring-2 ring-blue-200'
-                    : 'hover:shadow-lg hover:border-slate-300/80 hover:-translate-y-1 cursor-pointer'
+                    ? 'shadow-lg border-blue-300 bg-blue-50/20'
+                    : 'hover:shadow-md hover:border-slate-300/80'
                 } 
                 ${!isMobile ? 'mb-2' : 'mb-1.5'}
                 `}
@@ -207,7 +247,41 @@ export function KanbanDealCard({
                     <span className="text-xs text-slate-600 truncate">
                         {deal.companies?.name || deal.people?.name || "Sem empresa/pessoa"}
                     </span>
+                    {/* 🆕 INDICADOR DE TIPO DE ENTIDADE */}
+                    {deal.entity_type && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 border-slate-300">
+                            {deal.entity_type === 'company' ? 'Empresa' : 
+                             deal.entity_type === 'person' ? 'Pessoa' : 'Parceiro'}
+                        </Badge>
+                    )}
                 </div>
+
+                {/* 🆕 BARRA DE PROBABILIDADE */}
+                {deal.probability && deal.probability > 0 && (
+                    <div className="mb-2">
+                        {renderProbabilityBar(deal.probability)}
+                    </div>
+                )}
+
+                {/* 🆕 DESCRIÇÃO EM TOOLTIP */}
+                {deal.description && (
+                    <div className="mb-2">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="text-xs text-slate-500 truncate cursor-help border-b border-dashed border-slate-300">
+                                        {deal.description.length > 50 
+                                            ? `${deal.description.substring(0, 50)}...` 
+                                            : deal.description}
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">{deal.description}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                )}
 
                 {/* Valor e ações */}
                 <div className="flex items-center justify-between">
@@ -220,7 +294,31 @@ export function KanbanDealCard({
                             }).format(deal.value || 0)}
                         </span>
                         {hasRecentActivity && (
-                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="text-xs">Atividade recente</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                        {/* 🆕 INDICADOR DE DATA ESPERADA */}
+                        {deal.expected_close_date && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Calendar className="w-3 h-3 text-orange-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="text-xs">
+                                            Previsão: {new Date(deal.expected_close_date).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         )}
                     </div>
 
@@ -278,13 +376,55 @@ export function KanbanDealCard({
                     )}
                 </div>
 
-                {/* Timestamp */}
-                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-slate-100">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    <span className="text-xs text-slate-500">{timeAgo}</span>
-                    <span className="text-xs text-slate-400 ml-auto">
-                        {responsible.name}
-                    </span>
+                {/* Timestamp e informações adicionais */}
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-500">
+                            {deal.last_activity && deal.last_activity !== deal.created_at 
+                                ? `Atividade: ${formatDistanceToNow(new Date(deal.last_activity), { addSuffix: true, locale: ptBR })}`
+                                : timeAgo
+                            }
+                        </span>
+                    </div>
+                    
+                    {/* 🆕 INFORMAÇÕES DE ORIGEM */}
+                    {deal.origin_name && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                        {deal.origin_name}
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="text-xs">Origem do lead</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
+
+                {/* 🆕 INFORMAÇÕES DO RESPONSÁVEL */}
+                <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-slate-400">Por:</span>
+                        <span className="text-xs text-slate-600 font-medium">{responsible.name}</span>
+                    </div>
+                    
+                    {/* 🆕 NOTAS INDICATOR */}
+                    {deal.notes && deal.notes.trim() && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <MessageSquare className="w-3 h-3 text-blue-500 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">{deal.notes}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
                 </div>
             </div>
 
@@ -294,4 +434,4 @@ export function KanbanDealCard({
             )}
         </div>
     );
-} 
+}); 

@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, Users, Activity, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { MockDeal, Stage, TemperatureTag, StageColors } from "./types";
 import { KanbanDealCard } from "./KanbanDealCard";
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import React from "react";
 import {
   DndContext,
   closestCenter,
@@ -15,9 +16,6 @@ import {
   useDroppable,
   DragStartEvent,
   DragOverEvent,
-  rectIntersection,
-  pointerWithin,
-  getFirstCollision,
   UniqueIdentifier
 } from '@dnd-kit/core';
 import {
@@ -40,57 +38,106 @@ interface KanbanViewProps {
     getTemperatureTag: (temperature?: string) => TemperatureTag;
     getStageColors: (index: number) => StageColors;
     tagColor: (tag: string) => string;
-    // Propriedades de scroll infinito
+    // Propriedades de scroll infinito GLOBAL (depreciadas)
     hasNextPage: boolean;
     isFetchingNextPage: boolean;
     onLoadMore: () => void;
     // Contagens por stage
     stageDealsCount: Record<string, number>;
+    // 🎯 NOVA: Função para carregar mais deals de um stage específico
+    onLoadMoreForStage?: (stageId: string) => void;
+    // 🎯 NOVA: Estado de paginação por stage
+    stagePagination?: Record<string, { 
+        hasNextPage: boolean; 
+        isFetching: boolean; 
+        deals: MockDeal[];
+        page: number;
+    }>;
+    // 🎯 NOVA: Estado completo dos deals por stage
+    stageDealsState?: Record<string, {
+        deals: MockDeal[];
+        hasNextPage: boolean;
+        isFetching: boolean;
+        page: number;
+    }>;
 }
 
-// Componente para um stage droppable otimizado
-function DroppableStage({ 
-  stage, 
-  children, 
-  className = "",
-  isEmpty = false 
+// 🚀 NOVO: Componente DropZone específico e preciso
+const DropZone = React.memo(({ 
+  stageId, 
+  position, 
+  isActive,
+  index
 }: { 
-  stage: Stage; 
-  children: React.ReactNode; 
-  className?: string;
-  isEmpty?: boolean;
-}) {
+  stageId: string; 
+  position: 'between' | 'bottom';
+  isActive: boolean;
+  index?: number;
+}) => {
   const { setNodeRef, isOver } = useDroppable({
-    id: stage.id,
+    id: `${stageId}-${position}${index !== undefined ? `-${index}` : ''}`,
   });
+
+  if (!isActive) return null;
 
   return (
     <div
       ref={setNodeRef}
-      className={`${className} relative transition-all duration-200 ease-out ${
+      className={`transition-all duration-200 ease-out ${
+        position === 'between' ? 'h-4 mx-2 my-1' : 'h-16 mx-2 mt-2'
+      } ${
         isOver 
-          ? 'bg-gradient-to-br from-blue-50/80 to-blue-100/80 border-2 border-blue-300 ring-2 ring-blue-200/40 shadow-md' 
-          : isEmpty 
-            ? 'border-2 border-dashed border-slate-200 hover:border-slate-300 transition-colors duration-150' 
-            : 'border border-slate-200/60'
+          ? 'bg-blue-500/30 border-2 border-dashed border-blue-500 rounded-lg scale-105' 
+          : 'border-2 border-dashed border-blue-200/60 hover:border-blue-300/80 rounded-lg opacity-60'
       }`}
+      style={{
+        minHeight: position === 'between' ? '16px' : '64px',
+      }}
     >
-      {children}
-      
-      {/* Indicador visual de drop zone mais sutil */}
       {isOver && (
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center bg-blue-500/5 rounded-xl">
-          <div className="bg-blue-500/90 text-white px-3 py-1.5 rounded-md shadow-sm font-medium text-xs animate-pulse">
-            Solte aqui
+        <div className="flex items-center justify-center h-full">
+          <div className="bg-blue-600 text-white px-3 py-1.5 rounded-full text-xs font-medium animate-pulse shadow-lg">
+            ✓ Soltar aqui
+          </div>
+        </div>
+      )}
+      {!isOver && isActive && (
+        <div className="flex items-center justify-center h-full opacity-60">
+          <div className="text-blue-400 text-xs font-medium">
+            {position === 'between' ? '┈┈┈' : ''}
           </div>
         </div>
       )}
     </div>
   );
-}
+});
 
-// Componente para um deal draggable
-function DraggableDeal({ 
+// 🚀 COMPONENTE SIMPLIFICADO: Container da etapa que aceita drops diretos
+const StageContainer = React.memo(({ 
+  stage, 
+  children, 
+  className = ""
+}: { 
+  stage: Stage; 
+  children: React.ReactNode; 
+  className?: string;
+}) => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: stage.id, // ID direto do stage para drops
+  });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`${className} relative ${isOver ? 'bg-blue-50/50' : ''}`}
+    >
+      {children}
+    </div>
+  );
+});
+
+// 🚀 COMPONENTE OTIMIZADO: DraggableDeal com React.memo
+const DraggableDeal = React.memo(({ 
   deal, 
   index, 
   onClick, 
@@ -106,7 +153,7 @@ function DraggableDeal({
   tagColor: (tag: string) => string;
   isMobile: boolean;
   stageAccentColor: string;
-}) {
+}) => {
   const {
     attributes,
     listeners,
@@ -125,11 +172,10 @@ function DraggableDeal({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition: isDragging 
-      ? 'none' // Remove transição durante drag para máxima fluidez
-      : transition || 'transform 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94)', // Transição mais suave
-    opacity: isDragging ? 0.5 : 1, // Mais visível durante drag
-    zIndex: isDragging ? 999 : 1,
+    transition: isDragging ? 'none' : 'transform 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 1000 : 1,
+    scale: isDragging ? '0.98' : '1',
   };
 
   return (
@@ -139,9 +185,12 @@ function DraggableDeal({
       {...attributes} 
       {...listeners}
       className={`
-        ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} 
-        ${isDragging ? 'ring-1 ring-blue-400/30 shadow-lg' : ''} 
-        transition-shadow duration-150 ease-out
+        ${isDragging 
+          ? 'cursor-grabbing shadow-lg ring-2 ring-blue-300/50' 
+          : 'cursor-grab hover:shadow-md hover:scale-[1.02]'
+        } 
+        transition-all duration-150 ease-out
+        transform-gpu
       `}
     >
       <KanbanDealCard
@@ -156,7 +205,7 @@ function DraggableDeal({
       />
     </div>
   );
-}
+});
 
 export function KanbanView({
     deals,
@@ -172,76 +221,53 @@ export function KanbanView({
     hasNextPage,
     isFetchingNextPage,
     onLoadMore,
-    stageDealsCount
+    stageDealsCount,
+    onLoadMoreForStage,
+    stagePagination,
+    stageDealsState
 }: KanbanViewProps) {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
-    const stageContainerRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
     const [activeDeal, setActiveDeal] = useState<MockDeal | null>(null);
 
-    // Função para definir ref de um stage
-    const setStageRef = useCallback((stageId: string, element: HTMLDivElement | null) => {
-        if (element) {
-            stageContainerRefs.current.set(stageId, element);
-        } else {
-            stageContainerRefs.current.delete(stageId);
+    // 🚀 MEMOIZAÇÃO OTIMIZADA: Usar dados das etapas individuais
+    const dealsByStage = useMemo(() => {
+        if (!stages || stages.length === 0) {
+            return new Map<string, MockDeal[]>();
         }
-    }, []);
-
-    // Hook para detectar scroll em cada stage container
-    useEffect(() => {
-        if (!hasNextPage || isFetchingNextPage) return;
-
-        const handleScroll = (stageId: string) => (event: Event) => {
-            const element = event.target as HTMLDivElement;
-            const { scrollTop, scrollHeight, clientHeight } = element;
-            const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-            
-            console.log(`🔍 Scroll detectado no stage ${stageId}:`, {
-                scrollTop,
-                scrollHeight,
-                clientHeight,
-                distanceFromBottom,
-                threshold: 100
+        
+        const dealsMap = new Map<string, MockDeal[]>();
+        
+        // 🚀 PRIORIDADE: Usar dados das etapas se disponível
+        if (stageDealsState && Object.keys(stageDealsState).length > 0) {
+            stages.forEach(stage => {
+                const stageData = stageDealsState[stage.id];
+                dealsMap.set(stage.id, stageData?.deals || []);
+            });
+        } else {
+            // 🚀 FALLBACK: Usar deals globais se dados das etapas não estiver disponível
+            stages.forEach(stage => {
+                dealsMap.set(stage.id, []);
             });
             
-            if (distanceFromBottom <= 100) {
-                console.log(`🎯 Scroll infinito ativado no stage ${stageId}!`);
-                onLoadMore();
+            if (deals && deals.length > 0) {
+                deals.forEach(deal => {
+                    const stageDeals = dealsMap.get(deal.stage_id);
+                    if (stageDeals) {
+                        stageDeals.push(deal);
+                    }
+                });
             }
-        };
+        }
+        
+        return dealsMap;
+    }, [stages, stageDealsState, deals]);
 
-        const listeners = new Map<string, (event: Event) => void>();
-
-        // Adiciona listeners para cada stage
-        stages.forEach(stage => {
-            const element = stageContainerRefs.current.get(stage.id);
-            if (element) {
-                const listener = handleScroll(stage.id);
-                listeners.set(stage.id, listener);
-                element.addEventListener('scroll', listener);
-                console.log(`👂 Listener adicionado para stage ${stage.id}`);
-            }
-        });
-
-        return () => {
-            // Remove listeners
-            listeners.forEach((listener, stageId) => {
-                const element = stageContainerRefs.current.get(stageId);
-                if (element) {
-                    element.removeEventListener('scroll', listener);
-                    console.log(`🧹 Listener removido do stage ${stageId}`);
-                }
-            });
-        };
-    }, [hasNextPage, isFetchingNextPage, onLoadMore, stages]);
-
-    // Configuração dos sensores otimizada para máxima fluidez
+    // 🚀 SENSORES OTIMIZADOS: Configuração mais simples
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 3, // Mais estável que 1px, menos sensível a tremores
-                tolerance: 5, // Tolerância para pequenos movimentos
+                distance: 5,
             },
         }),
         useSensor(KeyboardSensor, {
@@ -249,119 +275,91 @@ export function KanbanView({
         })
     );
 
-    // Detecção de colisão otimizada para máxima fluidez
-    const customCollisionDetection = (args: any) => {
-        // Se não há item ativo, usa detecção padrão
-        if (!activeId) {
-            return closestCenter(args);
-        }
-
-        // Prioriza detecção por ponteiro (mais fluida)
-        const pointerIntersections = pointerWithin(args);
-        
-        if (pointerIntersections.length > 0) {
-            // Filtra deals e stages
-            const dealIntersections = pointerIntersections.filter(intersection => 
-                deals.some(deal => deal.id === intersection.id)
-            );
-            
-            const stageIntersections = pointerIntersections.filter(intersection => 
-                stages.some(stage => stage.id === intersection.id)
-            );
-
-            // Prioriza deals para sortable fluido
-            if (dealIntersections.length > 0) {
-                return dealIntersections;
-            }
-
-            // Fallback para stages
-            if (stageIntersections.length > 0) {
-                return stageIntersections;
-            }
-        }
-
-        // Fallback com closestCenter (mais fluido que rectIntersection)
-        return closestCenter(args);
-    };
-
-    const handleAddDealToStage = (stageId: string) => {
-        console.log(`Adicionar deal no estágio: ${stageId}`);
+    // 🚀 HANDLERS OTIMIZADOS: Usando useCallback para evitar re-criação
+    const handleAddDealToStage = useCallback((stageId: string) => {
         if (onAddDealToStage) {
             onAddDealToStage(stageId);
-        } else {
-            onAddDeal();
         }
-    };
+    }, [onAddDealToStage]);
 
-    const handleDragStart = (event: DragStartEvent) => {
+    const handleDragStart = useCallback((event: DragStartEvent) => {
         const { active } = event;
         setActiveId(active.id);
         
-        // Encontra o deal ativo imediatamente
         const deal = deals.find(d => d.id === active.id);
         setActiveDeal(deal || null);
-        
-        // Adiciona classe ao body para melhor UX
-        document.body.style.cursor = 'grabbing';
-    };
+    }, [deals]);
 
-    const handleDragOver = (event: DragOverEvent) => {
-        // Otimizado para performance - sem logs desnecessários
-        // Apenas atualiza estado se necessário
-    };
+    const handleDragOver = useCallback((event: DragOverEvent) => {
+        // Intencionalmente vazio - apenas para tracking
+    }, []);
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        
-        // Limpa estado imediatamente
+    const handleDragEnd = useCallback((event: DragEndEvent) => {
         setActiveId(null);
         setActiveDeal(null);
-        document.body.style.cursor = '';
+        
+        const { active, over } = event;
         
         if (!over) return;
-
+        
         const activeId = active.id as string;
         const overId = over.id as string;
-
-        // Se soltou no mesmo lugar, não faz nada
-        if (activeId === overId) return;
-
-        // Encontra o deal ativo e o deal/stage de destino
-        const activeDeal = deals.find(deal => deal.id === activeId);
-        const overDeal = deals.find(deal => deal.id === overId);
-        const overStage = stages.find(stage => stage.id === overId);
         
-        if (!activeDeal) return;
-
-        if (overDeal) {
-            // Reordenação: soltou sobre um deal
-            const targetStage = stages.find(stage => stage.id === overDeal.stage_id);
-            if (targetStage) {
-                onDragEnd({
-                    ...event,
-                    over: {
-                        ...over,
-                        id: targetStage.id
-                    }
-                });
+        // Extrair stageId do target
+        let targetStageId = overId;
+        
+        // Se é uma drop zone (contém hífen), extrair apenas o stageId
+        if (overId.includes('-')) {
+            targetStageId = overId.split('-')[0];
+        } else {
+            // Pode ser outro deal - pegar o stage do deal
+            const targetDeal = deals.find(d => d.id === overId);
+            if (targetDeal) {
+                targetStageId = targetDeal.stage_id;
+            } else {
+                // Verificar se é um stage válido
+                const isValidStage = stages.find(s => s.id === overId);
+                if (!isValidStage) {
+                    return; // Target inválido
+                }
             }
-        } else if (overStage) {
-            // Mudança direta para um stage
-            onDragEnd(event);
         }
-    };
+        
+        // Encontrar o deal sendo arrastado
+        const draggedDeal = deals.find(deal => deal.id === activeId);
+        if (!draggedDeal) return;
+
+        // Se não mudou de stage, não fazer nada
+        if (draggedDeal.stage_id === targetStageId) return;
+        
+        // Chamar o handler externo
+        onDragEnd({
+            ...event,
+            over: {
+                ...event.over!,
+                id: targetStageId
+            }
+        });
+    }, [deals, stages, onDragEnd]);
+
+    // 🚀 FUNÇÃO OTIMIZADA: Carregar mais deals de uma etapa específica
+    const handleLoadMoreForStage = useCallback((stageId: string) => {
+        if (onLoadMoreForStage) {
+            onLoadMoreForStage(stageId);
+        }
+    }, [onLoadMoreForStage]);
 
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={customCollisionDetection}
+            collisionDetection={closestCenter}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
             modifiers={[restrictToWindowEdges]}
         >
             <SortableContext 
-                items={deals.map(d => d.id)} 
+                items={deals.map(deal => deal.id)} 
                 strategy={verticalListSortingStrategy}
             >
                 {isMobile ? (
@@ -371,7 +369,7 @@ export function KanbanView({
                         className="h-full overflow-y-auto p-3 space-y-4 bg-gradient-to-br from-slate-50 to-slate-100"
                     >
                         {stages.map((stage, index) => {
-                            const stageDeals = deals.filter((deal) => deal.stage_id === stage.id);
+                            const stageDeals = dealsByStage.get(stage.id) || [];
                             const valorTotalEtapa = stageDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
                             const stageColors = getStageColors(index);
 
@@ -398,7 +396,7 @@ export function KanbanView({
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
-                                                    <span className="text-white font-bold text-sm">{stageDeals.length}</span>
+                                                    <span className="text-white font-bold text-sm">{stageDealsCount[stage.id] || 0}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -406,26 +404,96 @@ export function KanbanView({
 
                                     {/* Body do Stage */}
                                     <div className="p-3">
-                                        <DroppableStage 
+                                        <StageContainer 
                                             stage={stage}
                                             className="space-y-3 min-h-[120px] rounded-xl p-2"
-                                            isEmpty={stageDeals.length === 0}
                                         >
-                                            {stageDeals.map((deal, dealIndex) => (
-                                                <DraggableDeal
-                                                    key={deal.id}
-                                                    deal={deal}
-                                                    index={dealIndex}
-                                                    onClick={onDealClick}
-                                                    getTemperatureTag={getTemperatureTag}
-                                                    tagColor={tagColor}
-                                                    isMobile={true}
-                                                    stageAccentColor={stageColors.accent}
+                                            {/* DropZone no topo para stages vazios */}
+                                            {stageDeals.length === 0 && (
+                                                <DropZone 
+                                                    stageId={stage.id} 
+                                                    position="bottom" 
+                                                    isActive={!!activeId} 
                                                 />
+                                            )}
+
+                                            {/* DropZone no topo da lista (antes do primeiro card) */}
+                                            {stageDeals.length > 0 && (
+                                                <DropZone 
+                                                    stageId={stage.id} 
+                                                    position="between" 
+                                                    isActive={!!activeId}
+                                                    index={0}
+                                                />
+                                            )}
+
+                                            {stageDeals.map((deal, dealIndex) => (
+                                                <React.Fragment key={deal.id}>
+                                                    <DraggableDeal
+                                                        deal={deal}
+                                                        index={dealIndex}
+                                                        onClick={onDealClick}
+                                                        getTemperatureTag={getTemperatureTag}
+                                                        tagColor={tagColor}
+                                                        isMobile={true}
+                                                        stageAccentColor={stageColors.accent}
+                                                    />
+                                                    
+                                                    {/* DropZone após cada card */}
+                                                    <DropZone 
+                                                        stageId={stage.id} 
+                                                        position="between" 
+                                                        isActive={!!activeId}
+                                                        index={dealIndex + 1}
+                                                    />
+                                                </React.Fragment>
                                             ))}
 
+                                            {/* DropZone no final da lista para stages com cards */}
+                                            {stageDeals.length > 0 && (
+                                                <DropZone 
+                                                    stageId={stage.id} 
+                                                    position="bottom" 
+                                                    isActive={!!activeId} 
+                                                />
+                                            )}
+
+                                            {/* 🎯 NOVO: Indicador de carregamento específico do stage mobile */}
+                                            {stageDealsState?.[stage.id]?.isFetching && (
+                                                <div className="flex justify-center items-center py-4">
+                                                    <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+                                                    <span className="ml-2 text-xs text-slate-600">Carregando mais...</span>
+                                                </div>
+                                            )}
+
+                                            {/* 🎯 NOVO: Botão para carregar mais deals da etapa mobile */}
+                                            {stageDealsState?.[stage.id]?.hasNextPage && !stageDealsState[stage.id].isFetching && (
+                                                <div className="flex justify-center items-center py-2">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-xs text-slate-500 hover:text-slate-700"
+                                                        onClick={() => handleLoadMoreForStage(stage.id)}
+                                                    >
+                                                        Carregar mais deals
+                                                    </Button>
+                                                </div>
+                                            )}
+
+                                            {/* 🎯 NOVO: Indicador de fim dos dados específico do stage mobile */}
+                                            {stageDealsState?.[stage.id] && 
+                                             !stageDealsState[stage.id].hasNextPage && 
+                                             !stageDealsState[stage.id].isFetching && 
+                                             stageDeals.length > 0 && (
+                                                <div className="flex justify-center items-center py-2">
+                                                    <div className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                                                        Todos os deals carregados
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Empty State */}
-                                            {stageDeals.length === 0 && (
+                                            {stageDeals.length === 0 && !stageDealsState?.[stage.id]?.isFetching && (
                                                 <div className="flex flex-col items-center justify-center py-8 text-slate-400">
                                                     <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                                                         <Activity className="h-5 w-5 text-slate-300" />
@@ -434,7 +502,7 @@ export function KanbanView({
                                                     <p className="text-xs text-center text-slate-400 mb-3">Arraste um deal ou crie um novo</p>
                                                 </div>
                                             )}
-                                        </DroppableStage>
+                                        </StageContainer>
                                     </div>
 
                                     {/* Footer do Stage - Mobile */}
@@ -480,7 +548,7 @@ export function KanbanView({
                             className="h-full flex gap-4 p-4 overflow-x-auto bg-gradient-to-br from-slate-50/50 to-white/80 backdrop-blur-sm"
                         >
                             {stages.map((stage, index) => {
-                                const stageDeals = deals.filter((deal) => deal.stage_id === stage.id);
+                                const stageDeals = dealsByStage.get(stage.id) || [];
                                 const valorTotalEtapa = stageDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
                                 const stageColors = getStageColors(index);
 
@@ -514,39 +582,100 @@ export function KanbanView({
 
                                         {/* Body do Stage */}
                                         <div className="flex-1 bg-white border border-slate-200/60 border-t-0 border-b-0 shadow-sm overflow-y-auto">
-                                            <DroppableStage 
+                                            <StageContainer 
                                                 stage={stage}
                                                 className="h-full p-3"
-                                                isEmpty={stageDeals.length === 0}
                                             >
                                                 <div 
-                                                    ref={(el) => setStageRef(stage.id, el)}
                                                     className="space-y-3 overflow-y-auto" 
                                                     style={{ minHeight: '300px', maxHeight: '600px' }}
                                                 >
-                                                    {stageDeals.map((deal, dealIndex) => (
-                                                        <DraggableDeal
-                                                            key={deal.id}
-                                                            deal={deal}
-                                                            index={dealIndex}
-                                                            onClick={onDealClick}
-                                                            getTemperatureTag={getTemperatureTag}
-                                                            tagColor={tagColor}
-                                                            isMobile={false}
-                                                            stageAccentColor={stageColors.accent}
+                                                    {/* DropZone no topo para stages vazios */}
+                                                    {stageDeals.length === 0 && (
+                                                        <DropZone 
+                                                            stageId={stage.id} 
+                                                            position="bottom" 
+                                                            isActive={!!activeId} 
                                                         />
+                                                    )}
+
+                                                    {/* DropZone no topo da lista (antes do primeiro card) */}
+                                                    {stageDeals.length > 0 && (
+                                                        <DropZone 
+                                                            stageId={stage.id} 
+                                                            position="between" 
+                                                            isActive={!!activeId}
+                                                            index={0}
+                                                        />
+                                                    )}
+
+                                                    {stageDeals.map((deal, dealIndex) => (
+                                                        <React.Fragment key={deal.id}>
+                                                            <DraggableDeal
+                                                                deal={deal}
+                                                                index={dealIndex}
+                                                                onClick={onDealClick}
+                                                                getTemperatureTag={getTemperatureTag}
+                                                                tagColor={tagColor}
+                                                                isMobile={false}
+                                                                stageAccentColor={stageColors.accent}
+                                                            />
+                                                            
+                                                            {/* DropZone após cada card */}
+                                                            <DropZone 
+                                                                stageId={stage.id} 
+                                                                position="between" 
+                                                                isActive={!!activeId}
+                                                                index={dealIndex + 1}
+                                                            />
+                                                        </React.Fragment>
                                                     ))}
 
-                                                    {/* Indicador de carregamento dentro do stage */}
-                                                    {isFetchingNextPage && stageDeals.length > 0 && (
+                                                    {/* DropZone no final da lista */}
+                                                    {stageDeals.length > 0 && (
+                                                        <DropZone 
+                                                            stageId={stage.id} 
+                                                            position="bottom" 
+                                                            isActive={!!activeId} 
+                                                        />
+                                                    )}
+
+                                                    {/* 🎯 NOVO: Indicador de carregamento específico do stage */}
+                                                    {stageDealsState?.[stage.id]?.isFetching && (
                                                         <div className="flex justify-center items-center py-4">
                                                             <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                                                            <span className="ml-2 text-xs text-slate-600">Carregando...</span>
+                                                            <span className="ml-2 text-xs text-slate-600">Carregando mais...</span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 🎯 NOVO: Botão para carregar mais deals da etapa */}
+                                                    {stageDealsState?.[stage.id]?.hasNextPage && !stageDealsState[stage.id].isFetching && (
+                                                        <div className="flex justify-center items-center py-2">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-xs text-slate-500 hover:text-slate-700"
+                                                                onClick={() => handleLoadMoreForStage(stage.id)}
+                                                            >
+                                                                Carregar mais deals
+                                                            </Button>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 🎯 NOVO: Indicador de fim dos dados específico do stage */}
+                                                    {stageDealsState?.[stage.id] && 
+                                                     !stageDealsState[stage.id].hasNextPage && 
+                                                     !stageDealsState[stage.id].isFetching && 
+                                                     stageDeals.length > 0 && (
+                                                        <div className="flex justify-center items-center py-2">
+                                                            <div className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded">
+                                                                Todos os deals carregados
+                                                            </div>
                                                         </div>
                                                     )}
 
                                                     {/* Empty State */}
-                                                    {stageDeals.length === 0 && (
+                                                    {stageDeals.length === 0 && !stageDealsState?.[stage.id]?.isFetching && (
                                                         <div className="flex flex-col items-center justify-center py-12 text-slate-400">
                                                             <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                                                                 <Activity className="h-5 w-5 text-slate-300" />
@@ -556,7 +685,7 @@ export function KanbanView({
                                                         </div>
                                                     )}
                                                 </div>
-                                            </DroppableStage>
+                                            </StageContainer>
                                         </div>
 
                                         {/* Footer do Stage - Desktop */}
@@ -598,26 +727,34 @@ export function KanbanView({
                 )}
             </SortableContext>
             
-            {/* DragOverlay otimizado para máxima fluidez */}
+            {/* DragOverlay CORRIGIDO - sem transformações que interferem com o movimento */}
             <DragOverlay
-                adjustScale={false}
+                style={{ 
+                    zIndex: 9999,
+                }}
                 dropAnimation={{
-                    duration: 200,
+                    duration: 150,
                     easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                 }}
             >
                 {activeId && activeDeal ? (
-                    <div className="transform scale-105 shadow-xl opacity-95 rotate-2">
-                        <KanbanDealCard
-                            deal={activeDeal}
-                            index={0}
-                            onClick={() => {}}
-                            getTemperatureTag={getTemperatureTag}
-                            tagColor={tagColor}
-                            isDragging={true}
-                            isMobile={isMobile}
-                            stageAccentColor="from-blue-500 to-blue-600"
-                        />
+                    <div className="relative">
+                        {/* Card principal limpo, sem transformações problemáticas */}
+                        <div className="bg-white border border-blue-300 rounded-xl overflow-hidden shadow-2xl">
+                            <KanbanDealCard
+                                deal={activeDeal}
+                                index={0}
+                                onClick={() => {}}
+                                getTemperatureTag={getTemperatureTag}
+                                tagColor={tagColor}
+                                isDragging={true}
+                                isMobile={isMobile}
+                                stageAccentColor="from-blue-500 to-blue-600"
+                            />
+                        </div>
+                        
+                        {/* Indicador de movimento simples */}
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
                     </div>
                 ) : null}
             </DragOverlay>

@@ -551,6 +551,7 @@ export interface Database {
           description: string | null;
           expected_close_date: string | null;
           company_id: string | null;
+          person_id: string | null;
           stage_id: string | null;
           funnel_id: string | null;
           position: number;
@@ -558,6 +559,12 @@ export interface Database {
           category_id: string | null;
           origin_id: string | null;
           origin_name: string | null;
+          temperature: "hot" | "warm" | "cold" | null;
+          tags: string[] | null;
+          responsible_id: string | null;
+          probability: number | null;
+          notes: string | null;
+          last_activity: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -569,6 +576,7 @@ export interface Database {
           description?: string | null;
           expected_close_date?: string | null;
           company_id?: string | null;
+          person_id?: string | null;
           stage_id?: string | null;
           funnel_id?: string | null;
           position?: number;
@@ -576,6 +584,12 @@ export interface Database {
           category_id?: string | null;
           origin_id?: string | null;
           origin_name?: string | null;
+          temperature?: "hot" | "warm" | "cold" | null;
+          tags?: string[] | null;
+          responsible_id?: string | null;
+          probability?: number | null;
+          notes?: string | null;
+          last_activity?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -587,6 +601,7 @@ export interface Database {
           description?: string | null;
           expected_close_date?: string | null;
           company_id?: string | null;
+          person_id?: string | null;
           stage_id?: string | null;
           funnel_id?: string | null;
           position?: number;
@@ -594,6 +609,12 @@ export interface Database {
           category_id?: string | null;
           origin_id?: string | null;
           origin_name?: string | null;
+          temperature?: "hot" | "warm" | "cold" | null;
+          tags?: string[] | null;
+          responsible_id?: string | null;
+          probability?: number | null;
+          notes?: string | null;
+          last_activity?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -610,6 +631,20 @@ export interface Database {
             columns: ["company_id"];
             isOneToOne: false;
             referencedRelation: "web_companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_deals_person_id_fkey";
+            columns: ["person_id"];
+            isOneToOne: false;
+            referencedRelation: "web_people";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_deals_responsible_id_fkey";
+            columns: ["responsible_id"];
+            isOneToOne: false;
+            referencedRelation: "core_client_users";
             referencedColumns: ["id"];
           },
           {

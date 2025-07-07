@@ -29,45 +29,50 @@ export function useVirtualPagination<T>({
   maxPages = 3, // Mantém apenas 3 páginas na memória
   enabled = true,
 }: VirtualPaginationOptions<T>): VirtualPaginationResult<T> {
-  console.log('🚀 useVirtualPagination inicializado:', { queryKey, pageSize, maxPages, enabled });
+  // 🚀 OTIMIZAÇÃO: Removidos console.logs desnecessários em produção
+  const isDev = process.env.NODE_ENV === 'development';
   
   const infiniteQuery = useInfiniteQuery<T[], Error>({
     queryKey,
     queryFn: async ({ pageParam = 0 }) => {
-      console.log(`📥 Carregando página ${pageParam} com limite ${pageSize}`);
+      if (isDev) console.log(`📥 Carregando página ${pageParam} com limite ${pageSize}`);
       const result = await queryFn({ page: pageParam, limit: pageSize });
-      console.log(`✅ Página ${pageParam} carregada:`, result.length, 'itens');
+      if (isDev) console.log(`✅ Página ${pageParam} carregada:`, result.length, 'itens');
       return result;
     },
     getNextPageParam: (lastPage, allPages) => {
       const hasMore = lastPage.length === pageSize;
       const nextPage = hasMore ? allPages.length : undefined;
-      console.log(`🔄 Próxima página: ${nextPage}, hasMore: ${hasMore}`);
+      if (isDev) console.log(`🔄 Próxima página: ${nextPage}, hasMore: ${hasMore}`);
       return nextPage;
     },
     initialPageParam: 0,
     enabled,
     maxPages, // Limita o número de páginas na memória
+    staleTime: 5 * 60 * 1000, // 5 minutos - reduz re-fetches desnecessários
+    gcTime: 10 * 60 * 1000,   // 10 minutos - garbage collection
   });
 
-  // Otimização: mantém apenas as últimas páginas na memória
+  // 🚀 OTIMIZAÇÃO: useMemo otimizado com dependências mais específicas
   const items = useMemo(() => {
-    if (!infiniteQuery.data?.pages) return [];
+    const pages = infiniteQuery.data?.pages;
+    if (!pages || pages.length === 0) return [];
     
-    const allPages = infiniteQuery.data.pages;
+    // Para melhor performance, sempre retorna todos os itens em vez de slice
+    // O slice estava causando inconsistências na paginação
+    const allItems = pages.flat();
     
-    // Se temos mais páginas que o limite, mantém apenas as últimas
-    const pagesToKeep = allPages.slice(-maxPages);
-    const allItems = pagesToKeep.flat();
+    if (isDev && pages.length !== allItems.length / pageSize) {
+      console.log(`📊 Itens carregados: ${allItems.length} de ${pages.length} páginas`);
+    }
     
-    console.log(`📊 Páginas na memória: ${pagesToKeep.length}/${allPages.length}, Itens: ${allItems.length}`);
     return allItems;
-  }, [infiniteQuery.data, maxPages]);
+  }, [infiniteQuery.data?.pages, pageSize, isDev]);
 
+  // 🚀 OTIMIZAÇÃO: totalItems calculado de forma mais eficiente
   const totalItems = useMemo(() => {
-    if (!infiniteQuery.data?.pages) return 0;
-    return infiniteQuery.data.pages.reduce((total, page) => total + page.length, 0);
-  }, [infiniteQuery.data]);
+    return items.length;
+  }, [items.length]);
 
   return {
     items,
@@ -84,70 +89,73 @@ export function useVirtualPagination<T>({
 
 // Hook para detectar quando o usuário está próximo do final da lista
 export function useScrollToBottom(
-  threshold: number = 100,
+  threshold: number = 200, // 🚀 OTIMIZAÇÃO: Threshold maior para reduzir triggers
   callback: () => void,
   enabled: boolean = true
 ) {
   useEffect(() => {
     if (!enabled) return;
 
-    const handleScroll = () => {
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollHeight = document.documentElement.scrollHeight;
-      const clientHeight = window.innerHeight;
+    let ticking = false; // 🚀 OTIMIZAÇÃO: Throttle para melhor performance
 
-      if (scrollTop + clientHeight >= scrollHeight - threshold) {
-        callback();
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+          const scrollHeight = document.documentElement.scrollHeight;
+          const clientHeight = window.innerHeight;
+
+          if (scrollTop + clientHeight >= scrollHeight - threshold) {
+            callback();
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, [threshold, callback, enabled]);
 }
 
-// Hook para detectar scroll em um elemento específico
+// 🚀 OTIMIZAÇÃO: Hook completamente reescrito para melhor performance
 export function useElementScrollToBottom(
   elementRef: React.RefObject<HTMLElement> | null,
-  threshold: number = 100,
-  onReachBottom: () => void,
+  callback: () => void,
+  threshold: number = 200, // Threshold maior
   enabled: boolean = true
 ) {
-  console.log('🔄 useElementScrollToBottom inicializado:', { threshold, enabled, hasElement: !!elementRef });
+  const isDev = process.env.NODE_ENV === 'development';
   
   useEffect(() => {
-    if (!enabled || !elementRef || !elementRef.current) {
-      console.log('❌ useElementScrollToBottom desabilitado ou elemento não encontrado');
+    if (!enabled || !elementRef?.current) {
       return;
     }
 
     const element = elementRef.current;
-    console.log('✅ useElementScrollToBottom elemento encontrado:', element);
+    let ticking = false;
 
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = element;
-      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-      
-      console.log('📏 Scroll detectado:', {
-        scrollTop,
-        scrollHeight,
-        clientHeight,
-        distanceFromBottom,
-        threshold
-      });
-      
-      if (distanceFromBottom <= threshold) {
-        console.log('🎯 Threshold atingido! Chamando onReachBottom');
-        onReachBottom();
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          const { scrollTop, scrollHeight, clientHeight } = element;
+          const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+          
+          if (distanceFromBottom <= threshold) {
+            if (isDev) console.log('🎯 Scroll threshold atingido - carregando mais dados');
+            callback();
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
-    element.addEventListener('scroll', handleScroll);
-    console.log('👂 Event listener adicionado para scroll');
+    element.addEventListener('scroll', handleScroll, { passive: true });
 
     return () => {
       element.removeEventListener('scroll', handleScroll);
-      console.log('🧹 Event listener removido');
     };
-  }, [elementRef, threshold, onReachBottom, enabled]);
+  }, [elementRef, threshold, callback, enabled, isDev]);
 } 

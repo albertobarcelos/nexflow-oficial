@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
+import { Label } from "@/components/ui/label";
 import {
-    User,
+    MoreHorizontal,
     Phone,
     Mail,
     Building2,
@@ -25,6 +26,7 @@ import {
     History,
     Target,
     Users,
+    User,
     Video,
     Send,
     AlertCircle,
@@ -34,12 +36,21 @@ import {
     CalendarDays,
     PlayCircle,
     StickyNote,
-    Edit2
+    Edit2,
+    Database,
+    Handshake,
+    GraduationCap,
+    Home
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ReactToyFace from "react-toy-face";
-import { ClientInfoCard } from "./ClientInfoCard";
-import { DealValueCard } from "./DealValueCard";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { toast } from 'sonner';
+import { DynamicOverviewTab } from "./DynamicOverviewTab";
+import { useFlowBases } from "@/hooks/useFlowBases";
+import { useDealEntityData } from "@/hooks/useDealEntityData";
+import { EntityFormModal } from "./EntityFormModal";
 
 // Types
 export interface MockDeal {
@@ -53,6 +64,7 @@ export interface MockDeal {
     stage_id: string;
     position: number;
     created_at: string;
+    flow_id?: string;
     tags?: string[];
     temperature?: string;
     instagram_link?: string;
@@ -349,48 +361,173 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
     }>>([]);
 
     // Notes state
-    const [notes, setNotes] = useState<Array<{ id: number; text: string; date: string; editing?: boolean }>>([
+    const [notes, setNotes] = useState<Array<{ id: number; text: string; date: string; editing: boolean }>>([
         { id: 1, text: 'Primeira nota sobre o negócio.', date: new Date().toISOString() },
         { id: 2, text: 'Cliente pediu revisão de valores.', date: new Date(Date.now() - 86400000).toISOString() },
     ]);
     const [newNote, setNewNote] = useState("");
-
-    // State for delete confirmation dialog
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
+
+    // Estado para controlar quais entidades estão expandidas
+    const [expandedEntities, setExpandedEntities] = useState<Set<string>>(new Set());
+
+    // Novos estados para o sistema de entidades
+    const [entityFormModal, setEntityFormModal] = useState<{
+        open: boolean;
+        entityId: string;
+        entityName: string;
+        entitySlug: string;
+        fields: any[];
+        editData?: any;
+    }>({
+        open: false,
+        entityId: '',
+        entityName: '',
+        entitySlug: '',
+        fields: [],
+    });
+
+    // Hooks
+    const flowId = deal?.flow_id || 'default-flow-id';
+    const { linkedBases: linkedEntities } = useFlowBases(flowId);
+    const { 
+        dealEntities, 
+        isLoading: isLoadingEntities,
+        getEntityFields,
+        createEntityRecord,
+        updateEntityRecord,
+        removeEntityFromDeal,
+        isCreating,
+        isUpdating 
+    } = useDealEntityData(deal?.id || '');
+
+    // Função para alternar expansão de entidade
+    const toggleEntityExpansion = (entityId: string) => {
+        setExpandedEntities(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(entityId)) {
+                newSet.delete(entityId);
+            } else {
+                newSet.add(entityId);
+            }
+            return newSet;
+        });
+    };
+
+    // Função para salvar dados da visão geral dinâmica
+    const handleSaveOverviewData = (data: Record<string, any>) => {
+        console.log('Salvando dados do overview:', data);
+        toast.success('Dados salvos com sucesso!');
+    };
 
     const handleAddNote = () => {
         if (newNote.trim()) {
-            setNotes(prevNotes => [
-                { id: Date.now(), text: newNote, date: new Date().toISOString() },
-                ...prevNotes,
-            ]);
-            setNewNote("");
+            const newNoteObj = {
+                id: Date.now(),
+                text: newNote.trim(),
+                date: new Date().toISOString(),
+                editing: false
+            };
+            setNotes(prev => [newNoteObj, ...prev]);
+            setNewNote('');
         }
     };
+
     const handleEditNote = (id: number, text: string) => {
-        setNotes(notes.map(n => n.id === id ? { ...n, text, editing: false } : n));
+        setNotes(notes.map(note => note.id === id ? { ...note, editing: false } : note));
     };
+
     const handleDeleteNote = (id: number) => {
-        setNotes(notes.filter(n => n.id !== id));
+        setNotes(notes.filter(note => note.id !== id));
     };
+
     const setNoteEditing = (id: number, editing: boolean) => {
-        setNotes(notes.map(n => n.id === id ? { ...n, editing } : { ...n, editing: false }));
+        setNotes(notes.map(note => note.id === id ? { ...note, editing } : note));
     };
+
     const handleRequestDeleteNote = (id: number) => {
         setNoteToDelete(id);
-        setDeleteDialogOpen(true);
     };
+
     const handleConfirmDeleteNote = () => {
-        if (noteToDelete !== null) {
-            setNotes(notes.filter(n => n.id !== noteToDelete));
+        if (noteToDelete) {
+            handleDeleteNote(noteToDelete);
             setNoteToDelete(null);
-            setDeleteDialogOpen(false);
         }
     };
+
     const handleCancelDeleteNote = () => {
-        setDeleteDialogOpen(false);
         setNoteToDelete(null);
+    };
+
+    const getEntityIcon = (entityName: string) => {
+        const iconMap: Record<string, any> = {
+            'Empresas': Building2,
+            'Pessoas': User,
+            'Parceiros': Handshake,
+            'Cursos': GraduationCap,
+            'Imóveis': Home,
+        };
+        return iconMap[entityName] || Building2;
+    };
+
+    // Funções para o sistema de entidades
+    const handleAddEntity = async (flowEntity: any) => {
+        try {
+            const fields = await getEntityFields(flowEntity.entity_id);
+            setEntityFormModal({
+                open: true,
+                entityId: flowEntity.entity_id,
+                entityName: flowEntity.entity?.name || '',
+                entitySlug: flowEntity.entity?.slug || '',
+                fields,
+            });
+        } catch (error) {
+            console.error('Erro ao carregar campos da entidade:', error);
+            toast.error('Erro ao carregar campos da entidade');
+        }
+    };
+
+    const handleEditEntity = async (dealEntity: any) => {
+        try {
+            const fields = await getEntityFields(dealEntity.entity_id);
+            setEntityFormModal({
+                open: true,
+                entityId: dealEntity.entity_id,
+                entityName: dealEntity.entity_name || '',
+                entitySlug: dealEntity.entity_slug || '',
+                fields,
+                editData: {
+                    recordId: dealEntity.record_id,
+                    title: dealEntity.record?.title || '',
+                    data: dealEntity.record?.data || {},
+                },
+            });
+        } catch (error) {
+            console.error('Erro ao carregar dados para edição:', error);
+            toast.error('Erro ao carregar dados para edição');
+        }
+    };
+
+    const handleSaveEntity = (data: any) => {
+        if (entityFormModal.editData) {
+            // Modo edição
+            updateEntityRecord({
+                recordId: entityFormModal.editData.recordId,
+                title: data.title,
+                data: data.data,
+            });
+        } else {
+            // Modo criação
+            createEntityRecord(data);
+        }
+        setEntityFormModal({ ...entityFormModal, open: false });
+    };
+
+    const handleRemoveEntity = (dealEntityId: string) => {
+        if (confirm('Tem certeza que deseja remover esta entidade da oportunidade?')) {
+            removeEntityFromDeal(dealEntityId);
+        }
     };
 
     if (!deal) return null;
@@ -425,7 +562,7 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
     `;
 
     const tabs = [
-        { id: 'overview', label: 'Visão Geral', icon: FileText },
+        { id: 'overview', label: 'Visão Geral', icon: Target },
         { id: 'tasks', label: 'Tarefas', icon: CheckCircle2 },
         { id: 'activities', label: 'Notas', icon: MessageSquare },
         { id: 'attachments', label: 'Anexos', icon: Paperclip },
@@ -442,39 +579,21 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                     <div className="bg-white/95 backdrop-blur-sm border-b border-slate-200/60 px-5 py-3 flex items-center">
                         <DialogHeader>
                             <DialogTitle className="text-base font-semibold text-slate-800">
-                                Detalhes do Negócio
+                                Detalhes da Oportunidade
                             </DialogTitle>
                         </DialogHeader>
                     </div>
 
-                    <div className="bg-white border-b border-slate-200/60 px-5 py-2 flex items-center">
-                        <div className="flex items-center gap-0">
-                            {tabs.map((tab) => {
-                                const Icon = tab.icon;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        className={cn(
-                                            "relative px-3 py-2 text-sm font-medium transition-all duration-300 ease-out",
-                                            "hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 rounded-md",
-                                            activeTab === tab.id
-                                                ? "text-blue-600 bg-blue-50/50"
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50/50"
-                                        )}
-                                        onClick={() => setActiveTab(tab.id)}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Icon className="h-4 w-4" />
-                                            {tab.label}
-                                        </div>
-                                        {/* Active indicator */}
-                                        {activeTab === tab.id && (
-                                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500 rounded-full" />
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                    <div className="bg-white/95 backdrop-blur-sm border-b border-l border-slate-200/60 px-4 py-3 flex items-center justify-between">
+                        <h3 className="text-base font-semibold text-slate-800">{deal.title}</h3>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={onClose}
+                            className="h-6 w-6 p-0"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
                     </div>
 
                     <div className="bg-white/95 backdrop-blur-sm border-b border-l border-slate-200/60 px-4 py-3 flex items-center">
@@ -482,122 +601,277 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                     </div>
 
                     {/* Content Row - All with independent scroll */}
-                    {/* Left Sidebar - Client Info */}
+                    {/* Left Sidebar - Detalhes da Oportunidade */}
                     <div className="bg-slate-50/80 border-r border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
-                        <div className="px-5 py-5 space-y-5">
-                            <ClientInfoCard deal={deal} />
-                            <DealValueCard deal={deal} onChangeValue={() => { }} />
-                            {/* Adicionando mais conteúdo para testar scroll */}
-                            <Card className="border-slate-200/60 shadow-sm bg-white/70 backdrop-blur-sm">
-                                <CardContent className="p-4">
-                                    <h4 className="font-semibold text-sm text-slate-800 mb-3">Histórico de Interações</h4>
-                                    <div className="space-y-2 text-xs text-slate-600">
-                                        <div className="flex justify-between">
-                                            <span>Última ligação:</span>
-                                            <span>15/01/2024</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Último email:</span>
-                                            <span>10/01/2024</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span>Reunião agendada:</span>
-                                            <span>20/01/2024</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                        <div className="px-5 py-5 space-y-4">
+                            {/* Entidades Vinculadas */}
+                            {isLoadingEntities ? (
+                                <div className="text-center py-12">
+                                    <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                                    <p className="text-sm text-slate-500">Carregando entidades...</p>
+                                </div>
+                            ) : linkedEntities.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Database className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                                    <h3 className="text-sm font-medium text-slate-600 mb-1">Nenhuma entidade configurada</h3>
+                                    <p className="text-xs text-slate-400">Configure entidades no flow para ver dados relacionados</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {linkedEntities
+                                        .sort((a, b) => a.order_index - b.order_index)
+                                        .map((flowEntity) => {
+                                            const Icon = getEntityIcon(flowEntity.entity?.name || '');
+                                            const isExpanded = expandedEntities.has(flowEntity.id);
+                                            
+                                            // Buscar dados reais da entidade para este deal
+                                            const dealEntity = dealEntities.find(de => de.entity_id === flowEntity.entity_id);
+                                            const hasData = !!dealEntity?.record;
+                                            
+                                            // Calcular campos extras para controle de expansão
+                                            let extraFieldsCount = 0;
+                                            if (hasData && dealEntity?.record) {
+                                                const fields = dealEntity.fields || [];
+                                                let mainCount = 1; // título
+                                                fields.forEach((field) => {
+                                                    const value = dealEntity.record!.data[field.slug];
+                                                    if (value !== undefined && value !== null && value !== '') {
+                                                        if (mainCount < 3) {
+                                                            mainCount++;
+                                                        } else {
+                                                            extraFieldsCount++;
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                            
+                                            // Renderizar campos baseados nos dados reais
+                                            const renderEntityData = () => {
+                                                if (!hasData) {
+                                                    return (
+                                                        <div className="text-center py-6">
+                                                            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+                                                                <Icon className="w-6 h-6 text-slate-400" />
+                                                            </div>
+                                                            <p className="text-sm text-slate-600 mb-3">Nenhum dado preenchido</p>
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => handleAddEntity(flowEntity)}
+                                                                className="h-8 text-xs bg-blue-600 hover:bg-blue-700 shadow-sm"
+                                                            >
+                                                                <Plus className="w-3 h-3 mr-2" />
+                                                                Adicionar Dados
+                                                            </Button>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                const record = dealEntity.record!;
+                                                const fields = dealEntity.fields || [];
+                                                
+                                                // Campos principais (primeiros 3 para melhor layout)
+                                                const mainFieldsData: Array<{ label: string; value: string }> = [];
+                                                const extraFieldsData: Array<{ label: string; value: string }> = [];
+                                                
+                                                // Adicionar título como primeiro campo
+                                                mainFieldsData.push({ label: 'Nome', value: record.title });
+                                                
+                                                // Adicionar campos do banco de dados
+                                                fields.forEach((field, index) => {
+                                                    const value = record.data[field.slug];
+                                                    if (value !== undefined && value !== null && value !== '') {
+                                                        const fieldData = { 
+                                                            label: field.name, 
+                                                            value: String(value) 
+                                                        };
+                                                        
+                                                        if (mainFieldsData.length < 3) {
+                                                            mainFieldsData.push(fieldData);
+                                                        } else {
+                                                            extraFieldsData.push(fieldData);
+                                                        }
+                                                    }
+                                                });
+
+                                                return (
+                                                    <div className="space-y-4">
+                                                        {/* Campos principais em grid elegante */}
+                                                        <div className="space-y-3">
+                                                            {mainFieldsData.map((field, index) => (
+                                                                <div key={index} className="group">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                                                                            {field.label}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="mt-1 p-2 bg-white rounded-md border border-slate-200 group-hover:border-slate-300 transition-colors">
+                                                                        <span className="text-sm font-medium text-slate-800 break-all">
+                                                                            {field.value}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        
+                                                        {/* Campos extras (expansíveis) */}
+                                                        {isExpanded && extraFieldsData.length > 0 && (
+                                                            <div className="space-y-3 pt-3 border-t border-slate-200">
+                                                                {extraFieldsData.map((field, index) => (
+                                                                    <div key={index} className="group">
+                                                                        <div className="flex items-center justify-between">
+                                                                            <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                                                                                {field.label}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="mt-1 p-2 bg-white rounded-md border border-slate-200 group-hover:border-slate-300 transition-colors">
+                                                                            <span className="text-sm font-medium text-slate-800 break-all">
+                                                                                {field.value}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {/* Indicador de mais campos */}
+                                                        {extraFieldsData.length > 0 && !isExpanded && (
+                                                            <div className="pt-3 border-t border-slate-200">
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    className="w-full h-8 text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-50 rounded-md border border-dashed border-slate-300 hover:border-slate-400 transition-all"
+                                                                    onClick={() => toggleEntityExpansion(flowEntity.id)}
+                                                                >
+                                                                    <ChevronRight className="w-3 h-3 mr-1" />
+                                                                    Ver mais {extraFieldsData.length} campo{extraFieldsData.length > 1 ? 's' : ''}
+                                                                </Button>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Botões de ação elegantes */}
+                                                        <div className="pt-3 border-t border-slate-200">
+                                                            <div className="flex gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleEditEntity(dealEntity)}
+                                                                    className="flex-1 h-8 text-xs border-slate-300 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                                                                >
+                                                                    <Edit2 className="w-3 h-3 mr-1" />
+                                                                    Editar
+                                                                </Button>
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => handleRemoveEntity(dealEntity.id)}
+                                                                    className="h-8 px-3 text-xs border-slate-300 hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                                                                >
+                                                                    <X className="w-3 h-3" />
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            };
+                                            
+                                            return (
+                                                <Card key={flowEntity.id} className="border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden bg-white">
+                                                    <CardHeader className="pb-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={cn(
+                                                                    "w-10 h-10 rounded-lg flex items-center justify-center shadow-sm",
+                                                                    hasData ? "bg-gradient-to-br from-blue-500 to-blue-600" : "bg-slate-200"
+                                                                )}>
+                                                                    <Icon 
+                                                                        className={cn(
+                                                                            "w-5 h-5",
+                                                                            hasData ? "text-white" : "text-slate-500"
+                                                                        )}
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <CardTitle className="text-sm font-semibold text-slate-800">
+                                                                        {flowEntity.entity?.name}
+                                                                    </CardTitle>
+                                                                    <div className="flex items-center gap-2 mt-1">
+                                                                        {flowEntity.is_primary && (
+                                                                            <Badge variant="default" className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 border-blue-200 font-medium">
+                                                                                Principal
+                                                                            </Badge>
+                                                                        )}
+                                                                        <Badge 
+                                                                            variant={flowEntity.is_required ? "destructive" : "outline"} 
+                                                                            className="text-[10px] px-2 py-0.5 font-medium"
+                                                                        >
+                                                                            {flowEntity.is_required ? 'Obrigatório' : 'Opcional'}
+                                                                        </Badge>
+                                                                        {hasData && (
+                                                                            <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-green-50 text-green-700 border-green-200 font-medium">
+                                                                                ✓ Preenchido
+                                                                            </Badge>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            {hasData && extraFieldsCount > 0 && (
+                                                                <Button 
+                                                                    variant="ghost" 
+                                                                    size="sm" 
+                                                                    className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full"
+                                                                    onClick={() => toggleEntityExpansion(flowEntity.id)}
+                                                                >
+                                                                    <ChevronRight className={cn(
+                                                                        "h-4 w-4 transition-transform duration-200 text-slate-500",
+                                                                        isExpanded && "rotate-90"
+                                                                    )} />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </CardHeader>
+                                                    <CardContent className="p-5 bg-slate-50/30">
+                                                        {renderEntityData()}
+                                                    </CardContent>
+                                                </Card>
+                                            );
+                                        })}
+                                </div>
+                            )}
                         </div>
                     </div>
 
                     {/* Main Content Area */}
-                    <div className="bg-white overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
-                        <div className="px-5 py-5 min-h-full">
-                            <div className={cn(
-                                "transition-all duration-300 ease-out",
-                                "animate-in fade-in-0 slide-in-from-bottom-2"
-                            )}>
+                    <div className="flex flex-col bg-white border-r border-slate-200/60 overflow-hidden">
+                        {/* Tab Navigation */}
+                        <div className="border-b border-slate-200/60 px-4 py-3">
+                            <div className="flex space-x-1">
+                                {tabs.map((tab) => (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
+                                        className={cn(
+                                            "flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-md transition-colors",
+                                            activeTab === tab.id
+                                                ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                                : "text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+                                        )}
+                                    >
+                                        <tab.icon className="w-3 h-3" />
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Tab Content */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                            <div className="space-y-4">
                                 {activeTab === 'overview' && (
-                                    <Card className="border-slate-200/60 shadow-sm">
-                                        <CardHeader className="pb-4 border-b border-slate-100">
-                                            <CardTitle className="text-lg font-semibold text-slate-800">Informações do Negócio</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="pt-6">
-                                            <div className="space-y-5">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                                        Quais serviços o cliente está adquirindo?
-                                                    </label>
-                                                    <Input
-                                                        value={form.services}
-                                                        onChange={e => setForm(f => ({ ...f, services: e.target.value }))}
-                                                        placeholder="Digite os serviços..."
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Descontos</label>
-                                                    <Input
-                                                        value={form.discounts}
-                                                        onChange={e => setForm(f => ({ ...f, discounts: e.target.value }))}
-                                                        placeholder="Digite os descontos..."
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                                                        Data de validade da proposta
-                                                    </label>
-                                                    <Input
-                                                        value={form.validity}
-                                                        onChange={e => setForm(f => ({ ...f, validity: e.target.value }))}
-                                                        placeholder="DD/MM/AAAA"
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Proposta</label>
-                                                    <Textarea
-                                                        value={form.proposal}
-                                                        onChange={e => setForm(f => ({ ...f, proposal: e.target.value }))}
-                                                        placeholder="Digite a proposta detalhada..."
-                                                        rows={4}
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Observações Adicionais</label>
-                                                    <Textarea
-                                                        placeholder="Adicione observações importantes sobre este negócio..."
-                                                        rows={3}
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Próximos Passos</label>
-                                                    <Textarea
-                                                        placeholder="Defina os próximos passos para este negócio..."
-                                                        rows={3}
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 resize-none"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Concorrência</label>
-                                                    <Input
-                                                        placeholder="Informe sobre a concorrência..."
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-700 mb-2">Budget do Cliente</label>
-                                                    <Input
-                                                        placeholder="Qual o orçamento disponível?"
-                                                        className="border-slate-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                    <DynamicOverviewTab 
+                                        deal={deal} 
+                                        flowId={flowId} 
+                                        onSaveData={handleSaveOverviewData} 
+                                    />
                                 )}
 
                                 {activeTab === 'tasks' && (
@@ -733,30 +1007,25 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                     </div>
 
                     {/* Right Sidebar - Stage Actions */}
-                    <div className="bg-slate-50/80 border-l border-slate-200/60 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
-                        <div className="px-4 py-5 space-y-4">
+                    <div className="bg-slate-50/80 overflow-y-auto custom-scrollbar" style={{ maxHeight: 'calc(88vh - 60px)' }}>
+                        <div className="p-4 space-y-4">
                             <Card className="border-slate-200/60 shadow-sm">
                                 <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-medium text-slate-700">Mover para Etapa</CardTitle>
+                                    <CardTitle className="text-sm font-medium text-slate-700">Estágio Atual</CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-2">
                                     {stages.map(stage => (
                                         <button
                                             key={stage.id}
+                                            onClick={() => onStageChange?.(stage.id)}
                                             className={cn(
-                                                "w-full flex items-center justify-start px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
-                                                "hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
-                                                stage.id === deal.stage_id
-                                                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                                                    : "text-slate-600 hover:text-slate-700 border border-transparent"
+                                                "w-full text-left p-2 rounded-md text-xs transition-colors flex items-center justify-between",
+                                                stage.id === deal.stage_id 
+                                                    ? "bg-blue-100 text-blue-800 border border-blue-200" 
+                                                    : "hover:bg-slate-100 text-slate-600"
                                             )}
-                                            onClick={() => onStageChange(stage.id)}
-                                            disabled={stage.id === deal.stage_id}
                                         >
-                                            {stage.id === deal.stage_id && (
-                                                <CheckCircle2 className="h-4 w-4 mr-2 text-blue-600" />
-                                            )}
-                                            <span className="truncate flex-1 text-left">{stage.name}</span>
+                                            <span>{stage.name}</span>
                                             {stage.id === deal.stage_id && (
                                                 <ChevronRight className="h-4 w-4 ml-2 text-blue-600" />
                                             )}
@@ -794,79 +1063,25 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                                         <Calendar className="h-3 w-3 mr-2" />
                                         Agendar Reunião
                                     </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-8 text-xs justify-start"
-                                    >
-                                        <FileText className="h-3 w-3 mr-2" />
-                                        Gerar Proposta
-                                    </Button>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-slate-200/60 shadow-sm">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-medium text-slate-700">Informações</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-3 text-xs text-slate-600">
-                                    <div>
-                                        <span className="font-medium">Criado em:</span>
-                                        <p>{new Date(deal.created_at).toLocaleDateString('pt-BR')}</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Responsável:</span>
-                                        <p>João Silva</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Origem:</span>
-                                        <p>Website</p>
-                                    </div>
-                                    <div>
-                                        <span className="font-medium">Prioridade:</span>
-                                        <Badge variant="secondary" className="text-xs">Alta</Badge>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="border-slate-200/60 shadow-sm">
-                                <CardContent className="p-4 space-y-3">
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        className="w-full h-9 text-sm font-medium"
-                                    >
-                                        <X className="h-4 w-4 mr-2" />
-                                        Marcar como Perdido
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full h-9 text-sm font-medium border-slate-200 hover:bg-slate-50"
-                                        onClick={onClose}
-                                    >
-                                        Fechar
-                                    </Button>
                                 </CardContent>
                             </Card>
                         </div>
                     </div>
                 </div>
             </DialogContent>
-            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogContent className="max-w-xs">
-                    <DialogHeader>
-                        <DialogTitle>Excluir nota?</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-2 text-sm text-slate-600">
-                        Tem certeza que deseja excluir esta nota? Esta ação não pode ser desfeita.
-                    </div>
-                    <DialogFooter className="flex gap-2 justify-end mt-4">
-                        <Button variant="outline" onClick={handleCancelDeleteNote}>Cancelar</Button>
-                        <Button variant="destructive" onClick={handleConfirmDeleteNote}>Excluir</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+
+            {/* Entity Form Modal */}
+            <EntityFormModal
+                open={entityFormModal.open}
+                onClose={() => setEntityFormModal({ ...entityFormModal, open: false })}
+                onSave={handleSaveEntity}
+                entityId={entityFormModal.entityId}
+                entityName={entityFormModal.entityName}
+                entitySlug={entityFormModal.entitySlug}
+                fields={entityFormModal.fields}
+                isLoading={isCreating || isUpdating}
+                initialData={entityFormModal.editData}
+            />
         </Dialog>
     );
 } 
