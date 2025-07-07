@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DraggableProvidedDragHandleProps, DraggableProvidedDraggableProps } from "@hello-pangea/dnd";
+import { memo, useMemo, useCallback } from "react";
 
 interface KanbanDealCardProps {
     deal: MockDeal;
@@ -15,13 +15,11 @@ interface KanbanDealCardProps {
     tagColor: (tag: string) => string;
     isDragging?: boolean;
     isMobile?: boolean;
-    dragHandleProps?: DraggableProvidedDragHandleProps | null;
-    draggableProps?: DraggableProvidedDraggableProps;
-    innerRef?: (element: HTMLElement | null) => void;
     stageAccentColor?: string;
 }
 
-export function KanbanDealCard({
+// 🚀 OTIMIZAÇÃO: Componente memoizado para evitar re-renderizações desnecessárias
+export const KanbanDealCard = memo(function KanbanDealCard({
     deal,
     index,
     onClick,
@@ -29,15 +27,49 @@ export function KanbanDealCard({
     tagColor,
     isDragging = false,
     isMobile = false,
-    dragHandleProps,
-    draggableProps,
-    innerRef,
     stageAccentColor = 'from-blue-500 to-blue-600'
 }: KanbanDealCardProps) {
     const tempTag = getTemperatureTag(deal.temperature);
 
-    // Função para renderizar ícone de temperatura
-    const renderTemperatureIcon = (temperature?: string) => {
+    // 🚀 OTIMIZAÇÃO: Memoizar dados calculados
+    const timeAgo = useMemo(() => {
+        return formatDistanceToNow(new Date(deal.created_at), {
+            addSuffix: true,
+            locale: ptBR
+        });
+    }, [deal.created_at]);
+
+    // 🚀 OTIMIZAÇÃO: Memoizar dados do responsável
+    const responsible = useMemo(() => {
+        let responsibleName = "Sem responsável";
+        let responsibleAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.responsible_id || deal.id}`;
+        
+        // 🆕 USAR DADOS REAIS DO RESPONSÁVEL
+        if (deal.responsible) {
+            responsibleName = `${deal.responsible.first_name || ''} ${deal.responsible.last_name || ''}`.trim();
+            if (deal.responsible.avatar_url) {
+                responsibleAvatar = deal.responsible.avatar_url;
+            }
+        } else if (deal.responsible_name) {
+            responsibleName = deal.responsible_name;
+        }
+        
+        return {
+            name: responsibleName,
+            avatar: responsibleAvatar,
+            email: deal.responsible?.email
+        };
+    }, [deal.responsible, deal.responsible_name, deal.responsible_id, deal.id]);
+
+    // 🚀 OTIMIZAÇÃO: Memoizar verificação de atividade recente
+    const hasRecentActivity = useMemo(() => {
+        return deal.last_activity
+            ? new Date(deal.last_activity) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+            : new Date(deal.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+    }, [deal.last_activity, deal.created_at]);
+
+    // 🚀 OTIMIZAÇÃO: Memoizar função para renderizar ícone de temperatura
+    const renderTemperatureIcon = useCallback((temperature?: string) => {
         if (!temperature) return null;
 
         const tempTag = getTemperatureTag(temperature);
@@ -80,54 +112,60 @@ export function KanbanDealCard({
                 </Tooltip>
             </TooltipProvider>
         );
-    };
+    }, [getTemperatureTag]);
 
-    // Calcular tempo desde criação
-    const timeAgo = formatDistanceToNow(new Date(deal.created_at), {
-        addSuffix: true,
-        locale: ptBR
-    });
+    // 🚀 OTIMIZAÇÃO: Memoizar função para renderizar barra de probabilidade
+    const renderProbabilityBar = useCallback((probability?: number) => {
+        if (!probability) return null;
+        
+        const getColorClass = (prob: number) => {
+            if (prob >= 80) return 'bg-emerald-500';
+            if (prob >= 60) return 'bg-yellow-500';
+            if (prob >= 40) return 'bg-orange-500';
+            return 'bg-red-500';
+        };
 
-    // Usar dados reais do responsável
-    let responsibleName = "Sem responsável";
-    const responsiblesArr = ((deal as unknown) as { responsibles?: { id: string, name: string }[] }).responsibles;
-    if (responsiblesArr && Array.isArray(responsiblesArr) && responsiblesArr.length > 0) {
-        responsibleName = responsiblesArr.map(r => r.name).join(", ");
-    } else if (((deal as unknown) as { [key: string]: unknown })['responsible_name']) {
-        responsibleName = ((deal as unknown) as { [key: string]: unknown })['responsible_name'] as string;
-    }
-    const responsible = {
-        name: responsibleName,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${deal.responsible_id || deal.id}`
-    };
+        return (
+            <div className="flex items-center gap-2 mt-1">
+                <div className="flex-1 bg-slate-200 rounded-full h-1.5">
+                    <div 
+                        className={`h-1.5 rounded-full transition-all duration-300 ${getColorClass(probability)}`}
+                        style={{ width: `${probability}%` }}
+                    />
+                </div>
+                <span className="text-xs text-slate-500 font-medium">{probability}%</span>
+            </div>
+        );
+    }, []);
 
-    // Determinar se tem atividade recente (últimas 24h)
-    const hasRecentActivity = deal.last_activity
-        ? new Date(deal.last_activity) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-        : new Date(deal.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-    const handleActionClick = (e: React.MouseEvent, action: string) => {
+    // 🚀 OTIMIZAÇÃO: Handlers memoizados
+    const handleActionClick = useCallback((e: React.MouseEvent, action: string) => {
         e.stopPropagation();
         console.log(`Ação ${action} para deal ${deal.id}`);
         // Aqui você pode implementar as ações específicas
-    };
+    }, [deal.id]);
+
+    const handleCardClick = useCallback((e: React.MouseEvent) => {
+        // Não abre o modal se está sendo arrastado
+        if (isDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        onClick(deal);
+    }, [isDragging, onClick, deal]);
 
     return (
         <div
-            ref={innerRef}
-            {...draggableProps}
-            {...dragHandleProps}
-            className={`group relative bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-300 cursor-pointer
+            className={`group relative bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-200 
                 ${isDragging
-                    ? 'shadow-2xl scale-105 rotate-2 z-50 border-blue-300'
-                    : 'hover:shadow-lg hover:border-slate-300/80 hover:-translate-y-1'
+                    ? 'shadow-lg border-blue-300 bg-blue-50/20'
+                    : 'hover:shadow-md hover:border-slate-300/80'
                 } 
                 ${!isMobile ? 'mb-2' : 'mb-1.5'}
                 `}
-            style={{ ...draggableProps?.style }}
-            onClick={() => onClick(deal)}
+            onClick={handleCardClick}
         >
-
 
             {/* Header do card com avatar proeminente */}
             <div className="p-3">
@@ -198,79 +236,202 @@ export function KanbanDealCard({
                     )}
                     {deal.tags && deal.tags.length > 3 && (
                         <Badge variant="secondary" style={{ fontSize: '10px', padding: '2px 6px' }}>
-                            +{deal.tags.length - 2}
+                            +{deal.tags.length - 3}
                         </Badge>
                     )}
                 </div>
 
-                {/* Data e responsável */}
-                <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
-                    <div className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        <span className="truncate max-w-20">{responsible.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-slate-400">{timeAgo.replace('há ', '').replace(' atrás', '')}</span>
-                    </div>
-
+                {/* Informações da empresa/pessoa */}
+                <div className="flex items-center gap-2 mb-2">
+                    <User className="w-3 h-3 text-slate-400" />
+                    <span className="text-xs text-slate-600 truncate">
+                        {deal.companies?.name || deal.people?.name || "Sem empresa/pessoa"}
+                    </span>
+                    {/* 🆕 INDICADOR DE TIPO DE ENTIDADE */}
+                    {deal.entity_type && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 border-slate-300">
+                            {deal.entity_type === 'company' ? 'Empresa' : 
+                             deal.entity_type === 'person' ? 'Pessoa' : 'Parceiro'}
+                        </Badge>
+                    )}
                 </div>
 
-                {/* Ações rápidas */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            onClick={(e) => handleActionClick(e, 'call')}
-                            title="Ligar"
-                        >
-                            <Phone className="h-3 w-3" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
-                            onClick={(e) => handleActionClick(e, 'email')}
-                            title="Email"
-                        >
-                            <Mail className="h-3 w-3" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                            onClick={(e) => handleActionClick(e, 'notes')}
-                            title="Notas"
-                        >
-                            <MessageSquare className="h-3 w-3" />
-                        </Button>
+                {/* 🆕 BARRA DE PROBABILIDADE */}
+                {deal.probability && deal.probability > 0 && (
+                    <div className="mb-2">
+                        {renderProbabilityBar(deal.probability)}
                     </div>
+                )}
 
-                    {/* Indicador de tempo e probabilidade */}
-                    <div className="flex items-center gap-2 text-slate-400">
-                        <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            <span className="text-xs">
-                                {hasRecentActivity ? 'Ativo' : 'Parado'}
-                            </span>
-                        </div>
-                        {deal.probability && (
-                            <div className="text-xs font-medium text-slate-600">
-                                {deal.probability}%
-                            </div>
+                {/* 🆕 DESCRIÇÃO EM TOOLTIP */}
+                {deal.description && (
+                    <div className="mb-2">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="text-xs text-slate-500 truncate cursor-help border-b border-dashed border-slate-300">
+                                        {deal.description.length > 50 
+                                            ? `${deal.description.substring(0, 50)}...` 
+                                            : deal.description}
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">{deal.description}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                )}
+
+                {/* Valor e ações */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-emerald-700 text-sm">
+                            {new Intl.NumberFormat("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                                notation: "compact",
+                            }).format(deal.value || 0)}
+                        </span>
+                        {hasRecentActivity && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="text-xs">Atividade recente</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+                        {/* 🆕 INDICADOR DE DATA ESPERADA */}
+                        {deal.expected_close_date && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Calendar className="w-3 h-3 text-orange-500" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="text-xs">
+                                            Previsão: {new Date(deal.expected_close_date).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         )}
                     </div>
+
+                    {/* Ações rápidas - apenas se não estiver sendo arrastado */}
+                    {!isDragging && (
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            onClick={(e) => handleActionClick(e, 'call')}
+                                        >
+                                            <Phone className="h-3 w-3 text-slate-500" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Ligar</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            onClick={(e) => handleActionClick(e, 'email')}
+                                        >
+                                            <Mail className="h-3 w-3 text-slate-500" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>E-mail</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            onClick={(e) => handleActionClick(e, 'message')}
+                                        >
+                                            <MessageSquare className="h-3 w-3 text-slate-500" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Mensagem</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    )}
+                </div>
+
+                {/* Timestamp e informações adicionais */}
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                    <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span className="text-xs text-slate-500">
+                            {deal.last_activity && deal.last_activity !== deal.created_at 
+                                ? `Atividade: ${formatDistanceToNow(new Date(deal.last_activity), { addSuffix: true, locale: ptBR })}`
+                                : timeAgo
+                            }
+                        </span>
+                    </div>
+                    
+                    {/* 🆕 INFORMAÇÕES DE ORIGEM */}
+                    {deal.origin_name && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                                        {deal.origin_name}
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="text-xs">Origem do lead</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+                </div>
+
+                {/* 🆕 INFORMAÇÕES DO RESPONSÁVEL */}
+                <div className="flex items-center justify-between mt-1">
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-slate-400">Por:</span>
+                        <span className="text-xs text-slate-600 font-medium">{responsible.name}</span>
+                    </div>
+                    
+                    {/* 🆕 NOTAS INDICATOR */}
+                    {deal.notes && deal.notes.trim() && (
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <MessageSquare className="w-3 h-3 text-blue-500 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                    <p className="text-sm">{deal.notes}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
                 </div>
             </div>
 
-            {/* Barra de progresso com cor do stage */}
-            <div className="h-1 bg-gradient-to-r from-slate-100 to-slate-200 rounded-b-xl">
-                <div
-                    className={`h-full rounded-b-xl transition-all duration-500 bg-gradient-to-r ${stageAccentColor}`}
-                    style={{ width: `${deal.probability || 50}%` }}
-                />
-            </div>
+            {/* Indicador de drag melhorado */}
+            {isDragging && (
+                <div className="absolute inset-0 bg-blue-500/10 rounded-xl pointer-events-none" />
+            )}
         </div>
     );
-} 
+}); 

@@ -3,6 +3,8 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { SettingsLayout } from "@/layouts/SettingsLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import ResellerLayout from "@/layouts/ResellerLayout";
+import { EntityBuilderProvider } from "@/contexts/EntityBuilderContext";
+import { FlowBuilderProvider } from "@/contexts/FlowBuilderContext";
 import { SelectPortal } from "@/pages/SelectPortal";
 import { LoginPage as CRMLoginPage } from "@/pages/auth/crm/LoginPage";
 import { ResetPasswordPage } from "@/pages/auth/crm/ResetPasswordPage";
@@ -26,6 +28,8 @@ import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSett
 import Tasks from "@/pages/crm/tasks/Tasks";
 import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
+import NewEntitySettings from "@/pages/crm/entities/NewEntitySettings";
+import EntityPage from "@/pages/crm/entities/EntityPage";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 
 // Páginas temporárias
@@ -112,6 +116,10 @@ export const router = createBrowserRouter([
         element: <DealsPage />,
       },
       {
+        path: "entity/:id",
+        element: <EntityPage />,
+      },
+      {
         path: "account/profile",
         element: <AccountProfilePage />,
       },
@@ -159,7 +167,11 @@ export const router = createBrowserRouter([
       },
       {
         path: "flow/new/settings",
-        element: <NewFlowSettings />,
+        element: <NewFlowSettings />
+      },
+      {
+        path: "entity/new/settings",
+        element: <NewEntitySettings />
       },
     ],
   },
