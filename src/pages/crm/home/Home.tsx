@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEntities } from "@/hooks/useEntities";
 
 type UserData = {
     client_id: string;
@@ -89,63 +90,7 @@ export function Home() {
     });
 
     // Query para buscar entidades e dados reais
-    const { data: entities } = useQuery({
-        queryKey: ['entities', user?.client_id],
-        queryFn: async () => {
-            if (!user?.client_id) return [];
-
-            // Buscar entidades dinâmicas
-            const { data: dynamicEntities, error: dynamicError } = await supabase
-                .from('web_entities')
-                .select('*')
-                .eq('client_id', user.client_id)
-                .eq('is_active', true)
-                .order('created_at', { ascending: true });
-            if (dynamicError) throw dynamicError;
-
-            // Buscar entidades fixas
-            const [companiesResult, peopleResult] = await Promise.all([
-                supabase.from('web_companies').select('*', { count: 'exact', head: true }),
-                supabase.from('web_people').select('*', { count: 'exact', head: true })
-            ]);
-            const fixedEntities = [
-                {
-                    id: 'b6398ad5-5a86-4880-b635-1084dd6787e5',
-                    name: 'Empresas',
-                    slug: 'companies',
-                    icon: 'building2',
-                    description: 'Empresas e organizações',
-                    color: '#3b82f6',
-                    count: companiesResult.count || 0,
-                    table: 'web_companies'
-                },
-                {
-                    id: '01562090-cd9e-4ea1-a29a-a6da25988066',
-                    name: 'Pessoas',
-                    slug: 'people',
-                    icon: 'users',
-                    description: 'Contatos e pessoas físicas',
-                    color: '#10b981',
-                    count: peopleResult.count || 0,
-                    table: 'web_people'
-                },
-                {
-                    id: 'ccf3ac50-e633-45de-9299-2df81a5cbeb3',
-                    name: 'Parceiros',
-                    slug: 'partners',
-                    icon: 'handshake',
-                    description: 'Parceiros de negócio',
-                    color: '#f59e0b',
-                    count: 0,
-                    table: 'web_partners'
-                }
-            ];
-
-            // Retornar dinâmicas + fixas
-            return [...(dynamicEntities || []), ...fixedEntities];
-        },
-        enabled: !!user?.client_id
-    });
+    const { entities } = useEntities();
 
     const handleSelectTemplate = (templateId: string) => {
         // TODO: Implement template selection logic

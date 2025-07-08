@@ -19,12 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, GripVertical, ChevronDown, Save } from "lucide-react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
+// } from "@hello-pangea/dnd";
 import {
   Collapsible,
   CollapsibleContent,

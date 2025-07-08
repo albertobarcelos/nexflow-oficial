@@ -1,4 +1,22 @@
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { TaskCard } from './TaskCard';
 import { GripVertical } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -28,17 +46,95 @@ interface TaskListViewProps {
     onReorderTasks?: (startIndex: number, endIndex: number) => void;
 }
 
+// Componente para item draggable usando @dnd-kit
+function SortableTaskItem({ 
+  task, 
+  index, 
+  onTaskClick, 
+  onCompleteTask 
+}: { 
+  task: Task; 
+  index: number; 
+  onTaskClick?: (taskId: string) => void; 
+  onCompleteTask?: (taskId: string) => void; 
+}) {
+  const isMobile = useIsMobile();
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`group relative transition-all duration-200 ${isDragging
+        ? 'shadow-xl scale-105 rotate-2 z-50 bg-white rounded-lg border-2 border-blue-200'
+        : 'hover:shadow-md'
+        }`}
+    >
+      {/* Handle de drag */}
+      <div
+        {...attributes}
+        {...listeners}
+        className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-20 transition-all duration-200 cursor-grab active:cursor-grabbing ${isDragging
+          ? 'opacity-100 scale-110'
+          : isMobile ? 'opacity-75' : 'opacity-0 group-hover:opacity-100'
+          }`}
+      >
+        <div className={`backdrop-blur-sm rounded p-1.5 shadow-lg border ${isDragging
+          ? 'bg-blue-500/90 border-blue-200'
+          : 'bg-white/90 border-gray-200'
+          }`}>
+          <GripVertical className={`h-4 w-4 ${isDragging ? 'text-white' : 'text-gray-400'
+            }`} />
+        </div>
+      </div>
+
+      {/* TaskCard com padding à esquerda para o handle */}
+      <div className={`transition-all duration-200 ${isDragging ? 'pl-12' : 'pl-8 group-hover:pl-12'
+        }`}>
+        <TaskCard
+          task={task}
+          onTaskClick={onTaskClick}
+          onCompleteTask={onCompleteTask}
+          isDragging={isDragging}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function TaskListView({ tasks, onAddTask, onTaskClick, onCompleteTask, onReorderTasks }: TaskListViewProps) {
     const isMobile = useIsMobile();
 
-    const handleDragEnd = (result: DropResult) => {
-        if (!result.destination) return;
+    // Configuração dos sensores para @dnd-kit
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
-        const startIndex = result.source.index;
-        const endIndex = result.destination.index;
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
 
-        if (startIndex !== endIndex && onReorderTasks) {
-            onReorderTasks(startIndex, endIndex);
+        if (over && active.id !== over.id) {
+            const oldIndex = tasks.findIndex(task => task.id === active.id);
+            const newIndex = tasks.findIndex(task => task.id === over.id);
+
+            if (oldIndex !== -1 && newIndex !== -1 && onReorderTasks) {
+                onReorderTasks(oldIndex, newIndex);
+            }
         }
     };
 
@@ -73,66 +169,25 @@ export function TaskListView({ tasks, onAddTask, onTaskClick, onCompleteTask, on
                         </div>
                     </div>
                 ) : (
-                    <DragDropContext onDragEnd={handleDragEnd}>
-                        <Droppable droppableId="task-list">
-                            {(provided) => (
-                                <div
-                                    {...provided.droppableProps}
-                                    ref={provided.innerRef}
-                                    className="space-y-3"
-                                >
-                                    {tasks.map((task, index) => (
-                                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                                            {(provided, snapshot) => (
-                                                <div
-                                                    ref={provided.innerRef}
-                                                    {...provided.draggableProps}
-                                                    className={`group relative transition-all duration-200 ${snapshot.isDragging
-                                                        ? 'shadow-xl scale-105 rotate-2 z-50 bg-white rounded-lg border-2 border-blue-200'
-                                                        : 'hover:shadow-md'
-                                                        }`}
-                                                    style={{
-                                                        ...provided.draggableProps.style,
-                                                        transform: snapshot.isDragging
-                                                            ? `${provided.draggableProps.style?.transform} rotate(2deg)`
-                                                            : provided.draggableProps.style?.transform,
-                                                    }}
-                                                >
-                                                    {/* Handle de drag */}
-                                                    <div
-                                                        {...provided.dragHandleProps}
-                                                        className={`absolute left-2 top-1/2 transform -translate-y-1/2 z-20 transition-all duration-200 cursor-grab active:cursor-grabbing ${snapshot.isDragging
-                                                            ? 'opacity-100 scale-110'
-                                                            : isMobile ? 'opacity-75' : 'opacity-0 group-hover:opacity-100'
-                                                            }`}
-                                                    >
-                                                        <div className={`backdrop-blur-sm rounded p-1.5 shadow-lg border ${snapshot.isDragging
-                                                            ? 'bg-blue-500/90 border-blue-200'
-                                                            : 'bg-white/90 border-gray-200'
-                                                            }`}>
-                                                            <GripVertical className={`h-4 w-4 ${snapshot.isDragging ? 'text-white' : 'text-gray-400'
-                                                                }`} />
-                                                        </div>
-                                                    </div>
-
-                                                    {/* TaskCard com padding à esquerda para o handle */}
-                                                    <div className={`transition-all duration-200 ${snapshot.isDragging ? 'pl-12' : 'pl-8 group-hover:pl-12'
-                                                        }`}>
-                                                        <TaskCard
-                                                            task={task}
-                                                            onTaskClick={onTaskClick}
-                                                            onCompleteTask={onCompleteTask}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </Draggable>
-                                    ))}
-                                    {provided.placeholder}
-                                </div>
-                            )}
-                        </Droppable>
-                    </DragDropContext>
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <div className="space-y-3">
+                            <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+                                {tasks.map((task, index) => (
+                                    <SortableTaskItem
+                                        key={task.id}
+                                        task={task}
+                                        index={index}
+                                        onTaskClick={onTaskClick}
+                                        onCompleteTask={onCompleteTask}
+                                    />
+                                ))}
+                            </SortableContext>
+                        </div>
+                    </DndContext>
                 )}
             </div>
         </div>

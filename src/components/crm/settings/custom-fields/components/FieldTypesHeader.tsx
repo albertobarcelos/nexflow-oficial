@@ -1,4 +1,4 @@
-import { Draggable, Droppable } from "@hello-pangea/dnd";
+// import { Draggable, Droppable } from "@hello-pangea/dnd";
 import { Card } from "@/components/ui/card";
 import { FieldTypeCard } from "./FieldTypeCard";
 import { fieldTypes } from "../data/fieldTypes";

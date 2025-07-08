@@ -133,8 +133,10 @@ export function FormPreviewModal({
     }
   };
 
-  // Calcular progresso (simulado)
-  const totalFields = linkedEntities.length + initialFields.length;
+  // Calcular progresso (simulado) - COM VERIFICAÇÃO DE SEGURANÇA
+  const safeLinkedEntities = Array.isArray(linkedEntities) ? linkedEntities : [];
+  const safeInitialFields = Array.isArray(initialFields) ? initialFields : [];
+  const totalFields = safeLinkedEntities.length + safeInitialFields.length;
   const filledFields = Math.floor(totalFields * 0.3); // 30% preenchido para demo
   const progress = totalFields > 0 ? (filledFields / totalFields) * 100 : 0;
 
@@ -205,7 +207,7 @@ export function FormPreviewModal({
             </div>
 
             {/* Entidades Vinculadas */}
-            {linkedEntities.map((flowEntity) => {
+            {safeLinkedEntities.map((flowEntity) => {
               const Icon = getEntityIcon(flowEntity.entity?.name || '');
               return (
                 <div key={flowEntity.id} className="space-y-2">
@@ -247,7 +249,7 @@ export function FormPreviewModal({
               );
             })}
 
-            {linkedEntities.length === 0 && !isLoadingBases && (
+            {safeLinkedEntities.length === 0 && !isLoadingBases && (
               <div className="text-center py-6 border border-dashed border-gray-300 rounded-lg">
                 <Building2 className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">Nenhuma entidade vinculada</p>
@@ -276,7 +278,7 @@ export function FormPreviewModal({
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                     <p className="text-sm text-gray-500 mt-2">Carregando campos...</p>
                   </div>
-                ) : initialFields.length === 0 ? (
+                ) : safeInitialFields.length === 0 ? (
                   <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg">
                     <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                     <h4 className="text-lg font-medium text-gray-600 mb-2">
@@ -288,7 +290,7 @@ export function FormPreviewModal({
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-6">
-                    {initialFields.map((field) => (
+                    {safeInitialFields.map((field) => (
                       <div key={field.id} className="space-y-2">
                         <Label className="text-sm font-medium flex items-center gap-1">
                           {field.label}

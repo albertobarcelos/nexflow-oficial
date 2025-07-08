@@ -994,12 +994,211 @@ export interface Database {
           }
         ];
       };
+
+      web_entities: {
+        Row: {
+          id: string;
+          client_id: string;
+          name: string;
+          slug: string;
+          icon: string | null;
+          description: string | null;
+          color: string | null;
+          is_system: boolean | null;
+          is_active: boolean | null;
+          settings: Json | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          name: string;
+          slug: string;
+          icon?: string | null;
+          description?: string | null;
+          color?: string | null;
+          is_system?: boolean | null;
+          is_active?: boolean | null;
+          settings?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          name?: string;
+          slug?: string;
+          icon?: string | null;
+          description?: string | null;
+          color?: string | null;
+          is_system?: boolean | null;
+          is_active?: boolean | null;
+          settings?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_entities_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      web_flow_entity_links: {
+        Row: {
+          id: string;
+          flow_id: string;
+          entity_id: string;
+          is_required: boolean | null;
+          is_primary: boolean | null;
+          order_index: number | null;
+          client_id: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          flow_id: string;
+          entity_id: string;
+          is_required?: boolean | null;
+          is_primary?: boolean | null;
+          order_index?: number | null;
+          client_id: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          flow_id?: string;
+          entity_id?: string;
+          is_required?: boolean | null;
+          is_primary?: boolean | null;
+          order_index?: number | null;
+          client_id?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_flow_entity_links_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_flow_entity_links_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_flow_entity_links_entity_id_fkey";
+            columns: ["entity_id"];
+            isOneToOne: false;
+            referencedRelation: "web_entities";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      // =====================================================
+      // FLOW ENTITY FUNCTIONS (Sistema de Vinculação)
+      // =====================================================
+      
+      get_available_entities: {
+        Args: {
+          p_client_id: string;
+          p_search?: string | null;
+          p_is_system?: boolean | null;
+        };
+        Returns: {
+          id: string;
+          name: string;
+          slug: string;
+          icon: string | null;
+          color: string | null;
+          description: string | null;
+          is_system: boolean;
+          is_active: boolean;
+          total_flows_linked: number;
+        }[];
+      };
+
+      get_flow_linked_entities: {
+        Args: {
+          p_flow_id: string;
+          p_client_id: string;
+        };
+        Returns: {
+          link_id: string;
+          flow_id: string;
+          entity_id: string;
+          entity_name: string;
+          entity_slug: string;
+          entity_icon: string | null;
+          entity_color: string | null;
+          entity_description: string | null;
+          is_system: boolean;
+          is_required: boolean;
+          is_primary: boolean;
+          order_index: number;
+          created_at: string;
+        }[];
+      };
+
+      link_entity_to_flow: {
+        Args: {
+          p_flow_id: string;
+          p_entity_id: string;
+          p_client_id: string;
+          p_is_required?: boolean;
+          p_is_primary?: boolean;
+        };
+        Returns: {
+          success: boolean;
+          message: string;
+          link_id: string | null;
+        }[];
+      };
+
+      reorder_flow_entities: {
+        Args: {
+          p_flow_id: string;
+          p_client_id: string;
+          p_entity_orders: Json;
+        };
+        Returns: {
+          success: boolean;
+          message: string;
+          updated_count: number;
+        }[];
+      };
+
+      get_flow_entity_stats: {
+        Args: {
+          p_flow_id: string;
+          p_client_id: string;
+        };
+        Returns: {
+          total_linked: number;
+          total_required: number;
+          total_system: number;
+          total_custom: number;
+          primary_entity_id: string | null;
+          primary_entity_name: string | null;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

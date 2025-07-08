@@ -1,4 +1,4 @@
-import { Droppable } from "@hello-pangea/dnd";
+// import { Droppable } from "@hello-pangea/dnd";
 import { CustomField, EntityField } from "../types";
 import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";

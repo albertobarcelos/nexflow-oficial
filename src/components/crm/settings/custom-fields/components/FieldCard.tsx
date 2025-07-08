@@ -1,4 +1,4 @@
-import { Draggable } from "@hello-pangea/dnd";
+// import { Draggable } from "@hello-pangea/dnd";
 import { CustomField, EntityField } from "../types";
 import { Button } from "@/components/ui/button";
 import { Edit2, GripVertical, LayoutGrid, Trash2, MoreVertical, Pencil, Trash } from "lucide-react";

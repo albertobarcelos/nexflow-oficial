@@ -13,12 +13,132 @@ import {
 } from '@/components/ui/dialog';
 import { useEntityBuilder, FieldBuilder } from '@/contexts/EntityBuilderContext';
 import { useEntities } from '@/hooks/useEntities';
-import { Database, Plus, Trash2, GripVertical } from 'lucide-react';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Database, Plus, Trash2, GripVertical, ArrowLeft, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// Componente para item sortable usando @dnd-kit
+function SortableFieldItem({ 
+  field, 
+  index, 
+  openEditFieldModal, 
+  setConfirmFieldIdx 
+}: {
+  field: FieldBuilder;
+  index: number;
+  openEditFieldModal: (index: number) => void;
+  setConfirmFieldIdx: (index: number) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: `field-${index}` });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const fieldTypeLabels = {
+    short_text: "Texto Curto",
+    long_text: "Texto Longo",
+    email: "Email",
+    phone: "Telefone",
+    url: "URL",
+    number: "Número",
+    currency: "Moeda",
+    date: "Data",
+    datetime: "Data e Hora",
+    checkbox: "Checkbox",
+    single_select: "Seleção Única",
+    multi_select: "Seleção Múltipla"
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`p-3 border rounded-lg bg-white transition-shadow ${
+        isDragging ? 'shadow-lg opacity-50' : 'hover:shadow-sm'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1">
+          <div {...attributes} {...listeners} className="cursor-grab hover:cursor-grabbing">
+            <GripVertical className="w-4 h-4 text-gray-400" />
+          </div>
+          
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{field.name}</span>
+              {field.is_required && (
+                <Badge variant="destructive" className="text-xs">
+                  Obrigatório
+                </Badge>
+              )}
+              {field.is_unique && (
+                <Badge variant="secondary" className="text-xs">
+                  Único
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>{fieldTypeLabels[field.field_type as keyof typeof fieldTypeLabels]}</span>
+              {field.description && (
+                <>
+                  <span>•</span>
+                  <span className="truncate">{field.description}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => openEditFieldModal(index)}
+          >
+            Editar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirmFieldIdx(index)}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const NewEntitySettings: React.FC = () => {
   const location = useLocation();
@@ -56,10 +176,17 @@ const NewEntitySettings: React.FC = () => {
   const [fieldDraft, setFieldDraft] = useState<FieldBuilder | undefined>(undefined);
   const [confirmFieldIdx, setConfirmFieldIdx] = useState<number | null>(null);
 
+  // Sensores para @dnd-kit
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   const openNewFieldModal = () => {
-    setEditingIndex(null);
     setFieldDraft({
       name: "",
       slug: "",
@@ -72,22 +199,22 @@ const NewEntitySettings: React.FC = () => {
       default_value: null,
       layout_config: { width: "full", column: 1 }
     });
+    setEditingIndex(null);
     setModalOpen(true);
   };
 
   const openEditFieldModal = (idx: number) => {
-    setEditingIndex(idx);
     setFieldDraft(fields[idx]);
+    setEditingIndex(idx);
     setModalOpen(true);
   };
 
   const handleSaveField = (field: FieldBuilder) => {
-    if (editingIndex === null) {
-      addField(field);
-    } else {
+    if (editingIndex !== null) {
       updateField(editingIndex, field);
+    } else {
+      addField(field);
     }
-    setModalOpen(false);
   };
 
   const handleDeleteField = (idx: number) => {
@@ -95,12 +222,18 @@ const NewEntitySettings: React.FC = () => {
     setConfirmFieldIdx(null);
   };
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    const reordered = Array.from(fields);
-    const [removed] = reordered.splice(result.source.index, 1);
-    reordered.splice(result.destination.index, 0, removed);
-    setFields(reordered);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = fields.findIndex((_, index) => `field-${index}` === active.id);
+      const newIndex = fields.findIndex((_, index) => `field-${index}` === over.id);
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const reordered = arrayMove(fields, oldIndex, newIndex);
+        setFields(reordered);
+      }
+    }
   };
 
   const handleSaveEntity = async () => {
@@ -305,78 +438,28 @@ const NewEntitySettings: React.FC = () => {
                 Nenhum campo adicionado ainda.
               </div>
             ) : (
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="fields">
-                  {(provided) => (
-                    <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
-                      {fields.map((field, index) => (
-                        <Draggable key={index} draggableId={`field-${index}`} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`p-3 border rounded-lg bg-white transition-shadow ${
-                                snapshot.isDragging ? 'shadow-lg' : 'hover:shadow-sm'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3 flex-1">
-                                  <div {...provided.dragHandleProps}>
-                                    <GripVertical className="w-4 h-4 text-gray-400" />
-                                  </div>
-                                  
-                                  <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">{field.name}</span>
-                                      {field.is_required && (
-                                        <Badge variant="destructive" className="text-xs">
-                                          Obrigatório
-                                        </Badge>
-                                      )}
-                                      {field.is_unique && (
-                                        <Badge variant="secondary" className="text-xs">
-                                          Único
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                                      <span>{fieldTypeLabels[field.field_type as keyof typeof fieldTypeLabels]}</span>
-                                      {field.description && (
-                                        <>
-                                          <span>•</span>
-                                          <span className="truncate">{field.description}</span>
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => openEditFieldModal(index)}
-                                  >
-                                    Editar
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setConfirmFieldIdx(index)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
+              <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext 
+                  items={fields.map((_, index) => `field-${index}`)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-2">
+                    {fields.map((field, index) => (
+                      <SortableFieldItem
+                        key={`field-${index}`}
+                        field={field}
+                        index={index}
+                        openEditFieldModal={openEditFieldModal}
+                        setConfirmFieldIdx={setConfirmFieldIdx}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </div>

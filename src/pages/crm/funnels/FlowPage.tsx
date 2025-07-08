@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/sheet";
 import { ListView } from "@/components/crm/flows/ListView";
 import { KanbanView } from "@/components/crm/flows/KanbanView";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase, WebDeal, WebDealInsert } from "@/lib/supabase";
 import { useVirtualPagination } from "@/hooks/useVirtualPagination";
@@ -994,7 +994,12 @@ const getDateFilterCondition = (filter: DateFilter) => {
 
 export default function FlowPage() {
   const { id: flowId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const entityId = searchParams.get('entity');
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  
+  // TODOS OS HOOKS DEVEM VIR ANTES DE QUALQUER RETURN CONDICIONAL
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddDealOpen, setIsAddDealOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<WebDeal | null>(null);
@@ -1189,6 +1194,14 @@ export default function FlowPage() {
   useEffect(() => {
     addGlobalSelectStyles();
   }, []);
+
+  // AGORA PODEMOS FAZER O RETURN CONDICIONAL APÓS TODOS OS HOOKS
+  // Se uma entidade está sendo visualizada, navegar para a EntityPage
+  useEffect(() => {
+    if (entityId) {
+      navigate(`/crm/entity/${entityId}?flow=${flowId}`);
+    }
+  }, [entityId, flowId, navigate]);
 
   // 🚀 OTIMIZAÇÃO: totalValue calculado apenas quando filteredDeals muda
   const totalValue = useMemo(() => {

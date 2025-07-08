@@ -1,4 +1,4 @@
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+// import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { FieldTypesSidebar } from "../FieldTypesSidebar";
 import { PipelineFieldsEditor } from "../PipelineFieldsEditor";
 import { CustomField } from "../types";

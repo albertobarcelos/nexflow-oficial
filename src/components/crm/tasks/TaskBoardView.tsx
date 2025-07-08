@@ -1,5 +1,20 @@
 import { useState } from 'react';
-import { DragDropContext } from '@hello-pangea/dnd';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TaskColumn } from './TaskColumn';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -41,47 +56,79 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusC
     const isMobile = useIsMobile();
     const { toast } = useToast();
 
-    const onDragEnd = async (result: {
-        destination?: { droppableId: string; index: number };
-        source: { droppableId: string; index: number };
-        draggableId: string;
-    }) => {
-        const { destination, source, draggableId } = result;
+    // Configuração dos sensores para @dnd-kit
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
-        if (!destination) return;
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
 
-        if (
-            destination.droppableId === source.droppableId &&
-            destination.index === source.index
-        ) {
-            return;
+        if (!over) return;
+
+        const activeId = active.id as string;
+        const overId = over.id as string;
+
+        // Encontrar a tarefa sendo movida
+        let movedTask: Task | undefined;
+        let sourceColumn: Column | undefined;
+        let sourceIndex = -1;
+
+        for (const column of columns) {
+            const taskIndex = column.tasks.findIndex(task => task.id === activeId);
+            if (taskIndex !== -1) {
+                movedTask = column.tasks[taskIndex];
+                sourceColumn = column;
+                sourceIndex = taskIndex;
+                break;
+            }
         }
 
-        const sourceColumnId = source.droppableId as 'todo' | 'doing' | 'done';
-        const destColumnId = destination.droppableId as 'todo' | 'doing' | 'done';
+        if (!movedTask || !sourceColumn) return;
+
+        // Determinar a coluna de destino
+        let destColumn: Column | undefined;
+        let destIndex = 0;
+
+        // Se foi solto sobre uma coluna
+        if (overId === 'todo' || overId === 'doing' || overId === 'done') {
+            destColumn = columns.find(col => col.id === overId);
+            destIndex = destColumn?.tasks.length || 0;
+        } else {
+            // Se foi solto sobre uma tarefa, encontrar a coluna dessa tarefa
+            for (const column of columns) {
+                const taskIndex = column.tasks.findIndex(task => task.id === overId);
+                if (taskIndex !== -1) {
+                    destColumn = column;
+                    destIndex = taskIndex;
+                    break;
+                }
+            }
+        }
+
+        if (!destColumn) return;
 
         // Criar cópia das colunas para manipulação
         const newColumns = [...columns];
+        const newSourceColumn = newColumns.find(col => col.id === sourceColumn.id)!;
+        const newDestColumn = newColumns.find(col => col.id === destColumn.id)!;
 
-        // Encontrar as colunas de origem e destino
-        const sourceColumn = newColumns.find(col => col.id === sourceColumnId);
-        const destColumn = newColumns.find(col => col.id === destColumnId);
+        // Remover a tarefa da coluna de origem
+        newSourceColumn.tasks.splice(sourceIndex, 1);
 
-        if (!sourceColumn || !destColumn) return;
-
-        // Encontrar a tarefa sendo movida
-        const [movedTask] = sourceColumn.tasks.splice(source.index, 1);
-
-        if (sourceColumnId === destColumnId) {
+        if (sourceColumn.id === destColumn.id) {
             // Reordenação dentro da mesma coluna
-            destColumn.tasks.splice(destination.index, 0, movedTask);
+            newDestColumn.tasks.splice(destIndex, 0, movedTask);
 
             // Atualizar as colunas localmente
             onColumnsChange(newColumns);
 
             // Chamar callback para persistir a reordenação
             if (onTaskReorder) {
-                onTaskReorder(sourceColumnId, source.index, destination.index);
+                onTaskReorder(sourceColumn.id, sourceIndex, destIndex);
             }
 
             toast({
@@ -92,15 +139,15 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusC
         } else {
             // Mover entre colunas diferentes
             // Atualizar o status da tarefa
-            const updatedTask = { ...movedTask, status: destColumnId };
-            destColumn.tasks.splice(destination.index, 0, updatedTask);
+            const updatedTask = { ...movedTask, status: destColumn.id };
+            newDestColumn.tasks.splice(destIndex, 0, updatedTask);
 
             // Atualizar as colunas localmente
             onColumnsChange(newColumns);
 
             // Chamar callback para atualizar o status na fonte de dados principal
             if (onStatusChange) {
-                onStatusChange(draggableId, destColumnId);
+                onStatusChange(activeId, destColumn.id);
             }
 
             toast({
@@ -122,7 +169,11 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusC
         <div className="h-full flex flex-col">
             {/* Board content */}
             <div className="flex-1 overflow-hidden">
-                <DragDropContext onDragEnd={onDragEnd}>
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                >
                     {isMobile ? (
                         <div className="h-full overflow-y-auto p-4 space-y-4">
                             {columns.map(column => (
@@ -166,7 +217,7 @@ export function TaskBoardView({ columns, onColumnsChange, onTaskClick, onStatusC
                             </div>
                         </div>
                     )}
-                </DragDropContext>
+                </DndContext>
             </div>
         </div>
     );

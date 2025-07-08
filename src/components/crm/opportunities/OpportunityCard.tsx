@@ -29,11 +29,11 @@ type OpportunityCardProps = {
       avatar_url?: string;
     } | null;
   };
-  provided: any;
   onClick: () => void;
+  isDragging?: boolean;
 };
 
-export function OpportunityCard({ opportunity, provided, onClick }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, onClick, isDragging = false }: OpportunityCardProps) {
   const [visibleFields, setVisibleFields] = useState({
     value: true,
     date: true,
@@ -42,10 +42,7 @@ export function OpportunityCard({ opportunity, provided, onClick }: OpportunityC
 
   return (
     <Card
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
-      className="w-[256px] bg-white border shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing mx-auto"
+      className={`w-[256px] bg-white border shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing mx-auto ${isDragging ? 'opacity-75 shadow-lg' : ''}`}
       onClick={onClick}
     >
       <CardContent className="p-4 space-y-3">

@@ -388,8 +388,8 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
     });
 
     // Hooks
-    const flowId = deal?.flow_id || 'default-flow-id';
-    const { linkedBases: linkedEntities } = useFlowBases(flowId);
+    const flowId = deal?.flow_id;
+    const { linkedBases: linkedEntities } = useFlowBases(flowId || '');
     const { 
         dealEntities, 
         isLoading: isLoadingEntities,

@@ -1,33 +1,10 @@
 import { useState } from "react";
-import { EntityField } from "./types";
-import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { EntitySelector } from "./components/EntitySelector";
-import { EntityFieldsEditor } from "./components/EntityFieldsEditor";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCustomFields } from "@/hooks/useCustomFields";
+import { Button } from "@/components/ui/button";
+import { Plus, Database } from "lucide-react";
 
 export function CustomFieldsLayout() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const { fields, isLoading, updateFields } = useCustomFields(selectedEntityId);
-
-  const handleSelectEntity = (entityId: string) => {
-    setSelectedEntityId(entityId);
-  };
-
-  const handleSave = async (updatedFields: EntityField[]) => {
-    if (!selectedEntityId) {
-      toast.error("Nenhuma entidade selecionada");
-      return;
-    }
-
-    try {
-      await updateFields(updatedFields);
-      toast.success("Campos atualizados com sucesso!");
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao atualizar campos");
-    }
-  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -39,11 +16,45 @@ export function CustomFieldsLayout() {
       </div>
 
       <div className="grid grid-cols-[300px_1fr] gap-6">
-        <EntitySelector
-          selectedEntityId={selectedEntityId}
-          onSelectEntity={handleSelectEntity}
-        />
+        {/* Entity Selector */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Entidades</CardTitle>
+            <CardDescription>
+              Selecione uma entidade para editar
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setSelectedEntityId("companies")}
+              >
+                <Database className="w-4 h-4 mr-2" />
+                Empresas
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setSelectedEntityId("people")}
+              >
+                <Database className="w-4 h-4 mr-2" />
+                Pessoas
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => setSelectedEntityId("partners")}
+              >
+                <Database className="w-4 h-4 mr-2" />
+                Parceiros
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
+        {/* Fields Editor */}
         {selectedEntityId ? (
           <Card>
             <CardHeader>
@@ -53,12 +64,16 @@ export function CustomFieldsLayout() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <EntityFieldsEditor
-                entityId={selectedEntityId}
-                fields={fields}
-                isLoading={isLoading}
-                onSave={handleSave}
-              />
+              <div className="space-y-4">
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Campo
+                </Button>
+                <div className="text-center py-8 text-muted-foreground">
+                  <Database className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Configuração de campos em desenvolvimento...</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         ) : (

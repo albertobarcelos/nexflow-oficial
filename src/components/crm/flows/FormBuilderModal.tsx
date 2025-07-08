@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -75,7 +75,17 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
   } = useFlowStages(flowId);
 
   // Hook para buscar bases do flow
-  const { linkedBases } = useFlowBases(flowId);
+  const { linkedBases, isLoading: isLoadingBases } = useFlowBases(flowId);
+
+  // Debug log para verificar o estado das bases
+  useEffect(() => {
+    console.log('🔍 Debug FormBuilderModal - linkedBases:', {
+      linkedBases,
+      isLoadingBases,
+      flowId,
+      length: linkedBases?.length
+    });
+  }, [linkedBases, isLoadingBases, flowId]);
 
   // Hook para campos do formulário inicial
   const {
@@ -121,21 +131,24 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
 
   // Sincronizar campos do banco com estado local
   useEffect(() => {
-    if (activeTab === 'initial-form' && initialFields.length > 0) {
+    const safeInitialFields = Array.isArray(initialFields) ? initialFields : [];
+    const safeStageFields = Array.isArray(stageFields) ? stageFields : [];
+    
+    if (activeTab === 'initial-form' && safeInitialFields.length > 0) {
       setLocalFields(prevFields => {
         // Só atualizar se os campos realmente mudaram
-        const fieldsChanged = prevFields.length !== initialFields.length || 
-          prevFields.some((field, index) => field.id !== initialFields[index]?.id);
-        return fieldsChanged ? initialFields : prevFields;
+        const fieldsChanged = prevFields.length !== safeInitialFields.length || 
+          prevFields.some((field, index) => field.id !== safeInitialFields[index]?.id);
+        return fieldsChanged ? safeInitialFields : prevFields;
       });
-    } else if (activeTab === 'stages' && stageFields.length > 0) {
+    } else if (activeTab === 'stages' && safeStageFields.length > 0) {
       setLocalFields(prevFields => {
         // Só atualizar se os campos realmente mudaram
-        const fieldsChanged = prevFields.length !== stageFields.length || 
-          prevFields.some((field, index) => field.id !== stageFields[index]?.id);
-        return fieldsChanged ? stageFields : prevFields;
+        const fieldsChanged = prevFields.length !== safeStageFields.length || 
+          prevFields.some((field, index) => field.id !== safeStageFields[index]?.id);
+        return fieldsChanged ? safeStageFields : prevFields;
       });
-    } else if (activeTab === 'initial-form' && !isLoadingInitial && initialFields.length === 0) {
+    } else if (activeTab === 'initial-form' && !isLoadingInitial && safeInitialFields.length === 0) {
       // Campos padrão para formulário inicial - só criar se não existir
       setLocalFields(prevFields => {
         if (prevFields.length === 0 || !prevFields.some(f => f.id === 'default-title')) {
@@ -155,7 +168,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
         }
         return prevFields;
       });
-    } else if (activeTab === 'stages' && !isLoadingStage && stageFields.length === 0) {
+    } else if (activeTab === 'stages' && !isLoadingStage && safeStageFields.length === 0) {
       setLocalFields(prevFields => prevFields.length > 0 ? [] : prevFields);
     }
   }, [activeTab, initialFields, stageFields, isLoadingInitial, isLoadingStage]);
@@ -341,15 +354,15 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                     <DialogTitle className="text-lg font-semibold text-gray-800">
                       Configurações - {flowName}
                     </DialogTitle>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <DialogDescription className="flex items-center gap-4 text-sm text-gray-500">
                       <span>{localFields.length} campos</span>
                       <span>•</span>
                       <span>{stages.length} etapas</span>
                       <span>•</span>
-                      <span>{linkedBases.length} bases</span>
+                      <span>{Array.isArray(linkedBases) ? linkedBases.length : 0} bases</span>
                       <span>•</span>
                       <span>0 automações</span>
-                    </div>
+                    </DialogDescription>
                   </div>
                 </div>
               </div>
@@ -447,7 +460,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                               <Database className="w-4 h-4 mr-2" />
                               Configurar Bases
                               <Badge variant="outline" className="ml-auto">
-                                {linkedBases.length}
+                                {Array.isArray(linkedBases) ? linkedBases.length : 0}
                               </Badge>
                             </Button>
                             
@@ -537,13 +550,13 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Bases vinculadas:</span>
-                              <span className="font-medium">{linkedBases.length}</span>
+                              <span className="font-medium">{Array.isArray(linkedBases) ? linkedBases.length : 0}</span>
                             </div>
                           </div>
                         </div>
 
                         {/* Informação sobre bases */}
-                        {linkedBases.length > 0 && (
+                        {Array.isArray(linkedBases) && linkedBases.length > 0 && (
                           <div className="pt-4 border-t border-gray-200">
                             <h4 className="font-medium mb-3">Bases Vinculadas</h4>
                             <div className="space-y-2">
@@ -797,11 +810,243 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                 </TabsContent>
 
                 <TabsContent value="settings" className="m-0 h-full">
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                      <SettingsIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-600 mb-2">Configurações do Pipe</h3>
-                      <p className="text-gray-500">Em desenvolvimento</p>
+                  <div className="flex h-full">
+                    {/* Área principal de configurações */}
+                    <div className="flex-1 p-6 overflow-y-auto">
+                      <div className="max-w-4xl mx-auto space-y-8">
+                        {/* Header */}
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-900 mb-2">Configurações do Flow</h2>
+                          <p className="text-gray-600">
+                            Configure as opções gerais e comportamentos do seu flow.
+                          </p>
+                        </div>
+
+                        {/* Configurações de Bases */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-900 mb-1">Bases Vinculadas</h3>
+                              <p className="text-sm text-gray-600">
+                                Configure quais entidades estarão disponíveis neste flow
+                              </p>
+                            </div>
+                            <Button
+                              onClick={() => setBasesConfigOpen(true)}
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              <Database className="w-4 h-4 mr-2" />
+                              Configurar Bases
+                            </Button>
+                          </div>
+                          
+                          {/* Lista de bases vinculadas */}
+                          <div className="space-y-3">
+                            {Array.isArray(linkedBases) && linkedBases.length > 0 ? (
+                              linkedBases.map((flowBase) => {
+                                console.log('🔍 Renderizando base:', flowBase);
+                                return (
+                                  <div key={flowBase.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center gap-3">
+                                      <Database className="w-5 h-5 text-blue-600" />
+                                      <div>
+                                        <span className="font-medium text-gray-900">{flowBase.base?.name || flowBase.entity_name}</span>
+                                        {(flowBase.base?.description || flowBase.entity_description) && (
+                                          <p className="text-sm text-gray-600">{flowBase.base?.description || flowBase.entity_description}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {flowBase.is_primary && (
+                                        <Badge variant="default" className="bg-blue-100 text-blue-800">
+                                          Principal
+                                        </Badge>
+                                      )}
+                                      {flowBase.is_required && (
+                                        <Badge variant="destructive">
+                                          Obrigatório
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div className="text-center py-8 text-gray-500">
+                                <Database className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                                <p className="text-sm">
+                                  {isLoadingBases ? 'Carregando bases...' : 'Nenhuma base vinculada'}
+                                </p>
+                                <p className="text-xs">
+                                  {isLoadingBases ? 'Aguarde...' : 'Clique em "Configurar Bases" para adicionar'}
+                                </p>
+                                {!isLoadingBases && (
+                                  <p className="text-xs text-red-500 mt-2">
+                                    Debug: linkedBases = {JSON.stringify(linkedBases)}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Configurações Gerais do Flow */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Configurações Gerais</h3>
+                          
+                          <div className="space-y-6">
+                            {/* Nome do Flow */}
+                            <div className="space-y-2">
+                              <Label htmlFor="flow-name">Nome do Flow</Label>
+                              <Input
+                                id="flow-name"
+                                value={formTitle}
+                                onChange={(e) => setFormTitle(e.target.value)}
+                                placeholder="Digite o nome do flow"
+                              />
+                            </div>
+
+                            {/* Opções do Flow */}
+                            <div className="space-y-4">
+                              <Label className="text-base font-medium">Opções do Flow</Label>
+                              
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium">Flow público</Label>
+                                    <p className="text-xs text-gray-500">
+                                      Permite acesso ao flow sem autenticação
+                                    </p>
+                                  </div>
+                                  <Switch />
+                                </div>
+                                
+                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium">Notificações automáticas</Label>
+                                    <p className="text-xs text-gray-500">
+                                      Enviar notificações quando itens são criados ou movidos
+                                    </p>
+                                  </div>
+                                  <Switch defaultChecked />
+                                </div>
+                                
+                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium">Permitir duplicatas</Label>
+                                    <p className="text-xs text-gray-500">
+                                      Permitir criação de itens com dados similares
+                                    </p>
+                                  </div>
+                                  <Switch />
+                                </div>
+                                
+                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                  <div className="space-y-1">
+                                    <Label className="text-sm font-medium">Auto-arquivar</Label>
+                                    <p className="text-xs text-gray-500">
+                                      Arquivar automaticamente itens concluídos após 30 dias
+                                    </p>
+                                  </div>
+                                  <Switch />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Configurações Avançadas */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Configurações Avançadas</h3>
+                          
+                          <div className="space-y-4">
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start"
+                              onClick={() => setDefaultValuesConfigOpen(true)}
+                            >
+                              <SettingsIcon className="w-4 h-4 mr-2" />
+                              Configurar Valores Padrão
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start"
+                              onClick={() => setFormPreviewOpen(true)}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Preview do Formulário
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sidebar de informações */}
+                    <div className="w-80 border-l border-gray-200 bg-gray-50 p-6">
+                      <div className="space-y-6">
+                        {/* Estatísticas do Flow */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Estatísticas</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Total de fases:</span>
+                              <span className="font-medium">{stages.length}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Bases vinculadas:</span>
+                              <span className="font-medium">{Array.isArray(linkedBases) ? linkedBases.length : 0}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Campos no formulário inicial:</span>
+                              <span className="font-medium">{Array.isArray(initialFields) ? initialFields.length : 0}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Automações ativas:</span>
+                              <span className="font-medium">0</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Informações das Bases */}
+                        {Array.isArray(linkedBases) && linkedBases.length > 0 && (
+                          <div className="pt-4 border-t border-gray-200">
+                            <h4 className="font-medium mb-3">Detalhes das Bases</h4>
+                            <div className="space-y-3">
+                              {linkedBases.map((flowBase) => (
+                                <div key={flowBase.id} className="p-3 bg-white border border-gray-200 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Database className="w-4 h-4 text-blue-600" />
+                                    <span className="font-medium text-sm">{flowBase.base?.name}</span>
+                                  </div>
+                                  <div className="flex gap-1">
+                                    {flowBase.is_primary && (
+                                      <Badge variant="default" className="text-xs bg-blue-100 text-blue-800">
+                                        Principal
+                                      </Badge>
+                                    )}
+                                    {flowBase.is_required && (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Obrigatório
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Ajuda */}
+                        <div className="pt-4 border-t border-gray-200">
+                          <h4 className="font-medium mb-3">Precisa de ajuda?</h4>
+                          <div className="space-y-2 text-sm text-gray-600">
+                            <p>• <strong>Bases:</strong> Definem quais entidades estarão disponíveis</p>
+                            <p>• <strong>Principal:</strong> Base padrão para novos itens</p>
+                            <p>• <strong>Obrigatório:</strong> Deve ser preenchido obrigatoriamente</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>

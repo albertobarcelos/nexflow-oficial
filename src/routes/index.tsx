@@ -32,6 +32,7 @@ import NewEntitySettings from "@/pages/crm/entities/NewEntitySettings";
 import EntityPage from "@/pages/crm/entities/EntityPage";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 import EntitySettings from '@/pages/crm/entities/EntitySettings';
+import { Overview } from "@/pages/crm/overview/Overview";
 
 // Páginas temporárias
 const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -83,6 +84,10 @@ export const router = createBrowserRouter([
       {
         path: "dashboard",
         element: <Home />,
+      },
+      {
+        path: "overview",
+        element: <Overview />,
       },
       {
         path: "tasks",

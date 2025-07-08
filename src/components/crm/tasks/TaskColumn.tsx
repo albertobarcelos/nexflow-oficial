@@ -1,4 +1,7 @@
-import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { useDroppable, useDraggable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { TaskCard } from './TaskCard';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -69,22 +72,25 @@ const getColumnTheme = (id: string) => {
   }
 };
 
-export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskClick, onStatusChange }: TaskColumnProps) {
-  const navigate = useNavigate();
-  const theme = getColumnTheme(id);
+// Componente para item draggable usando @dnd-kit
+function DraggableTaskItem({ task, onTaskClick, onCompleteTask }: {
+  task: Task;
+  onTaskClick: () => void;
+  onCompleteTask: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
 
-  const handleTaskClick = (taskId: string) => {
-    if (onTaskClick) {
-      onTaskClick(taskId);
-    } else {
-      navigate(`/crm/tasks/${taskId}`);
-    }
-  };
-
-  const handleCompleteTask = (taskId: string) => {
-    if (onStatusChange) {
-      onStatusChange(taskId, 'done');
-    }
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.75 : 1,
   };
 
   // Convert task format for TaskCard
@@ -104,6 +110,45 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
     responsible: task.responsible || task.assigned_to_collaborator?.name || 'Não atribuído',
     completed: task.status === 'done'
   });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      <TaskCard
+        task={convertTaskForListCard(task)}
+        onTaskClick={onTaskClick}
+        onCompleteTask={onCompleteTask}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
+export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskClick, onStatusChange }: TaskColumnProps) {
+  const navigate = useNavigate();
+  const theme = getColumnTheme(id);
+  
+  const { setNodeRef, isOver } = useDroppable({
+    id: id,
+  });
+
+  const handleTaskClick = (taskId: string) => {
+    if (onTaskClick) {
+      onTaskClick(taskId);
+    } else {
+      navigate(`/crm/tasks/${taskId}`);
+    }
+  };
+
+  const handleCompleteTask = (taskId: string) => {
+    if (onStatusChange) {
+      onStatusChange(taskId, 'done');
+    }
+  };
 
   return (
     <div className={`${isMobileLayout
@@ -135,61 +180,37 @@ export function TaskColumn({ id, title, tasks, isMobileLayout = false, onTaskCli
         </div>
       )}
 
-      <Droppable droppableId={id}>
-        {(provided, snapshot) => (
-          <motion.div
-            {...provided.droppableProps}
-            ref={provided.innerRef}
-            className={
-              isMobileLayout
-                ? 'flex-1 flex flex-col space-y-2'
-                : `flex-1 flex flex-col space-y-2 sm:space-y-3 p-2 sm:p-3 ${theme.bg} overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 transition-all duration-200`
-            }
-            animate={{
-              backgroundColor: snapshot.isDraggingOver ? '#e0e7ff' : undefined,
-              transition: { duration: 0.25 }
-            }}
+      <div
+        ref={setNodeRef}
+        className={
+          isMobileLayout
+            ? 'flex-1 flex flex-col space-y-2'
+            : `flex-1 flex flex-col space-y-2 sm:space-y-3 p-2 sm:p-3 ${theme.bg} overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-transparent hover:scrollbar-thumb-slate-400 transition-all duration-200 ${isOver ? 'bg-blue-50' : ''}`
+        }
+      >
+        <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
+          {tasks.map((task, index) => (
+            <DraggableTaskItem
+              key={task.id}
+              task={task}
+              onTaskClick={() => handleTaskClick(task.id)}
+              onCompleteTask={() => handleCompleteTask(task.id)}
+            />
+          ))}
+        </SortableContext>
+
+        {/* Empty state */}
+        {tasks.length === 0 && (
+          <div className={`flex flex-1 flex-col items-center justify-center text-slate-400 text-sm rounded-lg border-2 border-dashed border-slate-200 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50/50 ${isMobileLayout ? 'py-6' : 'py-6 sm:py-8 my-1 sm:my-2'}`}
           >
-
-            {tasks.map((task, index) => (
-              <Draggable
-                key={task.id}
-                draggableId={task.id}
-                index={index}
-              >
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className={snapshot.isDragging ? 'opacity-75' : ''}
-                  >
-                    <TaskCard
-                      task={convertTaskForListCard(task)}
-                      onTaskClick={() => handleTaskClick(task.id)}
-                      onCompleteTask={() => handleCompleteTask(task.id)}
-                      isDragging={snapshot.isDragging}
-                    />
-                  </div>
-                )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
-
-            {/* Empty state */}
-            {tasks.length === 0 && (
-              <div className={`flex flex-1 flex-col items-center justify-center text-slate-400 text-sm rounded-lg border-2 border-dashed border-slate-200 transition-all duration-200 hover:border-slate-300 hover:bg-slate-50/50 ${isMobileLayout ? 'py-6' : 'py-6 sm:py-8 my-1 sm:my-2'}`}
-              >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2 sm:mb-3 group-hover:bg-slate-200 transition-colors">
-                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
-                </div>
-                <span className="font-medium text-xs">Nenhuma tarefa</span>
-                <span className="text-xs text-slate-300 mt-0.5">Arraste tarefas aqui</span>
-              </div>
-            )}
-          </motion.div>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-100 rounded-full flex items-center justify-center mb-2 sm:mb-3 group-hover:bg-slate-200 transition-colors">
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+            </div>
+            <span className="font-medium text-xs">Nenhuma tarefa</span>
+            <span className="text-xs text-slate-300 mt-0.5">Arraste tarefas aqui</span>
+          </div>
         )}
-      </Droppable>
+      </div>
     </div>
   );
 }

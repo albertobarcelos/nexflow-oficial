@@ -2,14 +2,35 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Database } from '@/types/database';
 
 // Tipos otimizados baseados nas funções RPC
-export type DatabaseBase = Database['public']['Functions']['get_available_entities']['Returns'][0];
-export type FlowBase = Database['public']['Functions']['get_flow_linked_entities']['Returns'][0];
-export type LinkEntityResult = Database['public']['Functions']['link_entity_to_flow']['Returns'][0];
-export type ReorderResult = Database['public']['Functions']['reorder_flow_entities']['Returns'][0];
-export type FlowEntityStats = Database['public']['Functions']['get_flow_entity_stats']['Returns'][0];
+export interface DatabaseBase {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  color?: string;
+  description?: string;
+  is_system: boolean;
+  is_active: boolean;
+  total_flows_linked?: number;
+}
+
+export interface FlowBase {
+  link_id: string;
+  flow_id: string;
+  entity_id: string;
+  entity_name: string;
+  entity_slug: string;
+  entity_icon?: string;
+  entity_color?: string;
+  entity_description?: string;
+  is_system: boolean;
+  is_required: boolean;
+  is_primary: boolean;
+  order_index: number;
+  created_at: string;
+}
 
 export interface LinkBaseData {
   entityId: string;
@@ -24,35 +45,16 @@ export interface ReorderData {
 
 // Função para buscar client_id do usuário
 async function getCurrentClientId() {
-  console.log('🔍 getCurrentClientId: Iniciando busca do client_id');
-  
   const { data: { user } } = await supabase.auth.getUser();
-  console.log('🔍 getCurrentClientId: Usuário obtido:', user?.id);
-  
-  if (!user) {
-    console.error('🔍 getCurrentClientId: Usuário não autenticado');
-    throw new Error('Usuário não autenticado');
-  }
+  if (!user) throw new Error('Usuário não autenticado');
 
-  const { data: clientUser, error } = await supabase
+  const { data: clientUser } = await supabase
     .from('core_client_users')
     .select('client_id')
     .eq('id', user.id)
     .single();
 
-  console.log('🔍 getCurrentClientId: Resultado da query:', { clientUser, error });
-
-  if (error) {
-    console.error('🔍 getCurrentClientId: Erro na query:', error);
-    throw new Error(`Erro ao buscar client_id: ${error.message}`);
-  }
-
-  if (!clientUser) {
-    console.error('🔍 getCurrentClientId: Usuário sem cliente associado');
-    throw new Error('Usuário sem cliente associado');
-  }
-  
-  console.log('🔍 getCurrentClientId: client_id encontrado:', clientUser.client_id);
+  if (!clientUser) throw new Error('Usuário sem cliente associado');
   return clientUser.client_id;
 }
 
@@ -60,9 +62,6 @@ export function useFlowBases(flowId: string) {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSystem, setFilterSystem] = useState<boolean | null>(null);
-
-  // Log para verificar se o hook está sendo executado
-  console.log('🔍 useFlowBases: Hook iniciado com flowId:', flowId);
 
   // Query para buscar entidades disponíveis (com cache inteligente)
   const { data: availableBases = [], isLoading: isLoadingAvailable } = useQuery({
@@ -86,89 +85,34 @@ export function useFlowBases(flowId: string) {
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
-    gcTime: 10 * 60 * 1000, // 10 minutos (substituiu cacheTime)
+    cacheTime: 10 * 60 * 1000, // 10 minutos
   });
 
   // Query para buscar entidades vinculadas ao flow (com realtime)
   const { data: linkedBases = [], isLoading: isLoadingLinked } = useQuery({
     queryKey: ['flow-entities', flowId],
     queryFn: async () => {
-      console.log('🔍 useFlowBases: Query function executada!');
-      
-      if (!flowId) {
-        console.log('🔍 useFlowBases: flowId vazio, retornando array vazio');
-        return [];
-      }
+      if (!flowId) return [];
 
       try {
-        console.log('🔍 useFlowBases: Iniciando busca de entidades vinculadas', { flowId });
-        
         const clientId = await getCurrentClientId();
-        console.log('🔍 useFlowBases: clientId obtido:', clientId);
-        
-        // Log antes da chamada RPC
-        console.log('🔍 useFlowBases: Chamando RPC get_flow_linked_entities com parâmetros:', {
-          p_flow_id: flowId,
-          p_client_id: clientId
-        });
         
         const { data, error } = await supabase.rpc('get_flow_linked_entities', {
           p_flow_id: flowId,
           p_client_id: clientId
         });
 
-        console.log('🔍 useFlowBases: Resposta da RPC completa:', { 
-          data, 
-          error, 
-          flowId, 
-          clientId,
-          dataType: typeof data,
-          dataIsArray: Array.isArray(data),
-          dataLength: data?.length
-        });
-
-        if (error) {
-          console.error('🔍 useFlowBases: Erro na RPC:', error);
-          throw error;
-        }
-        
-        // Log detalhado dos dados retornados
-        if (data && Array.isArray(data)) {
-          console.log('🔍 useFlowBases: Dados válidos encontrados:', {
-            count: data.length,
-            items: data.map(item => ({
-              link_id: item.link_id,
-              entity_id: item.entity_id,
-              entity_name: item.entity_name,
-              is_required: item.is_required,
-              is_primary: item.is_primary
-            }))
-          });
-        } else {
-          console.log('🔍 useFlowBases: Dados inválidos ou vazios:', { data });
-        }
-        
-        const result = data as FlowBase[];
-        console.log('🔍 useFlowBases: Resultado final tipado:', result);
-        return result || [];
+        if (error) throw error;
+        return data as FlowBase[];
       } catch (error) {
-        console.error('🔍 useFlowBases: Erro ao buscar entidades vinculadas:', error);
+        console.error('Erro ao buscar entidades vinculadas:', error);
         toast.error('Erro ao carregar entidades vinculadas');
         throw error;
       }
     },
     enabled: !!flowId,
     staleTime: 2 * 60 * 1000, // 2 minutos
-    gcTime: 5 * 60 * 1000, // 5 minutos (substituiu cacheTime)
-  });
-
-  console.log('🔍 useFlowBases: Estado da query:', { 
-    linkedBases, 
-    isLoadingLinked, 
-    flowId,
-    queryEnabled: !!flowId,
-    linkedBasesType: typeof linkedBases,
-    linkedBasesStructure: linkedBases
+    cacheTime: 5 * 60 * 1000, // 5 minutos
   });
 
   // Mutation para vincular entidade ao flow
@@ -187,11 +131,7 @@ export function useFlowBases(flowId: string) {
 
         if (error) throw error;
         
-        if (!data || data.length === 0) {
-          throw new Error('Resposta inválida do servidor');
-        }
-
-        const result = data[0] as LinkEntityResult;
+        const result = data[0];
         if (!result.success) {
           throw new Error(result.message);
         }
@@ -301,11 +241,7 @@ export function useFlowBases(flowId: string) {
 
         if (error) throw error;
         
-        if (!data || data.length === 0) {
-          throw new Error('Resposta inválida do servidor');
-        }
-
-        const result = data[0] as ReorderResult;
+        const result = data[0];
         if (!result.success) {
           throw new Error(result.message);
         }
@@ -328,26 +264,10 @@ export function useFlowBases(flowId: string) {
 
   const isLoading = isLoadingAvailable || isLoadingLinked;
 
-  // Garantir que linkedBases seja sempre um array
-  const safeLinkedBases = (() => {
-    if (Array.isArray(linkedBases)) {
-      return linkedBases;
-    } else if (linkedBases && typeof linkedBases === 'object' && 'entities' in linkedBases) {
-      console.log('🔍 useFlowBases: Detectada estrutura {entities: Array}, extraindo entities:', (linkedBases as any).entities);
-      return Array.isArray((linkedBases as any).entities) ? (linkedBases as any).entities : [];
-    } else {
-      console.log('🔍 useFlowBases: linkedBases em formato inesperado, retornando array vazio:', linkedBases);
-      return [];
-    }
-  })();
-  
-  console.log('🔍 useFlowBases: safeLinkedBases final:', safeLinkedBases);
-  const safeAvailableBases = Array.isArray(availableBases) ? availableBases : [];
-
   return {
     // Dados
-    availableBases: safeAvailableBases,
-    linkedBases: safeLinkedBases,
+    availableBases,
+    linkedBases,
     isLoading,
     
     // Filtros
@@ -370,12 +290,12 @@ export function useFlowBases(flowId: string) {
     
     // Estatísticas computadas
     stats: {
-      totalAvailable: safeAvailableBases.length,
-      totalLinked: safeLinkedBases.length,
-      totalRequired: safeLinkedBases.filter(b => b.is_required).length,
-      primaryEntity: safeLinkedBases.find(b => b.is_primary),
-      systemEntities: safeLinkedBases.filter(b => b.is_system).length,
-      customEntities: safeLinkedBases.filter(b => !b.is_system).length,
+      totalAvailable: availableBases.length,
+      totalLinked: linkedBases.length,
+      totalRequired: linkedBases.filter(b => b.is_required).length,
+      primaryEntity: linkedBases.find(b => b.is_primary),
+      systemEntities: linkedBases.filter(b => b.is_system).length,
+      customEntities: linkedBases.filter(b => !b.is_system).length,
     }
   };
 } 

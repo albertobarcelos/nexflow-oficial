@@ -1,5 +1,8 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { OpportunityCard } from "./OpportunityCard";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
@@ -27,8 +30,51 @@ type KanbanColumnProps = {
   opportunities: Opportunity[];
 };
 
+// Componente para item draggable usando @dnd-kit
+function SortableOpportunityItem({ 
+  opportunity, 
+  onClick 
+}: { 
+  opportunity: Opportunity; 
+  onClick: () => void; 
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: opportunity.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.75 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      <OpportunityCard
+        opportunity={opportunity}
+        onClick={onClick}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
 export function KanbanColumn({ id, title, color, opportunities }: KanbanColumnProps) {
   const navigate = useNavigate();
+  
+  const { setNodeRef, isOver } = useDroppable({
+    id: id,
+  });
 
   return (
     <Card className="w-[278px] shrink-0 bg-white shadow-sm">
@@ -43,33 +89,21 @@ export function KanbanColumn({ id, title, color, opportunities }: KanbanColumnPr
           <Plus className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent className="p-2 bg-muted/30 h-[723px] overflow-y-auto mt-2">
-        <Droppable droppableId={id}>
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-2"
-            >
-              {opportunities.map((opportunity, index) => (
-                <Draggable
-                  key={opportunity.id}
-                  draggableId={opportunity.id}
-                  index={index}
-                >
-                  {(provided) => (
-                    <OpportunityCard
-                      opportunity={opportunity}
-                      provided={provided}
-                      onClick={() => navigate(`/crm/opportunities/${opportunity.id}`)}
-                    />
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+      <CardContent className={`p-2 bg-muted/30 h-[723px] overflow-y-auto mt-2 ${isOver ? 'bg-blue-50' : ''}`}>
+        <div
+          ref={setNodeRef}
+          className="space-y-2"
+        >
+          <SortableContext items={opportunities.map(opp => opp.id)} strategy={verticalListSortingStrategy}>
+            {opportunities.map((opportunity) => (
+              <SortableOpportunityItem
+                key={opportunity.id}
+                opportunity={opportunity}
+                onClick={() => navigate(`/crm/opportunities/${opportunity.id}`)}
+              />
+            ))}
+          </SortableContext>
+        </div>
       </CardContent>
     </Card>
   );

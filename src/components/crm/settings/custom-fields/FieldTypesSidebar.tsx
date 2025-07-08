@@ -1,7 +1,23 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, Database, HelpCircle } from "lucide-react";
-import { Droppable, Draggable } from "@hello-pangea/dnd";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { FieldTypeInfo, FieldCategory } from "./types";
 import { fieldTypes, categoryNames } from "./data/fieldTypes";
 import { FieldTypeCard } from "./components/FieldTypeCard";
@@ -14,9 +30,55 @@ interface FieldTypesSidebarProps {
   onFieldAdd?: (fieldType: FieldTypeInfo) => void;
 }
 
+// Componente Sortable para cada tipo de campo
+function SortableFieldType({ 
+  fieldType, 
+  index 
+}: {
+  fieldType: FieldTypeInfo;
+  index: number;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: fieldType.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="mb-2"
+    >
+      <FieldTypeCard
+        fieldType={fieldType}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
 export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<FieldCategory>("basic");
+
+  // Configurar sensores para drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const filteredFieldTypes = fieldTypes.filter(fieldType => {
     const matchesSearch = fieldType.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -24,6 +86,11 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
     const matchesCategory = selectedCategory === fieldType.category;
     return matchesSearch && matchesCategory;
   });
+
+  const handleDragEnd = (event: any) => {
+    // Implementar lógica de drag end se necessário
+    console.log('Drag ended:', event);
+  };
 
   return (
     <Card className="flex flex-col h-full border-primary/10 shadow-md">
@@ -74,38 +141,26 @@ export function FieldTypesSidebar({ onFieldAdd }: FieldTypesSidebarProps) {
         </div>
       </div>
 
-      <Droppable droppableId="field-types" type="FIELD">
-        {(provided) => (
-          <div 
-            {...provided.droppableProps}
-            ref={provided.innerRef}
-            className="flex-1 p-4"
-          >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={filteredFieldTypes.map(fieldType => fieldType.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="flex-1 p-4">
             {filteredFieldTypes.map((fieldType, index) => (
-              <Draggable 
-                key={fieldType.id} 
-                draggableId={fieldType.id} 
+              <SortableFieldType
+                key={fieldType.id}
+                fieldType={fieldType}
                 index={index}
-              >
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    {...provided.dragHandleProps}
-                    className="mb-2"
-                  >
-                    <FieldTypeCard
-                      fieldType={fieldType}
-                      isDragging={snapshot.isDragging}
-                    />
-                  </div>
-                )}
-              </Draggable>
+              />
             ))}
-            {provided.placeholder}
           </div>
-        )}
-      </Droppable>
+        </SortableContext>
+      </DndContext>
     </Card>
   );
 }

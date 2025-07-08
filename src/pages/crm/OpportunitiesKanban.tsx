@@ -1,5 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { DragDropContext } from '@hello-pangea/dnd';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { KanbanHeader } from '@/components/crm/opportunities/KanbanHeader';
@@ -11,6 +25,14 @@ import { useParams } from 'react-router-dom';
 export default function OpportunitiesKanban() {
   const { pipelineId } = useParams();
   const { toast } = useToast();
+
+  // Configuração dos sensores para @dnd-kit
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data: columns = [], isLoading: isLoadingStages } = useQuery({
     queryKey: ['pipeline-stages', pipelineId],
@@ -94,38 +116,36 @@ export default function OpportunitiesKanban() {
     enabled: !!pipelineId
   });
 
-  const onDragEnd = async (result: any) => {
-    const { destination, source, draggableId } = result;
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    if (!destination) return;
+    if (!over) return;
 
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
-      return;
-    }
+    const activeId = active.id as string;
+    const overId = over.id as string;
 
-    // Update in database
-    try {
-      const { error } = await supabase
-        .from('opportunities')
-        .update({ stage_id: destination.droppableId })
-        .eq('id', draggableId);
+    // Se foi solto sobre uma coluna (stage)
+    if (overId && activeId !== overId) {
+      try {
+        const { error } = await supabase
+          .from('opportunities')
+          .update({ stage_id: overId })
+          .eq('id', activeId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Status atualizado",
-        description: "O status da oportunidade foi atualizado com sucesso.",
-      });
-    } catch (error) {
-      console.error('Error updating opportunity status:', error);
-      toast({
-        title: "Erro ao atualizar status",
-        description: "Não foi possível atualizar o status da oportunidade.",
-        variant: "destructive",
-      });
+        toast({
+          title: "Status atualizado",
+          description: "O status da oportunidade foi atualizado com sucesso.",
+        });
+      } catch (error) {
+        console.error('Error updating opportunity status:', error);
+        toast({
+          title: "Erro ao atualizar status",
+          description: "Não foi possível atualizar o status da oportunidade.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -148,7 +168,11 @@ export default function OpportunitiesKanban() {
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       ) : columns.length > 0 ? (
-        <DragDropContext onDragEnd={onDragEnd}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
           <div className="flex-1 flex gap-4 overflow-x-auto p-4 pb-8">
             {columns.map(column => (
               <KanbanColumn
@@ -160,7 +184,7 @@ export default function OpportunitiesKanban() {
               />
             ))}
           </div>
-        </DragDropContext>
+        </DndContext>
       ) : (
         <Alert>
           <AlertDescription>

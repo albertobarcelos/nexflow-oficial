@@ -2,7 +2,12 @@ import { Json } from "@/types/database/json";
 
 export type FieldType = "text" | "textarea" | "number" | "boolean" | "select";
 
-export interface EntityField {
+export interface LayoutConfig {
+  width?: 'full' | 'half' | 'third';
+  column?: number;
+}
+
+export interface BaseField {
   id: string;
   name: string;
   description?: string;
@@ -12,7 +17,7 @@ export interface EntityField {
   order_index: number;
   created_at: string;
   updated_at: string;
-  layout_config: LayoutConfig;
+  layout_config?: LayoutConfig;
 }
 
 export interface EntityField extends BaseField {
