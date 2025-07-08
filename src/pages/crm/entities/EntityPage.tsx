@@ -31,7 +31,8 @@ import {
   ArrowLeft,
   Settings,
   Download,
-  Upload
+  Upload,
+  Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import {
@@ -221,83 +222,80 @@ const EntityPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#f8faff] ">
       <div className="mx-auto">
-        {/* Header */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center gap-4 mb-4 bg-white shadow-sm py-3 px-6">
-            {/* Title */}
-            <div className="flex items-center gap-3">
+        {/* Header - Novo Layout */}
+        <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/60 px-3 py-1.5 md:px-4 md:py-2 flex-shrink-0 shadow-sm relative mb-4">
+          <div className="flex items-center gap-2">
+            {/* Título + ícone + engrenagem */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-xl p-2"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-xl p-2"
                 style={{ backgroundColor: `${entity.color}20` }}
               >
                 {getEntityIcon(entity.icon)}
               </div>
-              <div >
-                <h1 className="text-lg font-bold" style={{ color: entity.color }}>
-                  {entity.name}
-                </h1>
-                <p className="text-gray-600 text-sm">{entity.description}</p>
-              </div>
+              <h1 className="text-base md:text-lg font-bold text-slate-800 truncate" style={{ color: entity.color }}>
+                {entity.name}
+              </h1>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0 hover:bg-slate-100"
+                onClick={() => navigate(`/crm/entity/${entity.id}/settings`)}
+              >
+                <Settings className="h-4 w-4 text-slate-600" />
+              </Button>
             </div>
-
-            {/* Toolbar */}
-            <div className=' flex items-center gap-4' >
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-4 flex-1">
-                  <Button variant="outline" size="sm" onClick={() => setShowFilterModal(true)}>
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filtros
-                  </Button>
-                  <div className="relative flex-1 ">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Buscar registros..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={() => setShowCreateRecord(true)}
-                  className="bg-orange-500 hover:bg-orange-600"
+            {/* Filtros + busca + novo registro */}
+            <div className="flex items-center gap-2">
+              {/* Botão de filtro */}
+              <Button
+                variant={filterDate || filterPeriod || filterType ? 'default' : 'outline'}
+                size="sm"
+                className={`h-6 px-1.5 text-xs ${filterDate || filterPeriod || filterType ? 'bg-blue-600' : 'bg-white/60 border-slate-200'}`}
+                onClick={() => setShowFilterModal(true)}
+              >
+                <Filter className="h-3 w-3 mr-1" />
+                Filtros
+              </Button>
+              {(filterDate || filterPeriod || filterType) && (
+                <Badge
+                  variant="secondary"
+                  className="h-6 px-1.5 text-xs bg-blue-100 text-blue-800 cursor-pointer hover:bg-blue-200"
+                  onClick={() => setShowFilterModal(true)}
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Registro
-                </Button>
+                  Filtro ativo
+                </Badge>
+              )}
+              {/* Busca */}
+              <div className="relative w-32 md:w-48">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
+                <Input
+                  type="search"
+                  placeholder="Buscar..."
+                  className="h-6 text-xs pl-6 bg-white/60 border-slate-200 focus:bg-white transition-colors"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
-
-              <div className=" flex items-center mr-2 ">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate(`/crm/entity/${entity.id}/settings`)}>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configurações
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Importar Dados
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Download className="w-4 h-4 mr-2" />
-                      Exportar Dados
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-red-600">
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Excluir Base
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              {/* Novo registro */}
+              <Button
+                size="sm"
+                className="h-6 px-2 text-xs bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-sm"
+                onClick={() => setShowCreateRecord(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Novo
+              </Button>
             </div>
           </div>
-        </div>
+        </header>
+        {/* Descrição da entidade - bloco informativo abaixo do header */}
+        {entity.description && (
+          <div className="flex items-center gap-2 bg-blue-50 mx-6 border border-blue-100 rounded-md px-4 py-2 mb-4 text-xs text-blue-900">
+            <Info className="w-4 h-4 text-blue-400" />
+            <span>{entity.description}</span>
+          </div>
+        )}
 
 
         {/* Tabela de Registros */}
