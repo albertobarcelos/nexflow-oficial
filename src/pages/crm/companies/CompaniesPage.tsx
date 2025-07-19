@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
+import { useCompanyColumns } from "@/features/companies/hooks/useCompanyColumns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building2, Download, Import, Plus, Pencil, Trash } from "lucide-react";
+import { Download, Import, Plus } from "lucide-react";
 import { CompanyPopup } from "@/features/companies/components/details/CompanyPopup";
 import { CompanyForm } from "@/features/companies/components/form/CompanyForm";
+import { DynamicCompanyTable } from "@/features/companies/components/table/DynamicCompanyTable";
+import { ColumnConfigDialog } from "@/features/companies/components/table/ColumnConfigDialog";
 import { toast } from "sonner";
 
 export function CompaniesPage() {
     const { companies = [], isLoading, deleteCompany, refreshCompanies } = useCompanies();
+    const { columns, visibleColumns, reorderColumns, resetToDefault, toggleColumnVisibility, updateColumn } = useCompanyColumns();
     const [search, setSearch] = useState("");
     const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -68,107 +72,32 @@ export function CompaniesPage() {
                 </div>
             </div>
 
-            {/* Barra de pesquisa */}
+            {/* Barra de pesquisa e configuração */}
             <div className="flex items-center gap-2">
                 <Input
                     placeholder="Buscar empresas..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-full"
+                    className="flex-1 rounded-full"
+                />
+                <ColumnConfigDialog
+                    columns={columns}
+                    onColumnsChange={reorderColumns}
+                    onToggle={toggleColumnVisibility}
+                    onReset={resetToDefault}
                 />
             </div>
 
-            {/* Tabela */}
-            <div className="border rounded-lg">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b bg-muted/100 rounded-t-md text-white">
-                                <th className="py-1 px-3 text-left font-medium text-xs text-muted-foreground tracking-wide w-2/5 md:w-1/3 lg:w-1/4 rounded-tl-md">Nome</th>
-                                <th className="py-1 px-3 text-center font-medium text-xs text-muted-foreground tracking-wide w-1/5 hidden sm:table-cell">Email</th>
-                                <th className="py-1 px-3 text-center font-medium text-xs text-muted-foreground tracking-wide w-1/6 hidden sm:table-cell">Status</th>
-                                <th className="py-1 px-3 text-center font-medium text-xs text-muted-foreground tracking-wide w-1/6 hidden sm:table-cell">Cidade/Estado</th>
-                                <th className="py-1 px-3 text-right font-medium text-xs text-muted-foreground tracking-wide w-12 rounded-tr-md">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-xs">
-                            {isLoading ? (
-                                <tr>
-                                    <td colSpan={5} className="py-3 px-4 text-center text-muted-foreground">
-                                        Carregando...
-                                    </td>
-                                </tr>
-                            ) : filteredCompanies.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="py-3 px-4 text-center text-muted-foreground">
-                                        Nenhuma empresa encontrada
-                                    </td>
-                                </tr>
-                            ) : (
-                                filteredCompanies.map((company) => (
-                                    <tr
-                                        key={company.id}
-                                        className="border-b cursor-pointer hover:bg-muted/50"
-                                        onClick={() => setSelectedCompany(company)}
-                                    >
-                                        {/* Nome + avatar + CNPJ */}
-                                        <td className="py-3 px-4 w-2/5 md:w-1/3 lg:w-1/4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                                                    <Building2 className="w-5 h-5 text-primary" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-semibold text-sm text-foreground">{company.name}</div>
-                                                    <div className="text-xs text-muted-foreground">{company.cnpj || <span className="italic text-muted-foreground">CNPJ</span>}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        {/* Email */}
-                                        <td className="py-3 px-4 text-center w-1/5 hidden sm:table-cell">
-                                            {company.email || <span className="italic text-muted-foreground">Email</span>}
-                                        </td>
-                                        {/* Status */}
-                                        <td className="py-3 px-4 text-center w-1/6 hidden sm:table-cell">
-                                            <span className={`inline-block px-3 py-1 text-xs rounded-full ${company.status === 'ATIVO' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'} font-medium`}>{company.status || 'ATIVO'}</span>
-                                        </td>
-                                        {/* Cidade/Estado */}
-                                        <td className="py-3 px-4 text-center w-1/6 hidden sm:table-cell">
-                                            {company.cidade || company.estado ? (
-                                                <span>{[company.cidade, company.estado].filter(Boolean).join(' / ')}</span>
-                                            ) : (
-                                                <span className="italic text-muted-foreground">Cidade/Estado</span>
-                                            )}
-                                        </td>
-                                        {/* Ações */}
-                                        <td className="py-2 px-2 text-right w-12">
-                                            <div className="flex justify-end gap">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={(e) => handleEdit(e, company)}
-                                                    aria-label="Editar"
-                                                    className=" text-gray-400 hover:text-blue-600"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="text-gray-400 hover:text-destructive"
-                                                    onClick={(e) => handleDelete(e, company)}
-                                                    aria-label="Excluir"
-                                                >
-                                                    <Trash className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            {/* Tabela Dinâmica */}
+            <DynamicCompanyTable
+                companies={filteredCompanies}
+                isLoading={isLoading}
+                visibleColumns={visibleColumns}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onRowClick={setSelectedCompany}
+                onUpdateColumn={updateColumn}
+            />
 
             {/* Contador de resultados */}
             <div className="text-sm text-muted-foreground">
