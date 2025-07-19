@@ -30,29 +30,78 @@ export default function AccountProfilePage() {
     // Classe utilitária para slide up/down + fade
     const tabTransition = "transition-all duration-300 ease-in-out animate-slide-fade";
 
-    const handleProfileSave = async (data: { first_name?: string; last_name?: string; email?: string; avatar_file?: File | null }) => {
+    const handleProfileSave = async (data: { 
+        first_name?: string; 
+        last_name?: string; 
+        email?: string; 
+        avatar_file?: File | null;
+        avatar_seed?: string | null;
+        avatar_type?: string;
+        custom_avatar_url?: string | null;
+    }) => {
+        console.log("🔄 handleProfileSave iniciado", { data, isSaving });
         setIsSaving(true);
-        let avatarUrl: string | null = user?.avatar_url || null;
         try {
+            console.log("📝 Processando dados do avatar...");
+            let finalAvatarUrl = user?.avatar_url;
+            let finalCustomAvatarUrl = data.custom_avatar_url;
+
+            // Se tem arquivo para upload
             if (data.avatar_file) {
-                avatarUrl = await uploadAvatar(data.avatar_file);
-            } else if (user?.avatar_url && !data.avatar_file) {
-                avatarUrl = user.avatar_url;
+                console.log("📤 Fazendo upload do arquivo...");
+                const uploadedUrl = await uploadAvatar(data.avatar_file);
+                finalAvatarUrl = uploadedUrl;
+                finalCustomAvatarUrl = uploadedUrl;
+                console.log("✅ Upload concluído:", uploadedUrl);
             }
-            await updateUserProfile(data.first_name, data.last_name, data.email, avatarUrl);
+            // Se mudou para ToyFace
+            else if (data.avatar_type === "toy_face") {
+                console.log("🎭 Configurando ToyFace...");
+                finalAvatarUrl = null;
+                finalCustomAvatarUrl = null;
+            }
+            // Se manteve custom mas sem novo arquivo
+            else if (data.avatar_type === "custom" && !data.avatar_file) {
+                console.log("🖼️ Mantendo avatar customizado...");
+                finalAvatarUrl = user?.custom_avatar_url;
+                finalCustomAvatarUrl = user?.custom_avatar_url;
+            }
+
+            console.log("💾 Atualizando perfil no banco...", {
+                first_name: data.first_name,
+                last_name: data.last_name,
+                email: data.email,
+                finalAvatarUrl,
+                avatar_type: data.avatar_type,
+                avatar_seed: data.avatar_seed,
+                finalCustomAvatarUrl
+            });
+
+            await updateUserProfile(
+                data.first_name,
+                data.last_name,
+                data.email,
+                finalAvatarUrl,
+                data.avatar_type,
+                data.avatar_seed || undefined,
+                finalCustomAvatarUrl
+            );
+
+            console.log("✅ Perfil atualizado com sucesso!");
             toast({
                 title: "Sucesso!",
                 description: "Seu perfil foi atualizado.",
             });
             setIsEditing(false);
         } catch (error: unknown) {
+            console.error("❌ Erro ao atualizar perfil:", error);
             toast({
                 title: "Erro",
                 description: `Falha ao atualizar o perfil: ${(error as Error).message || "Tente novamente."}`,
                 variant: "destructive",
             });
-            console.error("Profile update error:", error);
         } finally {
+            console.log("🏁 handleProfileSave finalizado, setIsSaving(false)");
             setIsSaving(false);
         }
     };

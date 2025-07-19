@@ -27,7 +27,7 @@ export function LinkPartnerDialog({ open, onOpenChange, companyId, onLink }: Lin
     queryKey: ['company', companyId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('companies')
+        .from('web_companies')
         .select('client_id')
         .eq('id', companyId)
         .single();

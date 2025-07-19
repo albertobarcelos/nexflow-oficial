@@ -165,7 +165,7 @@ export const CompanyForm = ({
         await Promise.all(
           peopleToUnlink.map(personId =>
             supabase
-              .from('company_people')
+              .from('web_company_people')
               .delete()
               .match({ 
                 company_id: company.id,
@@ -183,7 +183,7 @@ export const CompanyForm = ({
       if (newPeople.length > 0) {
         const peoplePromises = newPeople.map(person => 
           supabase
-            .from('company_people')
+            .from('web_company_people')
             .insert({
               company_id: savedCompany.id,
               person_id: person.id

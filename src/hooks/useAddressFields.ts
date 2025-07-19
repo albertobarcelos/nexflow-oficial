@@ -35,7 +35,7 @@ export function useAddressFields() {
     queryKey: ["states"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("states")
+        .from("web_states")
         .select("*")
         .order("name");
 
@@ -51,7 +51,7 @@ export function useAddressFields() {
       if (!selectedStateId) return [];
 
       const { data, error } = await supabase
-        .from("cities")
+        .from("web_cities")
         .select("*")
         .eq("state_id", selectedStateId)
         .order("name");
@@ -74,7 +74,7 @@ export function useAddressFields() {
 
       // Busca o estado pelo UF
       const { data: stateData } = await supabase
-        .from("states")
+        .from("web_states")
         .select("*")
         .eq("uf", data.uf)
         .single();
@@ -84,7 +84,7 @@ export function useAddressFields() {
 
         // Busca a cidade pelo nome e estado
         const { data: cityData } = await supabase
-          .from("cities")
+          .from("web_cities")
           .select("*")
           .eq("state_id", stateData.id)
           .ilike("name", data.localidade)
@@ -117,4 +117,4 @@ export function useAddressFields() {
     setAddressData,
     searchCep
   };
-} 
+}

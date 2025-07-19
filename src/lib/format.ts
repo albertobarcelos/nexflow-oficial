@@ -38,3 +38,13 @@ export const formatCNPJ = (value: string) => {
     .replace(/(\d{4})(\d)/, '$1-$2')
     .substr(0, 18);
 };
+
+/**
+ * Formata um valor numérico para o formato de moeda (R$)
+ */
+export const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};

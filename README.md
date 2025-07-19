@@ -118,6 +118,19 @@ companies/
 ├── components/
 │   ├── custom-fields/    # Campos personalizados
 │   ├── details/          # Visualização detalhada
+│   │   ├── CompanyPopup.tsx
+│   │   └── company-popup/  # Componentes modularizados
+│   │       ├── index.tsx
+│   │       ├── CompanyHeader.tsx
+│   │       ├── CompanyTabs.tsx
+│   │       ├── hooks.ts
+│   │       ├── types.ts
+│   │       ├── utils.ts
+│   │       └── tabs/      # Componentes de abas
+│   │           ├── OverviewTab/
+│   │           ├── PeopleTab/
+│   │           ├── NotesTab/
+│   │           └── AttachmentsTab/
 │   ├── form/            # Formulários
 │   │   └── CompanyForm.tsx
 │   ├── list/            # Componentes de lista
@@ -138,6 +151,16 @@ Componente de formulário para criação e edição de empresas.
 - Carregamento dinâmico de estados/cidades
 - Feedback visual com toasts
 - Suporte a campos customizados
+
+##### CompanyPopup
+
+Componente modularizado para exibição de detalhes da empresa.
+
+- Arquitetura de componentes modulares
+- Sistema de abas (Visão Geral, Pessoas, Notas, Anexos)
+- Responsivo (Dialog em desktop, Drawer em mobile)
+- Hooks personalizados para queries e estados
+- Componentes reutilizáveis para cada seção
 
 ##### EntityLinker
 
@@ -873,6 +896,12 @@ CREATE TABLE tasks (
 - **Hook personalizado** para detecção de mobile
 - **Listener de resize**: Atualização automática
 
+#### `useMediaQuery()`
+
+- **Flexível**: Aceita qualquer media query como parâmetro
+- **Reativo**: Atualiza automaticamente com mudanças na viewport
+- **Usado em**: CompanyPopup para alternar entre Dialog e Drawer
+
 #### Componentes Adaptativos
 
 - **TaskColumn**: Prop `isMobileLayout` para diferentes estilos
@@ -918,6 +947,111 @@ grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5
 3. **Acessibilidade**: Textos legíveis e contrastes adequados
 4. **Navegação intuitiva**: Padrões consistentes entre páginas
 5. **Loading states**: Estados de carregamento responsivos
+
+## 🔄 Sistema Modular de Flows e Visualizações Duplicadas
+
+### Conceito Revolucionário Modular
+
+Implementamos um sistema **totalmente modular e configurável** onde usuários podem criar flows personalizados com qualquer nome e etapas, mantendo a funcionalidade de **visualizações múltiplas** onde um deal pode existir em múltiplos flows simultaneamente.
+
+### Como Funciona o Sistema Modular
+
+**Criação Totalmente Flexível:**
+- ✅ **Flows Personalizados**: Usuários criam flows com qualquer nome e processo
+- ✅ **Etapas Modulares**: Definição livre de etapas com nome, cor, tipo e ordem
+- ✅ **Templates Reutilizáveis**: 7 templates pré-configurados + possibilidade de salvar novos
+- ✅ **Automações Configuráveis**: Sistema de duplicação automática entre qualquer flow
+- ✅ **Interface Visual**: FlowBuilder com drag-and-drop para criação intuitiva
+
+### Templates Pré-configurados
+
+**7 Templates Prontos para Uso:**
+1. **Vendas Completo**: Lead → Qualificação → Reunião → Proposta → Negociação → Fechamento → Ganho/Perdido
+2. **SDR - Prospecção**: Novo Lead → Pesquisa → Primeiro Contato → Follow-up → Reunião Agendada → Qualificado/Não Qualificado
+3. **Closer - Vendas**: Reunião Agendada → Reunião Realizada → Proposta → Negociação → Contrato → Assinatura → Fechado/Perdido
+4. **Pós-venda**: Boas-vindas → Documentação → Implementação → Treinamento → Go-live → Acompanhamento → Sucesso → Concluído/Cancelado
+5. **Suporte ao Cliente**: Ticket Aberto → Triagem → Em Andamento → Aguardando Cliente → Resolvido → Fechado
+6. **Gestão de Projetos**: Planejamento → Desenvolvimento → Revisão → Teste → Entrega → Aprovação → Concluído
+7. **Flow Simples**: Início → Em Andamento → Concluído
+
+### Automações Modulares Configuráveis
+
+```sql
+-- Exemplo: Automação entre flows personalizados criados pelo usuário
+INSERT INTO web_flow_automations (source_flow_id, target_flow_id, trigger_stage_id, target_stage_id, automation_type, is_active)
+VALUES 
+  -- Flow "Meu SDR Personalizado" → Flow "Meu Closer Especializado"
+  (user_flow_1, user_flow_2, 'reuniao_agendada', 'inicio_closer', 'duplicate', true),
+  -- Flow "Vendas B2B" → Flow "Onboarding Premium"
+  (user_flow_3, user_flow_4, 'contrato_assinado', 'boas_vindas', 'duplicate', true);
+```
+
+### Funcionalidades Modulares Implementadas
+
+**FlowBuilder Visual:**
+- 🎨 Interface drag-and-drop para criação de flows
+- ⚙️ Configuração visual de etapas (nome, cor, tipo, ordem)
+- 🔄 Configuração de automações entre flows
+- 💾 Salvamento de flows como templates reutilizáveis
+- 👀 Preview em tempo real do flow sendo criado
+
+**Sistema de Templates:**
+- 📋 Templates pré-configurados para casos comuns
+- 💾 Salvamento de flows personalizados como templates
+- 🏷️ Categorização de templates (sistema/usuário)
+- 🔄 Reutilização de templates em novos flows
+
+**Automações Inteligentes:**
+- 🎯 Triggers configuráveis (mudança de etapa, tempo, campo)
+- 🔄 Tipos de automação (duplicar, mover, notificar)
+- ⚡ Execução automática baseada em condições
+- 🔗 Sincronização entre visualizações duplicadas
+
+### Benefícios do Sistema Modular
+
+✅ **Flexibilidade Total**: Crie qualquer processo de negócio
+✅ **Reutilização**: Templates economizam tempo de configuração
+✅ **Escalabilidade**: Sistema cresce com suas necessidades
+✅ **Automação**: Duplicação automática mantém sincronização
+✅ **Visibilidade**: Controle de acesso por papéis
+✅ **Adaptabilidade**: Funciona para qualquer modelo de negócio
+
+### Exemplo Real Modular
+
+**Usuário cria flow "Vendas B2B Personalizado":**
+- Etapas: Lead Qualificado → Demo Agendada → Proposta → Negociação → Contrato → Implementação
+- Automação: Quando chega em "Contrato" → Duplica para flow "Onboarding Especializado"
+
+**Deal: "Prospect - Empresa ABC"**
+- **Flow Principal**: "Vendas B2B Personalizado" em "Proposta"
+- **Flow Duplicado**: "Onboarding Especializado" em "Aguardando" (criado automaticamente)
+- **Histórico Compartilhado**: Visível em ambos os flows
+
+### Arquivos do Sistema Modular
+
+**Estrutura SQL:**
+- `sql/create_modular_flow_system.sql`: Tabelas modulares
+- `sql/seed_flow_templates.sql`: Templates pré-configurados
+
+**Hooks React:**
+- `src/hooks/useFlowBuilder.ts`: Gestão de criação de flows
+- `src/hooks/useFlowViews.ts`: Gestão de visualizações duplicadas
+
+**Componentes:**
+- `src/components/flows/FlowBuilder.tsx`: Interface de criação visual
+- `src/components/flows/FlowViews.tsx`: Interface de visualizações
+
+### Status: ✅ SISTEMA MODULAR COMPLETO
+
+Sistema **totalmente modular e configurável** com:
+- ✅ Criação de flows personalizados
+- ✅ Templates pré-configurados e reutilizáveis
+- ✅ Interface visual completa (FlowBuilder)
+- ✅ Automações configuráveis
+- ✅ Duplicação automática funcional
+- ✅ Controle de acesso por papéis
+
+**Próximo Passo**: Integração com interface principal para uso em produção.
 
 ## Tecnologias Utilizadas
 

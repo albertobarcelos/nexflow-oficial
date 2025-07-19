@@ -20,14 +20,7 @@ export interface BaseField {
   layout_config?: LayoutConfig;
 }
 
-export interface EntityField extends BaseField {
-  entity_id: string;
-  validation_rules?: Json;
-  related_entity_id?: string;
-  relationship_type?: string;
-  is_staged?: boolean;
-  staging_batch?: string;
-}
+// AIDEV-NOTE: EntityField removido - sistema simplificado para deals apenas
 
 export interface CustomField extends BaseField {
   pipeline_id: string;
@@ -39,5 +32,6 @@ export interface FieldTemplate {
   name: string;
   description: string;
   category: string;
-  fields: Partial<EntityField>[];
+  // AIDEV-NOTE: Removido EntityField - sistema simplificado para focar apenas em deals
+  fields: Partial<CustomField>[];
 }

@@ -8,6 +8,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { FlowConfigurationModal } from '@/components/crm/flows/FlowConfigurationModal';
 import { EntityConfigurationModal } from '@/components/crm/entities/EntityConfigurationModal';
 import { 
@@ -28,6 +38,9 @@ import {
   Trash2,
   ChevronDown
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ConfigurationDropdownProps {
   type: 'flow' | 'entity';
@@ -46,7 +59,196 @@ export function ConfigurationDropdown({
   size = 'sm',
   showLabel = true
 }: ConfigurationDropdownProps) {
+  const { user } = useAuth();
   const [showConfigModal, setShowConfigModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // =====================================================
+  // FUNÇÕES DAS AÇÕES
+  // =====================================================
+  
+  const handleDuplicate = async () => {
+    setIsProcessing(true);
+    try {
+      if (type === 'flow') {
+        // Buscar dados do flow original
+        const { data: originalFlow, error: flowError } = await supabase
+          .from('web_flows')
+          .select('*')
+          .eq('id', itemId)
+          .single();
+
+        if (flowError) throw flowError;
+
+        // Criar novo flow
+        const { data: newFlow, error: createError } = await supabase
+          .from('web_flows')
+          .insert({
+            name: `${originalFlow.name} (Cópia)`,
+            description: originalFlow.description,
+            is_active: false, // Criar como inativo
+            user_id: user?.id,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+
+        // Duplicar stages
+        const { data: originalStages, error: stagesError } = await supabase
+          .from('web_flow_stages')
+          .select('*')
+          .eq('flow_id', itemId)
+          .order('order_index');
+
+        if (stagesError) throw stagesError;
+
+        if (originalStages && originalStages.length > 0) {
+          const newStages = originalStages.map(stage => ({
+            flow_id: newFlow.id,
+            name: stage.name,
+            description: stage.description,
+            color: stage.color,
+            order_index: stage.order_index,
+            stage_type: stage.stage_type,
+            is_final_stage: stage.is_final_stage
+          }));
+
+          await supabase.from('web_flow_stages').insert(newStages);
+        }
+
+        toast.success('Flow duplicado com sucesso!');
+      } else {
+        // Duplicar entidade
+        const { data: originalEntity, error: entityError } = await supabase
+          .from('web_entities')
+          .select('*')
+          .eq('id', itemId)
+          .single();
+
+        if (entityError) throw entityError;
+
+        const { data: newEntity, error: createError } = await supabase
+          .from('web_entities')
+          .insert({
+            name: `${originalEntity.name} (Cópia)`,
+            description: originalEntity.description,
+            table_name: `${originalEntity.table_name}_copy`,
+            is_active: false,
+            user_id: user?.id,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (createError) throw createError;
+
+        toast.success('Entidade duplicada com sucesso!');
+      }
+    } catch (error) {
+      console.error('Erro ao duplicar:', error);
+      toast.error('Erro ao duplicar item');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const shareUrl = `${window.location.origin}/shared/${type}/${itemId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success('Link de compartilhamento copiado!');
+    } catch (error) {
+      console.error('Erro ao compartilhar:', error);
+      toast.error('Erro ao gerar link de compartilhamento');
+    }
+  };
+
+  const handleArchive = async () => {
+    setIsProcessing(true);
+    try {
+      const tableName = type === 'flow' ? 'web_flows' : 'web_entities';
+      
+      const { error } = await supabase
+        .from(tableName)
+        .update({ 
+          is_active: false,
+          archived_at: new Date().toISOString()
+        })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      toast.success(`${type === 'flow' ? 'Flow' : 'Entidade'} arquivado com sucesso!`);
+      setShowArchiveDialog(false);
+    } catch (error) {
+      console.error('Erro ao arquivar:', error);
+      toast.error('Erro ao arquivar item');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsProcessing(true);
+    try {
+      if (type === 'flow') {
+        // Deletar stages primeiro (relacionamento)
+        await supabase
+          .from('web_flow_stages')
+          .delete()
+          .eq('flow_id', itemId);
+
+        // Deletar automações
+        await supabase
+          .from('web_flow_automations')
+          .delete()
+          .eq('source_flow_id', itemId);
+
+        // Deletar flow
+        const { error } = await supabase
+          .from('web_flows')
+          .delete()
+          .eq('id', itemId);
+
+        if (error) throw error;
+      } else {
+        // Deletar campos da entidade primeiro
+        await supabase
+          .from('web_entity_fields')
+          .delete()
+          .eq('entity_id', itemId);
+
+        // Deletar relacionamentos
+        await supabase
+          .from('web_entity_relationships')
+          .delete()
+          .or(`source_entity_id.eq.${itemId},related_entity_id.eq.${itemId}`);
+
+        // Deletar entidade
+        const { error } = await supabase
+          .from('web_entities')
+          .delete()
+          .eq('id', itemId);
+
+        if (error) throw error;
+      }
+
+      toast.success(`${type === 'flow' ? 'Flow' : 'Entidade'} excluído com sucesso!`);
+      setShowDeleteDialog(false);
+      
+      // Recarregar página para atualizar lista
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+      toast.error('Erro ao excluir item');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const getMenuItems = () => {
     if (type === 'flow') {
@@ -135,25 +337,26 @@ export function ConfigurationDropdown({
       { 
         icon: Copy, 
         label: 'Duplicar', 
-        action: () => console.log(`Duplicar ${type}:`, itemId),
-        description: `Criar uma cópia deste ${type === 'flow' ? 'pipeline' : 'base'}`
+        action: handleDuplicate,
+        description: `Criar uma cópia deste ${type === 'flow' ? 'pipeline' : 'base'}`,
+        disabled: isProcessing
       },
       { 
         icon: ExternalLink, 
         label: 'Compartilhar', 
-        action: () => console.log(`Compartilhar ${type}:`, itemId),
+        action: handleShare,
         description: 'Gerar link de compartilhamento'
       },
       { 
         icon: Archive, 
         label: 'Arquivar', 
-        action: () => console.log(`Arquivar ${type}:`, itemId),
+        action: () => setShowArchiveDialog(true),
         description: 'Mover para arquivos'
       },
       { 
         icon: Trash2, 
         label: 'Excluir', 
-        action: () => console.log(`Excluir ${type}:`, itemId),
+        action: () => setShowDeleteDialog(true),
         description: 'Remover permanentemente',
         destructive: true
       }
@@ -211,14 +414,18 @@ export function ConfigurationDropdown({
           {actions.map((action, index) => (
             <DropdownMenuItem 
               key={index} 
-              onClick={action.action}
+              onClick={action.disabled ? undefined : action.action}
+              disabled={action.disabled}
               className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${
                 action.destructive ? 'text-red-600 focus:text-red-600' : ''
-              }`}
+              } ${action.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <div className="flex items-center gap-2 w-full">
                 <action.icon className="w-4 h-4" />
                 <span className="font-medium">{action.label}</span>
+                {action.disabled && isProcessing && (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current ml-auto"></div>
+                )}
               </div>
               <p className="text-xs text-gray-500 ml-6">{action.description}</p>
             </DropdownMenuItem>
@@ -242,6 +449,52 @@ export function ConfigurationDropdown({
           entityName={itemName}
         />
       )}
+
+      {/* Dialog de confirmação para arquivar */}
+      <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arquivar {type === 'flow' ? 'Pipeline' : 'Base'}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este {type === 'flow' ? 'pipeline' : 'base'} será movido para os arquivos e não aparecerá mais na lista principal.
+              Você pode restaurá-lo a qualquer momento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleArchive}
+              disabled={isProcessing}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isProcessing ? 'Arquivando...' : 'Arquivar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog de confirmação para excluir */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {type === 'flow' ? 'Pipeline' : 'Base'}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Este {type === 'flow' ? 'pipeline' : 'base'} e todos os seus dados
+              serão permanentemente removidos do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              disabled={isProcessing}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isProcessing ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
-} 
+}

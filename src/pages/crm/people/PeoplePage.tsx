@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Person } from "@/types/person";
 import { PersonPopup } from "@/components/crm/people/PersonPopup";
 import { toast } from "sonner";
-import { AddPersonDialog } from "@/components/crm/people/AddPersonDialog";
+import { PersonForm } from "@/components/crm/people/PersonForm";
 // import { PeopleMockData } from "./PeopleMockData";
 
 export function PeoplePage() {
@@ -15,7 +15,8 @@ export function PeoplePage() {
   const { people, isLoading, deletePerson } = usePeople();
   const [search, setSearch] = useState("");
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isPersonFormOpen, setIsPersonFormOpen] = useState(false);
+  const [personToEdit, setPersonToEdit] = useState<Person | null>(null);
   const [filter, setFilter] = useState<string>("todos");
 
   // Tipos de pessoa para os filtros
@@ -42,7 +43,19 @@ export function PeoplePage() {
 
   const handleEdit = (e: React.MouseEvent, person: Person) => {
     e.stopPropagation();
-    navigate(`/crm/people/${person.id}/edit`);
+    setPersonToEdit(person);
+    setIsPersonFormOpen(true);
+  };
+
+  const handleNewPerson = () => {
+    setPersonToEdit(null);
+    setIsPersonFormOpen(true);
+  };
+
+  const handleFormSuccess = () => {
+    setIsPersonFormOpen(false);
+    setPersonToEdit(null);
+    // Refresh será automático via React Query
   };
 
   const handleDelete = async (e: React.MouseEvent, person: Person) => {
@@ -78,7 +91,7 @@ export function PeoplePage() {
             Gerar leads
           </Button>
           <Button
-            onClick={() => setIsAddDialogOpen(true)}
+            onClick={handleNewPerson}
             variant="default"
             className="bg-[#0f172a] hover:bg-[#0f172a]/90"
           >
@@ -229,9 +242,11 @@ export function PeoplePage() {
         />
       )}
 
-      <AddPersonDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
+      <PersonForm
+        open={isPersonFormOpen}
+        onOpenChange={setIsPersonFormOpen}
+        person={personToEdit}
+        onSuccess={handleFormSuccess}
       />
     </div>
   );

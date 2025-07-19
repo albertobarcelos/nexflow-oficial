@@ -1,5 +1,5 @@
 // import { Droppable } from "@hello-pangea/dnd";
-import { CustomField, EntityField } from "../types";
+import { CustomField } from "../types";
 import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -13,8 +13,8 @@ import { EditFieldDialog } from "./EditFieldDialog";
 
 interface CustomFieldDropZoneProps {
   stageId: string;
-  fields: (CustomField | EntityField)[];
-  onEditField: (field: CustomField | EntityField) => void;
+  fields: CustomField[];
+  onEditField: (field: CustomField) => void;
   onDeleteField: (fieldId: string) => void;
   onSave: () => Promise<void>;
   hasChanges?: boolean;
@@ -32,7 +32,7 @@ export function CustomFieldDropZone({
 }: CustomFieldDropZoneProps) {
   const [layout, setLayout] = useState<"vertical" | "horizontal">("vertical");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [editingField, setEditingField] = useState<CustomField | EntityField | null>(null);
+  const [editingField, setEditingField] = useState<CustomField | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
   const handleLayoutChange = async (fieldId: string, layoutConfig: any) => {
@@ -55,7 +55,7 @@ export function CustomFieldDropZone({
     toast.success('Campo removido. Clique em "Salvar Alterações" para confirmar.');
   };
 
-  const handleEditField = (updatedField: CustomField | EntityField) => {
+  const handleEditField = (updatedField: CustomField) => {
     try {
       onEditField(updatedField);
       toast.success('Campo atualizado. Clique em "Salvar Alterações" para confirmar.');

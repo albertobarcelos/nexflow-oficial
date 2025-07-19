@@ -18,7 +18,7 @@ export function useLocationData() {
     queryKey: ["states"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("states")
+        .from("web_states")
         .select("*")
         .order("name");
 
@@ -29,7 +29,7 @@ export function useLocationData() {
 
   const getCitiesByState = async (stateId: string) => {
     const { data, error } = await supabase
-      .from("cities")
+      .from("web_cities")
       .select("*")
       .eq("state_id", stateId)
       .order("name");
@@ -43,4 +43,4 @@ export function useLocationData() {
     isLoadingStates,
     getCitiesByState,
   };
-} 
+}

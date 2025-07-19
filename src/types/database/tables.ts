@@ -157,11 +157,11 @@ export interface Database {
           updated_at?: string;
         };
       };
-      custom_fields: {
+      // AIDEV-NOTE: Sistema simplificado - campos personalizados apenas para deals
+      deal_custom_fields: {
         Row: {
           id: string;
           client_id: string;
-          entity_type: string;
           name: string;
           field_type: string;
           description: string | null;
@@ -175,7 +175,6 @@ export interface Database {
         Insert: {
           id?: string;
           client_id: string;
-          entity_type: string;
           name: string;
           field_type: string;
           description?: string | null;
@@ -189,7 +188,6 @@ export interface Database {
         Update: {
           id?: string;
           client_id?: string;
-          entity_type?: string;
           name?: string;
           field_type?: string;
           description?: string | null;
@@ -201,12 +199,12 @@ export interface Database {
           updated_at?: string;
         };
       };
-      custom_field_values: {
+      // AIDEV-NOTE: Sistema simplificado - valores de campos personalizados apenas para deals
+      deal_custom_field_values: {
         Row: {
           id: string;
           client_id: string;
-          entity_type: string;
-          entity_id: string;
+          deal_id: string;
           field_id: string;
           value: Json;
           created_at: string;
@@ -215,8 +213,7 @@ export interface Database {
         Insert: {
           id?: string;
           client_id: string;
-          entity_type: string;
-          entity_id: string;
+          deal_id: string;
           field_id: string;
           value: Json;
           created_at?: string;
@@ -225,39 +222,42 @@ export interface Database {
         Update: {
           id?: string;
           client_id?: string;
-          entity_type?: string;
-          entity_id?: string;
+          deal_id?: string;
           field_id?: string;
           value?: Json;
           created_at?: string;
           updated_at?: string;
         };
       };
-      opportunity_entity_relationships: {
+      // AIDEV-NOTE: Sistema simplificado - relacionamentos diretos para deals
+      deal_relationships: {
         Row: {
           id: string;
           client_id: string;
-          opportunity_id: string;
-          entity_type: string;
-          entity_id: string;
+          deal_id: string;
+          company_id: string | null;
+          person_id: string | null;
+          partner_id: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           client_id: string;
-          opportunity_id: string;
-          entity_type: string;
-          entity_id: string;
+          deal_id: string;
+          company_id?: string | null;
+          person_id?: string | null;
+          partner_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           client_id?: string;
-          opportunity_id?: string;
-          entity_type?: string;
-          entity_id?: string;
+          deal_id?: string;
+          company_id?: string | null;
+          person_id?: string | null;
+          partner_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -273,4 +273,4 @@ export interface Database {
       [_ in never]: never;
     };
   };
-} 
+}

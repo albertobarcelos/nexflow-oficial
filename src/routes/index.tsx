@@ -3,7 +3,6 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { SettingsLayout } from "@/layouts/SettingsLayout";
 import AdminLayout from "@/layouts/AdminLayout";
 import ResellerLayout from "@/layouts/ResellerLayout";
-import { EntityBuilderProvider } from "@/contexts/EntityBuilderContext";
 import { FlowBuilderProvider } from "@/contexts/FlowBuilderContext";
 import { SelectPortal } from "@/pages/SelectPortal";
 import { LoginPage as CRMLoginPage } from "@/pages/auth/crm/LoginPage";
@@ -12,12 +11,14 @@ import { LoginPage as AdminLoginPage } from "@/pages/auth/admin/LoginPage";
 import { LoginPage as ResellerLoginPage } from "@/pages/auth/reseller/LoginPage";
 import { Dashboard } from "@/pages/crm/Dashboard";
 import FlowPage from "@/pages/crm/funnels/FlowPage";
+import { FlowBuilderPage } from "@/pages/crm/flows/FlowBuilderPage";
+import { FlowViewsPage } from "@/pages/crm/flows/FlowViewsPage";
 import OpportunityDetails from "@/pages/crm/OpportunityDetails";
 import { CompaniesPage } from "@/pages/crm/companies/CompaniesPage";
 import { CompanyDetailsPage } from "@/features/companies/pages/CompanyDetailsPage";
 import { PeoplePage } from "@/pages/crm/people/PeoplePage";
 import { EditPersonPage } from "@/pages/crm/people/EditPersonPage";
-import { EntitiesSettings } from "@/components/crm/settings/EntitiesSettings";
+// AIDEV-NOTE: Removido EntitiesSettings - sistema simplificado para focar apenas em deals
 import { GeneralSettings } from "@/components/crm/settings/general/GeneralSettings";
 import { TeamSettings } from "@/components/crm/settings/TeamSettings";
 import { AutomationSettings } from "@/components/crm/settings/AutomationSettings";
@@ -28,14 +29,11 @@ import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSett
 import Tasks from "@/pages/crm/tasks/Tasks";
 import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
-import NewEntitySettings from "@/pages/crm/entities/NewEntitySettings";
-import EntityPage from "@/pages/crm/entities/EntityPage";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
-import EntitySettings from '@/pages/crm/entities/EntitySettings';
 import { Overview } from "@/pages/crm/overview/Overview";
 
 // Páginas temporárias
-const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
+// const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
 
 // Páginas de Admin - Usando placeholders temporários
 const AdminDashboard = () => <div>Admin Dashboard - Em desenvolvimento</div>;
@@ -98,6 +96,14 @@ export const router = createBrowserRouter([
         element: <FlowPage />,
       },
       {
+        path: "flows/builder",
+        element: <FlowBuilderPage />,
+      },
+      {
+        path: "flows/views",
+        element: <FlowViewsPage />,
+      },
+      {
         path: "flow/:flowId/opportunities/:id",
         element: <OpportunityDetails />,
       },
@@ -117,14 +123,7 @@ export const router = createBrowserRouter([
         path: "people/:id",
         element: <EditPersonPage />,
       },
-      {
-        path: "deals",
-        element: <DealsPage />,
-      },
-      {
-        path: "entity/:id",
-        element: <EntityPage />,
-      },
+      // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {
         path: "account/profile",
         element: <AccountProfilePage />,
@@ -161,10 +160,7 @@ export const router = createBrowserRouter([
             path: "custom-fields",
             element: <CustomFieldsSettings />,
           },
-          {
-            path: "entities",
-            element: <EntitiesSettings />,
-          },
+          // AIDEV-NOTE: Removido rota de EntitiesSettings - sistema simplificado para focar apenas em deals
         ],
       },
       {
@@ -175,14 +171,7 @@ export const router = createBrowserRouter([
         path: "flow/new/settings",
         element: <NewFlowSettings />
       },
-      {
-        path: "entity/new/settings",
-        element: <NewEntitySettings />
-      },
-      {
-        path: "entity/:id/settings",
-        element: <EntitySettings />,
-      },
+
     ],
   },
   {
@@ -249,4 +238,9 @@ export const router = createBrowserRouter([
       },
     ],
   },
-]); 
+], {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+  },
+});

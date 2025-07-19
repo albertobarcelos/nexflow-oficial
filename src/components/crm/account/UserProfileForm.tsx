@@ -19,18 +19,18 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
     onSave,
     isLoading,
 }) => {
-    const [firstName, setFirstName] = useState(user.first_name || "");
-    const [lastName, setLastName] = useState(user.last_name || "");
-    const [email, setEmail] = useState(user.email ?? "");
+    const [firstName, setFirstName] = useState(user?.first_name || "");
+    const [lastName, setLastName] = useState(user?.last_name || "");
+    const [email, setEmail] = useState(user?.email || "");
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(
-        (user as any).custom_avatar_url ?? null
+        user?.custom_avatar_url || null
     );
     const [avatarSeed, setAvatarSeed] = useState<string>(
-        (user as any).avatar_seed ?? "1|1"
+        user?.avatar_seed || "1|1"
     );
     const [avatarType, setAvatarType] = useState<string>(
-        (user as any).avatar_type ?? "toy_face"
+        user?.avatar_type === "custom" ? "custom" : "toy_face"
     );
     const [pickerOpen, setPickerOpen] = useState(false);
     const [uploadPreview, setUploadPreview] = useState<string | null>(null);
@@ -53,13 +53,15 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
     };
 
     const handleToyFaceSelect = (seed: string) => {
+        // Atualizar estado local primeiro
         setAvatarSeed(seed);
         setAvatarType("toy_face");
         setAvatarFile(null);
         setAvatarPreview(null);
-        setUploadPreview(null);
         setPickerOpen(false);
-        onSave({ first_name: firstName, last_name: lastName, email, avatar_seed: seed, avatar_type: "toy_face", custom_avatar_url: null });
+        
+        // Não chamar onSave aqui - deixar para o usuário clicar em "Salvar alterações"
+        console.log("🎭 ToyFace selecionado:", seed);
     };
 
     const handleCustomUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,9 +74,34 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        await onSave({ first_name: firstName, last_name: lastName, email, avatar_file: avatarFile, avatar_seed: avatarSeed, avatar_type: avatarType, custom_avatar_url: avatarType === "custom" ? avatarPreview : null });
-        setSuccess(true);
-        setTimeout(() => setSuccess(false), 3000);
+        
+        let finalAvatarSeed = avatarSeed;
+        let finalCustomAvatarUrl = avatarType === "custom" ? avatarPreview : null;
+        
+        // Se mudou para ToyFace, limpar custom avatar
+        if (avatarType === "toy_face") {
+            finalCustomAvatarUrl = null;
+        }
+        // Se mudou para custom, limpar seed
+        else if (avatarType === "custom") {
+            finalAvatarSeed = null;
+        }
+        
+        try {
+            await onSave({ 
+                first_name: firstName, 
+                last_name: lastName, 
+                email, 
+                avatar_file: avatarFile, 
+                avatar_seed: finalAvatarSeed, 
+                avatar_type: avatarType, 
+                custom_avatar_url: finalCustomAvatarUrl 
+            });
+            setSuccess(true);
+            setTimeout(() => setSuccess(false), 3000);
+        } catch (error) {
+            console.error("❌ Erro no handleSave:", error);
+        }
     };
 
     // ToyFace preview logic
@@ -129,7 +156,17 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
 
                 <div>
                     <Label htmlFor="email">E-mail</Label>
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <Input 
+                        id="email" 
+                        type="email" 
+                        value={email} 
+                        disabled={true}
+                        className="bg-gray-50 cursor-not-allowed"
+                        title="O e-mail não pode ser alterado pois é o identificador único do usuário"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                        O e-mail não pode ser alterado pois é o identificador único do usuário
+                    </p>
                 </div>
 
                 <Button type="submit" disabled={isLoading} className="w-full mt-4">
@@ -208,8 +245,14 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
                                 </div>
                                 {uploadPreview && (
                                     <Button className="w-full" onClick={() => {
+                                        // Atualizar estado local primeiro
+                                        setAvatarType("custom");
+                                        setAvatarPreview(uploadPreview);
+                                        setAvatarSeed(null);
                                         setPickerOpen(false);
-                                        onSave({ first_name: firstName, last_name: lastName, email, avatar_file: avatarFile, avatar_type: "custom", custom_avatar_url: uploadPreview });
+                                        
+                                        // Não chamar onSave aqui - deixar para o usuário clicar em "Salvar alterações"
+                                        console.log("🖼️ Avatar personalizado selecionado");
                                     }}>
                                         Usar esta foto
                                     </Button>

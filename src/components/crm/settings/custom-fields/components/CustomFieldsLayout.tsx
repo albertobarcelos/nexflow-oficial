@@ -1,6 +1,6 @@
 import { useState } from "react";
 // import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { CustomField, EntityField } from "../types";
+import { CustomField } from "../types";
 import { FieldCard } from "./FieldCard";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -12,8 +12,8 @@ import { supabase } from "@/lib/supabase";
 
 interface CustomFieldsLayoutProps {
   entityId: string;
-  fields: (CustomField | EntityField)[];
-  onFieldsChange: (fields: (CustomField | EntityField)[]) => void;
+  fields: CustomField[];
+  onFieldsChange: (fields: CustomField[]) => void;
   onAddField?: () => void;
 }
 
@@ -237,4 +237,4 @@ export function CustomFieldsLayout({
       </DragDropContext>
     </Card>
   );
-} 
+}

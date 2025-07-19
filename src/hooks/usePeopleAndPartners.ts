@@ -106,7 +106,7 @@ export function usePeopleAndPartners(dealId: string) {
       const { data, error } = await supabase
         .from("deals")
         .select(`
-          company:companies (
+          company:web_companies (
             id,
             name,
             email,
@@ -411,7 +411,7 @@ export function usePeopleAndPartners(dealId: string) {
 
       // Buscar informações da empresa para o histórico
       const { data: company } = await supabase
-        .from("companies")
+        .from("web_companies")
         .select("name")
         .eq("id", input.companyId)
         .single();

@@ -19,7 +19,7 @@ export function useLocation() {
     queryKey: ["states"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("states")
+        .from("web_states")
         .select("*")
         .order("name");
 
@@ -33,7 +33,7 @@ export function useLocation() {
     queryKey: ["cities"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("cities")
+        .from("web_cities")
         .select("*")
         .order("name");
 
@@ -42,10 +42,57 @@ export function useLocation() {
     },
   });
 
+  // AIDEV-NOTE: Função para buscar cidades por estado usando React Query
+  const getCitiesByState = (stateId: string) => {
+    return useQuery({
+      queryKey: ["cities", stateId],
+      queryFn: async () => {
+        if (!stateId) return [];
+        const { data, error } = await supabase
+          .from("web_cities")
+          .select("*")
+          .eq("state_id", stateId)
+          .order("name");
+
+        if (error) throw error;
+        return data as City[];
+      },
+      enabled: !!stateId,
+    });
+  };
+
+  // AIDEV-NOTE: Função para buscar cidades por estado sem React Query (para uso em handlers)
+  const fetchCitiesByStateId = async (stateId: string): Promise<City[]> => {
+    if (!stateId) return [];
+    const { data, error } = await supabase
+      .from("web_cities")
+      .select("*")
+      .eq("state_id", stateId)
+      .order("name");
+
+    if (error) throw error;
+    return data as City[];
+  };
+
+  // AIDEV-NOTE: Funções utilitárias para obter nomes por ID
+  const getStateName = (stateId: string): string => {
+    const state = states.find(s => s.id === stateId);
+    return state?.name || "-";
+  };
+
+  const getCityName = (cityId: string): string => {
+    const city = cities.find(c => c.id === cityId);
+    return city?.name || "-";
+  };
+
   return {
     states,
     cities,
     isLoadingStates,
     isLoadingCities,
+    getCitiesByState,
+    fetchCitiesByStateId,
+    getStateName,
+    getCityName,
   };
 }

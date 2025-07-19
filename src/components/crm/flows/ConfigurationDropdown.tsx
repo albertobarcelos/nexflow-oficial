@@ -38,24 +38,16 @@ export function ConfigurationDropdown({ flowId, flowName, type = 'flow' }: Confi
           
           <DropdownMenuGroup>
             <DropdownMenuItem onClick={handleFormBuilderClick}>
-              <FormInput className="mr-2 h-4 w-4" />
+              <Settings className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
-                <span>Configurar Formulários</span>
+                <span>Configurações</span>
                 <span className="text-xs text-muted-foreground">
-                  Formulário inicial e por fases
+                  Configurar flow, formulários e automações
                 </span>
               </div>
             </DropdownMenuItem>
             
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <div className="flex flex-col">
-                <span>Configurações Gerais</span>
-                <span className="text-xs text-muted-foreground">
-                  Visão geral, campos e automações
-                </span>
-              </div>
-            </DropdownMenuItem>
+
             
             <DropdownMenuItem>
               <Layers className="mr-2 h-4 w-4" />
@@ -133,4 +125,4 @@ export function ConfigurationDropdown({ flowId, flowName, type = 'flow' }: Confi
       />
     </>
   );
-} 
+}

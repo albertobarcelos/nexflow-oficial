@@ -5,19 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export type FieldType = "text" | "textarea" | "number" | "boolean" | "select";
 
-export interface EntityField {
-  id: string;
-  client_id: string;
-  name: string;
-  description?: string;
-  field_type: FieldType;
-  is_required: boolean;
-  options?: string[];
-  entity_type: "companies" | "people" | "partners";
-  order_index: number;
-  created_at?: string;
-  updated_at?: string;
-}
+// AIDEV-NOTE: EntityField removido - sistema simplificado para deals apenas
 
 interface AddCustomFieldData {
   name: string;
@@ -59,7 +47,7 @@ export function useCustomFields(entityType: EntityType) {
         throw error;
       }
 
-      return data as unknown as EntityField[];
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -113,26 +101,7 @@ export function useCustomFields(entityType: EntityType) {
     },
   });
 
-  const updateField = useMutation({
-    mutationFn: async (field: EntityField) => {
-      if (!user?.id) throw new Error("Usuário não autenticado");
-
-      const { error } = await supabase
-        .from("custom_fields")
-        .update(field as any)
-        .eq("id", field.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["custom-fields", entityType] });
-      toast.success("Campo atualizado com sucesso!");
-    },
-    onError: (error) => {
-      console.error("Erro ao atualizar campo:", error);
-      toast.error("Erro ao atualizar campo");
-    },
-  });
+  // AIDEV-NOTE: updateField removido - sistema simplificado
 
   const deleteField = useMutation({
     mutationFn: async (fieldId: string) => {
@@ -155,35 +124,12 @@ export function useCustomFields(entityType: EntityType) {
     },
   });
 
-  const reorderFields = useMutation({
-    mutationFn: async (updatedFields: EntityField[]) => {
-      if (!user?.id) throw new Error("Usuário não autenticado");
-
-      for (const [index, field] of updatedFields.entries()) {
-        const { error } = await supabase
-          .from("custom_fields")
-          .update({ order_index: index } as any)
-          .eq("id", field.id);
-
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["custom-fields", entityType] });
-      toast.success("Campos reordenados com sucesso!");
-    },
-    onError: (error) => {
-      console.error("Erro ao reordenar campos:", error);
-      toast.error("Erro ao reordenar campos");
-    },
-  });
+  // AIDEV-NOTE: reorderFields removido - sistema simplificado
 
   return {
     fields,
     isLoading,
     addField,
-    updateField,
     deleteField,
-    reorderFields,
   };
-} 
+}

@@ -37,7 +37,7 @@ export const useCompanyForm = (company?: Company, onSuccess?: () => void) => {
   const loadStates = async () => {
     try {
       const { data, error } = await supabase
-        .from('states')
+        .from('web_states')
         .select('*')
         .order('name');
       
@@ -55,7 +55,7 @@ export const useCompanyForm = (company?: Company, onSuccess?: () => void) => {
     try {
       setLoadingCities(true);
       const { data, error } = await supabase
-        .from('cities')
+        .from('web_cities')
         .select('*')
         .eq('state_id', stateId)
         .order('name');
@@ -106,7 +106,7 @@ export const useCompanyForm = (company?: Company, onSuccess?: () => void) => {
       if (company) {
         // Atualizar empresa existente
         const { error } = await supabase
-          .from('companies')
+          .from('web_companies')
           .update(companyData)
           .eq('id', company.id);
 
@@ -115,7 +115,7 @@ export const useCompanyForm = (company?: Company, onSuccess?: () => void) => {
       } else {
         // Criar nova empresa
         const { error } = await supabase
-          .from('companies')
+          .from('web_companies')
           .insert([companyData]);
 
         if (error) throw error;

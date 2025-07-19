@@ -47,10 +47,9 @@ import ReactToyFace from "react-toy-face";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { DynamicOverviewTab } from "./DynamicOverviewTab";
-import { useFlowBases } from "@/hooks/useFlowBases";
-import { useDealEntityData } from "@/hooks/useDealEntityData";
-import { EntityFormModal } from "./EntityFormModal";
+// AIDEV-NOTE: Removido DynamicOverviewTab - sistema simplificado para focar apenas em deals
+// AIDEV-NOTE: Removido hooks de entidades - sistema simplificado para focar apenas em deals
+// AIDEV-NOTE: Removido EntityFormModal - sistema simplificado para focar apenas em deals
 
 // Types
 export interface MockDeal {
@@ -368,57 +367,13 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
     const [newNote, setNewNote] = useState("");
     const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
 
-    // Estado para controlar quais entidades estão expandidas
-    const [expandedEntities, setExpandedEntities] = useState<Set<string>>(new Set());
+    // AIDEV-NOTE: Removido expandedEntities e entityFormModal - sistema simplificado para focar apenas em deals
 
-    // Novos estados para o sistema de entidades
-    const [entityFormModal, setEntityFormModal] = useState<{
-        open: boolean;
-        entityId: string;
-        entityName: string;
-        entitySlug: string;
-        fields: any[];
-        editData?: any;
-    }>({
-        open: false,
-        entityId: '',
-        entityName: '',
-        entitySlug: '',
-        fields: [],
-    });
+    // AIDEV-NOTE: Removido hooks de entidades - sistema simplificado para focar apenas em deals
 
-    // Hooks
-    const flowId = deal?.flow_id;
-    const { linkedBases: linkedEntities } = useFlowBases(flowId || '');
-    const { 
-        dealEntities, 
-        isLoading: isLoadingEntities,
-        getEntityFields,
-        createEntityRecord,
-        updateEntityRecord,
-        removeEntityFromDeal,
-        isCreating,
-        isUpdating 
-    } = useDealEntityData(deal?.id || '');
+    // AIDEV-NOTE: Removido toggleEntityExpansion - sistema simplificado para focar apenas em deals
 
-    // Função para alternar expansão de entidade
-    const toggleEntityExpansion = (entityId: string) => {
-        setExpandedEntities(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(entityId)) {
-                newSet.delete(entityId);
-            } else {
-                newSet.add(entityId);
-            }
-            return newSet;
-        });
-    };
-
-    // Função para salvar dados da visão geral dinâmica
-    const handleSaveOverviewData = (data: Record<string, any>) => {
-        console.log('Salvando dados do overview:', data);
-        toast.success('Dados salvos com sucesso!');
-    };
+    // AIDEV-NOTE: Removido handleSaveOverviewData - sistema simplificado para focar apenas em deals
 
     const handleAddNote = () => {
         if (newNote.trim()) {
@@ -460,75 +415,9 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
         setNoteToDelete(null);
     };
 
-    const getEntityIcon = (entityName: string) => {
-        const iconMap: Record<string, any> = {
-            'Empresas': Building2,
-            'Pessoas': User,
-            'Parceiros': Handshake,
-            'Cursos': GraduationCap,
-            'Imóveis': Home,
-        };
-        return iconMap[entityName] || Building2;
-    };
+    // AIDEV-NOTE: Removido getEntityIcon - sistema simplificado para focar apenas em deals
 
-    // Funções para o sistema de entidades
-    const handleAddEntity = async (flowEntity: any) => {
-        try {
-            const fields = await getEntityFields(flowEntity.entity_id);
-            setEntityFormModal({
-                open: true,
-                entityId: flowEntity.entity_id,
-                entityName: flowEntity.entity?.name || '',
-                entitySlug: flowEntity.entity?.slug || '',
-                fields,
-            });
-        } catch (error) {
-            console.error('Erro ao carregar campos da entidade:', error);
-            toast.error('Erro ao carregar campos da entidade');
-        }
-    };
-
-    const handleEditEntity = async (dealEntity: any) => {
-        try {
-            const fields = await getEntityFields(dealEntity.entity_id);
-            setEntityFormModal({
-                open: true,
-                entityId: dealEntity.entity_id,
-                entityName: dealEntity.entity_name || '',
-                entitySlug: dealEntity.entity_slug || '',
-                fields,
-                editData: {
-                    recordId: dealEntity.record_id,
-                    title: dealEntity.record?.title || '',
-                    data: dealEntity.record?.data || {},
-                },
-            });
-        } catch (error) {
-            console.error('Erro ao carregar dados para edição:', error);
-            toast.error('Erro ao carregar dados para edição');
-        }
-    };
-
-    const handleSaveEntity = (data: any) => {
-        if (entityFormModal.editData) {
-            // Modo edição
-            updateEntityRecord({
-                recordId: entityFormModal.editData.recordId,
-                title: data.title,
-                data: data.data,
-            });
-        } else {
-            // Modo criação
-            createEntityRecord(data);
-        }
-        setEntityFormModal({ ...entityFormModal, open: false });
-    };
-
-    const handleRemoveEntity = (dealEntityId: string) => {
-        if (confirm('Tem certeza que deseja remover esta entidade da oportunidade?')) {
-            removeEntityFromDeal(dealEntityId);
-        }
-    };
+    // AIDEV-NOTE: Removido funções de entidades (handleAddEntity, handleEditEntity, handleSaveEntity, handleRemoveEntity) - sistema simplificado para focar apenas em deals
 
     if (!deal) return null;
 
@@ -624,8 +513,8 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                                             const Icon = getEntityIcon(flowEntity.entity?.name || '');
                                             const isExpanded = expandedEntities.has(flowEntity.id);
                                             
-                                            // Buscar dados reais da entidade para este deal
-                                            const dealEntity = dealEntities.find(de => de.entity_id === flowEntity.entity_id);
+                                            // AIDEV-NOTE: Sistema simplificado - busca por deal ID direto
+                                            const dealEntity = dealEntities.find(de => de.id === flowEntity.id);
                                             const hasData = !!dealEntity?.record;
                                             
                                             // Calcular campos extras para controle de expansão
@@ -867,11 +756,18 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
                             <div className="space-y-4">
                                 {activeTab === 'overview' && (
-                                    <DynamicOverviewTab 
-                                        deal={deal} 
-                                        flowId={flowId} 
-                                        onSaveData={handleSaveOverviewData} 
-                                    />
+                                    <Card className="border-slate-200/60 shadow-sm">
+                                        <CardHeader className="pb-4 border-b border-slate-100">
+                                            <CardTitle className="text-lg font-semibold text-slate-800">Visão Geral</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-6">
+                                            <div className="text-center py-8 text-muted-foreground">
+                                                <Target className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                                                <p className="text-sm">Sistema simplificado</p>
+                                                <p className="text-xs">Foco exclusivo em deals</p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
                                 )}
 
                                 {activeTab === 'tasks' && (
@@ -1070,18 +966,7 @@ export function DealViewDialog({ open, deal, stages, onClose, onStageChange }: D
                 </div>
             </DialogContent>
 
-            {/* Entity Form Modal */}
-            <EntityFormModal
-                open={entityFormModal.open}
-                onClose={() => setEntityFormModal({ ...entityFormModal, open: false })}
-                onSave={handleSaveEntity}
-                entityId={entityFormModal.entityId}
-                entityName={entityFormModal.entityName}
-                entitySlug={entityFormModal.entitySlug}
-                fields={entityFormModal.fields}
-                isLoading={isCreating || isUpdating}
-                initialData={entityFormModal.editData}
-            />
+            {/* AIDEV-NOTE: Removido EntityFormModal - sistema simplificado para focar apenas em deals */}
         </Dialog>
     );
-} 
+}

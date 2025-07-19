@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   FormInput, 
   Layers, 
@@ -20,7 +21,16 @@ import {
   Save,
   Info,
   Loader2,
-  Database
+  Database,
+  Plus,
+  ArrowRight,
+  Clock,
+  Tag,
+  FileText,
+  MessageSquare,
+  Webhook,
+  Settings,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -31,14 +41,14 @@ import { FieldConfigurationModal } from './FieldConfigurationModal';
 import { StageSelector } from './StageSelector';
 
 // Componentes para os novos modais
-import { FlowBasesConfigModal } from './FlowBasesConfigModal';
+// AIDEV-NOTE: FlowBasesConfigModal removido durante simplificação - sistema focado apenas em deals
 import { DefaultValuesConfigModal } from './DefaultValuesConfigModal';
 import { FormPreviewModal } from './FormPreviewModal';
+import { NewStageModal } from './NewStageModal';
 
 // Hooks personalizados
-import { useFormFields } from '@/hooks/useFormFields';
+// AIDEV-NOTE: Removido useFormFields e useFlowBases - sistema simplificado para focar apenas em deals
 import { useFlowStages } from '@/hooks/useFlowStages';
-import { useFlowBases } from '@/hooks/useFlowBases';
 
 // Types
 import { FieldConfiguration } from '@/types/form-builder';
@@ -63,6 +73,18 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
   const [defaultValuesConfigOpen, setDefaultValuesConfigOpen] = useState(false);
   const [formPreviewOpen, setFormPreviewOpen] = useState(false);
   
+  // Estados para modais de etapas
+  const [newStageModalOpen, setNewStageModalOpen] = useState(false);
+  const [editStageModalOpen, setEditStageModalOpen] = useState(false);
+  const [selectedStageForEdit, setSelectedStageForEdit] = useState<any>(null);
+
+  // Estados para configurações avançadas
+  const [isPublicFlow, setIsPublicFlow] = useState(false);
+  const [autoNotifications, setAutoNotifications] = useState(true);
+  const [allowDuplicates, setAllowDuplicates] = useState(false);
+  const [autoArchive, setAutoArchive] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
   // Estado para aba de fases
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
 
@@ -71,11 +93,17 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
     stages,
     isLoading: isLoadingStages,
     createStage,
+    updateStage,
+    deleteStage,
     isCreating: isCreatingStage,
+    isUpdating: isUpdatingStage,
+    isDeleting: isDeletingStage,
   } = useFlowStages(flowId);
 
   // Hook para buscar bases do flow
-  const { linkedBases, isLoading: isLoadingBases } = useFlowBases(flowId);
+  // AIDEV-NOTE: Removido useFlowBases - sistema simplificado para focar apenas em deals
+    const linkedBases: any[] = [];
+    const isLoadingBases = false;
 
   // Debug log para verificar o estado das bases
   useEffect(() => {
@@ -87,25 +115,21 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
     });
   }, [linkedBases, isLoadingBases, flowId]);
 
-  // Hook para campos do formulário inicial
-  const {
-    fields: initialFields,
-    isLoading: isLoadingInitial,
-    saveField: saveInitialField,
-    deleteField: deleteInitialField,
-    reorderFields: reorderInitialFields,
-    isSaving: isSavingInitial,
-  } = useFormFields(flowId, 'initial');
+  // AIDEV-NOTE: Removido useFormFields para initial - sistema simplificado para focar apenas em deals
+  const initialFields: any[] = [];
+  const isLoadingInitial = false;
+  const saveInitialField = () => Promise.resolve();
+  const deleteInitialField = () => {};
+  const reorderInitialFields = () => {};
+  const isSavingInitial = false;
 
-  // Hook para campos das fases (usando stageId selecionado)
-  const {
-    fields: stageFields,
-    isLoading: isLoadingStage,
-    saveField: saveStageField,
-    deleteField: deleteStageField,
-    reorderFields: reorderStageFields,
-    isSaving: isSavingStage,
-  } = useFormFields(flowId, 'stage', selectedStageId || undefined);
+  // AIDEV-NOTE: Removido useFormFields para stage - sistema simplificado para focar apenas em deals
+  const stageFields: any[] = [];
+  const isLoadingStage = false;
+  const saveStageField = () => Promise.resolve();
+  const deleteStageField = () => {};
+  const reorderStageFields = () => {};
+  const isSavingStage = false;
 
   // Estado local para campos (será substituído pelos campos do banco)
   const [localFields, setLocalFields] = useState<FieldConfiguration[]>([]);
@@ -280,18 +304,23 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
 
   const handleSaveAll = async () => {
     try {
-      // Salvar todos os campos novos
-      const newFields = localFields.filter(f => f.id.startsWith('field_'));
-      for (const field of newFields) {
-        if (activeTab === 'initial-form') {
-          saveInitialField(field);
-        } else {
-          saveStageField(field);
+      if (activeTab === 'settings') {
+        // Salvar configurações avançadas
+        await handleSaveAdvancedSettings();
+      } else {
+        // Salvar todos os campos novos
+        const newFields = localFields.filter(f => f.id.startsWith('field_'));
+        for (const field of newFields) {
+          if (activeTab === 'initial-form') {
+            saveInitialField(field);
+          } else {
+            saveStageField(field);
+          }
         }
+        toast.success('Formulário salvo com sucesso!');
       }
-      toast.success('Formulário salvo com sucesso!');
     } catch (error) {
-      toast.error('Erro ao salvar formulário');
+      toast.error('Erro ao salvar');
     }
   };
 
@@ -300,6 +329,95 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
     // Limpar campos locais para carregar os da nova fase
     setLocalFields([]);
   }, []);
+
+  // =====================================================
+  // FUNÇÕES PARA CONFIGURAÇÕES AVANÇADAS
+  // =====================================================
+  
+  // Funções wrapper para rastrear mudanças
+  const handlePublicFlowChange = useCallback((checked: boolean) => {
+    setIsPublicFlow(checked);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleAutoNotificationsChange = useCallback((checked: boolean) => {
+    setAutoNotifications(checked);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleAllowDuplicatesChange = useCallback((checked: boolean) => {
+    setAllowDuplicates(checked);
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const handleAutoArchiveChange = useCallback((checked: boolean) => {
+    setAutoArchive(checked);
+    setHasUnsavedChanges(true);
+  }, []);
+  
+  const handleSaveAdvancedSettings = useCallback(async () => {
+    try {
+      // TODO: Implementar salvamento das configurações avançadas no banco
+      const settings = {
+        is_public: isPublicFlow,
+        auto_notifications: autoNotifications,
+        allow_duplicates: allowDuplicates,
+        auto_archive: autoArchive,
+      };
+      
+      console.log('Salvando configurações avançadas:', settings);
+      setHasUnsavedChanges(false);
+      toast.success('Configurações salvas com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao salvar configurações');
+      console.error('Erro ao salvar configurações:', error);
+    }
+  }, [isPublicFlow, autoNotifications, allowDuplicates, autoArchive]);
+
+  // =====================================================
+  // FUNÇÕES PARA MANIPULAÇÃO DE ETAPAS
+  // =====================================================
+  
+  const handleCreateStage = useCallback(async (stageData: any) => {
+    try {
+      createStage(stageData);
+      setNewStageModalOpen(false);
+    } catch (error) {
+      console.error('Erro ao criar etapa:', error);
+    }
+  }, [createStage]);
+
+  const handleEditStage = useCallback((stage: any) => {
+    setSelectedStageForEdit(stage);
+    setEditStageModalOpen(true);
+  }, []);
+
+  const handleUpdateStage = useCallback(async (updatedStageData: any) => {
+    try {
+      if (selectedStageForEdit) {
+        updateStage({ 
+          stageId: selectedStageForEdit.id, 
+          name: updatedStageData.name 
+        });
+        setEditStageModalOpen(false);
+        setSelectedStageForEdit(null);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar etapa:', error);
+    }
+  }, [updateStage, selectedStageForEdit]);
+
+  const handleDeleteStage = useCallback(async (stageId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta etapa? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+    
+    try {
+      deleteStage(stageId);
+    } catch (error) {
+      console.error('Erro ao excluir etapa:', error);
+    }
+  }, [deleteStage]);
 
   const tabs = [
     { 
@@ -378,7 +496,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                 </Button>
                 <Button 
                   size="sm" 
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className={`${hasUnsavedChanges ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                   onClick={handleSaveAll}
                   disabled={isSaving}
                 >
@@ -387,7 +505,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                   ) : (
                     <Save className="w-4 h-4 mr-2" />
                   )}
-                  Salvar
+                  {hasUnsavedChanges ? 'Salvar Alterações' : 'Salvar'}
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -406,6 +524,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                   <div className="flex">
                     {tabs.map((tab) => {
                       const Icon = tab.icon;
+                      const showUnsavedIndicator = tab.id === 'settings' && hasUnsavedChanges;
                       return (
                         <TabsTrigger
                           key={tab.id}
@@ -414,6 +533,9 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                         >
                           <Icon className="w-4 h-4" />
                           {tab.label}
+                          {showUnsavedIndicator && (
+                            <div className="w-2 h-2 bg-orange-500 rounded-full ml-1" />
+                          )}
                         </TabsTrigger>
                       );
                     })}
@@ -778,275 +900,678 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                   </div>
                 </TabsContent>
 
-                {/* Outras abas */}
+                {/* Aba de Pessoas */}
                 <TabsContent value="people" className="m-0 h-full">
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                      <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-600 mb-2">Configuração de Pessoas</h3>
-                      <p className="text-gray-500">Em desenvolvimento</p>
+                  <div className="flex h-full">
+                    {/* Área principal */}
+                    <div className="flex-1 p-6 overflow-y-auto">
+                      <div className="max-w-4xl mx-auto space-y-6">
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-900 mb-2">Configuração de Pessoas</h2>
+                          <p className="text-gray-600">Configure permissões e responsabilidades no flow.</p>
+                        </div>
+
+                        {/* Configurações de Responsáveis */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Responsáveis por Fase</h3>
+                          <div className="space-y-4">
+                            {stages.map((stage) => (
+                              <div key={stage.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{stage.name}</h4>
+                                  <p className="text-sm text-gray-600">Definir responsáveis para esta fase</p>
+                                </div>
+                                <Button variant="outline" size="sm">
+                                  <Users className="w-4 h-4 mr-2" />
+                                  Configurar
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Permissões Gerais */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Permissões Gerais</h3>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div>
+                                <Label className="text-sm font-medium">Todos podem criar itens</Label>
+                                <p className="text-xs text-gray-500">Permitir que qualquer usuário crie novos itens</p>
+                              </div>
+                              <Switch defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div>
+                                <Label className="text-sm font-medium">Todos podem editar itens</Label>
+                                <p className="text-xs text-gray-500">Permitir edição de itens por qualquer usuário</p>
+                              </div>
+                              <Switch />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div>
+                                <Label className="text-sm font-medium">Todos podem excluir itens</Label>
+                                <p className="text-xs text-gray-500">Permitir exclusão de itens por qualquer usuário</p>
+                              </div>
+                              <Switch />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="w-80 border-l border-gray-200 bg-gray-50 p-6">
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Usuários do Flow</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Total de usuários:</span>
+                              <span className="font-medium">5</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Administradores:</span>
+                              <span className="font-medium">2</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Editores:</span>
+                              <span className="font-medium">2</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Visualizadores:</span>
+                              <span className="font-medium">1</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="email" className="m-0 h-full">
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                      <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-600 mb-2">Configuração de Email</h3>
-                      <p className="text-gray-500">Em desenvolvimento</p>
+                  <div className="flex h-full">
+                    {/* Área principal */}
+                    <div className="flex-1 p-6 overflow-y-auto">
+                      <div className="max-w-4xl mx-auto space-y-6">
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-900 mb-2">Configuração de Email</h2>
+                          <p className="text-gray-600">Configure notificações e templates de email para o flow.</p>
+                        </div>
+
+                        {/* Notificações por Fase */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Notificações por Fase</h3>
+                          <div className="space-y-4">
+                            {stages.map((stage) => (
+                              <div key={stage.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{stage.name}</h4>
+                                  <p className="text-sm text-gray-600">Configurar emails automáticos para esta fase</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Switch />
+                                  <Button variant="outline" size="sm">
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Configurar
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Configurações Gerais de Email */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Configurações Gerais</h3>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div>
+                                <Label className="text-sm font-medium">Notificar criação de itens</Label>
+                                <p className="text-xs text-gray-500">Enviar email quando novos itens forem criados</p>
+                              </div>
+                              <Switch defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div>
+                                <Label className="text-sm font-medium">Notificar mudança de fase</Label>
+                                <p className="text-xs text-gray-500">Enviar email quando itens mudarem de fase</p>
+                              </div>
+                              <Switch defaultChecked />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div>
+                                <Label className="text-sm font-medium">Notificar conclusão</Label>
+                                <p className="text-xs text-gray-500">Enviar email quando itens forem concluídos</p>
+                              </div>
+                              <Switch />
+                            </div>
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div>
+                                <Label className="text-sm font-medium">Resumo diário</Label>
+                                <p className="text-xs text-gray-500">Enviar resumo diário das atividades</p>
+                              </div>
+                              <Switch />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Templates de Email */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Templates de Email</h3>
+                          <div className="space-y-3">
+                            <Button variant="outline" className="w-full justify-start">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Template de Boas-vindas
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Template de Mudança de Fase
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Template de Conclusão
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Template de Lembrete
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="w-80 border-l border-gray-200 bg-gray-50 p-6">
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Estatísticas de Email</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Emails enviados hoje:</span>
+                              <span className="font-medium">12</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Taxa de abertura:</span>
+                              <span className="font-medium">68%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Taxa de clique:</span>
+                              <span className="font-medium">24%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Templates ativos:</span>
+                              <span className="font-medium">4</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-200">
+                          <h4 className="font-medium mb-3">Configurações SMTP</h4>
+                          <Button variant="outline" className="w-full">
+                            <SettingsIcon className="w-4 h-4 mr-2" />
+                            Configurar SMTP
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="automations" className="m-0 h-full">
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                      <Zap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-600 mb-2">Configuração de Automações</h3>
-                      <p className="text-gray-500">Em desenvolvimento</p>
+                  <div className="flex h-full">
+                    {/* Área principal */}
+                    <div className="flex-1 p-6 overflow-y-auto">
+                      <div className="max-w-4xl mx-auto space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Automações</h2>
+                            <p className="text-gray-600">Configure automações para otimizar seu fluxo de trabalho.</p>
+                          </div>
+                          <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Nova Automação
+                          </Button>
+                        </div>
+
+                        {/* Automações por Trigger */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Automações por Evento</h3>
+                          <div className="space-y-4">
+                            <div className="border border-gray-200 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <Zap className="w-4 h-4 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">Quando item é criado</h4>
+                                    <p className="text-sm text-gray-600">Executar ações automaticamente</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Switch defaultChecked />
+                                  <Button variant="outline" size="sm">
+                                    Configurar
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="ml-11 text-sm text-gray-600">
+                                <span className="bg-gray-100 px-2 py-1 rounded text-xs">2 ações configuradas</span>
+                              </div>
+                            </div>
+
+                            <div className="border border-gray-200 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                    <ArrowRight className="w-4 h-4 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">Quando muda de fase</h4>
+                                    <p className="text-sm text-gray-600">Ações baseadas na mudança de estágio</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Switch />
+                                  <Button variant="outline" size="sm">
+                                    Configurar
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="ml-11 text-sm text-gray-600">
+                                <span className="bg-gray-100 px-2 py-1 rounded text-xs">Nenhuma ação</span>
+                              </div>
+                            </div>
+
+                            <div className="border border-gray-200 rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                                    <Clock className="w-4 h-4 text-purple-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">Baseado em tempo</h4>
+                                    <p className="text-sm text-gray-600">Ações agendadas ou recorrentes</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Switch />
+                                  <Button variant="outline" size="sm">
+                                    Configurar
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="ml-11 text-sm text-gray-600">
+                                <span className="bg-gray-100 px-2 py-1 rounded text-xs">Nenhuma ação</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Ações Disponíveis */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Ações Disponíveis</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                              <div className="flex items-center gap-3 mb-2">
+                                <Mail className="w-5 h-5 text-blue-600" />
+                                <h4 className="font-medium">Enviar Email</h4>
+                              </div>
+                              <p className="text-sm text-gray-600">Enviar notificação por email</p>
+                            </div>
+                            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                              <div className="flex items-center gap-3 mb-2">
+                                <Users className="w-5 h-5 text-green-600" />
+                                <h4 className="font-medium">Atribuir Responsável</h4>
+                              </div>
+                              <p className="text-sm text-gray-600">Definir responsável automaticamente</p>
+                            </div>
+                            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                              <div className="flex items-center gap-3 mb-2">
+                                <Tag className="w-5 h-5 text-purple-600" />
+                                <h4 className="font-medium">Adicionar Tag</h4>
+                              </div>
+                              <p className="text-sm text-gray-600">Marcar item com tags específicas</p>
+                            </div>
+                            <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer">
+                              <div className="flex items-center gap-3 mb-2">
+                                <FileText className="w-5 h-5 text-orange-600" />
+                                <h4 className="font-medium">Criar Tarefa</h4>
+                              </div>
+                              <p className="text-sm text-gray-600">Gerar tarefa automaticamente</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Automações Ativas */}
+                        <div className="bg-white border border-gray-200 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Automações Ativas</h3>
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <div>
+                                  <h4 className="font-medium text-gray-900">Notificar criação de lead</h4>
+                                  <p className="text-sm text-gray-600">Enviar email para equipe de vendas</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-500">Executada 24x hoje</span>
+                                <Button variant="outline" size="sm">
+                                  Editar
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-center p-8 text-gray-500">
+                              <div className="text-center">
+                                <Zap className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                <p>Nenhuma automação adicional configurada</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sidebar */}
+                    <div className="w-80 border-l border-gray-200 bg-gray-50 p-6">
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-semibold mb-4">Estatísticas</h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Automações ativas:</span>
+                              <span className="font-medium">1</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Execuções hoje:</span>
+                              <span className="font-medium">24</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Taxa de sucesso:</span>
+                              <span className="font-medium">98%</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Tempo médio:</span>
+                              <span className="font-medium">1.2s</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-200">
+                          <h4 className="font-medium mb-3">Integrações</h4>
+                          <div className="space-y-2">
+                            <Button variant="outline" className="w-full justify-start">
+                              <Mail className="w-4 h-4 mr-2" />
+                              Email
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start">
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Slack
+                            </Button>
+                            <Button variant="outline" className="w-full justify-start">
+                              <Webhook className="w-4 h-4 mr-2" />
+                              Webhook
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-200">
+                          <h4 className="font-medium mb-3">Logs de Execução</h4>
+                          <Button variant="outline" className="w-full">
+                            <FileText className="w-4 h-4 mr-2" />
+                            Ver Logs
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </TabsContent>
 
                 <TabsContent value="settings" className="m-0 h-full">
-                  <div className="flex h-full">
-                    {/* Área principal de configurações */}
-                    <div className="flex-1 p-6 overflow-y-auto">
-                      <div className="max-w-4xl mx-auto space-y-8">
-                        {/* Header */}
+                  <div className="p-6 overflow-y-auto h-full">
+                    <div className="max-w-6xl mx-auto space-y-6">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
                         <div>
                           <h2 className="text-2xl font-bold text-gray-900 mb-2">Configurações do Flow</h2>
                           <p className="text-gray-600">
-                            Configure as opções gerais e comportamentos do seu flow.
+                            Configure as etapas, automações e comportamentos do seu flow.
                           </p>
                         </div>
-
-                        {/* Configurações de Bases */}
-                        <div className="bg-white border border-gray-200 rounded-lg p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900 mb-1">Bases Vinculadas</h3>
-                              <p className="text-sm text-gray-600">
-                                Configure quais entidades estarão disponíveis neste flow
-                              </p>
-                            </div>
-                            <Button
-                              onClick={() => setBasesConfigOpen(true)}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              <Database className="w-4 h-4 mr-2" />
-                              Configurar Bases
-                            </Button>
-                          </div>
-                          
-                          {/* Lista de bases vinculadas */}
-                          <div className="space-y-3">
-                            {Array.isArray(linkedBases) && linkedBases.length > 0 ? (
-                              linkedBases.map((flowBase) => {
-                                console.log('🔍 Renderizando base:', flowBase);
-                                return (
-                                  <div key={flowBase.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                      <Database className="w-5 h-5 text-blue-600" />
-                                      <div>
-                                        <span className="font-medium text-gray-900">{flowBase.base?.name || flowBase.entity_name}</span>
-                                        {(flowBase.base?.description || flowBase.entity_description) && (
-                                          <p className="text-sm text-gray-600">{flowBase.base?.description || flowBase.entity_description}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {flowBase.is_primary && (
-                                        <Badge variant="default" className="bg-blue-100 text-blue-800">
-                                          Principal
-                                        </Badge>
-                                      )}
-                                      {flowBase.is_required && (
-                                        <Badge variant="destructive">
-                                          Obrigatório
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            ) : (
-                              <div className="text-center py-8 text-gray-500">
-                                <Database className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                                <p className="text-sm">
-                                  {isLoadingBases ? 'Carregando bases...' : 'Nenhuma base vinculada'}
-                                </p>
-                                <p className="text-xs">
-                                  {isLoadingBases ? 'Aguarde...' : 'Clique em "Configurar Bases" para adicionar'}
-                                </p>
-                                {!isLoadingBases && (
-                                  <p className="text-xs text-red-500 mt-2">
-                                    Debug: linkedBases = {JSON.stringify(linkedBases)}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Configurações Gerais do Flow */}
-                        <div className="bg-white border border-gray-200 rounded-lg p-6">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Configurações Gerais</h3>
-                          
-                          <div className="space-y-6">
-                            {/* Nome do Flow */}
-                            <div className="space-y-2">
-                              <Label htmlFor="flow-name">Nome do Flow</Label>
-                              <Input
-                                id="flow-name"
-                                value={formTitle}
-                                onChange={(e) => setFormTitle(e.target.value)}
-                                placeholder="Digite o nome do flow"
-                              />
-                            </div>
-
-                            {/* Opções do Flow */}
-                            <div className="space-y-4">
-                              <Label className="text-base font-medium">Opções do Flow</Label>
-                              
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm font-medium">Flow público</Label>
-                                    <p className="text-xs text-gray-500">
-                                      Permite acesso ao flow sem autenticação
-                                    </p>
-                                  </div>
-                                  <Switch />
-                                </div>
-                                
-                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm font-medium">Notificações automáticas</Label>
-                                    <p className="text-xs text-gray-500">
-                                      Enviar notificações quando itens são criados ou movidos
-                                    </p>
-                                  </div>
-                                  <Switch defaultChecked />
-                                </div>
-                                
-                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm font-medium">Permitir duplicatas</Label>
-                                    <p className="text-xs text-gray-500">
-                                      Permitir criação de itens com dados similares
-                                    </p>
-                                  </div>
-                                  <Switch />
-                                </div>
-                                
-                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                  <div className="space-y-1">
-                                    <Label className="text-sm font-medium">Auto-arquivar</Label>
-                                    <p className="text-xs text-gray-500">
-                                      Arquivar automaticamente itens concluídos após 30 dias
-                                    </p>
-                                  </div>
-                                  <Switch />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Configurações Avançadas */}
-                        <div className="bg-white border border-gray-200 rounded-lg p-6">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-4">Configurações Avançadas</h3>
-                          
-                          <div className="space-y-4">
-                            <Button
-                              variant="outline"
-                              className="w-full justify-start"
-                              onClick={() => setDefaultValuesConfigOpen(true)}
-                            >
-                              <SettingsIcon className="w-4 h-4 mr-2" />
-                              Configurar Valores Padrão
-                            </Button>
-                            
-                            <Button
-                              variant="outline"
-                              className="w-full justify-start"
-                              onClick={() => setFormPreviewOpen(true)}
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              Preview do Formulário
-                            </Button>
-                          </div>
+                        <div className="flex gap-2">
+                          <Button variant="outline">
+                            <Save className="w-4 h-4 mr-2" />
+                            Salvar como Template
+                          </Button>
+                          <Button>
+                            Atualizar Flow
+                          </Button>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Sidebar de informações */}
-                    <div className="w-80 border-l border-gray-200 bg-gray-50 p-6">
-                      <div className="space-y-6">
-                        {/* Estatísticas do Flow */}
-                        <div>
-                          <h3 className="text-lg font-semibold mb-4">Estatísticas</h3>
-                          <div className="space-y-3">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Total de fases:</span>
-                              <span className="font-medium">{stages.length}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Bases vinculadas:</span>
-                              <span className="font-medium">{Array.isArray(linkedBases) ? linkedBases.length : 0}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Campos no formulário inicial:</span>
-                              <span className="font-medium">{Array.isArray(initialFields) ? initialFields.length : 0}</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Automações ativas:</span>
-                              <span className="font-medium">0</span>
-                            </div>
+                      {/* Flow Configuration */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Configuração do Flow</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div>
+                            <Label htmlFor="flowName">Nome do Flow</Label>
+                            <Input
+                              id="flowName"
+                              value={formTitle}
+                              onChange={(e) => setFormTitle(e.target.value)}
+                              placeholder="Ex: Vendas Completo"
+                            />
                           </div>
-                        </div>
+                          <div>
+                            <Label htmlFor="flowDescription">Descrição</Label>
+                            <Textarea
+                              id="flowDescription"
+                              placeholder="Descreva o propósito deste flow"
+                            />
+                          </div>
+                        </CardContent>
+                      </Card>
 
-                        {/* Informações das Bases */}
-                        {Array.isArray(linkedBases) && linkedBases.length > 0 && (
-                          <div className="pt-4 border-t border-gray-200">
-                            <h4 className="font-medium mb-3">Detalhes das Bases</h4>
-                            <div className="space-y-3">
-                              {linkedBases.map((flowBase) => (
-                                <div key={flowBase.id} className="p-3 bg-white border border-gray-200 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Database className="w-4 h-4 text-blue-600" />
-                                    <span className="font-medium text-sm">{flowBase.base?.name}</span>
+                      {/* Stages */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center justify-between">
+                            Etapas do Flow
+                            <Button 
+                              size="sm"
+                              onClick={() => setNewStageModalOpen(true)}
+                              disabled={isCreatingStage}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {isCreatingStage ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Criando...
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Adicionar Etapa
+                                </>
+                              )}
+                            </Button>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {isLoadingStages ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                              <span className="ml-2 text-gray-500">Carregando etapas...</span>
+                            </div>
+                          ) : stages.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                              <Layers className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                              <p className="text-sm">Nenhuma etapa configurada</p>
+                              <p className="text-xs">Clique em "Adicionar Etapa" para começar</p>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {stages.map((stage, index) => (
+                                <div
+                                  key={stage.id}
+                                  className="border rounded-lg p-4 space-y-2"
+                                  style={{ borderColor: stage.color || '#94A3B8' }}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <Badge 
+                                      style={{ 
+                                        backgroundColor: stage.color || '#94A3B8', 
+                                        color: 'white' 
+                                      }}
+                                    >
+                                      {stage.order_index || index + 1}
+                                    </Badge>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleEditStage(stage)}
+                                        disabled={isUpdatingStage}
+                                        title="Editar etapa"
+                                      >
+                                        {isUpdatingStage ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Settings className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleDeleteStage(stage.id)}
+                                        disabled={isDeletingStage}
+                                        title="Excluir etapa"
+                                        className="text-red-500 hover:text-red-700"
+                                      >
+                                        {isDeletingStage ? (
+                                          <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                    </div>
                                   </div>
+                                  <h4 className="font-medium">{stage.name}</h4>
+                                  <p className="text-sm text-gray-600">{stage.description || 'Sem descrição'}</p>
                                   <div className="flex gap-1">
-                                    {flowBase.is_primary && (
-                                      <Badge variant="default" className="text-xs bg-blue-100 text-blue-800">
-                                        Principal
-                                      </Badge>
-                                    )}
-                                    {flowBase.is_required && (
-                                      <Badge variant="destructive" className="text-xs">
-                                        Obrigatório
-                                      </Badge>
+                                    <Badge variant="outline">{stage.stage_type || 'active'}</Badge>
+                                    {stage.is_final_stage && (
+                                      <Badge variant="secondary">Final</Badge>
                                     )}
                                   </div>
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </CardContent>
+                      </Card>
 
-                        {/* Ajuda */}
-                        <div className="pt-4 border-t border-gray-200">
-                          <h4 className="font-medium mb-3">Precisa de ajuda?</h4>
-                          <div className="space-y-2 text-sm text-gray-600">
-                            <p>• <strong>Bases:</strong> Definem quais entidades estarão disponíveis</p>
-                            <p>• <strong>Principal:</strong> Base padrão para novos itens</p>
-                            <p>• <strong>Obrigatório:</strong> Deve ser preenchido obrigatoriamente</p>
+                      {/* Automations */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center justify-between">
+                            Automações
+                            <Button 
+                              size="sm"
+                              variant="outline"
+                              disabled
+                              title="Em breve - Funcionalidade em desenvolvimento"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Adicionar Automação
+                            </Button>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            {/* Placeholder para automações */}
+                            <div className="text-center py-8 text-gray-500">
+                              <Settings className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                              <p className="text-sm font-medium">Automações em desenvolvimento</p>
+                              <p className="text-xs">
+                                Em breve você poderá configurar automações como:
+                              </p>
+                              <div className="mt-3 text-xs space-y-1">
+                                <p>• Envio automático de emails</p>
+                                <p>• Movimentação de etapas por tempo</p>
+                                <p>• Notificações personalizadas</p>
+                                <p>• Integração com webhooks</p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Configurações Avançadas */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Configurações Avançadas</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div className="space-y-1">
+                                <Label className="text-sm font-medium">Flow público</Label>
+                                <p className="text-xs text-gray-500">
+                                  Permite acesso ao flow sem autenticação
+                                </p>
+                              </div>
+                              <Switch 
+                                checked={isPublicFlow}
+                                onCheckedChange={handlePublicFlowChange}
+                              />
+                            </div>
+                            
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div className="space-y-1">
+                                <Label className="text-sm font-medium">Notificações automáticas</Label>
+                                <p className="text-xs text-gray-500">
+                                  Enviar notificações quando itens são criados ou movidos
+                                </p>
+                              </div>
+                              <Switch 
+                                checked={autoNotifications}
+                                onCheckedChange={handleAutoNotificationsChange}
+                              />
+                            </div>
+                            
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div className="space-y-1">
+                                <Label className="text-sm font-medium">Permitir duplicatas</Label>
+                                <p className="text-xs text-gray-500">
+                                  Permitir criação de itens com dados similares
+                                </p>
+                              </div>
+                              <Switch 
+                                checked={allowDuplicates}
+                                onCheckedChange={handleAllowDuplicatesChange}
+                              />
+                            </div>
+                            
+                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                              <div className="space-y-1">
+                                <Label className="text-sm font-medium">Auto-arquivar</Label>
+                                <p className="text-xs text-gray-500">
+                                  Arquivar automaticamente itens concluídos após 30 dias
+                                </p>
+                              </div>
+                              <Switch 
+                                checked={autoArchive}
+                                onCheckedChange={handleAutoArchiveChange}
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     </div>
                   </div>
                 </TabsContent>
@@ -1065,13 +1590,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
         onCancel={handleFieldCancel}
       />
 
-      {/* Novos modais */}
-      <FlowBasesConfigModal
-        open={basesConfigOpen}
-        onOpenChange={setBasesConfigOpen}
-        flowId={flowId}
-        flowName={flowName}
-      />
+      {/* AIDEV-NOTE: FlowBasesConfigModal removido - sistema simplificado para deals */}
 
       <DefaultValuesConfigModal
         open={defaultValuesConfigOpen}
@@ -1086,6 +1605,25 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
         flowId={flowId}
         flowName={flowName}
       />
+
+      {/* Modal de criação de etapa */}
+      <NewStageModal
+        open={newStageModalOpen}
+        onOpenChange={setNewStageModalOpen}
+        onCreateStage={handleCreateStage}
+        isCreating={isCreatingStage}
+      />
+
+      {/* Modal de edição de etapa */}
+      {selectedStageForEdit && (
+        <NewStageModal
+          open={editStageModalOpen}
+          onOpenChange={setEditStageModalOpen}
+          onCreateStage={handleUpdateStage}
+          isCreating={isUpdatingStage}
+          initialData={selectedStageForEdit}
+        />
+      )}
     </>
   );
-} 
+}

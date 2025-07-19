@@ -1,17 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { LogOut, Building2, Users } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useSidebar } from "@/hooks/useSidebar";
 import { useSidebarData } from "@/hooks/useSidebarData";
 import { Button } from "@/components/ui/button";
-import { EntitiesMenu } from "./sidebar/EntitiesMenu";
-import { PipelinesMenu } from "./sidebar/PipelinesMenu";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
-import { SidebarMenuItem } from "./sidebar/SidebarMenuItem";
+import { MainMenuItems } from "./sidebar/MainMenuItems";
+import { useState } from "react";
 
 export function CRMSidebar() {
   const navigate = useNavigate();
   const { isOpen } = useSidebar();
-  const { pipelines, entities } = useSidebarData();
+  const { pipelines } = useSidebarData();
+  const [showPipelineSelector, setShowPipelineSelector] = useState(false);
 
   return (
     <aside
@@ -23,54 +23,12 @@ export function CRMSidebar() {
         <SidebarHeader />
 
         <div className="flex flex-1 flex-col gap-2 p-4">
-          <SidebarMenuItem
-            title="Dashboard"
-            href="/crm/dashboard"
-            icon={LogOut}
-            onClick={() => navigate("/crm/dashboard")}
+          {/* AIDEV-NOTE: Menu principal com bases fixas integradas */}
+          <MainMenuItems 
+            showPipelineSelector={showPipelineSelector}
+            setShowPipelineSelector={setShowPipelineSelector}
+            pipelines={pipelines}
           />
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Oportunidades
-            </span>
-
-            <PipelinesMenu pipelines={pipelines} />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Entidades
-            </span>
-
-            <EntitiesMenu entities={entities} />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Empresas
-            </span>
-
-            <SidebarMenuItem
-              title="Empresas"
-              href="/crm/companies"
-              icon={Building2}
-              onClick={() => navigate("/crm/companies")}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Pessoas
-            </span>
-
-            <SidebarMenuItem
-              title="Pessoas"
-              href="/crm/people"
-              icon={Users}
-              onClick={() => navigate("/crm/people")}
-            />
-          </div>
         </div>
 
         <div className="p-4">

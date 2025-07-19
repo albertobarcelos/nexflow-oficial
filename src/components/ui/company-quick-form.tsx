@@ -76,7 +76,7 @@ export function CompanyQuickForm({
     queryFn: async () => {
       if (!selectedStateId) return [];
       const { data, error } = await supabase
-        .from("cities")
+        .from("web_cities")
         .select("*")
         .eq("state_id", selectedStateId)
         .order("name");
@@ -406,4 +406,4 @@ export function CompanyQuickForm({
           </form>
         </Form>
   )
-} 
+}

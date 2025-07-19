@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FlowBasesConfigModal } from '@/components/flow-builder/FlowBasesConfigModal';
+// AIDEV-NOTE: FlowBasesConfigModal removido durante simplificação - sistema focado apenas em deals
 import { Settings, Database, CheckCircle, AlertCircle } from 'lucide-react';
-import { useFlowBases } from '@/hooks/useFlowBases';
+// AIDEV-NOTE: Removido useFlowBases - sistema simplificado para focar apenas em deals
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
@@ -10,17 +10,16 @@ export function FlowBasesTestButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFlowId, setSelectedFlowId] = useState('3e36965b-be8f-40cc-a273-08ab2cfc0974'); // Flow de Vendas
 
-  const { 
-    availableBases, 
-    linkedBases, 
-    isLoading,
-    linkBase,
-    unlinkBase,
-    updateBaseConfig,
-    isLinking,
-    isUnlinking,
-    isUpdating
-  } = useFlowBases(selectedFlowId);
+  // AIDEV-NOTE: Removido useFlowBases - sistema simplificado para focar apenas em deals
+  const availableBases: any[] = [];
+  const linkedBases: any[] = [];
+  const isLoading = false;
+  const linkBase = () => {};
+  const unlinkBase = () => {};
+  const updateBaseConfig = () => {};
+  const isLinking = false;
+  const isUnlinking = false;
+  const isUpdating = false;
 
   const handleOpenModal = () => {
     setIsModalOpen(true);
@@ -161,13 +160,7 @@ export function FlowBasesTestButton() {
         </CardContent>
       </Card>
 
-      {/* Modal de Configuração */}
-      <FlowBasesConfigModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        flowId={selectedFlowId}
-        flowName={testFlows.find(f => f.id === selectedFlowId)?.name || 'Flow Selecionado'}
-      />
+      {/* AIDEV-NOTE: FlowBasesConfigModal removido - sistema simplificado para deals */}
     </div>
   );
-} 
+}

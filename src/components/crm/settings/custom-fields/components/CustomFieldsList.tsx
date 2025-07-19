@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCustomFields, EntityField } from "@/hooks/useCustomFields";
+import { useCustomFields } from "@/hooks/useCustomFields";
+import { CustomField } from "../types";
 
 interface CustomFieldsListProps {
-  fields: EntityField[];
+  fields: CustomField[];
+}
   entityType: "companies" | "contacts" | "partners";
 }
 
@@ -94,4 +96,4 @@ export function CustomFieldsList({ fields, entityType }: CustomFieldsListProps) 
       </Droppable>
     </DragDropContext>
   );
-} 
+}

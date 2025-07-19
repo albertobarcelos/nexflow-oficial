@@ -31,8 +31,9 @@ import {
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { useEntities } from "@/hooks/useEntities";
+import { useAccountProfile } from "@/hooks/useAccountProfile";
+import { UserAvatar } from "@/components/ui/user-avatar";
+// AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 interface MenuItem {
   title: string;
@@ -42,78 +43,11 @@ interface MenuItem {
 }
 
 // Função para buscar detalhes do flow e suas entidades
-const getFlowWithEntities = async (flowId: string) => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Usuário não autenticado');
+// AIDEV-NOTE: Função removida durante simplificação - sistema agora foca apenas em deals
+// Anteriormente buscava entidades dinâmicas vinculadas aos flows
+// Substituída por estrutura simplificada com Companies/People/Deals fixos
 
-  const { data: clientUser } = await supabase
-    .from('core_client_users')
-    .select('client_id')
-    .eq('id', user.id)
-    .single();
-
-  if (!clientUser) throw new Error('Usuário sem cliente associado');
-
-  // Buscar o flow
-  const { data: flow, error: flowError } = await supabase
-    .from('web_flows')
-    .select('*')
-    .eq('id', flowId)
-    .eq('client_id', clientUser.client_id)
-    .single();
-
-  if (flowError) throw flowError;
-
-  // Buscar entidades vinculadas usando a tabela web_flow_entity_links
-  const { data: linkedEntities, error: entitiesError } = await supabase
-    .from('web_flow_entity_links')
-    .select(`
-      *,
-      entity:web_entities!web_flow_entity_links_entity_id_fkey (
-        id,
-        name,
-        icon,
-        description,
-        color,
-        is_system
-      )
-    `)
-    .eq('flow_id', flowId)
-    .eq('client_id', clientUser.client_id)
-    .order('order_index');
-
-  if (entitiesError) {
-    console.error('Erro ao buscar entidades vinculadas:', entitiesError);
-    // Se der erro, retornar flow sem entidades
-    return { flow, entities: [] };
-  }
-
-  // Extrair apenas as entidades dos resultados
-  const entities = linkedEntities?.map(link => link.entity).filter(Boolean) || [];
-
-  return { flow, entities };
-};
-
-// Ícones para entidades
-const getEntityIcon = (iconName: string) => {
-  const iconMap: Record<string, any> = {
-    'database': Database,
-    'building2': Building2,
-    'users': Users,
-    'package': BarChart3,
-    'home': Home,
-    'car': DollarSign,
-    'graduation-cap': CheckSquare,
-    'briefcase': Building2,
-    'heart': Users,
-    'shopping-cart': BarChart3,
-    'handshake': Handshake,
-    'user-check': User,
-    'credit-card': DollarSign,
-    'book-open': CheckSquare,
-  };
-  return iconMap[iconName] || Database;
-};
+// AIDEV-NOTE: Mapeamento de ícones removido - sistema simplificado sem entidades dinâmicas
 
 const baseMenuItems: MenuItem[] = [
   {
@@ -131,6 +65,8 @@ const baseMenuItems: MenuItem[] = [
     icon: CheckSquare,
     href: "/crm/tasks",
   },
+  // AIDEV-NOTE: Empresas e Pessoas aparecem condicionalmente dentro de flows
+  // Removido "Negócios" - funcionalidade desnecessária
 ];
 
 const reportItems = [
@@ -163,51 +99,29 @@ export function Sidebar() {
   const params = useParams();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { user: userProfile, lastUpdate } = useAccountProfile();
 
-  // Detectar se estamos em um flow ou numa entidade que veio de um flow
-  const isInFlow = location.pathname.startsWith('/crm/flow/') && params.id;
-  const isInEntityFromFlow = location.pathname.startsWith('/crm/entity/') && searchParams.get('flow');
-  const flowId = isInFlow ? params.id : searchParams.get('flow');
-
-  // Detectar se devemos mostrar o contexto do flow
-  const shouldShowFlowContext = isInFlow || isInEntityFromFlow;
-
-  // Buscar dados do flow e entidades se estivermos em contexto de flow
-  const { data: flowData } = useQuery({
-    queryKey: ['flow-entities', flowId],
-    queryFn: () => getFlowWithEntities(flowId!),
-    enabled: !!shouldShowFlowContext && !!flowId,
-  });
-
-  // Construir menu dinâmico
+  // AIDEV-NOTE: Detecta se estamos dentro de um flow OU nas páginas de Empresas/Pessoas
+  const isInsideFlow = location.pathname.includes('/flow/') && params.id;
+  const isInCompaniesOrPeople = location.pathname.includes('/companies') || location.pathname.includes('/people');
+  
+  // AIDEV-NOTE: Menu base sempre visível
   const menuItems = [...baseMenuItems];
-
-  // Se estivermos em contexto de flow, modificar o menu
-  if (shouldShowFlowContext && flowData?.flow) {
-    // Substituir "Início" por "Painel" que volta para o flow
-    menuItems[0] = {
-      title: "Painel",
-      icon: Eye,
-      href: `/crm/flow/${flowId}`,
-    };
-
-    // Adicionar entidades vinculadas ao flow
-    if (flowData.entities && flowData.entities.length > 0) {
-      flowData.entities.forEach((entity: any) => {
-        const EntityIcon = getEntityIcon(entity.icon);
-        const isCurrentEntity = location.pathname.includes(`/crm/entity/${entity.id}`) && searchParams.get('flow') === flowId;
-        
-        menuItems.push({
-          title: entity.name,
-          icon: EntityIcon,
-          href: `/crm/entity/${entity.id}?flow=${flowId}`,
-          onClick: (navigate) => {
-            // Navegar para a entidade com query parameter do flow
-            navigate(`/crm/entity/${entity.id}?flow=${flowId}`);
-          }
-        });
-      });
-    }
+  
+  // AIDEV-NOTE: Adiciona Empresas e Pessoas quando dentro de um flow OU nas próprias páginas
+  if (isInsideFlow || isInCompaniesOrPeople) {
+    menuItems.push(
+      {
+        title: "Empresas",
+        icon: Building2,
+        href: "/crm/companies",
+      },
+      {
+        title: "Pessoas", 
+        icon: Users,
+        href: "/crm/people",
+      }
+    );
   }
 
   const handleLogout = async () => {
@@ -221,7 +135,7 @@ export function Sidebar() {
     }
   };
 
-  const userInitials = user?.email ? getInitials(user.email.split('@')[0]) : 'U';
+  
 
   return (
     <div className="flex h-14 items-center justify-between px-4 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]" >
@@ -290,44 +204,24 @@ export function Sidebar() {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full bg-primary hover:bg-primary/80"
+              className="h-9 w-9 rounded-full"
             >
-              <span className="text-sm font-medium text-primary-foreground">
-                {userInitials}
-              </span>
+              <UserAvatar 
+                user={userProfile} 
+                size="sm" 
+                lastUpdate={lastUpdate}
+                key={`${userProfile?.avatar_url || ''}-${userProfile?.custom_avatar_url || ''}-${userProfile?.avatar_seed || ''}-${userProfile?.avatar_type || ''}-${lastUpdate}`} 
+              />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.email?.split('@')[0]}</p>
-                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/crm/account/profile")}>
+            <DropdownMenuItem onClick={() => navigate('/crm/account/profile')}>
               <User className="mr-2 h-4 w-4" />
-              Minha conta
+              Meu Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              Configurações
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              Novidades
-              <span className="ml-2 rounded bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
-                4
-              </span>
-            </DropdownMenuItem>
-            <DropdownMenuItem>Planos e preços</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Usuários</DropdownMenuItem>
-            <DropdownMenuItem>Grupos</DropdownMenuItem>
-            <DropdownMenuItem>Equipes</DropdownMenuItem>
-            <DropdownMenuItem>Departamentos</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/crm/settings")}>
+            <DropdownMenuItem onClick={() => navigate('/crm/settings')}>
               <Settings className="mr-2 h-4 w-4" />
               Configurações
             </DropdownMenuItem>
@@ -341,4 +235,4 @@ export function Sidebar() {
       </div>
     </div>
   );
-} 
+}

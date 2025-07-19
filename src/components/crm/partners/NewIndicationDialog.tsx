@@ -79,7 +79,7 @@ export function NewIndicationDialog({ partner, open, onClose }: NewIndicationDia
       console.log("Criando empresa...");
       // 1. Criar a empresa
       const { data: company, error: companyError } = await supabase
-        .from("companies")
+        .from("web_companies")
         .insert({
           name: formData.companyName,
           cnpj: cleanCNPJ,

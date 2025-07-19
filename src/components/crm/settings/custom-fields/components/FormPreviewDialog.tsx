@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CustomField, EntityField } from "../types";
+import { CustomField } from "../types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,12 +11,12 @@ import { Textarea } from "@/components/ui/textarea";
 interface FormPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  fields: (CustomField | EntityField)[];
+  fields: CustomField[];
   layout: "vertical" | "horizontal";
 }
 
 export function FormPreviewDialog({ open, onOpenChange, fields, layout }: FormPreviewDialogProps) {
-  const renderField = (field: CustomField | EntityField) => {
+  const renderField = (field: CustomField) => {
     const commonProps = {
       id: field.id,
       placeholder: `Digite ${field.name.toLowerCase()}...`,

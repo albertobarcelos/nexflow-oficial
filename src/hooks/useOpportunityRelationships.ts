@@ -18,26 +18,29 @@ export function useOpportunityRelationships(opportunityId: string) {
 
       if (!collaborator) throw new Error('Collaborator not found');
 
+      // AIDEV-NOTE: Sistema simplificado - relacionamentos diretos com deals
       const { data, error } = await supabase
-        .from('opportunity_entity_relationships')
+        .from('deal_relationships')
         .select(`
           id,
           entity_type,
-          entity_id,
-          companies:entity_id (
+          company_id,
+          person_id,
+          partner_id,
+          companies:company_id (
             id,
             name
           ),
-          people:entity_id (
+          people:person_id (
             id,
             name
           ),
-          partners:entity_id (
+          partners:partner_id (
             id,
             name
           )
         `)
-        .eq('opportunity_id', opportunityId)
+        .eq('deal_id', opportunityId)
         .eq('client_id', collaborator.client_id);
 
       if (error) throw error;
@@ -56,14 +59,21 @@ export function useOpportunityRelationships(opportunityId: string) {
 
       if (!collaborator) throw new Error('Collaborator not found');
 
+      // AIDEV-NOTE: Sistema simplificado - inserção direta por tipo
+      const insertData: any = {
+        client_id: collaborator.client_id,
+        deal_id: opportunityId,
+        entity_type: entityType
+      };
+
+      // Mapear entity_id para campo específico
+      if (entityType === 'company') insertData.company_id = entityId;
+      else if (entityType === 'person') insertData.person_id = entityId;
+      else if (entityType === 'partner') insertData.partner_id = entityId;
+
       const { error } = await supabase
-        .from('opportunity_entity_relationships')
-        .insert({
-          client_id: collaborator.client_id,
-          opportunity_id: opportunityId,
-          entity_type: entityType,
-          entity_id: entityId
-        });
+        .from('deal_relationships')
+        .insert(insertData);
 
       if (error) throw error;
     },
@@ -87,7 +97,7 @@ export function useOpportunityRelationships(opportunityId: string) {
   const removeRelationship = useMutation({
     mutationFn: async (relationshipId: string) => {
       const { error } = await supabase
-        .from('opportunity_entity_relationships')
+        .from('deal_relationships')
         .delete()
         .eq('id', relationshipId);
 
@@ -116,4 +126,4 @@ export function useOpportunityRelationships(opportunityId: string) {
     addRelationship,
     removeRelationship
   };
-} 
+}

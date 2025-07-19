@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,17 +12,38 @@ interface NewStageModalProps {
   onOpenChange: (open: boolean) => void;
   onCreateStage: (data: CreateStageData) => void;
   isCreating?: boolean;
+  initialData?: {
+    id?: string;
+    name: string;
+    is_final_stage?: boolean;
+    allow_create_cards?: boolean;
+  };
 }
 
 export function NewStageModal({ 
   open, 
   onOpenChange, 
   onCreateStage, 
-  isCreating = false 
+  isCreating = false,
+  initialData 
 }: NewStageModalProps) {
   const [stageName, setStageName] = useState('');
   const [isFinalStage, setIsFinalStage] = useState(false);
   const [allowCreateCards, setAllowCreateCards] = useState(false);
+
+  // AIDEV-NOTE: Preencher campos quando initialData estiver presente (modo edição)
+  useEffect(() => {
+    if (initialData && open) {
+      setStageName(initialData.name || '');
+      setIsFinalStage(initialData.is_final_stage || false);
+      setAllowCreateCards(initialData.allow_create_cards || false);
+    } else if (!initialData && open) {
+      // Reset form para modo criação
+      setStageName('');
+      setIsFinalStage(false);
+      setAllowCreateCards(false);
+    }
+  }, [initialData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,10 +56,12 @@ export function NewStageModal({
       allowCreateCards,
     });
 
-    // Reset form
-    setStageName('');
-    setIsFinalStage(false);
-    setAllowCreateCards(false);
+    // Reset form apenas se não estiver editando
+    if (!initialData) {
+      setStageName('');
+      setIsFinalStage(false);
+      setAllowCreateCards(false);
+    }
   };
 
   const handleCancel = () => {
@@ -49,11 +72,15 @@ export function NewStageModal({
     onOpenChange(false);
   };
 
+  const isEditMode = !!initialData;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <DialogTitle className="text-lg font-semibold">Nova fase</DialogTitle>
+          <DialogTitle className="text-lg font-semibold">
+            {isEditMode ? 'Editar fase' : 'Nova fase'}
+          </DialogTitle>
           <Button
             variant="ghost"
             size="sm"
@@ -129,10 +156,10 @@ export function NewStageModal({
               {isCreating ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Criando...
+                  {isEditMode ? 'Salvando...' : 'Criando...'}
                 </>
               ) : (
-                'Salvar'
+                isEditMode ? 'Salvar alterações' : 'Criar fase'
               )}
             </Button>
           </div>
@@ -140,4 +167,4 @@ export function NewStageModal({
       </DialogContent>
     </Dialog>
   );
-} 
+}

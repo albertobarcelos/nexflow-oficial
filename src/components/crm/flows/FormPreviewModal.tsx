@@ -24,8 +24,7 @@ import {
   Save,
   AlertCircle
 } from 'lucide-react';
-import { useFlowBases } from '@/hooks/useFlowBases';
-import { useFormFields } from '@/hooks/useFormFields';
+// AIDEV-NOTE: Removido useFlowBases e useFormFields - sistema simplificado para focar apenas em deals
 import { FieldConfiguration } from '@/types/form-builder';
 
 interface FormPreviewModalProps {
@@ -41,8 +40,11 @@ export function FormPreviewModal({
   flowId, 
   flowName 
 }: FormPreviewModalProps) {
-  const { linkedBases: linkedEntities, isLoading: isLoadingBases } = useFlowBases(flowId);
-  const { fields: initialFields, isLoading: isLoadingFields } = useFormFields(flowId, 'initial');
+  // AIDEV-NOTE: Removido hooks de entidades - sistema simplificado para focar apenas em deals
+    const linkedEntities: any[] = [];
+    const initialFields: any[] = [];
+    const isLoadingBases = false;
+    const isLoadingFields = false;
 
   const getEntityIcon = (entityName: string) => {
     const name = entityName.toLowerCase();
@@ -401,4 +403,4 @@ export function FormPreviewModal({
       </DialogContent>
     </Dialog>
   );
-} 
+}

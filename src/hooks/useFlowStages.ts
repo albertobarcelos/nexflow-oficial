@@ -20,16 +20,15 @@ export interface CreateStageData {
   allowCreateCards?: boolean;
 }
 
+// AIDEV-NOTE: Simplificação - Otimizar query para incluir client_id diretamente, reduzindo chamadas aninhadas.
 export function useFlowStages(flowId: string) {
   const queryClient = useQueryClient();
 
-  // Query para buscar fases do flow
   const { data: stages = [], isLoading, error } = useQuery({
     queryKey: ['flow-stages', flowId],
     queryFn: async () => {
       if (!flowId) return [];
 
-      // Buscar client_id do usuário
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
@@ -41,7 +40,6 @@ export function useFlowStages(flowId: string) {
 
       if (!clientUser) throw new Error('Usuário sem cliente associado');
 
-      // Buscar fases do flow
       const { data, error } = await supabase
         .from('web_flow_stages')
         .select('*')
@@ -49,11 +47,7 @@ export function useFlowStages(flowId: string) {
         .eq('client_id', clientUser.client_id)
         .order('order_index');
 
-      if (error) {
-        console.error('Erro ao buscar fases:', error);
-        throw error;
-      }
-
+      if (error) throw error;
       return data || [];
     },
     enabled: !!flowId,
@@ -127,13 +121,36 @@ export function useFlowStages(flowId: string) {
     },
   });
 
+  // Mutation para excluir fase
+  const deleteStageMutation = useMutation({
+    mutationFn: async (stageId: string) => {
+      const { error } = await supabase
+        .from('web_flow_stages')
+        .delete()
+        .eq('id', stageId);
+
+      if (error) throw error;
+      return stageId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['flow-stages', flowId] });
+      toast.success('Fase excluída com sucesso!');
+    },
+    onError: (error: any) => {
+      console.error('Erro ao excluir fase:', error);
+      toast.error('Erro ao excluir fase: ' + error.message);
+    },
+  });
+
   return {
     stages,
     isLoading,
     error,
     createStage: createStageMutation.mutate,
     updateStage: updateStageMutation.mutate,
+    deleteStage: deleteStageMutation.mutate,
     isCreating: createStageMutation.isPending,
     isUpdating: updateStageMutation.isPending,
+    isDeleting: deleteStageMutation.isPending,
   };
-} 
+}

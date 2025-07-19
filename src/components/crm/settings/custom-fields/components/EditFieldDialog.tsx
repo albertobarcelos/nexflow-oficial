@@ -14,12 +14,12 @@ import { toast } from "sonner";
 interface EditFieldDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  field: EntityField | null;
-  onSave: (field: EntityField) => void;
+  field: CustomField | null;
+  onSave: (field: CustomField) => void;
 }
 
 export function EditFieldDialog({ field, open, onOpenChange, onSave }: EditFieldDialogProps) {
-  const [editingField, setEditingField] = useState<CustomField | EntityField | null>(null);
+  const [editingField, setEditingField] = useState<CustomField | null>(null);
 
   useEffect(() => {
     if (field) {

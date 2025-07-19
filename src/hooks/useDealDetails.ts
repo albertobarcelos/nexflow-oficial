@@ -75,7 +75,7 @@ export function useDealDetails(dealId: string) {
         let people = [];
         if (data.company_id) {
           const { data: companyPeople, error: peopleError } = await supabase
-            .from("company_people")
+            .from("web_company_people")
             .select(`
               id,
               person:people (

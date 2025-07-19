@@ -1,5 +1,5 @@
 // import { Draggable } from "@hello-pangea/dnd";
-import { CustomField, EntityField } from "../types";
+import { CustomField } from "../types";
 import { Button } from "@/components/ui/button";
 import { Edit2, GripVertical, LayoutGrid, Trash2, MoreVertical, Pencil, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 
 interface FieldCardProps {
-  field: EntityField | CustomField;
+  field: CustomField;
   index: number;
   onEdit: () => void;
   onDelete: () => void;

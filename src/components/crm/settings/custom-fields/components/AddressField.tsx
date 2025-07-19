@@ -33,7 +33,7 @@ export function AddressField({ value, onChange, isRequired }: AddressFieldProps)
     queryKey: ['states'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('states')
+        .from('web_states')
         .select('id, name, uf')
         .order('name');
 
@@ -48,7 +48,7 @@ export function AddressField({ value, onChange, isRequired }: AddressFieldProps)
     enabled: !!value?.state_id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('cities')
+        .from('web_cities')
         .select('id, name')
         .eq('state_id', value.state_id)
         .order('name');
@@ -69,7 +69,7 @@ export function AddressField({ value, onChange, isRequired }: AddressFieldProps)
       if (!data.erro) {
         // Buscar estado pelo UF
         const { data: stateData } = await supabase
-          .from('states')
+          .from('web_states')
           .select('id, name')
           .eq('uf', data.uf)
           .single();
@@ -77,7 +77,7 @@ export function AddressField({ value, onChange, isRequired }: AddressFieldProps)
         if (stateData) {
           // Buscar cidade pelo nome e estado
           const { data: cityData } = await supabase
-            .from('cities')
+            .from('web_cities')
             .select('id, name')
             .eq('state_id', stateData.id)
             .ilike('name', data.localidade)
@@ -213,4 +213,4 @@ export function AddressField({ value, onChange, isRequired }: AddressFieldProps)
       </div>
     </div>
   );
-} 
+}

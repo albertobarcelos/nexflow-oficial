@@ -90,23 +90,22 @@ export function useCompanyRelationships(companyId: string) {
       if (!collaborator) throw new Error('Colaborador não encontrado');
 
       const { data, error } = await supabase
-        .from('company_people')
+        .from('web_company_people')
         .select(`
           id,
-          person:person_id (
-            id,
-            name,
-            email,
-            whatsapp
-          ),
           role,
-          is_primary
+          is_primary,
+          person:web_people(*)
         `)
         .eq('company_id', companyId)
         .eq('client_id', collaborator.client_id);
 
-      if (error) throw error;
-      return data as CompanyPerson[];
+      if (error) {
+        console.error('Erro ao buscar pessoas da empresa:', error);
+        throw error;
+      }
+
+      return data || [];
     },
     enabled: !!user?.id && !!companyId,
   });
@@ -198,7 +197,7 @@ export function useCompanyRelationships(companyId: string) {
       if (!collaborator) throw new Error('Colaborador não encontrado');
 
       const { data, error } = await supabase
-        .from('company_people')
+        .from('web_company_people')
         .insert({
           client_id: collaborator.client_id,
           company_id: companyId,
@@ -256,7 +255,7 @@ export function useCompanyRelationships(companyId: string) {
       if (!user?.id) throw new Error('Usuário não autenticado');
 
       const { error } = await supabase
-        .from('company_people')
+        .from('web_company_people')
         .delete()
         .eq('id', relationId);
 
@@ -342,10 +341,10 @@ export const useCompanyRelationshipsHook = (companyId: string) => {
       if (!companyId) return [];
 
       const { data, error } = await supabase
-        .from('company_people')
+        .from('web_company_people')
         .select(`
           id,
-          person:people (
+          person:web_people (
             id,
             name,
             email

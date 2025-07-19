@@ -123,7 +123,7 @@ export function QuickCompanyCreate({
 
       // 1. Criar a empresa
       const { data: company, error: companyError } = await supabase
-        .from('companies')
+        .from('web_companies')
         .insert({
           ...data,
           responsavel_id: collaborator.id,
@@ -143,7 +143,7 @@ export function QuickCompanyCreate({
       // 2. Criar vínculos com pessoas selecionadas
       if (selectedPeople.length > 0) {
         const { error: linkError } = await supabase
-          .from('company_people')
+          .from('web_company_people')
           .insert(
             selectedPeople.map(person => ({
               company_id: company.id,

@@ -33,7 +33,7 @@ export function LinkPersonDialog({
     queryKey: ['company', companyId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('companies')
+        .from('web_companies')
         .select('client_id')
         .eq('id', companyId)
         .single();
@@ -82,7 +82,7 @@ export function LinkPersonDialog({
       // Se a pessoa já foi vinculada antes (está apenas temporariamente desvinculada),
       // apenas atualizamos o estado sem tentar inserir no banco
       const alreadyExistsInDb = await supabase
-        .from('company_people')
+        .from('web_company_people')
         .select('id')
         .eq('company_id', companyId)
         .eq('person_id', person.id)
@@ -96,7 +96,7 @@ export function LinkPersonDialog({
 
       // Se não existe no banco, cria um novo vínculo
       const { error } = await supabase
-        .from('company_people')
+        .from('web_company_people')
         .insert({
           company_id: companyId,
           person_id: person.id,

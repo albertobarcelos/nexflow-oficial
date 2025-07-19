@@ -9,12 +9,13 @@ interface UpdateFieldValueData {
   value: any;
 }
 
-export function useCustomFieldValues(entityType: EntityType, entityId: string) {
+// AIDEV-NOTE: Sistema simplificado - valores de campos personalizados apenas para deals
+export function useCustomFieldValues(dealId: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const { data: values = {}, isLoading } = useQuery({
-    queryKey: ["custom_field_values", entityType, entityId],
+    queryKey: ["deal_custom_field_values", dealId],
     queryFn: async () => {
       if (!user) throw new Error("Not authenticated");
 
@@ -27,11 +28,10 @@ export function useCustomFieldValues(entityType: EntityType, entityId: string) {
       if (!collaborator) throw new Error("Collaborator not found");
 
       const { data, error } = await supabase
-        .from("custom_field_values")
+        .from("deal_custom_field_values")
         .select("*")
         .eq("client_id", collaborator.client_id)
-        .eq("entity_type", entityType)
-        .eq("entity_id", entityId);
+        .eq("deal_id", dealId);
 
       if (error) throw error;
 
@@ -41,7 +41,7 @@ export function useCustomFieldValues(entityType: EntityType, entityId: string) {
         return acc;
       }, {} as Record<string, any>);
     },
-    enabled: !!user && !!entityType && !!entityId
+    enabled: !!user && !!dealId
   });
 
   const updateFieldValue = useMutation({
@@ -56,20 +56,19 @@ export function useCustomFieldValues(entityType: EntityType, entityId: string) {
 
       if (!collaborator) throw new Error("Collaborator not found");
 
-      // Verificar se já existe um valor para este campo
+      // AIDEV-NOTE: Sistema simplificado - verificar valor existente para deal
       const { data: existingValue } = await supabase
-        .from("custom_field_values")
+        .from("deal_custom_field_values")
         .select("id")
         .eq("client_id", collaborator.client_id)
-        .eq("entity_type", entityType)
-        .eq("entity_id", entityId)
+        .eq("deal_id", dealId)
         .eq("field_id", field_id)
         .maybeSingle();
 
       if (existingValue) {
         // Atualizar valor existente
         const { error } = await supabase
-          .from("custom_field_values")
+          .from("deal_custom_field_values")
           .update({
             value,
             updated_at: new Date().toISOString()
@@ -80,11 +79,10 @@ export function useCustomFieldValues(entityType: EntityType, entityId: string) {
       } else {
         // Inserir novo valor
         const { error } = await supabase
-          .from("custom_field_values")
+          .from("deal_custom_field_values")
           .insert({
             client_id: collaborator.client_id,
-            entity_type: entityType,
-            entity_id: entityId,
+            deal_id: dealId,
             field_id,
             value,
             created_at: new Date().toISOString(),
@@ -96,7 +94,7 @@ export function useCustomFieldValues(entityType: EntityType, entityId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ 
-        queryKey: ["custom_field_values", entityType, entityId] 
+        queryKey: ["deal_custom_field_values", dealId] 
       });
     },
     onError: (error) => {
@@ -111,4 +109,4 @@ export function useCustomFieldValues(entityType: EntityType, entityId: string) {
     updateFieldValue,
     saving: updateFieldValue.isLoading
   };
-} 
+}

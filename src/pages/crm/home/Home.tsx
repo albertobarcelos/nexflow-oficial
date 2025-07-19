@@ -1,7 +1,7 @@
 import { FlowTemplates } from "@/components/crm/flows/FlowTemplates";
-import { EntityTemplates } from "@/components/crm/entities/EntityTemplates";
+// AIDEV-NOTE: EntityTemplates removido - sistema simplificado sem entidades dinâmicas
 import { ConfigurationDropdown } from "@/components/crm/flows/ConfigurationDropdown";
-import { EntityConfigurationDropdown } from "@/components/crm/entities/EntityConfigurationDropdown";
+// AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado sem entidades dinâmicas
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEntities } from "@/hooks/useEntities";
+// AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 type UserData = {
     client_id: string;
@@ -64,7 +64,7 @@ export function Home() {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [showTemplates, setShowTemplates] = useState(false);
-    const [showEntityTemplates, setShowEntityTemplates] = useState(false);
+    // AIDEV-NOTE: showEntityTemplates removido - sistema simplificado sem entidades dinâmicas
     const [newFlowTitle, setNewFlowTitle] = useState<string | null>(null);
     const isMobile = useIsMobile();
 
@@ -89,8 +89,9 @@ export function Home() {
         enabled: !!user?.client_id
     });
 
-    // Query para buscar entidades e dados reais
-    const { entities } = useEntities();
+    // AIDEV-NOTE: Entidades dinâmicas removidas - sistema simplificado
+    // Agora focamos apenas em Companies, People e Deals fixos
+    const entities: Entity[] = [];
 
     const handleSelectTemplate = (templateId: string) => {
         // TODO: Implement template selection logic
@@ -178,11 +179,11 @@ export function Home() {
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                             <div
-                                onClick={() => setShowEntityTemplates(true)}
-                                className="border border-orange-500 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-pointer hover:bg-orange-50/50 min-h-[100px] md:min-h-[120px]"
+                                className="border border-gray-300 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-not-allowed opacity-50 min-h-[100px] md:min-h-[120px]"
+                                title="Funcionalidade removida - sistema simplificado para deals"
                             >
-                                <Plus className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
-                                <span className="text-orange-500 text-xs md:text-sm text-center">Criar Base</span>
+                                <Plus className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
+                                <span className="text-gray-400 text-xs md:text-sm text-center">Criar Base (Desabilitado)</span>
                             </div>
                             {/* Link para EntityPage de mock, só em dev */}
                             {process.env.NODE_ENV === 'development' && (
@@ -225,18 +226,7 @@ export function Home() {
                                     </div>
 
                                     {/* Botão de configuração */}
-                                    <div
-                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <EntityConfigurationDropdown
-                                            entityId={entity.id}
-                                            entityName={entity.name}
-                                            variant="ghost"
-                                            size="sm"
-                                            showLabel={false}
-                                        />
-                                    </div>
+                                    {/* AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado para deals */}
                                 </div>
                             ))}
                         </div>
@@ -271,10 +261,7 @@ export function Home() {
                 onOpenChange={setShowTemplates}
             />
 
-            <EntityTemplates
-                open={showEntityTemplates}
-                onOpenChange={setShowEntityTemplates}
-            />
+            {/* AIDEV-NOTE: EntityTemplates removido - sistema simplificado para deals */}
         </div>
     );
 }

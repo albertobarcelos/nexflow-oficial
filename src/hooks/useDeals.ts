@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface Deal {
   id: string;
@@ -27,18 +27,15 @@ interface DealInput {
   pipeline: string;
 }
 
+// AIDEV-NOTE: Simplificação - Integrar React Query para gerenciamento de estado e cache, alinhando com outros hooks.
 export function useDeals() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [deals, setDeals] = useState<Deal[]>([]);
+  const queryClient = useQueryClient();
 
-  const fetchDeals = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from("deals")
+  const { data: deals = [], isLoading, error } = useQuery({
+    queryKey: ['deals'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('deals')
         .select(`
           *,
           partner:partner_id (
@@ -49,126 +46,64 @@ export function useDeals() {
             custom_avatar_url
           )
         `)
-        .order("created_at", { ascending: false });
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
-
-      setDeals(data || []);
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      console.error("Erro ao buscar negócios:", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addDeal = async (deal: DealInput) => {
-    setLoading(true);
-    setError(null);
-
-    try {
+  const addDealMutation = useMutation({
+    mutationFn: async (deal: DealInput) => {
       const now = new Date().toISOString();
-      const dealWithTimestamps = {
-        ...deal,
-        created_at: now,
-        updated_at: now,
-      };
-
-      const { data, error: supabaseError } = await supabase
-        .from("deals")
-        .insert([dealWithTimestamps])
+      const { data, error } = await supabase
+        .from('deals')
+        .insert([{ ...deal, created_at: now, updated_at: now }])
         .select()
         .single();
-
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
-
-      if (!data) {
-        throw new Error("Erro ao adicionar negócio: nenhum dado retornado");
-      }
-
-      setDeals((prev) => [data, ...prev]);
+      if (error) throw error;
       return data;
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      console.error("Erro ao adicionar negócio:", error.message);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onSuccess: (newDeal) => {
+      queryClient.setQueryData(['deals'], (old: Deal[] | undefined) => [...(old || []), newDeal]);
+    },
+  });
 
-  const updateDeal = async (id: string, updates: Partial<DealInput>) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from("deals")
+  const updateDealMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<DealInput> }) => {
+      const { data, error } = await supabase
+        .from('deals')
         .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq("id", id)
+        .eq('id', id)
         .select()
         .single();
-
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
-
-      if (!data) {
-        throw new Error("Erro ao atualizar negócio: nenhum dado retornado");
-      }
-
-      setDeals((prev) =>
-        prev.map((deal) => (deal.id === id ? data : deal))
-      );
+      if (error) throw error;
       return data;
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      console.error("Erro ao atualizar negócio:", error.message);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    onSuccess: (updatedDeal) => {
+      queryClient.setQueryData(['deals'], (old: Deal[] | undefined) =>
+        old?.map((deal) => (deal.id === updatedDeal.id ? updatedDeal : deal)) || []
+      );
+    },
+  });
 
-  const deleteDeal = async (id: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error: supabaseError } = await supabase
-        .from("deals")
-        .delete()
-        .eq("id", id);
-
-      if (supabaseError) {
-        throw new Error(supabaseError.message);
-      }
-
-      setDeals((prev) => prev.filter((deal) => deal.id !== id));
-    } catch (err) {
-      const error = err as Error;
-      setError(error);
-      console.error("Erro ao excluir negócio:", error.message);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteDealMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('deals').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, id) => {
+      queryClient.setQueryData(['deals'], (old: Deal[] | undefined) =>
+        old?.filter((deal) => deal.id !== id) || []
+      );
+    },
+  });
 
   return {
     deals,
-    loading,
+    isLoading,
     error,
-    fetchDeals,
-    addDeal,
-    updateDeal,
-    deleteDeal,
+    addDeal: addDealMutation.mutate,
+    updateDeal: updateDealMutation.mutate,
+    deleteDeal: deleteDealMutation.mutate,
   };
 }

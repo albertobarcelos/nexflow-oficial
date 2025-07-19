@@ -98,6 +98,9 @@ export interface Database {
           last_name: string | null;
           phone: string | null;
           avatar_url: string | null;
+          avatar_type: string | null;
+          avatar_seed: string | null;
+          custom_avatar_url: string | null;
           is_active: boolean;
           last_login_at: string | null;
           created_at: string;
@@ -116,6 +119,9 @@ export interface Database {
           last_name?: string | null;
           phone?: string | null;
           avatar_url?: string | null;
+          avatar_type?: string | null;
+          avatar_seed?: string | null;
+          custom_avatar_url?: string | null;
           is_active?: boolean;
           last_login_at?: string | null;
           created_at?: string;
@@ -134,6 +140,9 @@ export interface Database {
           last_name?: string | null;
           phone?: string | null;
           avatar_url?: string | null;
+          avatar_type?: string | null;
+          avatar_seed?: string | null;
+          custom_avatar_url?: string | null;
           is_active?: boolean;
           last_login_at?: string | null;
           created_at?: string;
@@ -995,210 +1004,413 @@ export interface Database {
         ];
       };
 
-      web_entities: {
+      web_flow_stages: {
         Row: {
           id: string;
           client_id: string;
+          flow_id: string;
           name: string;
-          slug: string;
-          icon: string | null;
           description: string | null;
           color: string | null;
-          is_system: boolean | null;
-          is_active: boolean | null;
-          settings: Json | null;
-          created_at: string | null;
-          updated_at: string | null;
+          order_index: number;
+          is_final_stage: boolean;
+          stage_type: "active" | "won" | "lost" | "archived";
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           client_id: string;
+          flow_id: string;
           name: string;
-          slug: string;
-          icon?: string | null;
           description?: string | null;
           color?: string | null;
-          is_system?: boolean | null;
-          is_active?: boolean | null;
-          settings?: Json | null;
-          created_at?: string | null;
-          updated_at?: string | null;
+          order_index: number;
+          is_final_stage?: boolean;
+          stage_type?: "active" | "won" | "lost" | "archived";
+          created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           client_id?: string;
-          name?: string;
-          slug?: string;
-          icon?: string | null;
-          description?: string | null;
-          color?: string | null;
-          is_system?: boolean | null;
-          is_active?: boolean | null;
-          settings?: Json | null;
-          created_at?: string | null;
-          updated_at?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "web_entities_client_id_fkey";
-            columns: ["client_id"];
-            isOneToOne: false;
-            referencedRelation: "core_clients";
-            referencedColumns: ["id"];
-          }
-        ];
-      };
-
-      web_flow_entity_links: {
-        Row: {
-          id: string;
-          flow_id: string;
-          entity_id: string;
-          is_required: boolean | null;
-          is_primary: boolean | null;
-          order_index: number | null;
-          client_id: string;
-          created_at: string | null;
-          updated_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          flow_id: string;
-          entity_id: string;
-          is_required?: boolean | null;
-          is_primary?: boolean | null;
-          order_index?: number | null;
-          client_id: string;
-          created_at?: string | null;
-          updated_at?: string | null;
-        };
-        Update: {
-          id?: string;
           flow_id?: string;
-          entity_id?: string;
-          is_required?: boolean | null;
-          is_primary?: boolean | null;
-          order_index?: number | null;
-          client_id?: string;
-          created_at?: string | null;
-          updated_at?: string | null;
+          name?: string;
+          description?: string | null;
+          color?: string | null;
+          order_index?: number;
+          is_final_stage?: boolean;
+          stage_type?: "active" | "won" | "lost" | "archived";
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "web_flow_entity_links_client_id_fkey";
+            foreignKeyName: "web_flow_stages_client_id_fkey";
             columns: ["client_id"];
             isOneToOne: false;
             referencedRelation: "core_clients";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "web_flow_entity_links_flow_id_fkey";
+            foreignKeyName: "web_flow_stages_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flows";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      web_form_fields: {
+        Row: {
+          id: string;
+          flow_id: string;
+          field_type: string;
+          label: string;
+          placeholder: string | null;
+          description: string | null;
+          help_text: string | null;
+          required: boolean;
+          editable_in_other_stages: boolean;
+          unique_value: boolean;
+          compact_view: boolean;
+          order_index: number;
+          form_type: string;
+          stage_id: string | null;
+          validation_rules: Json | null;
+          field_options: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          flow_id: string;
+          field_type: string;
+          label: string;
+          placeholder?: string | null;
+          description?: string | null;
+          help_text?: string | null;
+          required?: boolean;
+          editable_in_other_stages?: boolean;
+          unique_value?: boolean;
+          compact_view?: boolean;
+          order_index?: number;
+          form_type: string;
+          stage_id?: string | null;
+          validation_rules?: Json | null;
+          field_options?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          flow_id?: string;
+          field_type?: string;
+          label?: string;
+          placeholder?: string | null;
+          description?: string | null;
+          help_text?: string | null;
+          required?: boolean;
+          editable_in_other_stages?: boolean;
+          unique_value?: boolean;
+          compact_view?: boolean;
+          order_index?: number;
+          form_type?: string;
+          stage_id?: string | null;
+          validation_rules?: Json | null;
+          field_options?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_form_fields_flow_id_fkey";
             columns: ["flow_id"];
             isOneToOne: false;
             referencedRelation: "web_flows";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "web_flow_entity_links_entity_id_fkey";
-            columns: ["entity_id"];
+            foreignKeyName: "web_form_fields_stage_id_fkey";
+            columns: ["stage_id"];
             isOneToOne: false;
-            referencedRelation: "web_entities";
+            referencedRelation: "web_flow_stages";
             referencedColumns: ["id"];
           }
         ];
       };
+
+      // =====================================================
+      // SISTEMA MODULAR DE FLOWS E VISUALIZAÇÕES DUPLICADAS
+      // =====================================================
+
+      web_deal_flow_views: {
+        Row: {
+          id: string;
+          client_id: string;
+          deal_id: string;
+          flow_id: string;
+          stage_id: string;
+          is_primary: boolean;
+          is_duplicate: boolean;
+          visible_to_roles: string[];
+          auto_sync: boolean;
+          sync_fields: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          deal_id: string;
+          flow_id: string;
+          stage_id: string;
+          is_primary?: boolean;
+          is_duplicate?: boolean;
+          visible_to_roles?: string[];
+          auto_sync?: boolean;
+          sync_fields?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          deal_id?: string;
+          flow_id?: string;
+          stage_id?: string;
+          is_primary?: boolean;
+          is_duplicate?: boolean;
+          visible_to_roles?: string[];
+          auto_sync?: boolean;
+          sync_fields?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_deal_flow_views_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_deal_flow_views_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_deal_flow_views_stage_id_fkey";
+            columns: ["stage_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flow_stages";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      web_flow_automations: {
+        Row: {
+          id: string;
+          client_id: string;
+          name: string;
+          description: string | null;
+          is_active: boolean;
+          source_flow_id: string;
+          source_stage_id: string;
+          target_flow_id: string;
+          target_stage_id: string;
+          automation_type: "duplicate" | "move" | "copy";
+          trigger_condition: "stage_change" | "field_update" | "time_based";
+          conditions: Json;
+          actions: Json;
+          visible_to_roles: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          name: string;
+          description?: string | null;
+          is_active?: boolean;
+          source_flow_id: string;
+          source_stage_id: string;
+          target_flow_id: string;
+          target_stage_id: string;
+          automation_type?: "duplicate" | "move" | "copy";
+          trigger_condition?: "stage_change" | "field_update" | "time_based";
+          conditions?: Json;
+          actions?: Json;
+          visible_to_roles?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          name?: string;
+          description?: string | null;
+          is_active?: boolean;
+          source_flow_id?: string;
+          source_stage_id?: string;
+          target_flow_id?: string;
+          target_stage_id?: string;
+          automation_type?: "duplicate" | "move" | "copy";
+          trigger_condition?: "stage_change" | "field_update" | "time_based";
+          conditions?: Json;
+          actions?: Json;
+          visible_to_roles?: string[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_flow_automations_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_flow_automations_source_flow_id_fkey";
+            columns: ["source_flow_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_flow_automations_source_stage_id_fkey";
+            columns: ["source_stage_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flow_stages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_flow_automations_target_flow_id_fkey";
+            columns: ["target_flow_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_flow_automations_target_stage_id_fkey";
+            columns: ["target_stage_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flow_stages";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      web_flow_templates: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          category: string;
+          is_system_template: boolean;
+          template_data: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          category?: string;
+          is_system_template?: boolean;
+          template_data: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          category?: string;
+          is_system_template?: boolean;
+          template_data?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      web_flow_role_configs: {
+        Row: {
+          id: string;
+          client_id: string;
+          flow_id: string;
+          user_role: string;
+          can_view_all_stages: boolean;
+          visible_stages: string[];
+          can_edit_deals: boolean;
+          can_move_deals: boolean;
+          can_create_deals: boolean;
+          auto_duplicate_to_flows: string[];
+          notification_preferences: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          flow_id: string;
+          user_role: string;
+          can_view_all_stages?: boolean;
+          visible_stages?: string[];
+          can_edit_deals?: boolean;
+          can_move_deals?: boolean;
+          can_create_deals?: boolean;
+          auto_duplicate_to_flows?: string[];
+          notification_preferences?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          flow_id?: string;
+          user_role?: string;
+          can_view_all_stages?: boolean;
+          visible_stages?: string[];
+          can_edit_deals?: boolean;
+          can_move_deals?: boolean;
+          can_create_deals?: boolean;
+          auto_duplicate_to_flows?: string[];
+          notification_preferences?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_flow_role_configs_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "web_flow_role_configs_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "web_flows";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      // AIDEV-NOTE: Sistema modular implementado - usuário pode criar flows personalizados
+      // com automações de duplicação configuráveis entre etapas
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
-      // =====================================================
-      // FLOW ENTITY FUNCTIONS (Sistema de Vinculação)
-      // =====================================================
-      
-      get_available_entities: {
-        Args: {
-          p_client_id: string;
-          p_search?: string | null;
-          p_is_system?: boolean | null;
-        };
-        Returns: {
-          id: string;
-          name: string;
-          slug: string;
-          icon: string | null;
-          color: string | null;
-          description: string | null;
-          is_system: boolean;
-          is_active: boolean;
-          total_flows_linked: number;
-        }[];
-      };
-
-      get_flow_linked_entities: {
-        Args: {
-          p_flow_id: string;
-          p_client_id: string;
-        };
-        Returns: {
-          link_id: string;
-          flow_id: string;
-          entity_id: string;
-          entity_name: string;
-          entity_slug: string;
-          entity_icon: string | null;
-          entity_color: string | null;
-          entity_description: string | null;
-          is_system: boolean;
-          is_required: boolean;
-          is_primary: boolean;
-          order_index: number;
-          created_at: string;
-        }[];
-      };
-
-      link_entity_to_flow: {
-        Args: {
-          p_flow_id: string;
-          p_entity_id: string;
-          p_client_id: string;
-          p_is_required?: boolean;
-          p_is_primary?: boolean;
-        };
-        Returns: {
-          success: boolean;
-          message: string;
-          link_id: string | null;
-        }[];
-      };
-
-      reorder_flow_entities: {
-        Args: {
-          p_flow_id: string;
-          p_client_id: string;
-          p_entity_orders: Json;
-        };
-        Returns: {
-          success: boolean;
-          message: string;
-          updated_count: number;
-        }[];
-      };
-
-      get_flow_entity_stats: {
-        Args: {
-          p_flow_id: string;
-          p_client_id: string;
-        };
-        Returns: {
-          total_linked: number;
-          total_required: number;
-          total_system: number;
-          total_custom: number;
-          primary_entity_id: string | null;
-          primary_entity_name: string | null;
-        }[];
-      };
+      // AIDEV-NOTE: Funções de entidades dinâmicas removidas - sistema simplificado
+      [_ in never]: never;
     };
     Enums: {
       [_ in never]: never;

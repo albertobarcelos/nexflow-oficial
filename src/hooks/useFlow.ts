@@ -129,6 +129,22 @@ export function useFlow() {
   });
 
   // Query dos negócios com configurações otimizadas
+  // AIDEV-NOTE: Simplificação - Unificar queries de flow, stages e deals em uma única RPC para reduzir chamadas ao Supabase e melhorar performance.
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["flow-data", id],
+    queryFn: async () => {
+      const collaborator = await getCurrentUserData();
+      const { data, error } = await supabase.rpc("get_flow_data", { p_flow_id: id || "default", p_client_id: collaborator.client_id });
+      if (error) throw error;
+      return data; // { flow, stages, deals }
+    },
+    staleTime: 5000,
+    cacheTime: 15 * 60 * 1000,
+  });
+  const flow = data?.flow;
+  const stages = data?.stages || [];
+  const deals = data?.deals || [];
+  // Remover queries separadas antigas
   const { data: deals = [], isLoading: isDealsLoading, isError: isDealsError } = useQuery({
     queryKey: ["flow-deals", flow?.id],
     queryFn: async () => {

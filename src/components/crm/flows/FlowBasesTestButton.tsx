@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Database } from 'lucide-react';
-import { FlowBasesConfigModal } from './FlowBasesConfigModal';
+// AIDEV-NOTE: FlowBasesConfigModal removido durante simplificação - sistema focado apenas em deals
 
 interface FlowBasesTestButtonProps {
   flowId: string;
@@ -9,26 +9,17 @@ interface FlowBasesTestButtonProps {
 }
 
 export function FlowBasesTestButton({ flowId, flowName }: FlowBasesTestButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
+  // AIDEV-NOTE: Sistema simplificado - botão desabilitado, foco apenas em deals
   return (
-    <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setIsOpen(true)}
-        className="gap-2"
-      >
-        <Database className="w-4 h-4" />
-        Configurar Entidades
-      </Button>
-
-      <FlowBasesConfigModal
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        flowId={flowId}
-        flowName={flowName}
-      />
-    </>
+    <Button
+      variant="outline"
+      size="sm"
+      disabled
+      className="gap-2 opacity-50"
+      title="Funcionalidade removida - sistema simplificado para deals"
+    >
+      <Database className="w-4 h-4" />
+      Configurar Entidades (Desabilitado)
+    </Button>
   );
-} 
+}

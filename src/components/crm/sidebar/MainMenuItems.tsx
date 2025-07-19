@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Kanban, CheckSquare, BarChart, Settings } from "lucide-react";
+import { LayoutDashboard, Kanban, CheckSquare, BarChart, Settings, Workflow, Eye, Building2, Users, DollarSign } from "lucide-react";
 import { SidebarMenuItem } from "./SidebarMenuItem";
 import { PipelineSelector } from "../pipeline/PipelineSelector";
 
@@ -29,6 +29,32 @@ export function MainMenuItems({ showPipelineSelector, setShowPipelineSelector, p
       title: "Tarefas",
       icon: CheckSquare,
       href: "/crm/tasks",
+    },
+    // AIDEV-NOTE: Bases fixas do sistema - substituem entidades dinâmicas
+    {
+      title: "Empresas",
+      icon: Building2,
+      href: "/crm/companies",
+    },
+    {
+      title: "Pessoas",
+      icon: Users,
+      href: "/crm/people",
+    },
+    {
+      title: "Negócios",
+      icon: DollarSign,
+      href: "/crm/deals",
+    },
+    {
+      title: "Construtor de Flows",
+      icon: Workflow,
+      href: "/crm/flows/builder",
+    },
+    {
+      title: "Visualizações de Flows",
+      icon: Eye,
+      href: "/crm/flows/views",
     },
     {
       title: "Relatórios",
@@ -70,7 +96,7 @@ export function MainMenuItems({ showPipelineSelector, setShowPipelineSelector, p
             href={item.href}
             icon={item.icon}
             isActive={isActive(item.href)}
-            onClick={() => handleMenuClick(item.href, item.showSelector)}
+            onClick={() => handleMenuClick(item.href, item.showSelector || false)}
           />
           {item.showSelector && showPipelineSelector && pipelines?.length > 1 && (
             <PipelineSelector 

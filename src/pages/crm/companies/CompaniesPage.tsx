@@ -3,8 +3,8 @@ import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Building2, Download, Import, Plus, Pencil, Trash } from "lucide-react";
-import { CompanyPopup } from "@/components/crm/companies/CompanyPopup";
-import { CompanyForm } from "@/components/crm/companies/CompanyForm";
+import { CompanyPopup } from "@/features/companies/components/details/CompanyPopup";
+import { CompanyForm } from "@/features/companies/components/form/CompanyForm";
 import { toast } from "sonner";
 
 export function CompaniesPage() {
@@ -180,18 +180,18 @@ export function CompaniesPage() {
                 <CompanyPopup
                     company={selectedCompany}
                     open={!!selectedCompany}
-                    onClose={() => setSelectedCompany(null)}
+                    onOpenChange={(open) => !open && setSelectedCompany(null)}
                 />
             )}
             <CompanyForm
                 open={isAddDialogOpen}
-                onClose={() => setIsAddDialogOpen(false)}
+                onOpenChange={setIsAddDialogOpen}
                 onSuccess={refreshCompanies}
             />
             <CompanyForm
                 company={companyToEdit}
                 open={isEditDialogOpen}
-                onClose={() => setIsEditDialogOpen(false)}
+                onOpenChange={setIsEditDialogOpen}
                 onSuccess={refreshCompanies}
             />
         </div>
