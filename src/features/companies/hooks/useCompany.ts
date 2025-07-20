@@ -23,6 +23,25 @@ export interface Company {
   created_at: string;
   updated_at: string;
   client_id: string;
+  // AIDEV-NOTE: Campos relacionados carregados via join
+  city_id?: string;
+  state_id?: string;
+  creator_id?: string;
+  city?: {
+    id: string;
+    name: string;
+  };
+  state?: {
+    id: string;
+    name: string;
+    uf: string;
+  };
+  creator?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
 }
 
 export function useCompany(id: string) {
@@ -37,9 +56,15 @@ export function useCompany(id: string) {
     queryFn: async () => {
       if (!id) return null;
 
+      // AIDEV-NOTE: Carregar empresa com dados relacionados de estado, cidade e responsável
       const { data, error } = await supabase
         .from("web_companies")
-        .select("*")
+        .select(`
+          *,
+          city:web_cities(id, name),
+          state:web_states(id, name, uf),
+          creator:core_client_users(id, first_name, last_name, email)
+        `)
         .eq("id", id)
         .single();
 
@@ -125,4 +150,4 @@ export function useCompany(id: string) {
     isUpdating: updateCompanyMutation.isPending,
     isDeleting: deleteCompanyMutation.isPending,
   };
-} 
+}

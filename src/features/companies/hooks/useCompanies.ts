@@ -36,6 +36,7 @@ interface CreateCompanyData {
   bairro?: string;
   city_id?: string;
   state_id?: string;
+  creator_id?: string;
 }
 
 export function useCompanies({ search }: { search?: string } = {}) {
@@ -138,14 +139,33 @@ export function useCompanies({ search }: { search?: string } = {}) {
         throw new Error("Colaborador não encontrado");
       }
 
+      // AIDEV-NOTE: Preparar dados da empresa com campos corretos do banco
+      const companyData = {
+        client_id: collaborator.client_id,
+        creator_id: data.creator_id || user.id,
+        name: data.name,
+        razao_social: data.razao_social || null,
+        cnpj: data.cnpj || null,
+        email: data.email || null,
+        whatsapp: data.whatsapp || null,
+        celular: data.phone || null,
+        website: data.website || null,
+        description: data.description || null,
+        segment: data.segment || null,
+        size: data.size || null,
+        company_type: "Possível Cliente (Lead)", // valor padrão
+        state_id: data.state_id || null,
+        city_id: data.city_id || null,
+        cep: data.cep || null,
+        rua: data.rua || null,
+        numero: data.numero || null,
+        complemento: data.complemento || null,
+        bairro: data.bairro || null,
+      };
+
       const { data: newCompany, error } = await supabase
         .from("web_companies")
-        .insert({
-          ...data,
-          client_id: collaborator.client_id,
-          creator_id: user.id,
-          company_type: "cliente", // valor padrão
-        })
+        .insert(companyData)
         .select()
         .single();
 
@@ -156,9 +176,10 @@ export function useCompanies({ search }: { search?: string } = {}) {
 
       return newCompany;
     },
-    onSuccess: () => {
+    onSuccess: (newCompany) => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       toast.success("Empresa criada com sucesso!");
+      return newCompany;
     },
     onError: (error) => {
       console.error("Erro ao criar empresa:", error);

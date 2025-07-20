@@ -12,6 +12,10 @@ export interface User {
   created_at: string;
   updated_at: string;
   client_id: string;
+  avatar_type?: string;
+  avatar_seed?: string;
+  custom_avatar_url?: string | null;
+  avatar_url?: string | null;
 }
 
 export function useUsers() {
@@ -23,7 +27,21 @@ export function useUsers() {
 
         const { data: collaborators, error } = await supabase
           .from("core_client_users")
-          .select("*")
+          .select(`
+            id,
+            first_name,
+            last_name,
+            email,
+            role,
+            is_active,
+            created_at,
+            updated_at,
+            client_id,
+            avatar_type,
+            avatar_seed,
+            custom_avatar_url,
+            avatar_url
+          `)
           .eq("client_id", collaborator.client_id)
           .order("first_name");
 
@@ -31,6 +49,8 @@ export function useUsers() {
           console.error("Erro ao buscar usuários:", error);
           return [];
         }
+
+
 
         return (collaborators || [])
           .filter((c: any) => c.is_active)
@@ -44,6 +64,10 @@ export function useUsers() {
             created_at: c.created_at,
             updated_at: c.updated_at,
             client_id: c.client_id,
+            avatar_type: c.avatar_type,
+            avatar_seed: c.avatar_seed,
+            custom_avatar_url: c.custom_avatar_url,
+            avatar_url: c.avatar_url,
           }));
       } catch (error) {
         console.error("Erro ao buscar usuários:", error);
@@ -51,4 +75,4 @@ export function useUsers() {
       }
     },
   });
-} 
+}

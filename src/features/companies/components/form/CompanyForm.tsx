@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from 'lucide-react';
 import type { Company } from '../../types';
 import { companySchema, CompanyFormValues } from '../../validation';
@@ -39,6 +40,46 @@ import {
 import { useCompanies } from "../../hooks/useCompanies";
 import { QuickPersonCreate } from "@/components/crm/people/QuickPersonCreate";
 import { AddPartnerDialog } from "@/components/crm/partners/AddPartnerDialog";
+import { useCnpjApi } from "@/hooks/useCnpjApi";
+import { findLocationIds } from "@/utils/locationUtils";
+import { useUsers } from "@/hooks/useUsers";
+import { getCurrentUserData } from "@/lib/auth";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { UserSelector } from "@/components/ui/user-selector";
+
+// AIDEV-NOTE: Opções pré-cadastradas para origem da empresa
+const origemOptions = [
+  { label: 'Google', value: 'google' },
+  { label: 'Indicação', value: 'indicacao' },
+  { label: 'Evento', value: 'evento' },
+  { label: 'Site', value: 'site' },
+  { label: 'Campanha', value: 'campanha' },
+  { label: 'Outbound', value: 'outbound' },
+];
+
+// AIDEV-NOTE: Principais setores brasileiros
+const setorOptions = [
+  { label: 'Agronegócio', value: 'agronegocio' },
+  { label: 'Alimentício', value: 'alimenticio' },
+  { label: 'Automotivo', value: 'automotivo' },
+  { label: 'Construção Civil', value: 'construcao_civil' },
+  { label: 'Educação', value: 'educacao' },
+  { label: 'Energia', value: 'energia' },
+  { label: 'Farmacêutico', value: 'farmaceutico' },
+  { label: 'Financeiro', value: 'financeiro' },
+  { label: 'Imobiliário', value: 'imobiliario' },
+  { label: 'Indústria', value: 'industria' },
+  { label: 'Logística', value: 'logistica' },
+  { label: 'Mineração', value: 'mineracao' },
+  { label: 'Petróleo e Gás', value: 'petroleo_gas' },
+  { label: 'Saúde', value: 'saude' },
+  { label: 'Serviços', value: 'servicos' },
+  { label: 'Tecnologia', value: 'tecnologia' },
+  { label: 'Telecomunicações', value: 'telecomunicacoes' },
+  { label: 'Têxtil', value: 'textil' },
+  { label: 'Turismo', value: 'turismo' },
+  { label: 'Varejo', value: 'varejo' },
+];
 
 interface CompanyFormProps {
   company?: Company;
@@ -55,6 +96,9 @@ export const CompanyForm = ({
 }: CompanyFormProps) => {
   const queryClient = useQueryClient();
   const { createCompany, updateCompany } = useCompanies();
+  const { consultarCnpj, isLoading: isLoadingCnpj } = useCnpjApi();
+  const { data: users = [] } = useUsers();
+  
   const form = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
     defaultValues: {
@@ -64,10 +108,14 @@ export const CompanyForm = ({
       state_id: company?.state_id || '',
       city_id: company?.city_id || '',
       company_type: company?.company_type || '',
+      origem: company?.origem || '',
+      setor: company?.setor || '',
+      description: company?.description || '',
       email: company?.email || '',
       whatsapp: company?.whatsapp || '',
       celular: company?.celular || '',
       instagram: company?.instagram || '',
+      creator_id: company?.creator_id || '',
       address: company?.address || {
         cep: '',
         rua: '',
@@ -90,6 +138,24 @@ export const CompanyForm = ({
 
   const { states, cities, loadingStates, loadingCities, onSubmit, loadCities } = useCompanyForm(company, onSuccess);
   const { companyPartners, companyPeople } = useCompanyRelationships(company?.id || "");
+
+  // AIDEV-NOTE: Definir usuário atual como responsável padrão para novas empresas
+  useEffect(() => {
+    const setCurrentUserAsDefault = async () => {
+      if (!company && !form.getValues('creator_id')) {
+        try {
+          const currentUser = await getCurrentUserData();
+          if (currentUser?.id) {
+            form.setValue('creator_id', currentUser.id);
+          }
+        } catch (error) {
+          console.error('Erro ao obter usuário atual:', error);
+        }
+      }
+    };
+    
+    setCurrentUserAsDefault();
+  }, [company, form]);
 
   useEffect(() => {
     if (companyPartners?.length) {
@@ -131,20 +197,35 @@ export const CompanyForm = ({
 
   const handleSubmit = async (data: CompanyFormValues) => {
     try {
+      // AIDEV-NOTE: Mapear dados do formulário para o formato esperado pelo backend
       const formData = {
-        ...data,
-        address: {
-          cep: data.address?.cep || null,
-          rua: data.address?.rua || null,
-          numero: data.address?.numero || null,
-          complemento: data.address?.complemento || null,
-          bairro: data.address?.bairro || null,
-        }
+        name: data.name,
+        razao_social: data.razao_social,
+        cnpj: data.cnpj,
+        email: data.email,
+        phone: data.celular, // Mapear celular para phone (interface CreateCompanyData)
+        whatsapp: data.whatsapp,
+        website: data.website,
+        description: data.description,
+        origem: data.origem,
+        setor: data.setor,
+        segment: data.segment,
+        size: data.size,
+        company_type: data.company_type,
+        state_id: data.state_id,
+        city_id: data.city_id,
+        creator_id: data.creator_id,
+        // AIDEV-NOTE: Campos de endereço no nível raiz (não aninhados)
+        cep: data.address?.cep || null,
+        rua: data.address?.rua || null,
+        numero: data.address?.numero || null,
+        complemento: data.address?.complemento || null,
+        bairro: data.address?.bairro || null,
       };
 
       const savedCompany = company 
-        ? await updateCompany({ id: company.id, data: formData }) 
-        : await createCompany(formData);
+        ? await updateCompany.mutateAsync({ id: company.id, data: formData }) 
+        : await createCompany.mutateAsync(formData);
 
       if (partnersToUnlink.length > 0) {
         await Promise.all(
@@ -253,6 +334,102 @@ export const CompanyForm = ({
     form.setValue('address.cep', formatted);
   };
 
+  // AIDEV-NOTE: Função para consultar CNPJ e preencher automaticamente os campos
+  // Acionada quando o usuário sai do campo CNPJ (onBlur)
+  const handleCnpjBlur = async () => {
+    const cnpjValue = form.getValues('cnpj');
+    if (!cnpjValue || cnpjValue.length < 18) return; // CNPJ deve ter 18 caracteres com máscara
+
+    const cnpjData = await consultarCnpj(cnpjValue);
+    if (!cnpjData) return;
+
+    // Preencher campos básicos
+    if (cnpjData.nome && !form.getValues('razao_social')) {
+      form.setValue('razao_social', cnpjData.nome);
+    }
+    
+    if (cnpjData.fantasia && !form.getValues('name')) {
+      form.setValue('name', cnpjData.fantasia);
+    } else if (cnpjData.nome && !form.getValues('name')) {
+      form.setValue('name', cnpjData.nome);
+    }
+
+    // Preencher campos de contato se disponíveis
+    if (cnpjData.email && !form.getValues('email')) {
+      form.setValue('email', cnpjData.email);
+    }
+
+    if (cnpjData.telefone && !form.getValues('whatsapp')) {
+      const formattedPhone = formatPhone(cnpjData.telefone);
+      form.setValue('whatsapp', formattedPhone);
+    }
+
+    if (cnpjData.telefone && !form.getValues('celular')) {
+      const formattedPhone = formatPhone(cnpjData.telefone);
+      form.setValue('celular', formattedPhone);
+    }
+
+    // Preencher endereço
+    if (cnpjData.cep && !form.getValues('address.cep')) {
+      const formattedCep = formatCEP(cnpjData.cep);
+      form.setValue('address.cep', formattedCep);
+    }
+
+    if (cnpjData.logradouro && !form.getValues('address.rua')) {
+      form.setValue('address.rua', cnpjData.logradouro);
+    }
+
+    if (cnpjData.numero && !form.getValues('address.numero')) {
+      form.setValue('address.numero', cnpjData.numero);
+    }
+
+    if (cnpjData.complemento && !form.getValues('address.complemento')) {
+      form.setValue('address.complemento', cnpjData.complemento);
+    }
+
+    if (cnpjData.bairro && !form.getValues('address.bairro')) {
+      form.setValue('address.bairro', cnpjData.bairro);
+    }
+
+    // Buscar e preencher estado e cidade
+    if (cnpjData.uf && cnpjData.municipio) {
+      try {
+        const { stateId, cityId } = await findLocationIds(cnpjData.uf, cnpjData.municipio);
+        
+        if (stateId && !form.getValues('state_id')) {
+          form.setValue('state_id', stateId);
+          // Carregar cidades do estado
+          await loadCities(stateId);
+        }
+
+        if (cityId && !form.getValues('city_id')) {
+          form.setValue('city_id', cityId);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar localização:', error);
+      }
+    }
+
+    // AIDEV-NOTE: Preencher descrição com informações detalhadas da empresa
+    if (!form.getValues('description')) {
+      const descricaoCompleta = [
+        cnpjData.data_inicio_atividade ? `DATA DE ABERTURA DA EMPRESA: ${cnpjData.data_inicio_atividade}` : '',
+        cnpjData.porte ? `PORTE DA EMPRESA: ${cnpjData.porte}` : '',
+        cnpjData.situacao ? `SITUAÇÃO CADASTRAL: ${cnpjData.situacao}` : '',
+        cnpjData.data_situacao ? `DATA DA SITUAÇÃO CADASTRAL: ${cnpjData.data_situacao}` : '',
+        cnpjData.qsa && cnpjData.qsa.length > 0 ? `QUADRO DE SÓCIOS E ADMINISTRADORES:\n${cnpjData.qsa.map(socio => `- ${socio.nome} (${socio.qual})`).join('\n')}` : '',
+        cnpjData.cnae_fiscal && cnpjData.cnae_fiscal_descricao ? `CÓDIGO E DESCRIÇÃO DA ATIVIDADE ECONÔMICA PRINCIPAL: ${cnpjData.cnae_fiscal} - ${cnpjData.cnae_fiscal_descricao}` : ''
+      ].filter(Boolean).join('\n\n');
+
+      form.setValue('description', descricaoCompleta);
+    }
+
+    // Expandir seção de endereço se dados foram preenchidos
+    if (cnpjData.cep || cnpjData.logradouro || cnpjData.bairro) {
+      setIsAddressExpanded(true);
+    }
+  };
+
   // Tipos de empresa conforme definido no banco
   const companyTypes = [
     { label: 'Possível Cliente (Lead)', value: 'Possível Cliente (Lead)' },
@@ -296,96 +473,225 @@ export const CompanyForm = ({
           }}
         >
           <DialogHeader className="pb-4 border-b">
-            <DialogTitle>{company ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
-            <DialogDescription>
-              {company ? "Edite as informações da empresa" : "Preencha as informações para criar uma nova empresa"}
-            </DialogDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>{company ? "Editar Empresa" : "Nova Empresa"}</DialogTitle>
+                {company && (
+                  <DialogDescription>
+                    Edite as informações da empresa
+                  </DialogDescription>
+                )}
+              </div>
+              
+              {/* AIDEV-NOTE: Seletor de responsável no cabeçalho - Posicionado à direita */}
+              {!company && (
+                <div className="flex-shrink-0">
+                  <Form {...form}>
+                    <FormField
+                      control={form.control}
+                      name="creator_id"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <UserSelector
+                              users={users}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="Selecionar responsável interno"
+                              className="w-auto"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </Form>
+                </div>
+              )}
+            </div>
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 py-4">
-              {/* Informações Básicas */}
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              {/* AIDEV-NOTE: Seletor de responsável para modo de edição */}
+              {company && (
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="creator_id"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome da Empresa*</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Nome da empresa" value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="razao_social"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Razão Social</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Razão social" value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="cnpj"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>CNPJ*</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="00.000.000/0001-00"
-                          value={field.value || ""}
-                          onChange={(e) => {
-                            const value = e.target.value
-                              .replace(/\D/g, '')
-                              .replace(/^(\d{2})(\d)/, '$1.$2')
-                              .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
-                              .replace(/\.(\d{3})(\d)/, '.$1/$2')
-                              .replace(/(\/\d{4})(\d)/, '$1-$2')
-                              .slice(0, 18);
-                            field.onChange(value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="company_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tipo de Empresa*</FormLabel>
-                      <FormControl>
-                        <Combobox
-                          items={companyTypes}
-                          value={field.value as CompanyType}
+                        <UserSelector
+                          users={users}
+                          value={field.value}
                           onChange={field.onChange}
-                          placeholder="Selecione o tipo"
-                          onOpenChange={(isOpen) => {
-                            // Prevenir fechamento do Dialog quando abrir o Combobox
-                            if (isOpen) {
-                              e.stopPropagation();
-                            }
-                          }}
+                          placeholder="Selecionar responsável interno"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              )}
+
+              {/* Divisor elegante */}
+              <div className="h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+
+              {/* Título da seção Dados Básicos */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-foreground">Dados básicos</h3>
+
+                {/* Dados Básicos - Reorganizados conforme solicitação */}
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome*</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Digite o nome" value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cnpj"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          CNPJ*
+                          {isLoadingCnpj && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <div className="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full" />
+                              Consultando...
+                            </div>
+                          )}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="00.000.000/0000-00"
+                            value={field.value || ""}
+                            onChange={(e) => {
+                              const value = e.target.value
+                                .replace(/\D/g, '')
+                                .replace(/^(\d{2})(\d)/, '$1.$2')
+                                .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+                                .replace(/\.(\d{3})(\d)/, '.$1/$2')
+                                .replace(/(\/\d{4})(\d)/, '$1-$2')
+                                .slice(0, 18);
+                              field.onChange(value);
+                            }}
+                            onBlur={handleCnpjBlur}
+                            disabled={isLoadingCnpj}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="razao_social"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Razão social</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Digite a razão social" value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                     control={form.control}
+                     name="company_type"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Categoria*</FormLabel>
+                         <FormControl>
+                           <Combobox
+                             items={companyTypes}
+                             value={field.value as CompanyType}
+                             onChange={field.onChange}
+                             placeholder="Selecione a categoria"
+                             onOpenChange={(isOpen) => {
+                               // Prevenir fechamento do Dialog quando abrir o Combobox
+                               if (isOpen) {
+                                 // Não fazer nada para manter o dialog aberto
+                               }
+                             }}
+                           />
+                         </FormControl>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+
+                   <FormField
+                     control={form.control}
+                     name="origem"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Origem</FormLabel>
+                         <FormControl>
+                           <Combobox
+                             items={origemOptions}
+                             value={field.value}
+                             onChange={field.onChange}
+                             placeholder="Selecione"
+                           />
+                         </FormControl>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+
+                   <FormField
+                     control={form.control}
+                     name="setor"
+                     render={({ field }) => (
+                       <FormItem>
+                         <FormLabel>Setor</FormLabel>
+                         <FormControl>
+                           <Combobox
+                             items={setorOptions}
+                             value={field.value}
+                             onChange={field.onChange}
+                             placeholder="Selecione"
+                           />
+                         </FormControl>
+                         <FormMessage />
+                       </FormItem>
+                     )}
+                   />
+                 </div>
+
+                 {/* Campo Descrição - largura completa */}
+                 <FormField
+                   control={form.control}
+                   name="description"
+                   render={({ field }) => (
+                     <FormItem>
+                       <FormLabel>Descrição</FormLabel>
+                       <FormControl>
+                         <Textarea 
+                           {...field} 
+                           placeholder="Informações serão preenchidas automaticamente via consulta CNPJ"
+                           value={field.value || ""}
+                           rows={8}
+                         />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
+                   )}
+                 />
               </div>
 
               {/* Localização */}
@@ -775,3 +1081,6 @@ export const CompanyForm = ({
     </>
   );
 };
+
+// AIDEV-NOTE: Exportar opções para reutilização em outros componentes
+export { origemOptions, setorOptions };

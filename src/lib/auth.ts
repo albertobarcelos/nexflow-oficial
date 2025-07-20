@@ -22,7 +22,14 @@ export const getCurrentUserData = async () => {
       client_id: userWithClient.client_id,
       role: userWithClient.role,
       email: user.email,
-      client_data: userWithClient.core_clients
+      client_data: userWithClient.core_clients,
+      // AIDEV-NOTE: Incluir dados de avatar para exibição correta no UserSelector
+      avatar_type: userWithClient.avatar_type,
+      avatar_seed: userWithClient.avatar_seed,
+      custom_avatar_url: userWithClient.custom_avatar_url,
+      avatar_url: userWithClient.avatar_url,
+      first_name: userWithClient.first_name,
+      last_name: userWithClient.last_name
     };
 
   } catch (error) {

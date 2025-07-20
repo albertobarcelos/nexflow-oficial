@@ -8,6 +8,12 @@ import {
     SheetTitle,
     SheetTrigger,
 } from '@/components/ui/sheet';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Settings, GripVertical, Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { CompanyColumn } from '../../hooks/useCompanyColumns';
@@ -115,13 +121,20 @@ export function ColumnConfigDialog({ columns, onColumnsChange, onToggle, onReset
     const visibleCount = columns.filter(col => col.visible).length;
 
     return (
-        <Sheet>
-            <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Configurar Colunas
-                </Button>
-            </SheetTrigger>
+        <TooltipProvider>
+            <Sheet>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" size="sm" className="px-2">
+                                <Settings className="w-4 h-4" />
+                            </Button>
+                        </SheetTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Configurar Colunas</p>
+                    </TooltipContent>
+                </Tooltip>
             <SheetContent side="right" className="w-[400px] sm:w-[540px]">
                 <SheetHeader className="pb-6">
                     <SheetTitle>Configurar Colunas da Tabela</SheetTitle>
@@ -194,5 +207,6 @@ export function ColumnConfigDialog({ columns, onColumnsChange, onToggle, onReset
                 </div>
             </SheetContent>
         </Sheet>
+        </TooltipProvider>
     );
 }

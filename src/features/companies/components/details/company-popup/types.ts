@@ -1,30 +1,51 @@
-// AIDEV-NOTE: Tipos e interfaces compartilhados para o CompanyPopup
+// AIDEV-NOTE: Tipos para o popup de empresa - compatível com useCompany
 
 export interface Company {
   id: string;
   name: string;
-  cnpj?: string | null;
-  razao_social?: string | null;
-  description?: string | null;
-  email?: string | null;
-  phone?: string | null;
-  telefone?: string | null;
-  celular?: string | null;
-  whatsapp?: string | null;
-  website?: string | null;
-  categoria?: 'Cliente em Potencial' | 'Cliente Ativo' | 'Parceiro' | 'Cliente Inativo' | 'Outro' | null;
-  origem?: string | null;
-  creator_id?: string | null; // Responsável
-  setor?: string | null;
-  cep?: string | null;
-  bairro?: string | null;
-  rua?: string | null;
-  numero?: string | null;
-  complemento?: string | null;
-  city_id?: string | null;
-  state_id?: string | null;
+  company_name: string;
+  email?: string;
+  phone?: string;
+  website?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+  industry?: string;
+  company_size?: string;
+  annual_revenue?: number;
+  description?: string;
+  tags?: string[];
+  status: 'active' | 'inactive' | 'prospect' | 'customer';
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
+  client_id: string;
+  // AIDEV-NOTE: Campos relacionados carregados via join
+  city_id?: string;
+  state_id?: string;
+  creator_id?: string;
+  city?: {
+    id: string;
+    name: string;
+  };
+  state?: {
+    id: string;
+    name: string;
+    uf: string;
+  };
+  creator?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  // AIDEV-NOTE: Campos de endereço específicos
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
 }
 
 export interface Location {

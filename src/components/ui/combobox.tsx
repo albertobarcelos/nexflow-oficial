@@ -28,6 +28,21 @@ export function Combobox({
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  // AIDEV-NOTE: Fechar dropdown quando clicar fora
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [open]);
 
   const filteredItems = React.useMemo(() => {
     if (!search) return items;
@@ -42,6 +57,7 @@ export function Combobox({
 
   return (
     <div 
+      ref={containerRef}
       className="relative w-full"
       onClick={(e) => {
         e.stopPropagation();

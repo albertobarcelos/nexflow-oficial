@@ -1,11 +1,14 @@
-// AIDEV-NOTE: Cabeçalho com informações básicas da empresa
+// AIDEV-NOTE: Cabeçalho com informações básicas da empresa e seletor de responsável
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { UserSelector } from "@/components/ui/user-selector";
 import { formatCNPJ } from "@/lib/format";
 import { CalendarDays, Users } from "lucide-react";
 import { getCompanyInitials } from "./utils";
 import { Company } from "./types";
+import { useUsers } from "@/hooks/useUsers";
+import { useUpdateCompany } from "./hooks/useUpdateCompany";
 
 interface CompanyHeaderProps {
   company: Company | null;
@@ -16,6 +19,9 @@ interface CompanyHeaderProps {
  * Componente que exibe o cabeçalho com informações básicas da empresa
  */
 const CompanyHeader = ({ company, peopleCount }: CompanyHeaderProps) => {
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useUsers();
+  const updateCompany = useUpdateCompany(company?.id || '');
+
   if (!company) return null;
 
   const formatDate = (dateString: string) => {
@@ -27,36 +33,56 @@ const CompanyHeader = ({ company, peopleCount }: CompanyHeaderProps) => {
     }).format(date);
   };
 
+  const handleResponsibleChange = async (userId: string) => {
+    try {
+      await updateCompany.mutateAsync({ creator_id: userId });
+    } catch (error) {
+      console.error('Erro ao atualizar responsável:', error);
+    }
+  };
+
   return (
     <div className="flex flex-col space-y-4 pb-4 border-b">
-      <div className="flex items-center gap-4">
-        <Avatar className="h-16 w-16">
-          <AvatarFallback className="text-lg">
-            {getCompanyInitials(company.name)}
-          </AvatarFallback>
-        </Avatar>
-        
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-semibold">{company.name}</h2>
-            {company.is_favorite && (
-              <Badge variant="secondary" className="h-5">
-                Favorito
-              </Badge>
+      <div className="flex items-center justify-between gap-4">
+        {/* Lado esquerdo - Informações da empresa */}
+        <div className="flex items-center gap-4 flex-1">
+          <Avatar className="h-16 w-16">
+            <AvatarFallback className="text-lg">
+              {getCompanyInitials(company.name)}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-semibold">{company.name}</h2>
+              {company.is_favorite && (
+                <Badge variant="secondary" className="h-5">
+                  Favorito
+                </Badge>
+              )}
+            </div>
+            
+            {company.cnpj && (
+              <p className="text-sm text-muted-foreground">
+                CNPJ: {formatCNPJ(company.cnpj)}
+              </p>
             )}
           </div>
-          
-          {company.cnpj && (
-            <p className="text-sm text-muted-foreground">
-              CNPJ: {formatCNPJ(company.cnpj)}
-            </p>
-          )}
+        </div>
+
+        {/* Lado direito - Seletor de responsável */}
+        <div className="flex-shrink-0">
+          <UserSelector
+            users={users}
+            value={company.creator_id || ''}
+            onChange={handleResponsibleChange}
+            placeholder="Selecionar responsável"
+            className="w-auto"
+          />
         </div>
       </div>
 
-      {company.description && (
-        <p className="text-sm">{company.description}</p>
-      )}
+
 
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <div className="flex items-center gap-1.5">

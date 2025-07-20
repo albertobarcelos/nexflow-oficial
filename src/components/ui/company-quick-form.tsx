@@ -118,16 +118,26 @@ export function CompanyQuickForm({
 
   const onSubmit = async (data: CompanyForm) => {
     try {
-      const company = await createCompany({
+      // AIDEV-NOTE: Preparar dados para criação da empresa
+      const companyData = {
         name: data.name,
-        razao_social: data.razao_social,
-        cnpj: data.cnpj,
+        razao_social: data.razao_social || null,
+        cnpj: data.cnpj || null,
         state_id: data.state_id,
         city_id: data.city_id,
-        address: data.showAddress ? data.address : undefined
-      });
+        cep: data.address?.cep || null,
+        rua: data.address?.rua || null,
+        numero: data.address?.numero || null,
+        complemento: data.address?.complemento || null,
+        bairro: data.address?.bairro || null,
+      };
 
-      toast.success("Empresa criada com sucesso!");
+      const company = await createCompany.mutateAsync(companyData);
+      
+      // Reset do formulário
+      form.reset();
+      
+      // Callback de sucesso
       onSuccess?.(company);
     } catch (error: any) {
       console.error("Erro ao criar empresa:", error);

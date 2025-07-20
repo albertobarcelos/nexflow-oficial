@@ -3,7 +3,7 @@ import { CompanyWithRelations } from '@/features/companies/hooks/useCompanies';
 import { CompanyColumn } from '@/features/companies/hooks/useCompanyColumns';
 import { CompanyTableCell } from './CompanyTableCell';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash } from 'lucide-react';
+import { Trash } from 'lucide-react';
 
 // AIDEV-NOTE: Tabela dinâmica de empresas com colunas configuráveis
 // Exibe todas as colunas do banco conforme configuração do usuário
@@ -13,7 +13,6 @@ interface DynamicCompanyTableProps {
   companies: CompanyWithRelations[];
   isLoading: boolean;
   visibleColumns: CompanyColumn[];
-  onEdit: (e: React.MouseEvent, company: CompanyWithRelations) => void;
   onDelete: (e: React.MouseEvent, company: CompanyWithRelations) => void;
   onRowClick: (company: CompanyWithRelations) => void;
   onUpdateColumn: (columnId: string, updates: Partial<CompanyColumn>) => void;
@@ -23,7 +22,6 @@ export function DynamicCompanyTable({
   companies, 
   isLoading, 
   visibleColumns,
-  onEdit, 
   onDelete, 
   onRowClick,
   onUpdateColumn
@@ -74,17 +72,14 @@ export function DynamicCompanyTable({
 
   if (isLoading) {
     return (
-      <div className="border rounded-lg bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-max">
-            <thead>
-              <tr className="border-b bg-muted/100">
-                <td colSpan={visibleColumns.length + 1} className="py-8 text-center text-muted-foreground">
-                  Carregando empresas...
-                </td>
-              </tr>
-            </thead>
-          </table>
+      <div className="h-full flex flex-col">
+        <div className="flex-shrink-0 border-b bg-gray-50 p-4">
+          <div className="h-6 bg-gray-200 rounded animate-pulse"></div>
+        </div>
+        <div className="flex-1 p-4 space-y-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-12 bg-gray-100 rounded animate-pulse"></div>
+          ))}
         </div>
       </div>
     );
@@ -92,112 +87,87 @@ export function DynamicCompanyTable({
 
   if (companies.length === 0) {
     return (
-      <div className="border rounded-lg bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-max">
-            <thead>
-              <tr className="border-b bg-muted/100">
-                <td colSpan={visibleColumns.length + 1} className="py-8 text-center text-muted-foreground">
-                  Nenhuma empresa encontrada
-                </td>
-              </tr>
-            </thead>
-          </table>
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center py-12">
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhuma empresa encontrada</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            Comece criando uma nova empresa ou ajuste os filtros de busca.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="border rounded-lg bg-white">
-      {/* Container com scroll horizontal */}
-      <div className="overflow-x-auto overflow-y-hidden">
-        <table ref={tableRef} className="w-full min-w-max table-fixed">
-          <thead>
-            <tr className="border-b bg-muted/100">
-              {visibleColumns.map((column, index) => (
-                <th 
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Container da tabela com scroll horizontal unificado */}
+      <div className="flex-1 overflow-auto">
+        <table ref={tableRef} className="min-w-full divide-y divide-gray-200">
+          {/* Header da tabela */}
+          <thead className="bg-gray-50 sticky top-0 z-10">
+            <tr>
+              {visibleColumns.map((column) => (
+                <th
                   key={column.id}
                   data-column={column.id}
-                  className={`
-                    relative py-3 px-4 font-medium text-xs text-muted-foreground tracking-wide
-                    border-r border-gray-200 last:border-r-0
-                    ${column.align === 'center' ? 'text-center' : 
-                      column.align === 'right' ? 'text-right' : 'text-left'}
-                    ${index === 0 ? 'rounded-tl-md' : ''}
-                    ${resizing === column.id ? 'bg-blue-50' : ''}
-                  `}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r last:border-r-0 relative group"
                   style={{ 
-                    width: column.width || '150px',
-                    minWidth: column.width || '150px',
-                    maxWidth: column.width || '150px'
+                    width: column.width || 150,
+                    minWidth: column.width || 150,
+                    maxWidth: column.width || 150
                   }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="truncate">{column.label}</span>
-                    
-                    {/* Handle de redimensionamento */}
+                    <span>{column.label}</span>
+                    {/* Redimensionador */}
                     <div
-                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-blue-500 transition-colors"
+                      className="absolute right-0 top-0 h-full w-1 cursor-col-resize bg-transparent hover:bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"
                       onMouseDown={(e) => handleMouseDown(column.id, e)}
-                      title="Arrastar para redimensionar"
                     />
                   </div>
                 </th>
               ))}
-              <th className="py-3 px-4 text-right font-medium text-xs text-muted-foreground tracking-wide w-20 rounded-tr-md">
+              <th className="px-6 py-3 w-24 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Ações
               </th>
             </tr>
           </thead>
-          <tbody className="text-xs">
-            {companies.map((company) => (
+
+          {/* Body da tabela */}
+          <tbody className="bg-white divide-y divide-gray-200">
+            {companies.map((company, index) => (
               <tr
                 key={company.id}
-                className="border-b cursor-pointer hover:bg-muted/50 transition-colors"
+                className={`cursor-pointer hover:bg-gray-50 transition-colors h-16 ${
+                  index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'
+                }`}
                 onClick={() => onRowClick(company)}
               >
                 {visibleColumns.map((column) => (
-                  <td 
+                  <td
                     key={column.id}
                     data-column={column.id}
-                    className={`
-                      py-3 px-4 border-r border-gray-100 last:border-r-0
-                      ${column.align === 'center' ? 'text-center' : 
-                        column.align === 'right' ? 'text-right' : 'text-left'}
-                    `}
+                    className="px-6 py-3 text-sm text-gray-900 border-r last:border-r-0 h-16 align-middle overflow-hidden"
                     style={{ 
-                      width: column.width || '150px',
-                      minWidth: column.width || '150px',
-                      maxWidth: column.width || '150px'
+                      width: column.width || 150,
+                      minWidth: column.width || 150,
+                      maxWidth: column.width || 150
                     }}
                   >
-                    <div className="truncate">
+                    <div className="h-full flex items-center overflow-hidden">
                       <CompanyTableCell company={company} column={column} />
                     </div>
                   </td>
                 ))}
-                
-                {/* Coluna de Ações */}
-                <td className="py-2 px-2 text-right w-20">
-                  <div className="flex justify-end gap-1">
+                <td className="px-6 py-3 w-24 text-center h-16 align-middle">
+                  <div className="flex items-center justify-center gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => onEdit(e, company)}
-                      aria-label="Editar"
-                      className="text-gray-400 hover:text-blue-600 h-8 w-8 p-0"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-gray-400 hover:text-destructive h-8 w-8 p-0"
                       onClick={(e) => onDelete(e, company)}
-                      aria-label="Excluir"
+                      className="h-8 w-8 p-0 hover:bg-red-100"
                     >
-                      <Trash className="w-4 h-4" />
+                      <Trash className="h-4 w-4 text-red-600" />
                     </Button>
                   </div>
                 </td>
@@ -206,10 +176,10 @@ export function DynamicCompanyTable({
           </tbody>
         </table>
       </div>
-      
-      {/* Indicador de scroll */}
-      <div className="text-xs text-muted-foreground p-2 bg-gray-50 border-t">
-        💡 Dica: Use o scroll horizontal para ver mais colunas • Arraste as bordas das colunas para redimensionar
+
+      {/* Indicador de scroll horizontal */}
+      <div className="flex-shrink-0 text-center py-2 text-xs text-gray-500 bg-gray-50 border-t">
+        ← Role horizontalmente para ver mais colunas →
       </div>
     </div>
   );

@@ -140,12 +140,10 @@ export const EditableField: React.FC<EditableFieldProps> = ({
     if (type === 'combobox' && options.length > 0) {
       return (
         <Combobox
-          options={options}
+          items={options.map(opt => ({ value: opt.value, label: opt.label }))}
           value={editValue}
-          onValueChange={setEditValue}
+          onChange={setEditValue}
           placeholder={placeholder}
-          searchPlaceholder="Buscar..."
-          emptyText="Nenhum resultado encontrado"
         />
       );
     }
@@ -160,27 +158,31 @@ export const EditableField: React.FC<EditableFieldProps> = ({
     );
   };
 
-  const displayValue = value || placeholder || 'Não informado';
+  // AIDEV-NOTE: Para campos combobox, exibir o label correspondente ao value
+  const getDisplayValue = () => {
+    if (!value || value.trim() === '') return 'Adicionar';
+    
+    if ((type === 'combobox' || type === 'select')) {
+      if (options.length > 0) {
+        const selectedOption = options.find(opt => opt.value === value);
+        return selectedOption ? selectedOption.label : `Carregando... (${value})`;
+      } else {
+        // Se as opções ainda não foram carregadas, mostrar que está carregando
+        return `Carregando... (${value})`;
+      }
+    }
+    
+    return value;
+  };
+
+  const displayValue = getDisplayValue();
 
   return (
     <div className={cn("space-y-2", className)}>
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-700">
-          {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </label>
-        {!isEditing && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleEdit}
-            disabled={disabled}
-            className="h-6 w-6 p-0 hover:bg-gray-100"
-          >
-            <Pencil className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
+      <label className="text-sm font-medium text-gray-700">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
 
       {isEditing ? (
         <div className="space-y-2">
@@ -211,8 +213,29 @@ export const EditableField: React.FC<EditableFieldProps> = ({
           </div>
         </div>
       ) : (
-        <div className="text-sm text-gray-900 min-h-[20px] flex items-center">
-          {displayValue}
+        <div 
+          className="group relative text-sm min-h-[20px] flex items-center justify-between cursor-pointer hover:bg-gray-50 rounded-md px-2 py-1 -mx-2 -my-1 transition-colors"
+          onClick={handleEdit}
+        >
+          <span className={cn(
+            "flex-1",
+            (!value || value.trim() === '') ? "text-blue-600 font-medium" : "text-gray-900"
+          )}>
+            {displayValue}
+          </span>
+          {!disabled && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity ml-2 hover:bg-gray-200"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit();
+              }}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       )}
     </div>

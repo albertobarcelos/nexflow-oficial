@@ -1,33 +1,57 @@
-import { useState } from "react";
-import { useCompanies } from "@/features/companies/hooks/useCompanies";
+import { useState, useEffect } from "react";
+import { useCompaniesPaginated } from "@/features/companies/hooks/useCompaniesPaginated";
 import { useCompanyColumns } from "@/features/companies/hooks/useCompanyColumns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Import, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { CompanyPopup } from "@/features/companies/components/details/CompanyPopup";
 import { CompanyForm } from "@/features/companies/components/form/CompanyForm";
 import { DynamicCompanyTable } from "@/features/companies/components/table/DynamicCompanyTable";
 import { ColumnConfigDialog } from "@/features/companies/components/table/ColumnConfigDialog";
+import { Pagination } from "@/features/companies/components/table/Pagination";
 import { toast } from "sonner";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export function CompaniesPage() {
-    const { companies = [], isLoading, deleteCompany, refreshCompanies } = useCompanies();
-    const { columns, visibleColumns, reorderColumns, resetToDefault, toggleColumnVisibility, updateColumn } = useCompanyColumns();
     const [search, setSearch] = useState("");
     const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [companyToEdit, setCompanyToEdit] = useState<any | null>(null);
 
-    const filteredCompanies = companies.filter((company) => {
-        const matchesSearch =
-            company.name?.toLowerCase().includes(search.toLowerCase()) ||
-            company.cnpj?.toLowerCase().includes(search.toLowerCase()) ||
-            company.email?.toLowerCase().includes(search.toLowerCase()) ||
-            company.cidade?.toLowerCase().includes(search.toLowerCase()) ||
-            company.estado?.toLowerCase().includes(search.toLowerCase());
-        return matchesSearch;
+    // Debounce da busca para otimizar performance
+    const debouncedSearch = useDebounce(search, 500);
+
+    // Hook paginado com busca otimizada
+    const {
+        companies,
+        pagination,
+        isLoading,
+        isFetching,
+        currentSearch,
+        currentPageSize,
+        goToPage,
+        nextPage,
+        previousPage,
+        changePageSize,
+        setSearch: setPaginatedSearch,
+        createCompany,
+        updateCompany,
+        deleteCompany,
+        refreshCompanies,
+    } = useCompaniesPaginated({
+        page: 1,
+        pageSize: 10,
+        search: "",
     });
+
+    // Hook de configuração de colunas
+    const { columns, visibleColumns, reorderColumns, resetToDefault, toggleColumnVisibility, updateColumn } = useCompanyColumns();
+
+    // Sincronizar busca com debounce
+    useEffect(() => {
+        setPaginatedSearch(debouncedSearch);
+    }, [debouncedSearch, setPaginatedSearch]);
 
     const handleEdit = (e: React.MouseEvent, company: any) => {
         e.stopPropagation();
@@ -48,60 +72,88 @@ export function CompaniesPage() {
     };
 
     return (
-        <div className="space-y-4 p-8">
-            {/* Cabeçalho */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">Empresas</h1>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                        <Import className="w-4 h-4 mr-2" />
-                        Importar
-                    </Button>
-                    <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-2" />
-                        Exportar
-                    </Button>
-                    <Button
-                        onClick={() => setIsAddDialogOpen(true)}
-                        variant="default"
-                        className="bg-[#0f172a] hover:bg-[#0f172a]/90"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Nova Empresa
-                    </Button>
+        <div className="h-screen flex flex-col overflow-hidden">
+            {/* Cabeçalho fixo */}
+            <div className="flex-shrink-0 p-4 border-b bg-white shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                    <h1 className="text-2xl font-bold text-gray-900">Empresas</h1>
+                </div>
+
+                {/* Barra de pesquisa e configuração */}
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex-1 max-w-md relative">
+                        <Input
+                            placeholder="Buscar empresas... (mínimo 4 caracteres)"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="rounded-full pr-10"
+                        />
+                        {search.length > 0 && search.length < 4 && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
+                                    {4 - search.length} mais
+                                </span>
+                            </div>
+                        )}
+                        {search.length >= 4 && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                                    Buscando...
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <ColumnConfigDialog
+                            columns={columns}
+                            onColumnsChange={reorderColumns}
+                            onToggle={toggleColumnVisibility}
+                            onReset={resetToDefault}
+                        />
+                        <Button
+                            onClick={() => setIsAddDialogOpen(true)}
+                            variant="default"
+                            className="bg-[#0f172a] hover:bg-[#0f172a]/90"
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Nova Empresa
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* Barra de pesquisa e configuração */}
-            <div className="flex items-center gap-2">
-                <Input
-                    placeholder="Buscar empresas..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="flex-1 rounded-full"
-                />
-                <ColumnConfigDialog
-                    columns={columns}
-                    onColumnsChange={reorderColumns}
-                    onToggle={toggleColumnVisibility}
-                    onReset={resetToDefault}
-                />
-            </div>
+            {/* Área principal da tabela */}
+            <div className="flex-1 flex flex-col min-h-0 p-4 bg-gray-50/50">
+                {/* Container da tabela */}
+                <div className="flex-1 flex flex-col min-h-0 bg-white rounded-lg border shadow-sm overflow-hidden">
+                    {/* Tabela Dinâmica */}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <DynamicCompanyTable
+                            companies={companies}
+                            isLoading={isLoading || isFetching}
+                            visibleColumns={visibleColumns}
+                            onDelete={handleDelete}
+                            onRowClick={setSelectedCompany}
+                            onUpdateColumn={updateColumn}
+                        />
+                    </div>
 
-            {/* Tabela Dinâmica */}
-            <DynamicCompanyTable
-                companies={filteredCompanies}
-                isLoading={isLoading}
-                visibleColumns={visibleColumns}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onRowClick={setSelectedCompany}
-                onUpdateColumn={updateColumn}
-            />
-
-            {/* Contador de resultados */}
-            <div className="text-sm text-muted-foreground">
-                Exibindo {filteredCompanies.length} de {companies.length} empresas
+                    {/* Paginação fixa na parte inferior */}
+                    <div className="flex-shrink-0 border-t bg-white p-2">
+                        <Pagination
+                            currentPage={pagination.currentPage}
+                            totalPages={pagination.totalPages}
+                            pageSize={pagination.pageSize}
+                            totalCount={pagination.totalCount}
+                            hasNextPage={pagination.hasNextPage}
+                            hasPreviousPage={pagination.hasPreviousPage}
+                            onPageChange={goToPage}
+                            onPageSizeChange={changePageSize}
+                            isLoading={isLoading || isFetching}
+                            pageSizeOptions={[10, 20, 50]}
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Popups */}

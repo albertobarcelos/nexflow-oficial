@@ -57,24 +57,21 @@ export function QuickCompanyDialog({ onCompanyCreated }: QuickCompanyDialogProps
 
     try {
       const formData = new FormData(e.currentTarget);
+      
+      // AIDEV-NOTE: Preparar dados da empresa com campos corretos
       const companyData = {
-        name: formData.get("razao_social") as string,
+        name: formData.get("name") as string,
+        razao_social: formData.get("razao_social") as string || null,
         cnpj: formData.get("cnpj") as string || null,
-        cep: "",
-        rua: "",
-        numero: "",
-        bairro: "",
-        cidade: "",
-        estado: "",
-        complemento: "",
       };
+      
       console.log('Company data prepared:', companyData);
 
-      const newCompanyId = await createCompany.mutateAsync(companyData);
-      console.log('Company created with ID:', newCompanyId);
+      const newCompany = await createCompany.mutateAsync(companyData);
+      console.log('Company created:', newCompany);
 
       if (onCompanyCreated) {
-        onCompanyCreated(newCompanyId, companyData.name);
+        onCompanyCreated(newCompany.id, newCompany.name);
       }
 
       // Limpa o formulário
@@ -84,7 +81,6 @@ export function QuickCompanyDialog({ onCompanyCreated }: QuickCompanyDialogProps
       setIsOpen(false);
       console.log('Dialog closed after company creation');
       
-      toast.success("Empresa criada com sucesso!");
     } catch (error) {
       console.error('Error during company creation:', error);
       toast.error("Erro ao criar empresa");
@@ -111,16 +107,19 @@ export function QuickCompanyDialog({ onCompanyCreated }: QuickCompanyDialogProps
         </DialogHeader>
         <form onSubmit={handleCreateCompany} className="space-y-4 mt-4">
           <Input
+            name="name"
+            placeholder="Nome da Empresa"
+            required
+          />
+          <Input
             name="razao_social"
             placeholder="Razão Social"
-            required
           />
           <Input
             name="cnpj"
             placeholder="00.000.000/0000-00"
             onChange={handleCNPJChange}
             maxLength={18}
-            required
           />
           <div className="flex justify-end gap-4">
             <Button

@@ -60,18 +60,18 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     return "U";
   };
 
-  // Se é ToyFace
+  // AIDEV-NOTE: Processar seed do ToyFace (formato: "toyNumber|group")
   if (user?.avatar_type === "toy_face" && user?.avatar_seed) {
     const seedParts = user.avatar_seed.split("|");
     const toyNumber = parseInt(seedParts[0]) || 1;
     const group = parseInt(seedParts[1]) || 1;
     
     return (
-      <div className={cn(sizeClasses[size], "rounded-full overflow-hidden", className)}>
-        <ReactToyFace 
+      <div className={cn(sizeClasses[size], "rounded-full overflow-hidden flex items-center justify-center", className)}>
+        <ReactToyFace
+          size={toyFaceSizes[size]}
           toyNumber={toyNumber}
           group={group}
-          size={toyFaceSizes[size]}
           rounded={toyFaceSizes[size] / 2}
         />
       </div>

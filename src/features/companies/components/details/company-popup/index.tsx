@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useCompany } from "@/features/companies/hooks/useCompany";
 import { useCompanyPeople } from "./hooks/index";
 import { CompanyPopupProps } from "./types";
 import CompanyHeader from "./CompanyHeader";
@@ -14,14 +15,21 @@ import { motion } from "framer-motion";
 /**
  * Componente principal do popup de detalhes da empresa
  * Renderiza um Dialog em telas maiores e um Drawer em telas menores
+ * AIDEV-NOTE: Usa useCompany para carregar dados completos da empresa com relacionamentos
  */
 const CompanyPopup = ({
-  company,
+  company: initialCompany,
   open,
   onOpenChange,
 }: CompanyPopupProps) => {
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const { data: people = [] } = useCompanyPeople(company?.id);
+  
+  // AIDEV-NOTE: Carregar dados completos da empresa com relacionamentos
+  const { company: fullCompany, isLoading: isLoadingCompany } = useCompany(initialCompany?.id || "");
+  const { data: people = [] } = useCompanyPeople(initialCompany?.id);
+
+  // AIDEV-NOTE: Usar dados completos se disponíveis, senão usar dados iniciais
+  const company = fullCompany || initialCompany;
 
   // Conteúdo comum para Dialog e Drawer com animação
   const content = (

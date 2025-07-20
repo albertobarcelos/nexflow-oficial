@@ -61,9 +61,25 @@ export const useUsers = () => {
   return useQuery({
     queryKey: ['users'],
     queryFn: async () => {
+      // Buscar o usuário atual para obter o client_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Buscar o collaborator para obter o client_id
+      const { data: collaborator } = await supabase
+        .from('collaborators')
+        .select('client_id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (!collaborator) throw new Error('Colaborador não encontrado');
+
+      // Buscar usuários do mesmo cliente
       const { data, error } = await supabase
         .from('core_client_users')
         .select('id, first_name, last_name, email')
+        .eq('client_id', collaborator.client_id)
+        .eq('is_active', true)
         .order('first_name');
 
       if (error) {

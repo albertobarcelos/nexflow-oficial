@@ -2,16 +2,18 @@
 
 import { TabProps } from "../../types";
 import { EditableField } from "../../components/EditableField";
+import { ExpandableDescriptionField } from "../../components/ExpandableDescriptionField";
 import { useUpdateCompany, useStates, useCities, useUsers } from "../../hooks/index";
 import { useCepApi } from "@/hooks/useCepApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { useState, useEffect } from "react";
+import { origemOptions, setorOptions } from '../../../../form/CompanyForm';
+import { useState, useEffect, useMemo } from "react";
 
 /**
  * Componente que exibe a aba de Visão Geral da empresa
  */
 const OverviewTab = ({ company }: TabProps) => {
+  // AIDEV-NOTE: Gerenciar estado selecionado e recarregar cidades automaticamente
   const [selectedStateId, setSelectedStateId] = useState<string | null>(company?.state_id || null);
   const updateCompany = useUpdateCompany(company?.id || '');
   const { consultarCep } = useCepApi();
@@ -19,6 +21,7 @@ const OverviewTab = ({ company }: TabProps) => {
   const { data: cities = [] } = useCities(selectedStateId);
   const { data: users = [] } = useUsers();
 
+  // Atualizar selectedStateId quando company.state_id mudar
   useEffect(() => {
     setSelectedStateId(company?.state_id || null);
   }, [company?.state_id]);
@@ -38,20 +41,47 @@ const OverviewTab = ({ company }: TabProps) => {
     label: `${state.name} (${state.uf})`
   }));
 
-  const cityOptions = cities.map(city => ({
-    value: city.id,
-    label: city.name
-  }));
+  // AIDEV-NOTE: Usar dados relacionados quando disponíveis, senão usar dados dos hooks
+  const cityOptions = useMemo(() => {
+    // Se temos dados relacionados da cidade atual, incluí-la nas opções
+    const options = cities.map(city => ({
+      value: city.id,
+      label: city.name
+    }));
 
-  const userOptions = users.map(user => ({
-    value: user.id,
-    label: user.name
-  }));
+    // Se a empresa tem uma cidade relacionada carregada que não está na lista atual
+    if (company.city && !options.find(opt => opt.value === company.city?.id)) {
+      options.unshift({
+        value: company.city.id,
+        label: company.city.name
+      });
+    }
+
+    return options;
+  }, [cities, company.city]);
+
+  const userOptions = useMemo(() => {
+    const options = users.map(user => ({
+      value: user.id,
+      label: `${user.first_name} ${user.last_name}`.trim()
+    }));
+
+    // Se a empresa tem um responsável relacionado carregado que não está na lista atual
+    if (company.creator && !options.find(opt => opt.value === company.creator?.id)) {
+      options.unshift({
+        value: company.creator.id,
+        label: `${company.creator.first_name} ${company.creator.last_name}`.trim()
+      });
+    }
+
+    return options;
+  }, [users, company.creator]);
 
   const handleFieldSave = async (field: string, value: string) => {
     await updateCompany.mutateAsync({ [field]: value });
   };
 
+  // AIDEV-NOTE: Buscar CEP e atualizar endereço automaticamente
   const handleCepSave = async (cep: string) => {
     const cepData = await consultarCep(cep);
     if (cepData) {
@@ -59,7 +89,8 @@ const OverviewTab = ({ company }: TabProps) => {
       const state = states.find(s => s.uf === cepData.uf);
       if (state) {
         setSelectedStateId(state.id);
-        // Buscar cidade pelo nome
+        
+        // Aguardar o carregamento das cidades do estado
         const { data: stateCities } = await useCities(state.id);
         const city = stateCities?.find(c => c.name === cepData.localidade);
         
@@ -76,6 +107,7 @@ const OverviewTab = ({ company }: TabProps) => {
     }
   };
 
+  // AIDEV-NOTE: Atualizar estado e resetar cidade quando estado for alterado
   const handleStateChange = async (stateId: string) => {
     setSelectedStateId(stateId);
     await updateCompany.mutateAsync({ 
@@ -136,31 +168,25 @@ const OverviewTab = ({ company }: TabProps) => {
             <EditableField
               label="Origem"
               value={company.origem}
-              placeholder="Ex: Google, Campanha, Evento, Indicação"
-              onSave={(value) => handleFieldSave('origem', value)}
-            />
-            
-            <EditableField
-              label="Responsável"
-              value={company.creator_id}
               type="combobox"
-              options={userOptions}
-              placeholder="Selecione um responsável"
-              onSave={(value) => handleFieldSave('creator_id', value)}
+              options={origemOptions}
+              placeholder="Selecione uma origem"
+              onSave={(value) => handleFieldSave('origem', value)}
             />
             
             <EditableField
               label="Setor"
               value={company.setor}
-              placeholder="Ex: Tecnologia, Varejo, Serviços"
+              type="combobox"
+              options={setorOptions}
+              placeholder="Selecione um setor"
               onSave={(value) => handleFieldSave('setor', value)}
             />
           </div>
           
-          <EditableField
+          <ExpandableDescriptionField
             label="Descrição"
             value={company.description}
-            type="textarea"
             placeholder="Descrição da empresa..."
             onSave={(value) => handleFieldSave('description', value)}
           />
