@@ -124,8 +124,6 @@ export function LoginPage() {
         .select(`
           id,
           client_id,
-          first_name,
-          last_name,
           email,
           role,
           is_active
@@ -145,8 +143,6 @@ export function LoginPage() {
         userData = {
           id: authData.user.id,
           client_id: 'test-client-001',
-          first_name: 'Henrique',
-          last_name: 'Barcelos',
           email: 'barceloshd@gmail.com',
           role: 'administrator',
           is_active: true
@@ -176,7 +172,20 @@ export function LoginPage() {
           .eq('id', authData.user.id);
       }
 
-      toast.success(`Bem-vindo(a), ${userData.first_name} ${userData.last_name}!`);
+      const rawEmail = userData.email?.trim() ?? "";
+      let userName = "Usuário";
+      if (rawEmail.length > 0) {
+        const atIndex = rawEmail.indexOf("@");
+        if (atIndex > 0) {
+          const candidate = rawEmail.slice(0, atIndex).trim();
+          if (candidate) {
+            userName = candidate;
+          }
+        } else {
+          userName = rawEmail;
+        }
+      }
+      toast.success(`Bem-vindo(a), ${userName}!`);
       navigate("/crm");
 
     } catch (error: any) {

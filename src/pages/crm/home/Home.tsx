@@ -1,4 +1,3 @@
-import { FlowTemplates } from "@/components/crm/flows/FlowTemplates";
 // AIDEV-NOTE: EntityTemplates removido - sistema simplificado sem entidades dinâmicas
 import { ConfigurationDropdown } from "@/components/crm/flows/ConfigurationDropdown";
 // AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado sem entidades dinâmicas
@@ -7,14 +6,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Info, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 // AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 type UserData = {
     client_id: string;
-    first_name?: string;
 };
 
 type Flow = {
@@ -41,7 +38,7 @@ const getCurrentUserData = async (): Promise<UserData> => {
     // A função agora busca diretamente pelo ID do usuário
     const { data, error } = await supabase
         .from('core_client_users')
-        .select('client_id, first_name')
+        .select('client_id')
         .eq('id', user.id) // CORRIGIDO: usa a coluna 'id'
         .single();
 
@@ -56,16 +53,13 @@ const getCurrentUserData = async (): Promise<UserData> => {
 
     return {
         client_id: data.client_id,
-        first_name: data.first_name
     };
 };
 
 export function Home() {
     const navigate = useNavigate();
     const { toast } = useToast();
-    const [showTemplates, setShowTemplates] = useState(false);
     // AIDEV-NOTE: showEntityTemplates removido - sistema simplificado sem entidades dinâmicas
-    const [newFlowTitle, setNewFlowTitle] = useState<string | null>(null);
     const isMobile = useIsMobile();
 
     const { data: user } = useQuery<UserData>({
@@ -93,12 +87,6 @@ export function Home() {
     // Agora focamos apenas em Companies, People e Deals fixos
     const entities: Entity[] = [];
 
-    const handleSelectTemplate = (templateId: string) => {
-        // TODO: Implement template selection logic
-        console.log('Selected template:', templateId);
-        setShowTemplates(false);
-    };
-
     // Ícones para entidades
     const getEntityIcon = (iconName: string) => {
         const iconMap: Record<string, string> = {
@@ -121,13 +109,8 @@ export function Home() {
             <div className="bg-white rounded-2xl p-4 md:p-8 shadow-sm">
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
                     <h1 className="text-xl md:text-2xl">
-                        <span className="font-bold">Olá, {user?.first_name || 'usuário'}</span>, vamos arrasar hoje!
+                        <span className="font-bold">Olá!</span>, vamos arrasar hoje!
                     </h1>
-                    {!isMobile && (
-                        <Button variant="ghost" className="bg-blue-50 text-blue-900 hover:bg-blue-100 rounded-full px-4 py-2 text-sm gap-2 w-fit">
-                            🎯 Minhas Tarefas
-                        </Button>
-                    )}
                 </div>
 
                 <div className="space-y-6 md:space-y-8">
@@ -138,7 +121,7 @@ export function Home() {
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                             <div
-                                onClick={() => setShowTemplates(true)}
+                                onClick={() => navigate("/crm/flows/new")}
                                 className="border border-orange-500 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-pointer hover:bg-orange-50/50 min-h-[100px] md:min-h-[120px]"
                             >
                                 <Plus className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
@@ -239,14 +222,6 @@ export function Home() {
                                 variant="outline"
                                 size="sm"
                                 className="w-full"
-                                onClick={() => navigate("/crm/tasks")}
-                            >
-                                🎯 Tarefas
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full"
                                 onClick={() => navigate("/crm/dashboard")}
                             >
                                 📊 Dashboard
@@ -255,12 +230,6 @@ export function Home() {
                     )}
                 </div>
             </div>
-
-            <FlowTemplates
-                open={showTemplates}
-                onOpenChange={setShowTemplates}
-            />
-
             {/* AIDEV-NOTE: EntityTemplates removido - sistema simplificado para deals */}
         </div>
     );

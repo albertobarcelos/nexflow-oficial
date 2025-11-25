@@ -1,13 +1,10 @@
 import { useNavigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import {
   Home,
-  CheckSquare,
   Building2,
   Users,
   Handshake,
   DollarSign,
-  BarChart3,
-  ChevronDown,
   Search,
   Bell,
   Settings,
@@ -15,7 +12,7 @@ import {
   User,
   LucideProps,
   Database,
-  Eye,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -56,32 +53,12 @@ const baseMenuItems: MenuItem[] = [
     href: "/crm/dashboard",
   },
   {
-    title: "Visão Geral",
-    icon: Eye,
-    href: "/crm/overview",
-  },
-  {
-    title: "Tarefas",
-    icon: CheckSquare,
-    href: "/crm/tasks",
+    title: "Flows",
+    icon: Workflow,
+    href: "/crm/flows",
   },
   // AIDEV-NOTE: Empresas e Pessoas aparecem condicionalmente dentro de flows
   // Removido "Negócios" - funcionalidade desnecessária
-];
-
-const reportItems = [
-  {
-    title: "Vendas",
-    href: "/crm/reports/sales",
-  },
-  {
-    title: "Atividades",
-    href: "/crm/reports/activities",
-  },
-  {
-    title: "Pipeline",
-    href: "/crm/reports/pipeline",
-  },
 ];
 
 function getInitials(name: string) {
@@ -145,7 +122,7 @@ export function Sidebar() {
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
               location.pathname + location.search === item.href :
-              location.pathname === item.href;
+              item.href === '/crm/flows' ? location.pathname.startsWith(item.href) : location.pathname === item.href;
               
             return (
               <Button
@@ -162,26 +139,6 @@ export function Sidebar() {
               </Button>
             );
           })}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 text-blue-950 hover:bg-white/10">
-                <BarChart3 className="h-4 w-4" />
-                Relatórios
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {reportItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.href}
-                  onClick={() => navigate(item.href)}
-                >
-                  {item.title}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

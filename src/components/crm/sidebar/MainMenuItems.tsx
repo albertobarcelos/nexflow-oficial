@@ -1,7 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Kanban, CheckSquare, BarChart, Settings, Workflow, Eye, Building2, Users, DollarSign } from "lucide-react";
+import { LayoutDashboard, Kanban, Settings, Workflow, Eye, Building2, Users, DollarSign } from "lucide-react";
 import { SidebarMenuItem } from "./SidebarMenuItem";
 import { PipelineSelector } from "../pipeline/PipelineSelector";
+import { toast } from "sonner";
 
 interface MainMenuItemsProps {
   showPipelineSelector: boolean;
@@ -25,11 +26,6 @@ export function MainMenuItems({ showPipelineSelector, setShowPipelineSelector, p
       href: "/crm/opportunities",
       showSelector: true,
     },
-    {
-      title: "Tarefas",
-      icon: CheckSquare,
-      href: "/crm/tasks",
-    },
     // AIDEV-NOTE: Bases fixas do sistema - substituem entidades dinâmicas
     {
       title: "Empresas",
@@ -42,24 +38,19 @@ export function MainMenuItems({ showPipelineSelector, setShowPipelineSelector, p
       href: "/crm/people",
     },
     {
-      title: "Negócios",
-      icon: DollarSign,
-      href: "/crm/deals",
+      title: "Flows",
+      icon: Workflow,
+      href: "/crm/flows",
     },
     {
       title: "Construtor de Flows",
       icon: Workflow,
-      href: "/crm/flows/builder",
+      href: "/crm/flows/new",
     },
     {
       title: "Visualizações de Flows",
       icon: Eye,
       href: "/crm/flows/views",
-    },
-    {
-      title: "Relatórios",
-      icon: BarChart,
-      href: "/crm/reports",
     },
     {
       title: "Configurações",
@@ -69,7 +60,7 @@ export function MainMenuItems({ showPipelineSelector, setShowPipelineSelector, p
   ];
 
   const isActive = (href: string) => {
-    if (href === '/crm/opportunities') {
+    if (href === '/crm/opportunities' || href === '/crm/flows') {
       return location.pathname.startsWith(href);
     }
     return location.pathname === href;
@@ -77,11 +68,17 @@ export function MainMenuItems({ showPipelineSelector, setShowPipelineSelector, p
 
   const handleMenuClick = async (href: string, showSelector: boolean) => {
     if (showSelector) {
-      if (pipelines?.length === 1) {
-        navigate(`/crm/opportunities/${pipelines[0].id}`);
-      } else if (pipelines?.length > 1) {
-        setShowPipelineSelector(!showPipelineSelector);
+      if (!pipelines || pipelines.length === 0) {
+        toast.warning("Carregando pipelines... tente novamente em instantes.");
+        return;
       }
+
+      if (pipelines.length === 1) {
+        navigate(`/crm/opportunities/${pipelines[0].id}`);
+        return;
+      }
+
+      setShowPipelineSelector(!showPipelineSelector);
       return;
     }
     navigate(href);

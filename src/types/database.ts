@@ -1419,4 +1419,206 @@ export interface Database {
       [_ in never]: never;
     };
   };
+
+  nexflow: {
+    Tables: {
+      flows: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          category: "finance" | "onboarding" | "generic";
+          is_active: boolean | null;
+          created_at: string;
+          owner_id: string | null;
+          client_id: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          category?: "finance" | "onboarding" | "generic";
+          is_active?: boolean | null;
+          created_at?: string;
+          owner_id?: string | null;
+          client_id: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          category?: "finance" | "onboarding" | "generic";
+          is_active?: boolean | null;
+          created_at?: string;
+          owner_id?: string | null;
+          client_id?: string;
+        };
+        Relationships: [];
+      };
+
+      steps: {
+        Row: {
+          id: string;
+          flow_id: string;
+          title: string;
+          color: string | null;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          flow_id: string;
+          title: string;
+          color?: string | null;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          flow_id?: string;
+          title?: string;
+          color?: string | null;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      step_fields: {
+        Row: {
+          id: string;
+          step_id: string;
+          label: string;
+          field_type: "text" | "number" | "date" | "checklist" | "file" | "user_select";
+          is_required: boolean | null;
+          position: number | null;
+          configuration: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          step_id: string;
+          label: string;
+          field_type: "text" | "number" | "date" | "checklist" | "file" | "user_select";
+          is_required?: boolean | null;
+          position?: number | null;
+          configuration?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          step_id?: string;
+          label?: string;
+          field_type?: "text" | "number" | "date" | "checklist" | "file" | "user_select";
+          is_required?: boolean | null;
+          position?: number | null;
+          configuration?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      cards: {
+        Row: {
+          id: string;
+          flow_id: string;
+          step_id: string;
+          client_id: string;
+          title: string;
+          field_values: Json;
+          checklist_progress: Json;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          flow_id: string;
+          step_id: string;
+          client_id: string;
+          title: string;
+          field_values?: Json;
+          checklist_progress?: Json;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          flow_id?: string;
+          step_id?: string;
+          client_id?: string;
+          title?: string;
+          field_values?: Json;
+          checklist_progress?: Json;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      flow_access: {
+        Row: {
+          id: string;
+          flow_id: string;
+          user_id: string;
+          role: "viewer" | "editor" | "admin";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          flow_id: string;
+          user_id: string;
+          role?: "viewer" | "editor" | "admin";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          flow_id?: string;
+          user_id?: string;
+          role?: "viewer" | "editor" | "admin";
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      step_visibility: {
+        Row: {
+          id: string;
+          step_id: string;
+          user_id: string;
+          can_view: boolean;
+          can_edit_fields: boolean | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          step_id: string;
+          user_id: string;
+          can_view?: boolean;
+          can_edit_fields?: boolean | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          step_id?: string;
+          user_id?: string;
+          can_view?: boolean;
+          can_edit_fields?: boolean | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      flow_category_enum: "finance" | "onboarding" | "generic";
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
 }

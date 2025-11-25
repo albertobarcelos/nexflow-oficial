@@ -27,6 +27,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   },
 });
 
+/**
+ * Helper para acessar o schema `nexflow` com o mesmo client autenticado.
+ */
+export const nexflowClient = () => supabase.schema('nexflow');
+
 // Log da inicialização
 logger.info('🔗 Cliente Supabase inicializado', {
   url: supabaseUrl,
@@ -197,13 +202,13 @@ export async function getCurrentClientId(): Promise<string | null> {
 
   if (error) {
     logger.error('Erro ao buscar client_id:', { userId: user.id, error });
-    logRLSInstructions('core_client_users');
+    logRLSInstructions();
     return null;
   }
   
   if (!clientUser) {
     logger.warn('getCurrentClientId: Nenhum registro encontrado em core_client_users para o usuário.', { userId: user.id });
-    logRLSInstructions('core_client_users');
+    logRLSInstructions();
     return null;
   }
 

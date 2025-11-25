@@ -31,8 +31,6 @@ export function SettingsLayout() {
           .select(`
             id,
             client_id,
-            first_name,
-            last_name,
             email,
             role,
             is_active,

@@ -12,7 +12,11 @@ import { LoginPage as ResellerLoginPage } from "@/pages/auth/reseller/LoginPage"
 import { Dashboard } from "@/pages/crm/Dashboard";
 import FlowPage from "@/pages/crm/funnels/FlowPage";
 import { FlowBuilderPage } from "@/pages/crm/flows/FlowBuilderPage";
+import { NewNexflowPage } from "@/pages/crm/flows/NewNexflowPage";
+import { NexflowBuilderPage } from "@/pages/crm/flows/NexflowBuilderPage";
+import { NexflowBoardPage } from "@/pages/crm/flows/NexflowBoardPage";
 import { FlowViewsPage } from "@/pages/crm/flows/FlowViewsPage";
+import { FlowsPage } from "@/pages/crm/flows/FlowsPage";
 import OpportunityDetails from "@/pages/crm/OpportunityDetails";
 import { CompaniesPage } from "@/pages/crm/companies/CompaniesPage";
 import { CompanyDetailsPage } from "@/features/companies/pages/CompanyDetailsPage";
@@ -26,11 +30,9 @@ import { CustomizationSettings } from "@/components/crm/settings/CustomizationSe
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
 import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
 import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
-import Tasks from "@/pages/crm/tasks/Tasks";
 import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
-import { Overview } from "@/pages/crm/overview/Overview";
 
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -84,16 +86,24 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "overview",
-        element: <Overview />,
-      },
-      {
-        path: "tasks",
-        element: <Tasks />,
-      },
-      {
         path: "flow/:id",
         element: <FlowPage />,
+      },
+      {
+        path: "flows",
+        element: <FlowsPage />,
+      },
+      {
+        path: "flows/new",
+        element: <NewNexflowPage />,
+      },
+      {
+        path: "flows/:id/builder",
+        element: <NexflowBuilderPage />,
+      },
+      {
+        path: "flows/:id/board",
+        element: <NexflowBoardPage />,
       },
       {
         path: "flows/builder",
@@ -240,7 +250,7 @@ export const router = createBrowserRouter([
   },
 ], {
   future: {
-    v7_startTransition: true,
+    
     v7_relativeSplatPath: true,
   },
 });
