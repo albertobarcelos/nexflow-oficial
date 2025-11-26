@@ -97,6 +97,7 @@ export function useNexflowFlows() {
       return data.map(mapFlowRow);
     },
     staleTime: 1000 * 30,
+    refetchOnMount: true, // Garante refetch ao montar o componente
   });
 
   const createFlowMutation = useMutation({

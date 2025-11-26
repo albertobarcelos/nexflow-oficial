@@ -1,0 +1,381 @@
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+import { CalendarIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
+import type {
+  CardMovementEntry,
+  ChecklistProgressMap,
+  NexflowStepField,
+  StepFieldValueMap,
+} from "@/types/nexflow";
+
+export interface StartFormPayload {
+  title: string;
+  fieldValues: StepFieldValueMap;
+  checklistProgress: ChecklistProgressMap;
+  movementHistory: CardMovementEntry[];
+  parentCardId?: string | null;
+}
+
+interface StartFormModalProps {
+  open: boolean;
+  step: NexflowStepWithFields | null;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (payload: StartFormPayload) => Promise<void>;
+}
+
+type StartFormValues = {
+  fields: Record<string, string | number | undefined>;
+  checklist: Record<string, Record<string, boolean>>;
+};
+
+export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartFormModalProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const form = useForm<StartFormValues>({
+    defaultValues: {
+      fields: {},
+      checklist: {},
+    },
+  });
+
+  const { register, control, handleSubmit, watch, setValue, reset, setError, clearErrors, formState } =
+    form;
+
+  const titleField = useMemo(() => {
+    if (!step?.fields?.length) {
+      return null;
+    }
+
+    const textFields = step.fields.filter((field) => field.fieldType === "text");
+    if (!textFields.length) {
+      return null;
+    }
+
+    const explicitTitle = textFields.find((field) =>
+      field.label.toLowerCase().includes("título")
+    );
+    return explicitTitle ?? textFields[0];
+  }, [step]);
+
+  useEffect(() => {
+    if (!step || !open) {
+      reset({ fields: {}, checklist: {} });
+      return;
+    }
+
+    const defaultFields: Record<string, string | number | undefined> = {};
+    const defaultChecklist: Record<string, Record<string, boolean>> = {};
+
+    step.fields?.forEach((field) => {
+      if (field.fieldType === "checklist") {
+        const items = field.configuration.items ?? [];
+        defaultChecklist[field.id] = items.reduce(
+          (acc, item) => ({
+            ...acc,
+            [item]: false,
+          }),
+          {}
+        );
+      } else {
+        defaultFields[field.id] = "";
+      }
+    });
+
+    reset({
+      fields: defaultFields,
+      checklist: defaultChecklist,
+    });
+  }, [step, open, reset]);
+
+  const checklistWatch = watch("checklist");
+
+  const handleInternalSubmit = handleSubmit(async (values) => {
+    if (!step) {
+      return;
+    }
+
+    let hasChecklistErrors = false;
+    step.fields?.forEach((field) => {
+      if (field.fieldType !== "checklist" || !field.isRequired) {
+        return;
+      }
+      const items = field.configuration.items ?? [];
+      const progress = values.checklist[field.id] ?? {};
+      const allChecked = items.every((item) => progress[item]);
+
+      if (!allChecked) {
+        hasChecklistErrors = true;
+        setError(`checklist.${field.id}` as const, {
+          type: "manual",
+          message: "Marque todos os itens obrigatórios",
+        });
+      } else {
+        clearErrors(`checklist.${field.id}` as const);
+      }
+    });
+
+    if (hasChecklistErrors) {
+      toast.error("Complete todos os campos obrigatórios.");
+      return;
+    }
+
+    const fieldValues: StepFieldValueMap = {};
+    const checklistProgress: ChecklistProgressMap = {};
+
+    step.fields?.forEach((field) => {
+      if (field.fieldType === "checklist") {
+        const progress = values.checklist[field.id] ?? {};
+        checklistProgress[field.id] = progress;
+        fieldValues[field.id] = progress;
+        return;
+      }
+
+      const rawValue = values.fields[field.id];
+      if (typeof rawValue === "undefined" || rawValue === "") {
+        fieldValues[field.id] = undefined;
+        return;
+      }
+
+      if (field.fieldType === "number") {
+        const parsed = Number(rawValue);
+        fieldValues[field.id] = Number.isNaN(parsed) ? undefined : parsed;
+        return;
+      }
+
+      if (typeof rawValue === "string") {
+        fieldValues[field.id] = rawValue.trim();
+        return;
+      }
+
+      fieldValues[field.id] = rawValue;
+    });
+
+    const computedTitle = titleField
+      ? `${values.fields[titleField.id] ?? ""}`.trim()
+      : "";
+    const title = computedTitle || step.title || "Novo card";
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit({
+        title,
+        fieldValues,
+        checklistProgress,
+        movementHistory: [
+          {
+            id: crypto.randomUUID?.() ?? `${Date.now()}`,
+            fromStepId: null,
+            toStepId: step.id,
+            movedAt: new Date().toISOString(),
+            movedBy: null,
+          },
+        ],
+      });
+      reset({
+        fields: {},
+        checklist: {},
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Não foi possível criar o card. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  });
+
+  const renderField = (field: NexflowStepField) => {
+    if (field.fieldType === "checklist") {
+      const items = field.configuration.items ?? [];
+      const checklistErrors = formState.errors.checklist?.[field.id];
+      return (
+        <div className="space-y-2 rounded-xl border border-slate-200 p-4 bg-white">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-slate-800">{field.label}</p>
+            {field.isRequired && <span className="text-xs text-red-500">Obrigatório</span>}
+          </div>
+          {items.length === 0 ? (
+            <p className="text-xs text-slate-500">Sem itens configurados.</p>
+          ) : (
+            <div className="space-y-2">
+              {items.map((item) => (
+                <label key={item} className="flex items-center gap-2 text-sm text-slate-700">
+                  <Checkbox
+                    checked={Boolean(checklistWatch?.[field.id]?.[item])}
+                    onCheckedChange={(checked) =>
+                      setValue(`checklist.${field.id}.${item}` as const, checked === true)
+                    }
+                  />
+                  {item}
+                </label>
+              ))}
+            </div>
+          )}
+          {checklistErrors?.message ? (
+            <p className="text-xs text-red-500">{checklistErrors.message}</p>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (field.fieldType === "date") {
+      return (
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-slate-800">
+            {field.label}
+            {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+          </Label>
+          <Controller
+            name={`fields.${field.id}` as const}
+            control={control}
+            rules={{
+              required: field.isRequired ? "Campo obrigatório" : false,
+            }}
+            render={({ field: controllerField }) => {
+              const dateValue =
+                controllerField.value && typeof controllerField.value === "string"
+                  ? new Date(controllerField.value)
+                  : undefined;
+
+              return (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dateValue && "text-slate-400"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateValue ? format(dateValue, "PPP", { locale: ptBR }) : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateValue}
+                      onSelect={(selectedDate) =>
+                        controllerField.onChange(
+                          selectedDate ? selectedDate.toISOString() : ""
+                        )
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              );
+            }}
+          />
+          {formState.errors.fields?.[field.id]?.message ? (
+            <p className="text-xs text-red-500">
+              {formState.errors.fields?.[field.id]?.message as string}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (field.configuration.variant === "long") {
+      return (
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-slate-800">
+            {field.label}
+            {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+          </Label>
+          <Textarea
+            rows={4}
+            placeholder={(field.configuration.placeholder as string) ?? ""}
+            {...register(`fields.${field.id}` as const, {
+              required: field.isRequired ? "Campo obrigatório" : false,
+            })}
+          />
+          {formState.errors.fields?.[field.id]?.message ? (
+            <p className="text-xs text-red-500">
+              {formState.errors.fields?.[field.id]?.message as string}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        <Label className="text-sm font-semibold text-slate-800">
+          {field.label}
+          {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+        </Label>
+        <Input
+          type={field.fieldType === "number" ? "number" : "text"}
+          placeholder={(field.configuration.placeholder as string) ?? ""}
+          {...register(`fields.${field.id}` as const, {
+            required: field.isRequired ? "Campo obrigatório" : false,
+          })}
+        />
+        {formState.errors.fields?.[field.id]?.message ? (
+          <p className="text-xs text-red-500">
+            {formState.errors.fields?.[field.id]?.message as string}
+          </p>
+        ) : null}
+      </div>
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{step?.title ?? "Novo card"}</DialogTitle>
+        </DialogHeader>
+
+        {!step ? (
+          <p className="text-sm text-slate-500">
+            Configure a etapa inicial para liberar o formulário de criação.
+          </p>
+        ) : (
+          <form className="space-y-4" onSubmit={handleInternalSubmit}>
+            {step.fields?.length ? (
+              step.fields.map((field) => (
+                <div key={field.id}>
+                  {renderField(field)}
+                  {field.configuration.helperText ? (
+                    <p className="text-xs text-slate-400 mt-1">
+                      {field.configuration.helperText as string}
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">
+                Nenhum campo configurado para esta etapa.
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Salvando..." : "Criar card"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+

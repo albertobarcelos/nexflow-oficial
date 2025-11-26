@@ -1527,6 +1527,8 @@ export interface Database {
           title: string;
           field_values: Json;
           checklist_progress: Json;
+          movement_history: Json | null;
+          parent_card_id: string | null;
           position: number;
           created_at: string;
         };
@@ -1538,6 +1540,8 @@ export interface Database {
           title: string;
           field_values?: Json;
           checklist_progress?: Json;
+          movement_history?: Json | null;
+          parent_card_id?: string | null;
           position?: number;
           created_at?: string;
         };
@@ -1549,6 +1553,8 @@ export interface Database {
           title?: string;
           field_values?: Json;
           checklist_progress?: Json;
+          movement_history?: Json | null;
+          parent_card_id?: string | null;
           position?: number;
           created_at?: string;
         };

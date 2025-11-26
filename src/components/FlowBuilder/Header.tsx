@@ -200,7 +200,12 @@ export function FlowBuilderHeader({
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent
+                      side="bottom"
+                      align="center"
+                      sideOffset={6}
+                      className="min-w-[160px]"
+                    >
                       <DropdownMenuItem
                         onClick={() => startEditing(step)}
                         className="flex items-center gap-2"

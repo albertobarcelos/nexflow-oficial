@@ -63,7 +63,7 @@ function SortableStageRow({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b last:border-b-0 transition-colors ${isDragging ? 'bg-blue-50' : 'hover:bg-[#f1f5f9]'}`}
+      className={`border-b last:border-b-0 transition ${isDragging ? "bg-blue-50 shadow-sm" : ""}`}
     >
       <td className="p-3 align-middle cursor-grab" {...attributes} {...listeners}>
         <GripVertical className="w-4 h-4 text-muted-foreground" />
@@ -357,7 +357,7 @@ const NewFlowSettings: React.FC = () => {
                     className="bg-orange-500 text-white border border-orange-500 hover:bg-white hover:text-orange-600 hover:border-orange-500 transition-colors"
                     size="sm"
                     onClick={handleSaveFlow}
-                    disabled={isSaving || !flowTitle?.trim() || stages.length === 0}
+                    disabled={isSaving || !flowTitle?.trim() || !stages.some((s) => s.name?.trim())}
                 >
                     {isSaving ? (
                         <>

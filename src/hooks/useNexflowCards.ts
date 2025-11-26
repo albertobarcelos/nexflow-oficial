@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
 import { Database } from "@/types/database";
 import {
+  CardMovementEntry,
   ChecklistProgressMap,
   NexflowCard,
   StepFieldValueMap,
@@ -18,6 +19,10 @@ const mapCardRow = (row: CardRow): NexflowCard => ({
   title: row.title,
   fieldValues: (row.field_values as StepFieldValueMap) ?? {},
   checklistProgress: (row.checklist_progress as ChecklistProgressMap) ?? {},
+  movementHistory: Array.isArray(row.movement_history)
+    ? (row.movement_history as CardMovementEntry[])
+    : [],
+  parentCardId: row.parent_card_id ?? null,
   position: row.position ?? 0,
   createdAt: row.created_at,
 });
@@ -29,6 +34,8 @@ export interface CreateCardInput {
   position?: number;
   fieldValues?: StepFieldValueMap;
   checklistProgress?: ChecklistProgressMap;
+  movementHistory?: CardMovementEntry[];
+  parentCardId?: string | null;
 }
 
 export interface UpdateCardInput {
@@ -38,10 +45,19 @@ export interface UpdateCardInput {
   position?: number;
   fieldValues?: StepFieldValueMap;
   checklistProgress?: ChecklistProgressMap;
+  movementHistory?: CardMovementEntry[];
+  parentCardId?: string | null;
+  /** Quando true, não exibe toast de sucesso (útil para auto-save) */
+  silent?: boolean;
 }
 
 export interface ReorderCardsInput {
-  items: { id: string; stepId: string; position: number }[];
+  items: {
+    id: string;
+    stepId: string;
+    position: number;
+    movementHistory?: CardMovementEntry[];
+  }[];
 }
 
 export function useNexflowCards(flowId?: string) {
@@ -93,6 +109,8 @@ export function useNexflowCards(flowId?: string) {
                 .reduce((max, card) => Math.max(max, card.position), 0) ?? 0) + 1000,
         field_values: input.fieldValues ?? {},
         checklist_progress: input.checklistProgress ?? {},
+        movement_history: input.movementHistory ?? [],
+        parent_card_id: input.parentCardId ?? null,
       };
 
       const { data, error } = await nexflowClient()
@@ -126,6 +144,10 @@ export function useNexflowCards(flowId?: string) {
         payload.field_values = input.fieldValues;
       if (typeof input.checklistProgress !== "undefined")
         payload.checklist_progress = input.checklistProgress;
+      if (typeof input.movementHistory !== "undefined")
+        payload.movement_history = input.movementHistory;
+      if (typeof input.parentCardId !== "undefined")
+        payload.parent_card_id = input.parentCardId;
 
       const { data, error } = await nexflowClient()
         .from("cards")
@@ -138,11 +160,13 @@ export function useNexflowCards(flowId?: string) {
         throw error ?? new Error("Falha ao atualizar card.");
       }
 
-      return mapCardRow(data);
+      return { card: mapCardRow(data), silent: input.silent };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Card atualizado.");
+      if (!result.silent) {
+        toast.success("Card atualizado.");
+      }
     },
     onError: () => {
       toast.error("Erro ao atualizar card.");
@@ -172,12 +196,16 @@ export function useNexflowCards(flowId?: string) {
   const reorderCardsMutation = useMutation({
     mutationFn: async ({ items }: ReorderCardsInput) => {
       await Promise.all(
-        items.map(({ id, stepId, position }) =>
-          nexflowClient()
-            .from("cards")
-            .update({ step_id: stepId, position })
-            .eq("id", id)
-        )
+        items.map(({ id, stepId, position, movementHistory }) => {
+          const payload: Partial<CardRow> = {
+            step_id: stepId,
+            position,
+          };
+          if (typeof movementHistory !== "undefined") {
+            payload.movement_history = movementHistory;
+          }
+          return nexflowClient().from("cards").update(payload).eq("id", id);
+        })
       );
     },
     onMutate: async ({ items }) => {
@@ -192,6 +220,10 @@ export function useNexflowCards(flowId?: string) {
               ...card,
               stepId: update.stepId,
               position: update.position,
+              movementHistory:
+                typeof update.movementHistory !== "undefined"
+                  ? update.movementHistory
+                  : card.movementHistory,
             }
           : card;
       });

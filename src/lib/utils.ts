@@ -5,6 +5,68 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Converte hex (#fff ou #ffffff) em RGB.
+ */
+export function hexToRgb(hex?: string) {
+  if (!hex) {
+    return null;
+  }
+
+  const sanitized = hex.replace("#", "").trim();
+  if (![3, 6].includes(sanitized.length)) {
+    return null;
+  }
+
+  const normalized =
+    sanitized.length === 3
+      ? sanitized
+          .split("")
+          .map((char) => char + char)
+          .join("")
+      : sanitized;
+
+  const intValue = Number.parseInt(normalized, 16);
+  if (Number.isNaN(intValue)) {
+    return null;
+  }
+
+  return {
+    r: (intValue >> 16) & 255,
+    g: (intValue >> 8) & 255,
+    b: intValue & 255,
+  };
+}
+
+/**
+ * Retorna rgba() com base na cor hex.
+ */
+export function hexToRgba(hex?: string, alpha = 1) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) {
+    return `rgba(15, 23, 42, ${alpha})`;
+  }
+
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+/**
+ * Garante contraste mínimo entre fundo e texto.
+ */
+export function getReadableTextColor(
+  hex?: string,
+  darkColor = "#0f172a",
+  lightColor = "#ffffff"
+) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) {
+    return darkColor;
+  }
+
+  const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+  return luminance > 0.6 ? darkColor : lightColor;
+}
+
 export function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',

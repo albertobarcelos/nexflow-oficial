@@ -56,6 +56,14 @@ export interface NexflowStepField {
 export type StepFieldValueMap = Record<string, Json | undefined>;
 export type ChecklistProgressMap = Record<string, Json | undefined>;
 
+export interface CardMovementEntry {
+  id: string;
+  fromStepId: string | null;
+  toStepId: string;
+  movedAt: string;
+  movedBy?: string | null;
+}
+
 export interface NexflowCard {
   id: string;
   flowId: string;
@@ -64,6 +72,8 @@ export interface NexflowCard {
   title: string;
   fieldValues: StepFieldValueMap;
   checklistProgress: ChecklistProgressMap;
+  movementHistory: CardMovementEntry[];
+  parentCardId: string | null;
   position: number;
   createdAt: string;
 }
