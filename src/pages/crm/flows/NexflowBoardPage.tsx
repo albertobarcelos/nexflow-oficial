@@ -2,6 +2,7 @@ import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
@@ -30,7 +31,7 @@ import {
   type CardFormValues,
 } from "@/components/crm/flows/CardDetailsModal";
 import { useNexflowFlow, type NexflowStepWithFields } from "@/hooks/useNexflowFlows";
-import { useNexflowCards } from "@/hooks/useNexflowCards";
+import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
 import type {
   CardMovementEntry,
   ChecklistProgressMap,
@@ -55,6 +56,10 @@ export function NexflowBoardPage() {
   const [celebratedCardId, setCelebratedCardId] = useState<string | null>(null);
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Estado de paginação virtual por coluna
+  const VISIBLE_INCREMENT = 10;
+  const [visibleCountPerStep, setVisibleCountPerStep] = useState<Record<string, number>>({});
+
   // Handler para voltar com invalidação de cache
   const handleGoBack = useCallback(() => {
     // Invalida o cache dos flows para forçar refetch ao voltar
@@ -68,9 +73,19 @@ export function NexflowBoardPage() {
     isLoading: isLoadingCards,
     createCard,
     updateCard,
+    deleteCard,
     reorderCards,
-  } = useNexflowCards(id);
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useNexflowCardsInfinite(id);
   const startStep = steps[0] ?? null;
+
+  // Função auxiliar para obter contagem visível de uma etapa
+  const getVisibleCount = useCallback(
+    (stepId: string) => visibleCountPerStep[stepId] ?? VISIBLE_INCREMENT,
+    [visibleCountPerStep]
+  );
 
   useEffect(() => {
     successAudioRef.current = new Audio("/sounds/success.mp3");
@@ -85,6 +100,35 @@ export function NexflowBoardPage() {
     })
   );
 
+  // Cards agrupados por step com informações de paginação
+  const cardsByStepPaginated = useMemo(() => {
+    const result: Record<
+      string,
+      { cards: NexflowCard[]; total: number; hasMore: boolean }
+    > = {};
+
+    // Agrupar cards por step
+    cards.forEach((card) => {
+      if (!result[card.stepId]) {
+        result[card.stepId] = { cards: [], total: 0, hasMore: false };
+      }
+      result[card.stepId].cards.push(card);
+      result[card.stepId].total++;
+    });
+
+    // Ordenar e aplicar limite visível
+    Object.keys(result).forEach((stepId) => {
+      const entry = result[stepId];
+      entry.cards.sort((a, b) => a.position - b.position);
+      const visibleCount = getVisibleCount(stepId);
+      entry.hasMore = entry.total > visibleCount;
+      entry.cards = entry.cards.slice(0, visibleCount);
+    });
+
+    return result;
+  }, [cards, getVisibleCount]);
+
+  // Mantém cardsByStep para compatibilidade com código existente (usa todos os cards)
   const cardsByStep = useMemo(() => {
     const map: Record<string, NexflowCard[]> = {};
     cards.forEach((card) => {
@@ -308,13 +352,21 @@ export function NexflowBoardPage() {
 
     const movingAcrossSteps = targetStepId !== card.stepId;
     if (movingAcrossSteps) {
-      const canMove = handleValidateRequiredFields(card, card.stepId);
-      if (!canMove) {
-        setShakeCardId(card.id);
-        setTimeout(() => {
-          setShakeCardId((current) => (current === card.id ? null : current));
-        }, 650);
-        return;
+      // Verificar se está avançando (targetStepId tem position maior)
+      const currentStepIndex = steps.findIndex((s) => s.id === card.stepId);
+      const targetStepIndex = steps.findIndex((s) => s.id === targetStepId);
+      const isMovingForward = targetStepIndex > currentStepIndex;
+
+      // Só validar campos obrigatórios ao avançar
+      if (isMovingForward) {
+        const canMove = handleValidateRequiredFields(card, card.stepId);
+        if (!canMove) {
+          setShakeCardId(card.id);
+          setTimeout(() => {
+            setShakeCardId((current) => (current === card.id ? null : current));
+          }, 650);
+          return;
+        }
       }
     }
 
@@ -403,6 +455,25 @@ export function NexflowBoardPage() {
     }
   };
 
+  // Handler para carregar mais cards em uma coluna específica
+  const handleLoadMoreForStep = useCallback(
+    (stepId: string) => {
+      const current = visibleCountPerStep[stepId] ?? VISIBLE_INCREMENT;
+      const stepTotal = cardsByStep[stepId]?.length ?? 0;
+
+      // Se mostrar mais revelaria cards ainda não carregados, buscar mais
+      if (current + VISIBLE_INCREMENT > stepTotal && hasNextPage && !isFetchingNextPage) {
+        void fetchNextPage();
+      }
+
+      setVisibleCountPerStep((prev) => ({
+        ...prev,
+        [stepId]: current + VISIBLE_INCREMENT,
+      }));
+    },
+    [visibleCountPerStep, cardsByStep, hasNextPage, isFetchingNextPage, fetchNextPage]
+  );
+
   const isLoadingPage = isLoading || isLoadingCards;
 
   return (
@@ -487,7 +558,10 @@ export function NexflowBoardPage() {
           >
             <div className="flex gap-4 overflow-x-auto pb-8">
               {steps.map((step) => {
-                const columnCards = cardsByStep[step.id] ?? [];
+                const columnData = cardsByStepPaginated[step.id];
+                const columnCards = columnData?.cards ?? [];
+                const totalCards = columnData?.total ?? 0;
+                const hasMore = columnData?.hasMore ?? false;
                 const accentColor = step.color ?? "#2563eb";
                 const headerTextColor = getReadableTextColor(accentColor);
                 const isDarkHeader = headerTextColor.toLowerCase() === "#ffffff";
@@ -496,14 +570,14 @@ export function NexflowBoardPage() {
                 return (
                   <div
                     key={step.id}
-                    className="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-sm"
+                    className="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-0"
                     style={{
                       minHeight: "calc(100vh - 220px)",
                       borderTop: `6px solid ${accentColor}`,
                     }}
                   >
                     <div
-                      className="px-4 py-3"
+                      className="shrink-0 px-4 py-3"
                       style={{
                         backgroundColor: accentColor,
                         color: headerTextColor,
@@ -528,7 +602,9 @@ export function NexflowBoardPage() {
                           </h3>
                         </div>
                         <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs opacity-80">{columnCards.length} cards</span>
+                          <span className="text-xs opacity-80">
+                            {totalCards} {totalCards === 1 ? "card" : "cards"}
+                          </span>
                           {isStartColumn ? (
                             <Button
                               size="sm"
@@ -550,7 +626,7 @@ export function NexflowBoardPage() {
                     </div>
 
                     <div
-                      className="flex-1 overflow-y-auto p-3"
+                      className="flex-1 overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3"
                       style={{ backgroundColor: columnBodyColor }}
                     >
                       <ColumnDropZone stepId={step.id}>
@@ -570,6 +646,24 @@ export function NexflowBoardPage() {
                             />
                           ))}
                         </SortableContext>
+                        {hasMore && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full mt-2 text-xs text-slate-500 hover:text-slate-700"
+                            onClick={() => handleLoadMoreForStep(step.id)}
+                            disabled={isFetchingNextPage}
+                          >
+                            {isFetchingNextPage ? (
+                              <>
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Carregando...
+                              </>
+                            ) : (
+                              `Carregar mais (${totalCards - columnCards.length} restantes)`
+                            )}
+                          </Button>
+                        )}
                       </ColumnDropZone>
                     </div>
                   </div>
@@ -605,6 +699,17 @@ export function NexflowBoardPage() {
         onClose={() => setActiveCard(null)}
         onSave={handleSaveCardFields}
         onMoveNext={handleMoveCardForward}
+        onDelete={async (cardId) => {
+          await deleteCard(cardId);
+          setActiveCard(null); // Fecha o modal após deletar
+        }}
+        onUpdateCard={async (input) => {
+          await updateCard({
+            id: input.id,
+            stepId: input.stepId,
+            movementHistory: input.movementHistory,
+          });
+        }}
         subtaskCount={subtaskCount}
         parentTitle={parentCardTitle}
       />

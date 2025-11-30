@@ -278,6 +278,8 @@ const NewFlowSettings: React.FC = () => {
                     description: stage.description?.trim() || null,
                     color: stage.color || "#6B7280",
                     order_index: idx + 1,
+                    is_final_stage: false,
+                    stage_type: "active" as const,
                 }));
 
                 if (stageInserts.length > 0) {

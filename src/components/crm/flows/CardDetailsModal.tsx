@@ -6,12 +6,13 @@ import { ptBR } from "date-fns/locale";
 import {
   CalendarIcon,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Cloud,
   Loader2,
   Save,
   Sparkles,
-  X,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -26,7 +27,6 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import type { CardMovementEntry, NexflowCard, NexflowStepField } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 
@@ -44,6 +44,12 @@ interface CardDetailsModalProps {
   onClose: () => void;
   onSave: (card: NexflowCard, values: CardFormValues) => Promise<void>;
   onMoveNext: (card: NexflowCard, values: CardFormValues) => Promise<void>;
+  onDelete?: (cardId: string) => Promise<void>;
+  onUpdateCard?: (input: {
+    id: string;
+    stepId?: string;
+    movementHistory?: CardMovementEntry[];
+  }) => Promise<void>;
   subtaskCount: number;
   parentTitle?: string | null;
 }
@@ -54,6 +60,8 @@ export function CardDetailsModal({
   onClose,
   onSave,
   onMoveNext,
+  onDelete,
+  onUpdateCard,
   subtaskCount,
   parentTitle,
 }: CardDetailsModalProps) {
@@ -71,6 +79,13 @@ export function CardDetailsModal({
     const currentIndex = steps.findIndex((step) => step.id === card.stepId);
     if (currentIndex < 0) return null;
     return steps[currentIndex + 1] ?? null;
+  }, [card, steps]);
+
+  const previousStep = useMemo(() => {
+    if (!card) return null;
+    const currentIndex = steps.findIndex((step) => step.id === card.stepId);
+    if (currentIndex <= 0) return null; // Primeira etapa ou não encontrada
+    return steps[currentIndex - 1] ?? null;
   }, [card, steps]);
 
   // Valores iniciais do formulário
@@ -403,6 +418,57 @@ export function CardDetailsModal({
     }
   }, [card, nextStep, isMoveDisabled, isMoving, isDirty, form, onSave, onMoveNext]);
 
+  // Handler para retornar etapa
+  const handleMoveBack = useCallback(async () => {
+    if (!card || !previousStep || isMoving || !onUpdateCard) return;
+    
+    setIsMoving(true);
+    try {
+      const currentValues = form.getValues();
+      if (isDirty) {
+        await onSave(card, currentValues);
+      }
+      // Usar onUpdateCard para mudar stepId
+      await onUpdateCard({
+        id: card.id,
+        stepId: previousStep.id,
+        movementHistory: [
+          ...(card.movementHistory ?? []),
+          {
+            id: crypto.randomUUID?.() ?? `${Date.now()}`,
+            fromStepId: card.stepId,
+            toStepId: previousStep.id,
+            movedAt: new Date().toISOString(),
+            movedBy: null,
+          },
+        ],
+      });
+      onClose(); // Fecha modal após mover
+    } catch (error) {
+      console.error("[MoveBack] Erro:", error);
+    } finally {
+      setIsMoving(false);
+    }
+  }, [card, previousStep, isMoving, isDirty, form, onSave, onUpdateCard, onClose]);
+
+  // Handler para deletar card
+  const handleDelete = useCallback(async () => {
+    if (!card || !onDelete) return;
+    
+    const confirmed = window.confirm(
+      `Tem certeza que deseja deletar o card "${card.title}"? Esta ação não pode ser desfeita.`
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      await onDelete(card.id);
+      onClose();
+    } catch (error) {
+      console.error("[Delete] Erro:", error);
+    }
+  }, [card, onDelete, onClose]);
+
   // Handler para fechar
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -420,7 +486,7 @@ export function CardDetailsModal({
   return (
     <Dialog open={Boolean(card)} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="h-[90vh] max-h-[900px] w-[90vw] max-w-6xl overflow-hidden rounded-3xl border-slate-200 p-0"
+        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-6xl flex-col overflow-hidden rounded-3xl border-slate-200 p-0"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
       >
@@ -491,22 +557,15 @@ export function CardDetailsModal({
                   </motion.div>
                 )}
               </AnimatePresence>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={onClose}
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
           </div>
 
           {/* Content Grid */}
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[0.3fr_0.7fr]">
             {/* Timeline (Esquerda - 30%) */}
-            <div className="flex flex-col overflow-hidden border-b border-slate-100 bg-slate-50/50 md:border-b-0 md:border-r">
-              <div className="shrink-0 px-4 pt-4 md:px-5 md:pt-5">
+            <div className="flex h-full flex-col overflow-hidden border-b border-slate-100 bg-slate-50/50 md:border-b-0 md:border-r">
+              {/* Header Fixo */}
+              <div className="shrink-0 border-b border-slate-100 px-4 py-4 md:px-5">
                 <h3 className="text-sm font-semibold text-slate-800">
                   Histórico de etapas
                 </h3>
@@ -514,7 +573,8 @@ export function CardDetailsModal({
                   Contexto das etapas concluídas
                 </p>
               </div>
-              <ScrollArea className="flex-1 px-4 py-4 md:px-5">
+              {/* Área de Scroll */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5">
                 {timelineSteps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
@@ -596,12 +656,13 @@ export function CardDetailsModal({
                     )}
                   </div>
                 )}
-              </ScrollArea>
+              </div>
             </div>
 
             {/* Formulário (Direita - 70%) */}
-            <div className="flex flex-col overflow-hidden">
-              <ScrollArea className="flex-1 px-4 py-4 md:px-6 md:py-5">
+            <div className="relative flex h-full max-h-full flex-col overflow-hidden bg-white">
+              {/* Área de Scroll */}
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
                 <div className="space-y-5">
                   {/* Título */}
                   <div className="space-y-2">
@@ -640,68 +701,100 @@ export function CardDetailsModal({
                     </div>
                   )}
                 </div>
-              </ScrollArea>
+              </div>
 
               {/* Footer com botões */}
-              <div className="shrink-0 border-t border-slate-100 bg-white px-4 py-3 md:px-6 md:py-4">
+              <div className="z-10 shrink-0 border-t border-slate-100 bg-white px-4 py-3 md:px-6 md:py-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  {/* Botão Salvar */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleSave}
-                    disabled={!isDirty || saveStatus === "saving"}
-                    className={cn(
-                      "gap-2 border-slate-300 transition-all",
-                      isDirty && saveStatus === "idle" && "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                  {/* Lado Esquerdo: Deletar e Salvar */}
+                  <div className="flex items-center gap-2">
+                    {/* Botão Deletar */}
+                    {onDelete && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleDelete}
+                        className="gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Deletar
+                      </Button>
                     )}
-                  >
-                    {saveStatus === "saving" ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4" />
-                        Salvar alterações
-                      </>
-                    )}
-                  </Button>
+                    {/* Botão Salvar */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSave}
+                      disabled={!isDirty || saveStatus === "saving"}
+                      className={cn(
+                        "gap-2 border-slate-300 transition-all",
+                        isDirty && saveStatus === "idle" && "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                      )}
+                    >
+                      {saveStatus === "saving" ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4" />
+                          Salvar alterações
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
-                  {/* Botão Mover */}
-                  <Button
-                    type="button"
-                    onClick={handleMoveNext}
-                    disabled={isMoveDisabled || isMoving || !nextStep}
-                    className={cn(
-                      "gap-2 text-sm font-medium shadow-lg transition-all duration-200",
-                      isMoveDisabled || !nextStep
-                        ? "bg-slate-100 text-slate-400"
-                        : "text-white hover:brightness-110"
+                  {/* Lado Direito: Retornar e Mover */}
+                  <div className="flex items-center gap-2">
+                    {/* Botão Retornar Etapa */}
+                    {previousStep && onUpdateCard && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleMoveBack}
+                        disabled={isMoving || !previousStep}
+                        className="gap-2"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Retornar para {previousStep.title}
+                      </Button>
                     )}
-                    style={
-                      !isMoveDisabled && nextStep
-                        ? {
-                            backgroundColor: nextStep.color ?? currentStep?.color ?? "#3b82f6",
-                          }
-                        : undefined
-                    }
-                  >
-                    {isMoving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Movendo...
-                      </>
-                    ) : nextStep ? (
-                      <>
-                        Mover para {nextStep.title}
-                        <ChevronRight className="h-4 w-4" />
-                      </>
-                    ) : (
-                      "Última etapa"
-                    )}
-                  </Button>
+                    {/* Botão Mover */}
+                    <Button
+                      type="button"
+                      onClick={handleMoveNext}
+                      disabled={isMoveDisabled || isMoving || !nextStep}
+                      className={cn(
+                        "gap-2 text-sm font-medium shadow-lg transition-all duration-200",
+                        isMoveDisabled || !nextStep
+                          ? "bg-slate-100 text-slate-400"
+                          : "text-white hover:brightness-110"
+                      )}
+                      style={
+                        !isMoveDisabled && nextStep
+                          ? {
+                              backgroundColor: nextStep.color ?? currentStep?.color ?? "#3b82f6",
+                            }
+                          : undefined
+                      }
+                    >
+                      {isMoving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Movendo...
+                        </>
+                      ) : nextStep ? (
+                        <>
+                          Mover para {nextStep.title}
+                          <ChevronRight className="h-4 w-4" />
+                        </>
+                      ) : (
+                        "Última etapa"
+                      )}
+                    </Button>
+                  </div>
                 </div>
                 {isMoveDisabled && nextStep && !isMoving && (
                   <p className="mt-2 text-center text-xs text-amber-600 sm:text-right">
