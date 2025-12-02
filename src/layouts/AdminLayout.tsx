@@ -18,31 +18,19 @@ export default function AdminLayout() {
           return;
         }
 
-        // Verificar se o usuário é um administrador do sistema
-        const { data: adminData, error: adminError } = await supabase
-          .from('core_client_users')
-          .select(`
-            id,
-            client_id,
-            first_name,
-            last_name,
-            email,
-            role,
-            is_active
-          `)
-          .eq('id', session.user.id)
-          .eq('role', 'administrator')
-          .eq('is_active', true)
-          .maybeSingle();
+        // Verificar se o usuário é um administrador do sistema usando RPC
+        const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+          "check_admin_access"
+        ) as { data: { allowed: boolean; error?: string; user?: { name: string; surname: string } } | null; error: any };
 
-        if (adminError) {
-          console.error('Erro ao verificar acesso de administrador:', adminError);
+        if (rpcError) {
+          console.error('Erro ao verificar acesso de administrador:', rpcError);
           navigate("/admin/login");
           return;
         }
 
-        if (!adminData) {
-          console.error('Usuário não é um administrador');
+        if (!rpcData || !rpcData.allowed) {
+          console.error('Usuário não é um administrador:', rpcData?.error);
           navigate("/admin/login");
           return;
         }
