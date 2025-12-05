@@ -37,7 +37,8 @@ import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
 
-// Páginas de Admin - Usando placeholders temporários
+// Páginas de Admin
+import Users from "@/pages/admin/Users";
 const AdminDashboard = () => <div>Admin Dashboard - Em desenvolvimento</div>;
 const AdminClients = () => <div>Admin Clients - Em desenvolvimento</div>;
 const AdminResellers = () => <div>Admin Resellers - Em desenvolvimento</div>;
@@ -203,6 +204,10 @@ export const router = createBrowserRouter([
       {
         path: "resellers",
         element: <AdminResellers />,
+      },
+      {
+        path: "users",
+        element: <Users />,
       },
       {
         path: "settings",
