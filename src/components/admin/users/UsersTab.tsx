@@ -1,4 +1,5 @@
-import { useOrganizationUsers } from "@/hooks/useOrganizationUsers";
+import { useState } from "react";
+import { useOrganizationUsers, OrganizationUser } from "@/hooks/useOrganizationUsers";
 import {
   Table,
   TableBody,
@@ -10,8 +11,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { CreateUserDialog } from "./CreateUserDialog";
+import { DeleteUserDialog } from "./DeleteUserDialog";
 
 function getInitials(name: string, surname: string): string {
   const firstInitial = name?.charAt(0).toUpperCase() || "";
@@ -27,16 +31,66 @@ function getAvatarUrl(user: {
 }
 
 export function UsersTab() {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<
+    (OrganizationUser & { clientId?: string; teamId?: string }) | null
+  >(null);
+  const [userToDelete, setUserToDelete] = useState<OrganizationUser | null>(
+    null
+  );
   const { data: users, isLoading, error } = useOrganizationUsers();
 
-  const handleEdit = (userId: string) => {
-    toast.info("Funcionalidade de edição em desenvolvimento");
-    console.log("Editar usuário:", userId);
+  const handleEdit = async (userId: string) => {
+    try {
+      const user = users?.find((u) => u.id === userId);
+      if (!user) {
+        toast.error("Usuário não encontrado");
+        return;
+      }
+
+      // Buscar clientId do usuário
+      const { data: userData, error: userError } = await supabase
+        .from("core_client_users")
+        .select("client_id")
+        .eq("id", userId)
+        .single();
+
+      if (userError) {
+        console.error("Erro ao buscar clientId:", userError);
+        toast.error("Erro ao carregar dados do usuário");
+        return;
+      }
+
+      // Buscar teamId do usuário
+      const { data: teamData, error: teamError } = await (supabase as any)
+        .from("core_team_members")
+        .select("team_id")
+        .eq("user_profile_id", userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (teamError) {
+        console.error("Erro ao buscar teamId:", teamError);
+        // Não é crítico, pode continuar sem teamId
+      }
+
+      // Abrir dialog de edição com dados completos
+      setUserToEdit({
+        ...user,
+        clientId: userData?.client_id,
+        teamId: teamData?.team_id,
+      });
+    } catch (error: any) {
+      console.error("Erro ao preparar edição:", error);
+      toast.error("Erro ao carregar dados do usuário");
+    }
   };
 
   const handleDelete = (userId: string) => {
-    toast.info("Funcionalidade de exclusão em desenvolvimento");
-    console.log("Excluir usuário:", userId);
+    const user = users?.find((u) => u.id === userId);
+    if (user) {
+      setUserToDelete(user);
+    }
   };
 
   if (isLoading) {
@@ -64,8 +118,16 @@ export function UsersTab() {
   }
 
   return (
-    <div className="rounded-lg border bg-white shadow-sm">
-      <Table>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Criar Novo Usuário
+        </Button>
+      </div>
+
+      <div className="rounded-lg border bg-white shadow-sm">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Usuário</TableHead>
@@ -137,6 +199,37 @@ export function UsersTab() {
           })}
         </TableBody>
       </Table>
+      </div>
+
+      <CreateUserDialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreateDialogOpen(open);
+          if (!open) setUserToEdit(null);
+        }}
+      />
+
+      <CreateUserDialog
+        open={!!userToEdit}
+        onOpenChange={(open) => {
+          if (!open) setUserToEdit(null);
+        }}
+        user={userToEdit || undefined}
+        onSuccess={() => {
+          setUserToEdit(null);
+        }}
+      />
+
+      <DeleteUserDialog
+        open={!!userToDelete}
+        onOpenChange={(open) => {
+          if (!open) setUserToDelete(null);
+        }}
+        user={userToDelete || undefined}
+        onSuccess={() => {
+          setUserToDelete(null);
+        }}
+      />
     </div>
   );
 }
