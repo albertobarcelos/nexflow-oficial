@@ -5,9 +5,9 @@ import { CompaniesTab } from "@/components/admin/users/CompaniesTab";
 
 export default function Users() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Gestão de Organização</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Gestão de Organização</h1>
         <p className="text-gray-600 mt-1">
           Gerencie usuários, times e empresas do sistema
         </p>

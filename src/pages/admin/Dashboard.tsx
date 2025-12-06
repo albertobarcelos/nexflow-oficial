@@ -26,10 +26,10 @@ export default function Dashboard() {
     queryFn: async (): Promise<DashboardMetrics> => {
       try {
         const [clientsResult, licensesResult, reportsResult] = await Promise.all([
-          supabase.from('clients').select('*', { count: 'exact', head: true }),
-          supabase.from('licenses').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-          supabase.from('reports').select('*', { count: 'exact', head: true }),
-          supabase.from('licenses').select('status')
+          supabase.from('core_clients').select('*', { count: 'exact', head: true }),
+          supabase.from('core_licenses').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+          supabase.from('core_reports').select('*', { count: 'exact', head: true }),
+          supabase.from('core_licenses').select('status')
         ]);
 
         const distribution = licensesResult.data?.reduce((acc, curr) => {
@@ -75,7 +75,7 @@ export default function Dashboard() {
           queryKey: ['clients'],
           queryFn: async () => {
             const { data } = await supabase
-              .from('clients')
+              .from('core_clients')
               .select('*')
               .order('created_at', { ascending: false });
             return data;
@@ -85,7 +85,7 @@ export default function Dashboard() {
           queryKey: ['reports'],
           queryFn: async () => {
             const { data } = await supabase
-              .from('reports')
+              .from('core_reports')
               .select('*')
               .order('created_at', { ascending: false });
             return data;

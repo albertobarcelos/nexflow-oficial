@@ -126,7 +126,7 @@ export function UsersTab() {
         </Button>
       </div>
 
-      <div className="rounded-lg border bg-white shadow-sm">
+      <div className="rounded-lg border">
         <Table>
         <TableHeader>
           <TableRow>

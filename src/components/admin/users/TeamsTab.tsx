@@ -37,7 +37,7 @@ export function TeamsTab() {
   }
 
   return (
-    <div className="rounded-lg border bg-white shadow-sm">
+    <div className="rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>

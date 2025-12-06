@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -56,17 +55,15 @@ export default function AdminLayout() {
   }, [navigate]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-nex-bg">Carregando...</div>;
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AdminSidebar />
-        <main className="flex-1">
-          <Outlet />
-        </main>
-      </div>
-    </SidebarProvider>
+    <div className="flex min-h-screen bg-nex-bg">
+      <AdminSidebar />
+      <main className="flex-1 ml-64 p-8 bg-nex-bg">
+        <Outlet />
+      </main>
+    </div>
   );
 }

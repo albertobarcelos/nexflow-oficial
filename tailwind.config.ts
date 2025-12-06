@@ -66,6 +66,10 @@ export default {
 					border: "hsl(var(--sidebar-border))",
 					ring: "hsl(var(--sidebar-ring))",
 				},
+				// Cores customizadas NEXPANEL
+				"nex-dark-blue": "#1a2c5b",
+				"nex-orange": "#ff8c00",
+				"nex-bg": "#f8f9fa",
 			},
 			borderRadius: {
 				lg: "var(--radius)",

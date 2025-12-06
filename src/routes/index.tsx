@@ -38,11 +38,11 @@ import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
 
 // Páginas de Admin
-import Users from "@/pages/admin/Users";
-const AdminDashboard = () => <div>Admin Dashboard - Em desenvolvimento</div>;
-const AdminClients = () => <div>Admin Clients - Em desenvolvimento</div>;
+import Management from "@/pages/admin/Management";
+import { AdminDashboard } from "@/pages/admin/AdminDashboard";
+import { AdminClients } from "@/pages/admin/AdminClients";
+import { AdminSettings } from "@/pages/admin/AdminSettings";
 const AdminResellers = () => <div>Admin Resellers - Em desenvolvimento</div>;
-const AdminSettings = () => <div>Admin Settings - Em desenvolvimento</div>;
 
 // Páginas de Revendedor - Usando placeholders temporários  
 const ResellerDashboard = () => <div>Reseller Dashboard - Em desenvolvimento</div>;
@@ -206,8 +206,8 @@ export const router = createBrowserRouter([
         element: <AdminResellers />,
       },
       {
-        path: "users",
-        element: <Users />,
+        path: "management",
+        element: <Management />,
       },
       {
         path: "settings",

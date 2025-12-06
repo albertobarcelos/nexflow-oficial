@@ -1,18 +1,10 @@
 import {
   LayoutDashboard,
   LogOut,
-  Users,
+  Building2,
+  Settings,
+  Briefcase,
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
 import { supabase } from "@/lib/supabase";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -24,10 +16,16 @@ const menuItems = [
     icon: LayoutDashboard,
     url: "/admin/dashboard",
   },
+ 
   {
-    title: "Users",
-    icon: Users,
-    url: "/admin/users",
+    title: "Gestão",
+    icon: Briefcase,
+    url: "/admin/management",
+  },
+  {
+    title: "Configurações",
+    icon: Settings,
+    url: "/admin/settings",
   },
 ];
 
@@ -46,67 +44,46 @@ export function AdminSidebar() {
     }
   };
 
-  const handleDashboardClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    toast.info("Em desenvolvimento");
-    console.log("Dashboard - Em desenvolvimento");
-  };
-
   return (
-    <Sidebar className="bg-slate-900 border-r border-slate-800">
-      <SidebarHeader className="border-b border-slate-800 p-4">
-        <h2 className="text-2xl font-bold text-orange-500">Nexportal</h2>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = location.pathname === item.url;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      className={cn(
-                        "flex items-center gap-2 text-slate-300 hover:text-white hover:bg-slate-800",
-                        isActive && "bg-slate-800 text-orange-500 border-l-2 border-orange-500"
-                      )}
-                    >
-                      {item.url === "/admin/dashboard" ? (
-                        <a
-                          href="#"
-                          onClick={handleDashboardClick}
-                          className="flex items-center gap-2 w-full"
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </a>
-                      ) : (
-                        <Link
-                          to={item.url}
-                          className="flex items-center gap-2"
-                        >
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      )}
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-red-400 hover:text-red-300 hover:bg-slate-800"
+    <aside className="w-64 bg-nex-dark-blue text-white flex flex-col fixed h-full">
+      {/* Logo */}
+      <div className="p-6">
+        <h1 className="text-2xl font-bold tracking-wider">
+          <span className="text-nex-orange">N</span> NEXPANEL
+        </h1>
+      </div>
+
+      {/* Navigation Links */}
+      <nav className="mt-4 flex-1">
+        <ul>
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.url;
+            return (
+              <li key={item.title}>
+                <Link
+                  to={item.url}
+                  className={cn(
+                    "flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200",
+                    isActive && "text-white bg-nex-orange"
+                  )}
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sair</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+                  <item.icon className="h-4 w-4 mr-3" />
+                  {item.title}
+                </Link>
+              </li>
+            );
+          })}
+          <li>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200 w-full text-left"
+            >
+              <LogOut className="h-4 w-4 mr-3" />
+              Sair
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </aside>
   );
 }
