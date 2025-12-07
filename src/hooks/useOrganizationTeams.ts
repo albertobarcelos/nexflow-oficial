@@ -6,6 +6,9 @@ export interface OrganizationTeam {
   name: string;
   description: string | null;
   member_count: number;
+  client_id: string;
+  clientName: string;
+  is_active: boolean;
 }
 
 export function useOrganizationTeams() {
@@ -13,15 +16,23 @@ export function useOrganizationTeams() {
     queryKey: ["organization-teams"],
     queryFn: async () => {
       try {
-        // Buscar todos os times
+        // Buscar todos os times com JOIN em core_clients e filtrar apenas ativos
         // Nota: core_teams pode não estar no schema TypeScript, mas existe no banco
         const { data: teams, error } = await (supabase as any)
           .from("core_teams")
           .select(`
             id,
             name,
-            description
+            description,
+            client_id,
+            is_active,
+            core_clients:client_id (
+              id,
+              name,
+              company_name
+            )
           `)
+          
           .order("name");
 
         if (error) {
@@ -29,7 +40,7 @@ export function useOrganizationTeams() {
           return [];
         }
 
-        // Para cada time, contar os membros
+        // Para cada time, contar os membros e processar dados do cliente
         const teamsWithCount = await Promise.all(
           (teams || []).map(async (team: any) => {
             const { count, error: countError } = await (supabase as any)
@@ -39,19 +50,20 @@ export function useOrganizationTeams() {
 
             if (countError) {
               console.error(`Erro ao contar membros do time ${team.id}:`, countError);
-              return {
-                id: team.id,
-                name: team.name,
-                description: team.description,
-                member_count: 0,
-              };
             }
+
+            // Extrair nome do cliente do JOIN
+            const client = team.core_clients;
+            const clientName = client?.company_name || client?.name || "Cliente não encontrado";
 
             return {
               id: team.id,
               name: team.name,
               description: team.description,
               member_count: count || 0,
+              client_id: team.client_id,
+              clientName: clientName,
+              is_active: team.is_active,
             };
           })
         );
