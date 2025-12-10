@@ -36,6 +36,7 @@ const mapFlowRow = (row: FlowRow): NexflowFlow => ({
   ownerId: row.owner_id,
   clientId: row.client_id,
   createdAt: row.created_at,
+  visibilityType: (row.visibility_type ?? "company") as "company" | "team" | "user",
 });
 
 const mapStepRow = (row: StepRow): NexflowStep => ({
@@ -70,6 +71,7 @@ interface UpdateFlowInput {
   description?: string | null;
   category?: FlowCategory;
   isActive?: boolean;
+  visibilityType?: "company" | "team" | "user";
 }
 
 export function useNexflowFlows() {
@@ -167,6 +169,7 @@ export function useNexflowFlows() {
       description,
       category,
       isActive,
+      visibilityType,
     }: UpdateFlowInput) => {
       const payload: Partial<FlowRow> = {};
 
@@ -175,6 +178,8 @@ export function useNexflowFlows() {
       if (typeof category !== "undefined") payload.category = category;
       if (typeof isActive !== "undefined")
         payload.is_active = isActive ?? true;
+      if (typeof visibilityType !== "undefined")
+        payload.visibility_type = visibilityType;
 
       const { error } = await nexflowClient()
         .from("flows")

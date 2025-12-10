@@ -20,6 +20,7 @@ import type {
   NexflowStepField,
   StepFieldValueMap,
 } from "@/types/nexflow";
+import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 
 export interface StartFormPayload {
   title: string;
@@ -302,6 +303,47 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
             {...register(`fields.${field.id}` as const, {
               required: field.isRequired ? "Campo obrigatório" : false,
             })}
+          />
+          {formState.errors.fields?.[field.id]?.message ? (
+            <p className="text-xs text-red-500">
+              {formState.errors.fields?.[field.id]?.message as string}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    // CPF/CNPJ com máscara
+    if (field.configuration.validation === "cnpj_cpf") {
+      const cnpjCpfType = (field.configuration.cnpjCpfType as "auto" | "cpf" | "cnpj") ?? "auto";
+      const fieldValue = watch(`fields.${field.id}` as const);
+      return (
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-slate-800">
+            {field.label}
+            {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+          </Label>
+          <Input
+            placeholder={(field.configuration.placeholder as string) ?? ""}
+            value={formatCnpjCpf((fieldValue as string) ?? "", cnpjCpfType)}
+            onChange={(e) => {
+              const formatted = formatCnpjCpf(e.target.value, cnpjCpfType);
+              setValue(`fields.${field.id}` as const, formatted, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            onBlur={() => {
+              const value = (fieldValue as string) ?? "";
+              if (value && !validateCnpjCpf(value, cnpjCpfType)) {
+                setError(`fields.${field.id}` as const, {
+                  type: "manual",
+                  message: "CPF/CNPJ inválido",
+                });
+              } else if (!field.isRequired || value) {
+                clearErrors(`fields.${field.id}` as const);
+              }
+            }}
           />
           {formState.errors.fields?.[field.id]?.message ? (
             <p className="text-xs text-red-500">

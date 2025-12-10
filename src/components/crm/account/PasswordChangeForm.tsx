@@ -4,12 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface PasswordChangeFormProps {
-    onChangePassword: (data: { currentPassword?: string; newPassword?: string }) => Promise<void>;
+    onChangePassword: (data: { newPassword?: string }) => Promise<void>;
     isLoading: boolean;
 }
 
 export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onChangePassword, isLoading }) => {
-    const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmNewPassword, setConfirmNewPassword] = useState("");
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -17,9 +16,6 @@ export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onChange
 
     const checkValidity = () => {
         const newErrors: { [key: string]: string } = {};
-        if (!currentPassword) {
-            newErrors.currentPassword = "Senha atual é obrigatória.";
-        }
         if (newPassword.length < 8) {
             newErrors.newPassword = "Nova senha deve ter no mínimo 8 caracteres.";
         }
@@ -34,8 +30,7 @@ export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onChange
         e.preventDefault();
         setSubmitted(true);
         if (checkValidity()) {
-            await onChangePassword({ currentPassword, newPassword });
-            setCurrentPassword("");
+            await onChangePassword({ newPassword });
             setNewPassword("");
             setConfirmNewPassword("");
             setErrors({});
@@ -55,17 +50,6 @@ export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onChange
             </div>
             <form onSubmit={handleSubmit} className="space-y-5 p-3">
                 <div>
-                    <Label htmlFor="current-password">Senha Atual</Label>
-                    <Input
-                        id="current-password"
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        disabled={isLoading}
-                    />
-                    {submitted && errors.currentPassword && <p className="text-sm text-red-500 mt-1">{errors.currentPassword}</p>}
-                </div>
-                <div>
                     <Label htmlFor="new-password">Nova Senha</Label>
                     <Input
                         id="new-password"
@@ -73,6 +57,7 @@ export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onChange
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         disabled={isLoading}
+                        placeholder="Digite sua nova senha"
                     />
                     {submitted && errors.newPassword && <p className="text-sm text-red-500 mt-1">{errors.newPassword}</p>}
                 </div>
@@ -84,6 +69,7 @@ export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onChange
                         value={confirmNewPassword}
                         onChange={(e) => setConfirmNewPassword(e.target.value)}
                         disabled={isLoading}
+                        placeholder="Confirme sua nova senha"
                     />
                     {submitted && errors.confirmNewPassword && (
                         <p className="text-sm text-red-500 mt-1">{errors.confirmNewPassword}</p>

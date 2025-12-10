@@ -31,8 +31,8 @@ export function useAccountProfile() {
       if (data) {
         setUser({
           ...supabaseUser,
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
+          name: data.name || "",
+          surname: data.surname || "",
           avatar_url: data.avatar_url || "",
           avatar_type: data.avatar_type || "toy_face",
           avatar_seed: data.avatar_seed || "1|1",
@@ -86,8 +86,8 @@ export function useAccountProfile() {
 
   const updateUserProfile = useCallback(
     async (
-      newFirstName?: string,
-      newLastName?: string,
+      newName?: string,
+      newSurname?: string,
       newEmail?: string,
       newAvatarUrl?: string | null,
       newAvatarType?: string,
@@ -95,7 +95,7 @@ export function useAccountProfile() {
       newCustomAvatarUrl?: string | null
     ) => {
       console.log("🔄 updateUserProfile iniciado", { 
-        newFirstName, newLastName, newEmail, newAvatarUrl, newAvatarType, newAvatarSeed, newCustomAvatarUrl 
+        newName, newSurname, newEmail, newAvatarUrl, newAvatarType, newAvatarSeed, newCustomAvatarUrl 
       });
       
       if (!user) throw new Error("User not authenticated.");
@@ -108,11 +108,11 @@ export function useAccountProfile() {
       > = {};
       
       // Sempre incluir campos que foram passados, mesmo que sejam iguais
-      if (newFirstName !== undefined) {
-        profileUpdates.first_name = newFirstName;
+      if (newName !== undefined) {
+        profileUpdates.name = newName;
       }
-      if (newLastName !== undefined) {
-        profileUpdates.last_name = newLastName;
+      if (newSurname !== undefined) {
+        profileUpdates.surname = newSurname;
       }
       if (newAvatarUrl !== undefined) {
         profileUpdates.avatar_url = newAvatarUrl;
@@ -167,8 +167,8 @@ export function useAccountProfile() {
             prev
               ? {
                   ...prev,
-                  first_name: profile.first_name || "",
-                  last_name: profile.last_name || "",
+                  name: profile.name || "",
+                  surname: profile.surname || "",
                   avatar_url: profile.avatar_url || null,
                   avatar_type: profile.avatar_type || "toy_face",
                   avatar_seed: profile.avatar_seed || "1|1",
@@ -186,8 +186,8 @@ export function useAccountProfile() {
             prev
               ? {
                   ...prev,
-                  first_name: newFirstName !== undefined ? newFirstName : prev.first_name,
-                  last_name: newLastName !== undefined ? newLastName : prev.last_name,
+                  name: newName !== undefined ? newName : prev.name,
+                  surname: newSurname !== undefined ? newSurname : prev.surname,
                   avatar_url: newAvatarUrl !== undefined ? newAvatarUrl : prev.avatar_url,
                   avatar_type: newAvatarType !== undefined ? newAvatarType : prev.avatar_type,
                   avatar_seed: newAvatarSeed !== undefined ? newAvatarSeed : prev.avatar_seed,

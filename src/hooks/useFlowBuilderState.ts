@@ -13,6 +13,12 @@ import {
   useNexflowStepFields,
 } from "@/hooks/useNexflowStepFields";
 import {
+  useFlowTeamAccess,
+  useFlowUserExclusions,
+  useSaveFlowTeamAccess,
+  useSaveFlowUserExclusions,
+} from "@/hooks/useFlowVisibility";
+import {
   NexflowFlow,
   NexflowStep,
   NexflowStepField,
@@ -23,6 +29,9 @@ export interface FlowDraft {
   name: string;
   description: string;
   isActive: boolean;
+  visibilityType: "company" | "team" | "user";
+  visibleTeamIds: string[];
+  excludedUserIds: string[];
 }
 
 export interface UseFlowBuilderStateReturn {
@@ -133,7 +142,16 @@ export function useFlowBuilderState(
     name: "",
     description: "",
     isActive: true,
+    visibilityType: "company",
+    visibleTeamIds: [],
+    excludedUserIds: [],
   });
+
+  // Visibility hooks
+  const { data: teamAccessIds = [] } = useFlowTeamAccess(flowId);
+  const { data: userExclusionIds = [] } = useFlowUserExclusions(flowId);
+  const saveTeamAccess = useSaveFlowTeamAccess();
+  const saveUserExclusions = useSaveFlowUserExclusions();
 
   useEffect(() => {
     if (flow) {
@@ -141,10 +159,13 @@ export function useFlowBuilderState(
         name: flow.name ?? "",
         description: flow.description ?? "",
         isActive: flow.isActive,
+        visibilityType: flow.visibilityType ?? "company",
+        visibleTeamIds: teamAccessIds,
+        excludedUserIds: userExclusionIds,
       });
       setHasLocalChanges(false);
     }
-  }, [flow?.id, flow?.name, flow?.description, flow?.isActive]);
+  }, [flow?.id, flow?.name, flow?.description, flow?.isActive, flow?.visibilityType, teamAccessIds, userExclusionIds]);
 
   const { updateFlow } = useNexflowFlows();
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
@@ -409,12 +430,27 @@ export function useFlowBuilderState(
     const toastId = toast.loading("Salvando alterações...");
     try {
       await waitForPendingMutations();
+      
+      // Save flow with visibility type
       await updateFlow({
         id: flowId,
         name: flowDraft.name.trim(),
         description: flowDraft.description.trim() || null,
         isActive: flowDraft.isActive,
+        visibilityType: flowDraft.visibilityType,
       });
+
+      // Save team access and user exclusions
+      await saveTeamAccess.mutateAsync({
+        flowId,
+        teamIds: flowDraft.visibleTeamIds,
+      });
+      
+      await saveUserExclusions.mutateAsync({
+        flowId,
+        userIds: flowDraft.excludedUserIds,
+      });
+
       setHasLocalChanges(false);
       toast.success("Flow salvo com sucesso!", { id: toastId });
     } catch (error) {
@@ -423,19 +459,30 @@ export function useFlowBuilderState(
     } finally {
       setIsSaving(false);
     }
-  }, [flowDraft, flowId, updateFlow, waitForPendingMutations]);
+  }, [flowDraft, flowId, updateFlow, waitForPendingMutations, saveTeamAccess, saveUserExclusions]);
 
   const isDirty = useMemo(() => {
     if (!flow) {
       return false;
     }
 
+    const teamIdsChanged = 
+      JSON.stringify([...teamAccessIds].sort()) !== 
+      JSON.stringify([...flowDraft.visibleTeamIds].sort());
+    
+    const excludedIdsChanged = 
+      JSON.stringify([...userExclusionIds].sort()) !== 
+      JSON.stringify([...flowDraft.excludedUserIds].sort());
+
     return (
       flow.name !== flowDraft.name ||
       (flow.description ?? "") !== (flowDraft.description ?? "") ||
-      flow.isActive !== flowDraft.isActive
+      flow.isActive !== flowDraft.isActive ||
+      (flow.visibilityType ?? "company") !== flowDraft.visibilityType ||
+      teamIdsChanged ||
+      excludedIdsChanged
     );
-  }, [flow, flowDraft]);
+  }, [flow, flowDraft, teamAccessIds, userExclusionIds]);
 
   return {
     flow,

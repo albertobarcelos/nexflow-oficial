@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 
 interface UserAvatarProps {
   user?: {
-    first_name?: string;
-    last_name?: string;
+    name?: string;
+    surname?: string;
+    first_name?: string; // Compatibilidade com código antigo
+    last_name?: string; // Compatibilidade com código antigo
     avatar_type?: string;
     avatar_seed?: string;
     custom_avatar_url?: string | null;
@@ -46,8 +48,9 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   const getFallbackText = () => {
     if (fallbackText) return fallbackText;
     
-    const firstName = user?.first_name || "";
-    const lastName = user?.last_name || "";
+    // Usar name/surname primeiro, depois first_name/last_name para compatibilidade
+    const firstName = user?.name || user?.first_name || "";
+    const lastName = user?.surname || user?.last_name || "";
     
     if (firstName && lastName) {
       return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -89,7 +92,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       {avatarUrlWithTimestamp && (
         <AvatarImage 
           src={avatarUrlWithTimestamp} 
-          alt={`${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Avatar"}
+          alt={`${user?.name || user?.first_name || ""} ${user?.surname || user?.last_name || ""}`.trim() || "Avatar"}
         />
       )}
       <AvatarFallback className="bg-primary/10 text-primary font-medium">

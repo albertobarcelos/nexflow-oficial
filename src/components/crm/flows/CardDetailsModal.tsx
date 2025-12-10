@@ -29,6 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { CardMovementEntry, NexflowCard, NexflowStepField } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
+import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 
 export interface CardFormValues {
   title: string;
@@ -353,6 +354,50 @@ export function CardDetailsModal({
             className="resize-none"
             {...form.register(`fields.${field.id}`)}
           />
+        </div>
+      );
+    }
+
+    // CPF/CNPJ com máscara
+    if (field.configuration.validation === "cnpj_cpf") {
+      const cnpjCpfType = (field.configuration.cnpjCpfType as "auto" | "cpf" | "cnpj") ?? "auto";
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+            {field.isRequired && (
+              <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+                Obrigatório
+              </span>
+            )}
+          </div>
+          <Input
+            placeholder={(field.configuration.placeholder as string) ?? ""}
+            value={formatCnpjCpf((watchFields[field.id] as string) ?? "", cnpjCpfType)}
+            onChange={(e) => {
+              const formatted = formatCnpjCpf(e.target.value, cnpjCpfType);
+              form.setValue(`fields.${field.id}`, formatted, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            onBlur={() => {
+              const value = (watchFields[field.id] as string) ?? "";
+              if (value && !validateCnpjCpf(value, cnpjCpfType)) {
+                form.setError(`fields.${field.id}`, {
+                  type: "manual",
+                  message: "CPF/CNPJ inválido",
+                });
+              } else {
+                form.clearErrors(`fields.${field.id}`);
+              }
+            }}
+          />
+          {form.formState.errors.fields?.[field.id] && (
+            <p className="text-xs text-red-500">
+              {form.formState.errors.fields?.[field.id]?.message as string}
+            </p>
+          )}
         </div>
       );
     }

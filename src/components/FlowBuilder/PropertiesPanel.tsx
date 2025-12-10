@@ -17,6 +17,7 @@ import {
   toFieldFormValues,
 } from "./types";
 import { Separator } from "@/components/ui/separator";
+import { VisibilitySelector } from "./VisibilitySelector";
 
 interface PropertiesPanelProps {
   flowDraft: FlowDraft;
@@ -156,7 +157,7 @@ function GeneralPropertiesContent({
         <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
           <div>
             <Label className="text-sm font-semibold text-slate-900">
-              Visibilidade
+              Flow Ativo
             </Label>
             <p className="text-xs text-slate-500">
               Defina se o flow está ativo para os times.
@@ -176,6 +177,21 @@ function GeneralPropertiesContent({
             )}
           />
         </div>
+
+        {/* Visibility Selector */}
+        <VisibilitySelector
+          value={{
+            visibilityType: generalForm.watch("visibilityType"),
+            visibleTeamIds: generalForm.watch("visibleTeamIds"),
+            excludedUserIds: generalForm.watch("excludedUserIds"),
+          }}
+          onChange={(config) => {
+            generalForm.setValue("visibilityType", config.visibilityType);
+            generalForm.setValue("visibleTeamIds", config.visibleTeamIds);
+            generalForm.setValue("excludedUserIds", config.excludedUserIds);
+            onFlowDraftChange(config);
+          }}
+        />
       </div>
     </div>
   );

@@ -31,8 +31,8 @@ export default function AccountProfilePage() {
     const tabTransition = "transition-all duration-300 ease-in-out animate-slide-fade";
 
     const handleProfileSave = async (data: { 
-        first_name?: string; 
-        last_name?: string; 
+        name?: string; 
+        surname?: string; 
         email?: string; 
         avatar_file?: File | null;
         avatar_seed?: string | null;
@@ -68,8 +68,8 @@ export default function AccountProfilePage() {
             }
 
             console.log("💾 Atualizando perfil no banco...", {
-                first_name: data.first_name,
-                last_name: data.last_name,
+                name: data.name,
+                surname: data.surname,
                 email: data.email,
                 finalAvatarUrl,
                 avatar_type: data.avatar_type,
@@ -78,8 +78,8 @@ export default function AccountProfilePage() {
             });
 
             await updateUserProfile(
-                data.first_name,
-                data.last_name,
+                data.name,
+                data.surname,
                 data.email,
                 finalAvatarUrl,
                 data.avatar_type,
@@ -106,10 +106,10 @@ export default function AccountProfilePage() {
         }
     };
 
-    const handlePasswordChange = async (data: { currentPassword?: string; newPassword?: string }) => {
+    const handlePasswordChange = async (data: { newPassword?: string }) => {
         setIsChangingPassword(true);
         try {
-            await changeUserPassword(data.currentPassword || "", data.newPassword || "");
+            await changeUserPassword("", data.newPassword || "");
             toast({
                 title: "Sucesso!",
                 description: "Sua senha foi alterada.",
@@ -117,7 +117,7 @@ export default function AccountProfilePage() {
         } catch (error: unknown) {
             toast({
                 title: "Erro",
-                description: `Falha ao alterar a senha: ${(error as Error).message || "Verifique sua senha atual e tente novamente."}`,
+                description: `Falha ao alterar a senha: ${(error as Error).message || "Tente novamente."}`,
                 variant: "destructive",
             });
             console.error("Password change error:", error);
