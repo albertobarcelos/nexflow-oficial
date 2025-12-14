@@ -27,15 +27,15 @@ export function FlowSidebar() {
                   "hover:bg-slate-50",
                   "before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-6 before:w-[2px]",
                   "before:bg-primary before:transition-all",
-                  isActive(`/crm/flow/${flow.id}`)
+                  isActive(`/crm/flows/${flow.id}/board`)
                     ? "bg-slate-50 before:opacity-100"
                     : "before:opacity-0 hover:before:opacity-50"
                 )}
-                onClick={() => navigate(`/crm/flow/${flow.id}`)}
+                onClick={() => navigate(`/crm/flows/${flow.id}/board`)}
               >
                 <div className={cn(
                   "w-8 h-8 rounded-lg flex items-center justify-center font-medium text-sm transition-all",
-                  isActive(`/crm/flow/${flow.id}`)
+                  isActive(`/crm/flows/${flow.id}/board`)
                     ? "bg-primary text-white shadow-sm"
                     : "bg-slate-100 text-slate-600 group-hover:bg-slate-200"
                 )}>

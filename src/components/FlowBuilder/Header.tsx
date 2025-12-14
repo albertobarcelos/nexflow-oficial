@@ -195,7 +195,7 @@ export function FlowBuilderHeader({
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="ml-2 hidden rounded-full p-1 text-slate-400 hover:bg-white hover:text-slate-600 group-hover:flex"
+                        className="ml-2 flex rounded-full p-1 text-slate-400 hover:bg-white hover:text-slate-600"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MoreVertical className="h-4 w-4" />

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { User, Phone, Mail, Building2, Calendar, DollarSign } from "lucide-react";
 
-// Use the same type as in FlowPage
+// Tipo para deal mock (usado em dialogs)
 interface MockDeal {
     id: string;
     title: string;

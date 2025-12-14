@@ -308,7 +308,7 @@ const NewFlowSettings: React.FC = () => {
 
             toast.success("Flow criado com sucesso!");
             resetFlow();
-            navigate(`/crm/flow/${flow.id}`);
+            navigate(`/crm/flows/${flow.id}/board`);
         } catch (err: unknown) {
             // Tratamento detalhado de erros
             let errorMessage = "Erro ao salvar flow";

@@ -1,5 +1,5 @@
 // AIDEV-NOTE: EntityTemplates removido - sistema simplificado sem entidades dinâmicas
-import { ConfigurationDropdown } from "@/components/crm/flows/ConfigurationDropdown";
+// AIDEV-NOTE: ConfigurationDropdown removido - cards de flows antigos removidos
 // AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado sem entidades dinâmicas
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -14,12 +14,7 @@ type UserData = {
     client_id: string;
 };
 
-type Flow = {
-    id: string;
-    name: string;
-    description: string | null;
-};
-
+// AIDEV-NOTE: Tipo Flow removido - cards antigos removidos
 type Entity = {
     id: string;
     name: string;
@@ -67,22 +62,7 @@ export function Home() {
         queryFn: getCurrentUserData,
     });
 
-    const { data: flows } = useQuery<Flow[]>({
-        queryKey: ["flows", user?.client_id],
-        queryFn: async () => {
-            if (!user?.client_id) return [];
-            const { data, error } = await supabase
-                .from('web_flows')
-                .select('id, name, description')
-                .eq('client_id', user.client_id)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            return data;
-        },
-        enabled: !!user?.client_id
-    });
-
+    // AIDEV-NOTE: Query de flows removida - cards antigos removidos do dashboard
     // AIDEV-NOTE: Entidades dinâmicas removidas - sistema simplificado
     // Agora focamos apenas em Companies, People e Deals fixos
     const entities: Entity[] = [];
@@ -114,47 +94,6 @@ export function Home() {
                 </div>
 
                 <div className="space-y-6 md:space-y-8">
-                    <div>
-                        <div className="flex items-center gap-2 mb-4">
-                            <h2 className="text-base md:text-lg font-medium">Flows</h2>
-                            <Info className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                            <div
-                                onClick={() => navigate("/crm/flows/new")}
-                                className="border border-orange-500 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-pointer hover:bg-orange-50/50 min-h-[100px] md:min-h-[120px]"
-                            >
-                                <Plus className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
-                                <span className="text-orange-500 text-xs md:text-sm text-center">Criar Flow</span>
-                            </div>
-                            {flows?.map((flow) => (
-                                <div
-                                    key={flow.id}
-                                    className="bg-[#F1F3F9] rounded-xl p-4 md:p-6 cursor-pointer hover:bg-[#E9EBF1] min-h-[100px] md:min-h-[120px] relative group"
-                                >
-                                    <div
-                                        className="space-y-1 md:space-y-2 h-full"
-                                        onClick={() => navigate(`/crm/flow/${flow.id}`)}
-                                    >
-                                        <h3 className="text-xs md:text-sm font-medium line-clamp-2">{flow.name}</h3>
-                                        <p className="text-xs text-gray-500 line-clamp-2 hidden sm:block">{flow.description || 'Sem descrição'}</p>
-                                    </div>
-
-                                    {/* Botão de configuração */}
-                                    <div
-                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <ConfigurationDropdown
-                                            flowId={flow.id}
-                                            flowName={flow.name}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     <div>
                         <div className="flex items-center gap-2 mb-4">
                             <h2 className="text-base md:text-lg font-medium">Bases de Dados</h2>

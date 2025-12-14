@@ -154,30 +154,6 @@ function GeneralPropertiesContent({
             placeholder="Explique rapidamente o objetivo deste fluxo."
           />
         </div>
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
-          <div>
-            <Label className="text-sm font-semibold text-slate-900">
-              Flow Ativo
-            </Label>
-            <p className="text-xs text-slate-500">
-              Defina se o flow está ativo para os times.
-            </p>
-          </div>
-          <Controller
-            control={generalForm.control}
-            name="isActive"
-            render={({ field }) => (
-              <Switch
-                checked={field.value}
-                onCheckedChange={(value) => {
-                  field.onChange(value);
-                  onFlowDraftChange({ isActive: value });
-                }}
-              />
-            )}
-          />
-        </div>
-
         {/* Visibility Selector */}
         <VisibilitySelector
           value={{

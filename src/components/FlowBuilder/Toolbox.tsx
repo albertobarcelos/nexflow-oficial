@@ -45,22 +45,13 @@ interface ToolboxProps {
 export function Toolbox({ definitions, onAdd }: ToolboxProps) {
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Tipos de Campo
-          </p>
-          <p className="text-xs text-slate-400">
-            Arraste um componente para o formulário
-          </p>
-        </div>
-        <Button
-          className="bg-orange-500 text-white hover:bg-orange-600"
-          disabled={!definitions.length}
-          onClick={() => definitions[0] && onAdd(definitions[0].id)}
-        >
-          Novo Campo
-        </Button>
+      <div>
+        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+          Tipos de Campo
+        </p>
+        <p className="text-xs text-slate-400 mt-1">
+          Arraste um componente para o formulário
+        </p>
       </div>
 
       <div className="mt-6 space-y-3">

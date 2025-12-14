@@ -11,7 +11,7 @@ import { CompanySelector } from "./CompanySelector";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import { useAuth } from "@/hooks/useAuth";
 import type { CompanyWithRelations } from "@/features/companies/hooks/useCompanies";
-import type { MockDeal } from "./DealViewDialog";
+import type { MockDeal } from "@/types/deals";
 
 // Client Info Card Component: Displays core client information and allows for inline editing of related links and company.
 export function ClientInfoCard({ deal }: { deal: MockDeal }) {

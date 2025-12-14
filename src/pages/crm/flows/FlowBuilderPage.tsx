@@ -20,7 +20,7 @@ export function FlowBuilderPage() {
   const handleFlowCreated = (flow: any) => {
     toast.success(`Flow "${flow.name}" criado com sucesso!`);
     // Redireciona para a página do flow criado
-    navigate(`/crm/flow/${flow.id}`);
+    navigate(`/crm/flows/${flow.id}/board`);
   };
 
   return (

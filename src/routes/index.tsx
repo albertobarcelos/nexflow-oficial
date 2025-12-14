@@ -10,7 +10,6 @@ import { ResetPasswordPage } from "@/pages/auth/crm/ResetPasswordPage";
 import { LoginPage as AdminLoginPage } from "@/pages/auth/admin/LoginPage";
 import { LoginPage as ResellerLoginPage } from "@/pages/auth/reseller/LoginPage";
 import { Dashboard } from "@/pages/crm/Dashboard";
-import FlowPage from "@/pages/crm/funnels/FlowPage";
 import { FlowBuilderPage } from "@/pages/crm/flows/FlowBuilderPage";
 import { NewNexflowPage } from "@/pages/crm/flows/NewNexflowPage";
 import { NexflowBuilderPage } from "@/pages/crm/flows/NexflowBuilderPage";
@@ -85,10 +84,6 @@ export const router = createBrowserRouter([
       {
         path: "dashboard",
         element: <Home />,
-      },
-      {
-        path: "flow/:id",
-        element: <FlowPage />,
       },
       {
         path: "flows",
