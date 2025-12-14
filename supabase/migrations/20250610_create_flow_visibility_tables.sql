@@ -44,3 +44,5 @@ COMMENT ON TABLE nexflow.flow_team_access IS 'Times que têm acesso a um flow es
 COMMENT ON TABLE nexflow.flow_user_exclusions IS 'Usuários explicitamente excluídos de um flow';
 COMMENT ON COLUMN nexflow.flows.visibility_type IS 'Tipo de visibilidade: company (todos da empresa), team (por time), user (time com exclusões)';
 
+
+

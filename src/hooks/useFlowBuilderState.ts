@@ -13,10 +13,8 @@ import {
   useNexflowStepFields,
 } from "@/hooks/useNexflowStepFields";
 import {
-  useFlowTeamAccess,
-  useFlowUserExclusions,
-  useSaveFlowTeamAccess,
-  useSaveFlowUserExclusions,
+  useFlowVisibilityData,
+  useUpdateFlowVisibility,
 } from "@/hooks/useFlowVisibility";
 import {
   NexflowFlow,
@@ -147,25 +145,25 @@ export function useFlowBuilderState(
     excludedUserIds: [],
   });
 
-  // Visibility hooks
-  const { data: teamAccessIds = [] } = useFlowTeamAccess(flowId);
-  const { data: userExclusionIds = [] } = useFlowUserExclusions(flowId);
-  const saveTeamAccess = useSaveFlowTeamAccess();
-  const saveUserExclusions = useSaveFlowUserExclusions();
+  // Visibility hooks - usando hook unificado que busca via Edge Function
+  const { data: visibilityData } = useFlowVisibilityData(flowId);
+  const updateFlowVisibility = useUpdateFlowVisibility();
 
   useEffect(() => {
-    if (flow) {
+    if (flow && visibilityData) {
+      // Espera carregar os dados da edge function
       setFlowDraft({
         name: flow.name ?? "",
         description: flow.description ?? "",
         isActive: flow.isActive,
-        visibilityType: flow.visibilityType ?? "company",
-        visibleTeamIds: teamAccessIds,
-        excludedUserIds: userExclusionIds,
+        // Usa os dados que vieram da Edge Function, não do objeto flow antigo
+        visibilityType: visibilityData.visibilityType as "company" | "team" | "user",
+        visibleTeamIds: visibilityData.teamIds,
+        excludedUserIds: visibilityData.excludedUserIds,
       });
       setHasLocalChanges(false);
     }
-  }, [flow?.id, flow?.name, flow?.description, flow?.isActive, flow?.visibilityType, teamAccessIds, userExclusionIds]);
+  }, [flow, visibilityData]);
 
   const { updateFlow } = useNexflowFlows();
   const [hasLocalChanges, setHasLocalChanges] = useState(false);
@@ -440,15 +438,13 @@ export function useFlowBuilderState(
         visibilityType: flowDraft.visibilityType,
       });
 
-      // Save team access and user exclusions
-      await saveTeamAccess.mutateAsync({
-        flowId,
+      // Atualizar visibilidade usando Edge Function
+      // O hook já faz o mapeamento de "user" para "user_exclusion" internamente
+      await updateFlowVisibility.mutateAsync({
+        flowId: flowId,
+        visibilityType: flowDraft.visibilityType, // O hook mapeia "user" -> "user_exclusion"
         teamIds: flowDraft.visibleTeamIds,
-      });
-      
-      await saveUserExclusions.mutateAsync({
-        flowId,
-        userIds: flowDraft.excludedUserIds,
+        excludedUserIds: flowDraft.excludedUserIds,
       });
 
       setHasLocalChanges(false);
@@ -459,30 +455,36 @@ export function useFlowBuilderState(
     } finally {
       setIsSaving(false);
     }
-  }, [flowDraft, flowId, updateFlow, waitForPendingMutations, saveTeamAccess, saveUserExclusions]);
+  }, [
+    flowDraft,
+    flowId,
+    updateFlow,
+    waitForPendingMutations,
+    updateFlowVisibility,
+  ]);
 
   const isDirty = useMemo(() => {
-    if (!flow) {
+    if (!flow || !visibilityData) {
       return false;
     }
 
     const teamIdsChanged = 
-      JSON.stringify([...teamAccessIds].sort()) !== 
+      JSON.stringify([...visibilityData.teamIds].sort()) !== 
       JSON.stringify([...flowDraft.visibleTeamIds].sort());
     
     const excludedIdsChanged = 
-      JSON.stringify([...userExclusionIds].sort()) !== 
+      JSON.stringify([...visibilityData.excludedUserIds].sort()) !== 
       JSON.stringify([...flowDraft.excludedUserIds].sort());
 
     return (
       flow.name !== flowDraft.name ||
       (flow.description ?? "") !== (flowDraft.description ?? "") ||
       flow.isActive !== flowDraft.isActive ||
-      (flow.visibilityType ?? "company") !== flowDraft.visibilityType ||
+      visibilityData.visibilityType !== flowDraft.visibilityType ||
       teamIdsChanged ||
       excludedIdsChanged
     );
-  }, [flow, flowDraft, teamAccessIds, userExclusionIds]);
+  }, [flow, flowDraft, visibilityData]);
 
   return {
     flow,

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { useUsers } from "@/hooks/useUsers";
 import { getCurrentUserData } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 
 export type VisibilityType = "company" | "team" | "user";
@@ -24,6 +25,16 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
   const { data: teams = [], isLoading: isLoadingTeams } = useOrganizationTeams();
   const { data: allUsers = [], isLoading: isLoadingUsers } = useUsers();
   const [userClientId, setUserClientId] = useState<string | null>(null);
+  const [protectedUserIds, setProtectedUserIds] = useState<string[]>([]);
+  const [isLoadingProtectedUsers, setIsLoadingProtectedUsers] = useState(false);
+  const hasCleanedProtectedUsers = useRef(false);
+
+  // Garantir que os valores sempre sejam válidos
+  const safeValue: VisibilityConfig = {
+    visibilityType: value?.visibilityType || "company",
+    visibleTeamIds: Array.isArray(value?.visibleTeamIds) ? value.visibleTeamIds : [],
+    excludedUserIds: Array.isArray(value?.excludedUserIds) ? value.excludedUserIds : [],
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -35,47 +46,115 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
     fetchUserData();
   }, []);
 
+  // Buscar usuários protegidos (administrators e admins de time)
+  useEffect(() => {
+    const fetchProtectedUsers = async () => {
+      if (!userClientId) return;
+
+      setIsLoadingProtectedUsers(true);
+      try {
+        // Buscar administrators
+        const { data: administrators } = await supabase
+          .from("core_client_users")
+          .select("id")
+          .eq("client_id", userClientId)
+          .eq("role", "administrator")
+          .eq("is_active", true);
+
+        const adminIds = administrators?.map((a) => a.id) || [];
+
+        // Buscar admins de time
+        const { data: teamAdmins } = await (supabase as any)
+          .from("core_team_members")
+          .select("user_profile_id")
+          .eq("role", "admin");
+
+        const teamAdminIds = teamAdmins?.map((ta: any) => ta.user_profile_id) || [];
+
+        // Combinar IDs protegidos
+        const protectedIds = [...new Set([...adminIds, ...teamAdminIds])];
+        setProtectedUserIds(protectedIds);
+      } catch (error) {
+        console.error("Erro ao buscar usuários protegidos:", error);
+      } finally {
+        setIsLoadingProtectedUsers(false);
+      }
+    };
+
+    fetchProtectedUsers();
+  }, [userClientId]);
+
   // Filter teams by current user's client
   const availableTeams = teams.filter(
     (team) => (!userClientId || team.client_id === userClientId) && team.is_active
   );
 
   // Filter users by current user's client
-  const availableUsers = allUsers.filter(
+  const allAvailableUsers = allUsers.filter(
     (user) => user.is_active && (!userClientId || user.client_id === userClientId)
   );
+
+  // Filtrar usuários excluíveis (remover administrators e admins de time)
+  const availableUsers = useMemo(() => {
+    return allAvailableUsers.filter((user) => !protectedUserIds.includes(user.id));
+  }, [allAvailableUsers, protectedUserIds]);
+
+  // Remover usuários protegidos da lista de exclusão atual (apenas uma vez)
+  useEffect(() => {
+    if (
+      !hasCleanedProtectedUsers.current &&
+      protectedUserIds.length > 0 &&
+      safeValue.excludedUserIds.length > 0
+    ) {
+      const hasProtectedUsers = safeValue.excludedUserIds.some((id) =>
+        protectedUserIds.includes(id)
+      );
+
+      if (hasProtectedUsers) {
+        const filteredExcluded = safeValue.excludedUserIds.filter(
+          (id) => !protectedUserIds.includes(id)
+        );
+        onChange({
+          ...safeValue,
+          excludedUserIds: filteredExcluded,
+        });
+        hasCleanedProtectedUsers.current = true;
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [protectedUserIds]);
 
   const handleVisibilityTypeChange = (newType: VisibilityType) => {
     onChange({
       visibilityType: newType,
-      visibleTeamIds: newType === "company" ? [] : value.visibleTeamIds,
-      excludedUserIds: newType === "company" || newType === "team" ? [] : value.excludedUserIds,
+      visibleTeamIds: newType === "company" ? [] : safeValue.visibleTeamIds,
+      excludedUserIds: newType === "company" || newType === "team" ? [] : safeValue.excludedUserIds,
     });
   };
 
   const handleTeamToggle = (teamId: string, checked: boolean) => {
     const newVisibleTeamIds = checked
-      ? [...value.visibleTeamIds, teamId]
-      : value.visibleTeamIds.filter((id) => id !== teamId);
+      ? [...safeValue.visibleTeamIds, teamId]
+      : safeValue.visibleTeamIds.filter((id) => id !== teamId);
     
     onChange({
-      ...value,
+      ...safeValue,
       visibleTeamIds: newVisibleTeamIds,
     });
   };
 
   const handleUserExclusionToggle = (userId: string, checked: boolean) => {
     const newExcludedUserIds = checked
-      ? [...value.excludedUserIds, userId]
-      : value.excludedUserIds.filter((id) => id !== userId);
+      ? [...safeValue.excludedUserIds, userId]
+      : safeValue.excludedUserIds.filter((id) => id !== userId);
     
     onChange({
-      ...value,
+      ...safeValue,
       excludedUserIds: newExcludedUserIds,
     });
   };
 
-  const isLoading = isLoadingTeams || isLoadingUsers;
+  const isLoading = isLoadingTeams || isLoadingUsers || isLoadingProtectedUsers;
 
   return (
     <div className="space-y-4 rounded-xl border border-slate-200 p-4">
@@ -87,40 +166,49 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
       </div>
 
       <RadioGroup
-        value={value.visibilityType}
+        value={safeValue.visibilityType}
         onValueChange={(val) => handleVisibilityTypeChange(val as VisibilityType)}
         className="space-y-2"
       >
-        <div className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50">
+        <div
+          className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer"
+          onClick={() => handleVisibilityTypeChange("company")}
+        >
           <RadioGroupItem value="company" id="visibility-company" className="mt-0.5" />
           <div className="flex-1">
-            <Label htmlFor="visibility-company" className="cursor-pointer text-sm font-medium">
+            <div className="text-sm font-medium">
               Todos os usuários da empresa
-            </Label>
+            </div>
             <p className="text-xs text-slate-500">
               Todos os colaboradores da empresa podem ver este flow.
             </p>
           </div>
         </div>
 
-        <div className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50">
+        <div
+          className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer"
+          onClick={() => handleVisibilityTypeChange("team")}
+        >
           <RadioGroupItem value="team" id="visibility-team" className="mt-0.5" />
           <div className="flex-1">
-            <Label htmlFor="visibility-team" className="cursor-pointer text-sm font-medium">
+            <div className="text-sm font-medium">
               Por time
-            </Label>
+            </div>
             <p className="text-xs text-slate-500">
               Apenas membros dos times selecionados podem ver.
             </p>
           </div>
         </div>
 
-        <div className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50">
+        <div
+          className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer"
+          onClick={() => handleVisibilityTypeChange("user")}
+        >
           <RadioGroupItem value="user" id="visibility-user" className="mt-0.5" />
           <div className="flex-1">
-            <Label htmlFor="visibility-user" className="cursor-pointer text-sm font-medium">
+            <div className="text-sm font-medium">
               Por usuário (com exclusão)
-            </Label>
+            </div>
             <p className="text-xs text-slate-500">
               Selecione times e exclua usuários específicos.
             </p>
@@ -129,7 +217,7 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
       </RadioGroup>
 
       {/* Team selection for "team" and "user" visibility types */}
-      {(value.visibilityType === "team" || value.visibilityType === "user") && (
+      {(safeValue.visibilityType === "team" || safeValue.visibilityType === "user") && (
         <div className="space-y-2 rounded-lg bg-slate-50 p-3">
           <Label className="text-xs font-medium uppercase tracking-wide text-slate-500">
             Selecionar Times
@@ -149,7 +237,7 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
                   className="flex cursor-pointer items-center gap-2 rounded-md p-2 text-sm hover:bg-white"
                 >
                   <Checkbox
-                    checked={value.visibleTeamIds.includes(team.id)}
+                    checked={safeValue.visibleTeamIds.includes(team.id)}
                     onCheckedChange={(checked) =>
                       handleTeamToggle(team.id, checked === true)
                     }
@@ -166,7 +254,7 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
       )}
 
       {/* User exclusion for "user" visibility type */}
-      {value.visibilityType === "user" && value.visibleTeamIds.length > 0 && (
+      {safeValue.visibilityType === "user" && safeValue.visibleTeamIds.length > 0 && (
         <div className="space-y-2 rounded-lg bg-amber-50 p-3">
           <Label className="text-xs font-medium uppercase tracking-wide text-amber-700">
             Excluir Usuários (opcional)
@@ -180,7 +268,11 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
               Carregando usuários...
             </div>
           ) : availableUsers.length === 0 ? (
-            <p className="text-xs text-amber-600">Nenhum usuário disponível.</p>
+            <p className="text-xs text-amber-600">
+              {allAvailableUsers.length === 0
+                ? "Nenhum usuário disponível."
+                : "Todos os usuários disponíveis são administrators ou admins de time e não podem ser excluídos."}
+            </p>
           ) : (
             <div className="max-h-40 space-y-2 overflow-y-auto">
               {availableUsers.map((user) => (
@@ -189,7 +281,7 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
                   className="flex cursor-pointer items-center gap-2 rounded-md bg-white p-2 text-sm hover:bg-amber-100"
                 >
                   <Checkbox
-                    checked={value.excludedUserIds.includes(user.id)}
+                    checked={safeValue.excludedUserIds.includes(user.id)}
                     onCheckedChange={(checked) =>
                       handleUserExclusionToggle(user.id, checked === true)
                     }
@@ -200,6 +292,11 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
                   <span className="text-xs text-slate-400">{user.email}</span>
                 </label>
               ))}
+              {allAvailableUsers.length > availableUsers.length && (
+                <p className="text-xs text-amber-600 italic pt-2 border-t border-amber-200">
+                  {allAvailableUsers.length - availableUsers.length} usuário(s) protegido(s) não podem ser excluídos (administrators e admins de time)
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -211,21 +308,21 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
           Resumo
         </p>
         <p className="mt-1 text-sm text-slate-700">
-          {value.visibilityType === "company" && "Visível para todos da empresa"}
-          {value.visibilityType === "team" && (
+          {safeValue.visibilityType === "company" && "Visível para todos da empresa"}
+          {safeValue.visibilityType === "team" && (
             <>
-              {value.visibleTeamIds.length === 0
+              {safeValue.visibleTeamIds.length === 0
                 ? "Nenhum time selecionado"
-                : `Visível para ${value.visibleTeamIds.length} time(s)`}
+                : `Visível para ${safeValue.visibleTeamIds.length} time(s)`}
             </>
           )}
-          {value.visibilityType === "user" && (
+          {safeValue.visibilityType === "user" && (
             <>
-              {value.visibleTeamIds.length === 0
+              {safeValue.visibleTeamIds.length === 0
                 ? "Nenhum time selecionado"
-                : `Visível para ${value.visibleTeamIds.length} time(s)`}
-              {value.excludedUserIds.length > 0 &&
-                `, excluindo ${value.excludedUserIds.length} usuário(s)`}
+                : `Visível para ${safeValue.visibleTeamIds.length} time(s)`}
+              {safeValue.excludedUserIds.length > 0 &&
+                `, excluindo ${safeValue.excludedUserIds.length} usuário(s)`}
             </>
           )}
         </p>

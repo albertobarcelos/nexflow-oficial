@@ -16,7 +16,10 @@ import { Canvas } from "@/components/FlowBuilder/Canvas";
 import { PropertiesPanel } from "@/components/FlowBuilder/PropertiesPanel";
 import { FieldCard } from "@/components/FlowBuilder/FieldCard";
 import { useFlowBuilderState } from "@/hooks/useFlowBuilderState";
+import { useFlowPermissions } from "@/hooks/useFlowPermissions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import type { FlowBuilderFieldDefinition } from "@/lib/flowBuilder/fieldLibrary";
 import type { NexflowStepField } from "@/types/nexflow";
 
@@ -29,6 +32,7 @@ interface ActiveDragData {
 export function NexflowBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { permissions, isLoading: isLoadingPermissions } = useFlowPermissions(id);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -76,6 +80,32 @@ export function NexflowBuilderPage() {
         <p className="text-destructive">
           ID do flow não foi informado. Retorne à lista e tente novamente.
         </p>
+      </div>
+    );
+  }
+
+  // Verificar permissão de edição
+  const canEdit = permissions?.canEditFlow ?? false;
+  const isCheckingPermissions = isLoadingPermissions;
+
+  if (!isCheckingPermissions && !canEdit && id) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Sem permissão para editar</AlertTitle>
+          <AlertDescription>
+            Você não tem permissão para editar este flow. Apenas o dono do flow, leaders, admins de time e administrators podem editar flows.
+          </AlertDescription>
+        </Alert>
+        <div className="mt-4">
+          <button
+            onClick={() => navigate("/crm/flows")}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← Voltar para lista de flows
+          </button>
+        </div>
       </div>
     );
   }

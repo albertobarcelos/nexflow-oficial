@@ -80,23 +80,22 @@ export function useNexflowFlows() {
   const flowsQuery = useQuery({
     queryKey: ["nexflow", "flows"],
     queryFn: async (): Promise<NexflowFlow[]> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
+      // Usar Edge Function get-flows que aplica filtros de visibilidade
+      const { data, error } = await supabase.functions.invoke("get-flows", {
+        body: {},
+      });
+
+      if (error) {
+        console.error("Erro ao carregar flows via Edge Function:", error);
         return [];
       }
 
-      const { data, error } = await nexflowClient()
-        .from("flows")
-        .select("*")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: true });
-
-      if (error || !data) {
-        console.error("Erro ao carregar flows do Nexflow:", error);
+      if (!data?.flows || !Array.isArray(data.flows)) {
         return [];
       }
 
-      return data.map(mapFlowRow);
+      // Mapear os dados retornados pela Edge Function
+      return data.flows.map(mapFlowRow);
     },
     staleTime: 1000 * 30,
     refetchOnMount: true, // Garante refetch ao montar o componente
@@ -108,6 +107,18 @@ export function useNexflowFlows() {
       description,
       category,
     }: CreateFlowInput): Promise<NexflowFlow> => {
+      // Verificar permissão para criar flow
+      const { data: permissionsData, error: permissionsError } = await supabase.functions.invoke(
+        "check-flow-permissions",
+        { body: {} }
+      );
+
+      if (permissionsError || !permissionsData?.canCreateFlow) {
+        throw new Error(
+          "Você não tem permissão para criar flows. Apenas leaders, admins de time e administrators podem criar flows."
+        );
+      }
+
       const clientId = await getCurrentClientId();
       const {
         data: { user },
@@ -171,6 +182,22 @@ export function useNexflowFlows() {
       isActive,
       visibilityType,
     }: UpdateFlowInput) => {
+      // Verificar permissão para editar flow
+      const { data: permissionsData, error: permissionsError } = await supabase.functions.invoke(
+        "check-flow-permissions",
+        { body: { flowId: id } }
+      );
+
+      if (permissionsError) {
+        throw new Error("Erro ao verificar permissões de edição.");
+      }
+
+      if (!permissionsData?.canEditFlow) {
+        throw new Error(
+          "Você não tem permissão para editar este flow. Apenas o dono, leaders, admins de time e administrators podem editar flows."
+        );
+      }
+
       const payload: Partial<FlowRow> = {};
 
       if (typeof name !== "undefined") payload.name = name;

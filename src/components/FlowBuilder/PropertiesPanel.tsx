@@ -181,14 +181,18 @@ function GeneralPropertiesContent({
         {/* Visibility Selector */}
         <VisibilitySelector
           value={{
-            visibilityType: generalForm.watch("visibilityType"),
-            visibleTeamIds: generalForm.watch("visibleTeamIds"),
-            excludedUserIds: generalForm.watch("excludedUserIds"),
+            visibilityType: (generalForm.watch("visibilityType") as "company" | "team" | "user") || "company",
+            visibleTeamIds: Array.isArray(generalForm.watch("visibleTeamIds")) 
+              ? generalForm.watch("visibleTeamIds") 
+              : [],
+            excludedUserIds: Array.isArray(generalForm.watch("excludedUserIds")) 
+              ? generalForm.watch("excludedUserIds") 
+              : [],
           }}
           onChange={(config) => {
-            generalForm.setValue("visibilityType", config.visibilityType);
-            generalForm.setValue("visibleTeamIds", config.visibleTeamIds);
-            generalForm.setValue("excludedUserIds", config.excludedUserIds);
+            generalForm.setValue("visibilityType", config.visibilityType, { shouldDirty: true });
+            generalForm.setValue("visibleTeamIds", Array.isArray(config.visibleTeamIds) ? config.visibleTeamIds : [], { shouldDirty: true });
+            generalForm.setValue("excludedUserIds", Array.isArray(config.excludedUserIds) ? config.excludedUserIds : [], { shouldDirty: true });
             onFlowDraftChange(config);
           }}
         />

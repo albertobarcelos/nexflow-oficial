@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Info, Plus, Layers, Settings2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
+import { useFlowPermissions } from "@/hooks/useFlowPermissions";
+import { supabase } from "@/lib/supabase";
 import type { NexflowFlow } from "@/types/nexflow";
 import { FlowSettingsModal } from "@/components/crm/flows/FlowSettingsModal";
 import {
@@ -19,8 +21,42 @@ import {
 export function FlowsPage() {
   const navigate = useNavigate();
   const { flows, isLoading, deleteFlow } = useNexflowFlows();
+  const { permissions } = useFlowPermissions();
   const [selectedFlow, setSelectedFlow] = useState<NexflowFlow | null>(null);
   const [flowToDelete, setFlowToDelete] = useState<NexflowFlow | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  const canCreateFlow = permissions?.canCreateFlow ?? false;
+  const isAdministrator = permissions?.isAdministrator ?? false;
+  const isLeader = permissions?.isLeader ?? false;
+  const isTeamAdmin = permissions?.isTeamAdmin ?? false;
+
+  // Buscar ID do usuário atual
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    });
+  }, []);
+
+  // Função helper para verificar se pode editar/deletar um flow específico
+  const canEditFlow = useMemo(() => {
+    return (flow: NexflowFlow): boolean => {
+      // Administrators podem editar/deletar todos os flows
+      if (isAdministrator) {
+        return true;
+      }
+
+      // Leaders e admins de time podem editar/deletar flows que são donos
+      if ((isLeader || isTeamAdmin) && currentUserId && flow.ownerId === currentUserId) {
+        return true;
+      }
+
+      // Members não podem editar/deletar
+      return false;
+    };
+  }, [isAdministrator, isLeader, isTeamAdmin, currentUserId]);
 
   return (
     <div className="min-h-screen bg-[#f8faff] p-4 md:p-8">
@@ -34,7 +70,13 @@ export function FlowsPage() {
           </div>
           <Button
             onClick={() => navigate("/crm/flows/new")}
-            className="bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+            disabled={!canCreateFlow}
+            className="bg-orange-500 text-white hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title={
+              !canCreateFlow
+                ? "Você não tem permissão para criar flows. Apenas leaders, admins de time e administrators podem criar flows."
+                : "Criar novo flow"
+            }
           >
             <Plus className="w-4 h-4 mr-2" />
             Criar Novo Flow
@@ -77,30 +119,32 @@ export function FlowsPage() {
                             {flow.name}
                           </h3>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setSelectedFlow(flow);
-                            }}
-                          >
-                            <Settings2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              setFlowToDelete(flow);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {canEditFlow(flow) && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedFlow(flow);
+                              }}
+                            >
+                              <Settings2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setFlowToDelete(flow);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <p className="text-xs text-slate-500 line-clamp-2">
                         {flow.description || "Sem descrição"}
@@ -108,18 +152,22 @@ export function FlowsPage() {
                     </div>
 
                     <div className="mt-4 flex items-center justify-between">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          navigate(`/crm/flows/${flow.id}/builder`);
-                        }}
-                      >
-                        <Layers className="mr-2 h-4 w-4" />
-                        Editar Estrutura
-                      </Button>
+                      {canEditFlow(flow) ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/crm/flows/${flow.id}/builder`);
+                          }}
+                        >
+                          <Layers className="mr-2 h-4 w-4" />
+                          Editar Estrutura
+                        </Button>
+                      ) : (
+                        <div></div>
+                      )}
                       <div className="text-xs text-slate-400">
                         Criado em{" "}
                         {new Date(flow.createdAt).toLocaleDateString("pt-BR")}

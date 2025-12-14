@@ -178,24 +178,25 @@ export function FlowBuilderHeader({
                   className="h-8 bg-white text-sm"
                 />
               ) : (
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between text-sm font-semibold gap-3"
-                  onClick={() => onSelectStep(step.id)}
-                  onDoubleClick={() => startEditing(step)}
-                >
-                  <span className="flex items-center gap-2 truncate">
+                <div className="flex w-full items-center justify-between text-sm font-semibold gap-3">
+                  <button
+                    type="button"
+                    className="flex flex-1 items-center gap-2 truncate text-left"
+                    onClick={() => onSelectStep(step.id)}
+                    onDoubleClick={() => startEditing(step)}
+                  >
                     <span
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: step.color }}
                     />
                     <span className="truncate">{step.title}</span>
-                  </span>
+                  </button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
                         className="ml-2 hidden rounded-full p-1 text-slate-400 hover:bg-white hover:text-slate-600 group-hover:flex"
+                        onClick={(e) => e.stopPropagation()}
                       >
                         <MoreVertical className="h-4 w-4" />
                       </button>
@@ -226,7 +227,7 @@ export function FlowBuilderHeader({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </button>
+                </div>
               )}
             </div>
           ))}
