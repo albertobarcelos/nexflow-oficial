@@ -289,7 +289,6 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
                   <span>
                     {user.name} {user.surname}
                   </span>
-                  <span className="text-xs text-slate-400">{user.email}</span>
                 </label>
               ))}
               {allAvailableUsers.length > availableUsers.length && (

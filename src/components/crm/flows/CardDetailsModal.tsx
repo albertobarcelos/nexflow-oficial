@@ -30,11 +30,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { CardMovementEntry, NexflowCard, NexflowStepField } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
+import { isSystemField, SYSTEM_FIELDS, getSystemFieldValue } from "@/lib/flowBuilder/systemFields";
+import { useUsers } from "@/hooks/useUsers";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface CardFormValues {
   title: string;
   fields: Record<string, string>;
   checklist: Record<string, Record<string, boolean>>;
+  assignedTo?: string | null;
 }
 
 type SaveStatus = "idle" | "saving" | "saved";
@@ -89,17 +93,59 @@ export function CardDetailsModal({
     return steps[currentIndex - 1] ?? null;
   }, [card, steps]);
 
+  const { data: users = [] } = useUsers();
+
   // Valores iniciais do formulário
   const initialValues = useMemo((): CardFormValues => {
     if (!card) {
-      return { title: "", fields: {}, checklist: {} };
+      return { title: "", fields: {}, checklist: {}, assignedTo: null };
     }
+    
+    // Encontrar campo "responsável" nos campos da etapa atual
+    let responsavelFieldId: string | null = null;
+    if (currentStep?.fields) {
+      for (const field of currentStep.fields) {
+        const isResponsavelField = 
+          field.fieldType === "user_select" && 
+          (field.slug === SYSTEM_FIELDS.ASSIGNED_TO || 
+           field.label.toLowerCase().includes("responsável"));
+        if (isResponsavelField) {
+          responsavelFieldId = field.id;
+          break;
+        }
+      }
+    }
+    
+    // Separar campos de sistema dos campos genéricos
+    const genericFields: Record<string, string> = {};
+    let extractedAssignedTo: string | null = card.assignedTo ?? null;
+    
+    Object.entries((card.fieldValues as Record<string, string>) ?? {}).forEach(([key, value]) => {
+      // Se for campo de sistema (slug assigned_to), não incluir em genericFields
+      if (isSystemField(key)) {
+        // Se o valor estiver em fieldValues com o slug, usar esse valor
+        if (key === SYSTEM_FIELDS.ASSIGNED_TO && value) {
+          extractedAssignedTo = value;
+        }
+        return;
+      }
+      
+      // Se for o campo "responsável" (pelo ID do campo), extrair para assignedTo
+      if (responsavelFieldId && key === responsavelFieldId && value) {
+        extractedAssignedTo = value;
+        return; // Não incluir em genericFields
+      }
+      
+      genericFields[key] = value;
+    });
+    
     return {
       title: card.title,
-      fields: (card.fieldValues as Record<string, string>) ?? {},
+      fields: genericFields,
       checklist: (card.checklistProgress as Record<string, Record<string, boolean>>) ?? {},
+      assignedTo: extractedAssignedTo,
     };
-  }, [card]);
+  }, [card, currentStep]);
 
   const form = useForm<CardFormValues>({
     defaultValues: initialValues,
@@ -257,6 +303,65 @@ export function CardDetailsModal({
   );
 
   const renderEditableField = (field: NexflowStepField) => {
+    // Campo de seleção de usuário (Responsável) - campo de sistema
+    // Verifica se é user_select E (tem slug assigned_to OU label contém "Responsável")
+    const isAssignedToField = 
+      field.fieldType === "user_select" && 
+      (field.slug === SYSTEM_FIELDS.ASSIGNED_TO || 
+       field.label.toLowerCase().includes("responsável"));
+    
+    if (isAssignedToField) {
+      const assignedToValue = form.watch("assignedTo");
+      const activeUsers = users.filter((user) => user.is_active);
+      const selectedUser = assignedToValue 
+        ? activeUsers.find((user) => user.id === assignedToValue)
+        : null;
+      
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+            {field.isRequired && (
+              <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+                Obrigatório
+              </span>
+            )}
+          </div>
+          <Select
+            value={assignedToValue ?? undefined}
+            onValueChange={(value) => {
+              // O value sempre será uma string válida do SelectItem
+              // Converter para string ou null explicitamente
+              const newValue = value && value.trim() ? value : null;
+              form.setValue("assignedTo", newValue, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um usuário">
+                {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {activeUsers.length === 0 ? (
+                <div className="px-2 py-1.5 text-sm text-slate-500">
+                  Nenhum usuário disponível
+                </div>
+              ) : (
+                activeUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name} {user.surname}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+    
     if (field.fieldType === "checklist") {
       const items = field.configuration.items ?? [];
       return (
@@ -428,9 +533,14 @@ export function CardDetailsModal({
     setSaveStatus("saving");
     try {
       const values = form.getValues();
-      await onSave(card, values);
+      // Garantir que assignedTo seja sempre definido (mesmo que null)
+      const formValues: CardFormValues = {
+        ...values,
+        assignedTo: values.assignedTo !== undefined ? values.assignedTo : null,
+      };
+      await onSave(card, formValues);
       setSaveStatus("saved");
-      form.reset(values);
+      form.reset(formValues);
       setTimeout(() => {
         setSaveStatus((current) => (current === "saved" ? "idle" : current));
       }, 2000);

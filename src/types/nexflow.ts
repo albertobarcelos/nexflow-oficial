@@ -29,6 +29,7 @@ export interface NexflowStep {
   title: string;
   position: number;
   color: string;
+  isCompletionStep?: boolean;
   createdAt: string;
 }
 
@@ -39,13 +40,15 @@ export interface StepFieldConfiguration extends Record<string, Json | undefined>
   variant?: "short" | "long";
   minLength?: number;
   maxLength?: number;
-  validation?: "none" | "email" | "phone";
+  validation?: "none" | "email" | "phone" | "cnpj_cpf";
+  cnpjCpfType?: "auto" | "cpf" | "cnpj";
 }
 
 export interface NexflowStepField {
   id: string;
   stepId: string;
   label: string;
+  slug?: string | null;
   fieldType: StepFieldType;
   isRequired: boolean;
   position: number;
@@ -74,7 +77,9 @@ export interface NexflowCard {
   checklistProgress: ChecklistProgressMap;
   movementHistory: CardMovementEntry[];
   parentCardId: string | null;
+  assignedTo?: string | null;
   position: number;
+  status?: string | null;
   createdAt: string;
 }
 

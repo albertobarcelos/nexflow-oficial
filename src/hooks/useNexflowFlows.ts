@@ -290,19 +290,24 @@ export function useNexflowFlow(flowId?: string) {
         throw flowError ?? new Error("Flow não encontrado.");
       }
 
-      const { data: stepsData, error: stepsError } = await client
-        .from("steps")
-        .select("*")
-        .eq("flow_id", flowId)
-        .order("position", { ascending: true });
+      // Usar Edge Function para filtrar steps baseado nas permissões do usuário (página Board)
+      const { data: stepsResponse, error: stepsError } = await supabase.functions.invoke("get-steps", {
+        body: { flowId },
+      });
 
-      if (stepsError || !stepsData) {
-        throw stepsError ?? new Error("Erro ao carregar etapas do flow.");
+      if (stepsError) {
+        throw new Error(`Erro ao carregar etapas: ${stepsError.message}`);
       }
 
+      if (!stepsResponse || !stepsResponse.steps) {
+        throw new Error("Resposta inválida da Edge Function get-steps");
+      }
+
+      const stepsData = stepsResponse.steps;
       const stepIds = stepsData.map((step) => step.id);
       let fieldsData: StepFieldRow[] = [];
 
+      // Buscar campos apenas das etapas visíveis
       if (stepIds.length > 0) {
         const { data: rawFields, error: fieldsError } = await client
           .from("step_fields")

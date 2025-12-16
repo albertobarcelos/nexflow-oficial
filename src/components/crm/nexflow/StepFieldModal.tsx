@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -14,13 +14,19 @@ import {
   RadioGroup,
   RadioGroupItem,
 } from "@/components/ui/radio-group";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useNexflowStepFields } from "@/hooks/useNexflowStepFields";
 import {
   NexflowStepField,
   StepFieldType,
 } from "@/types/nexflow";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { generateSlug } from "@/utils/slugUtils";
 
 interface StepFieldModalProps {
   stepId?: string;
@@ -38,27 +44,59 @@ export function StepFieldModal({
   onOpenChange,
 }: StepFieldModalProps) {
   const isEditing = mode === "edit" && Boolean(field);
-  const { createField, updateField, isCreating, isUpdating } =
+  const { createField, updateField, isCreating, isUpdating, fields } =
     useNexflowStepFields(stepId);
 
   const [label, setLabel] = useState("");
+  const [slug, setSlug] = useState("");
+  const [isSlugManual, setIsSlugManual] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [fieldType, setFieldType] = useState<StepFieldType>("text");
   const [isRequired, setIsRequired] = useState(false);
   const [checklistItems, setChecklistItems] = useState<string[]>([]);
+  const previousLabelRef = useRef<string>("");
 
   useEffect(() => {
     if (open && isEditing && field) {
       setLabel(field.label);
+      setSlug(field.slug ?? "");
+      setIsSlugManual(!!field.slug);
       setFieldType(field.fieldType);
       setIsRequired(field.isRequired);
       setChecklistItems(field.configuration.items ?? []);
+      previousLabelRef.current = field.label;
     } else if (open && mode === "create") {
       setLabel("");
+      setSlug("");
+      setIsSlugManual(false);
       setFieldType("text");
       setIsRequired(false);
       setChecklistItems([]);
+      previousLabelRef.current = "";
     }
   }, [open, mode, field, isEditing]);
+
+  // Gera slug automaticamente quando o label muda (apenas se não foi editado manualmente)
+  useEffect(() => {
+    if (!isSlugManual && label && label !== previousLabelRef.current) {
+      // Se for campo "Responsável" (user_select), usar slug assigned_to
+      if (fieldType === "user_select" && label.toLowerCase().includes("responsável")) {
+        setSlug("assigned_to");
+        setIsSlugManual(true); // Bloquear edição do slug para campos de sistema
+      } else {
+        const generatedSlug = generateSlug(label);
+        setSlug(generatedSlug);
+      }
+      previousLabelRef.current = label;
+    }
+  }, [label, isSlugManual, fieldType]);
+  
+  // Quando o campo já tem slug assigned_to, bloquear edição
+  useEffect(() => {
+    if (field?.slug === "assigned_to") {
+      setIsSlugManual(true);
+    }
+  }, [field?.slug]);
 
   const isChecklist = fieldType === "checklist";
 
@@ -73,6 +111,38 @@ export function StepFieldModal({
       return;
     }
 
+    // Para campos de sistema (user_select com label "Responsável"), forçar slug assigned_to
+    let finalSlug = slug.trim() || generateSlug(label.trim());
+    if (fieldType === "user_select" && label.toLowerCase().includes("responsável")) {
+      finalSlug = "assigned_to";
+    }
+    
+    // Se o campo já tem slug assigned_to, não permitir alteração
+    if (isEditing && field?.slug === "assigned_to" && finalSlug !== "assigned_to") {
+      toast.error("Não é possível alterar o identificador de campos de sistema.");
+      return;
+    }
+    
+    if (finalSlug && !/^[a-z0-9_]+$/.test(finalSlug)) {
+      toast.error(
+        "O identificador do campo deve conter apenas letras minúsculas, números e underscores."
+      );
+      return;
+    }
+
+    // Verificar slug duplicado no mesmo step
+    if (finalSlug) {
+      const duplicateField = fields.find(
+        (f) => f.slug === finalSlug && (!isEditing || f.id !== field?.id)
+      );
+      if (duplicateField) {
+        toast.error(
+          `Já existe um campo com o identificador "${finalSlug}" nesta etapa.`
+        );
+        return;
+      }
+    }
+
     const configuration =
       isChecklist && checklistItems.length > 0
         ? { items: checklistItems.filter((item) => item.trim()) }
@@ -83,6 +153,7 @@ export function StepFieldModal({
         await updateField({
           id: field.id,
           label: label.trim(),
+          slug: finalSlug || null,
           fieldType,
           isRequired,
           configuration,
@@ -91,6 +162,7 @@ export function StepFieldModal({
         await createField({
           stepId,
           label: label.trim(),
+          slug: finalSlug || null,
           fieldType,
           isRequired,
           configuration,
@@ -180,6 +252,50 @@ export function StepFieldModal({
               onCheckedChange={setIsRequired}
             />
           </div>
+
+          <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-between"
+                type="button"
+              >
+                <span>Configurações Avançadas</span>
+                {showAdvanced ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-2">
+              <div className="space-y-2 rounded-lg border p-3">
+                <div>
+                  <Label htmlFor="field-slug">Identificador do Campo</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Identificador técnico usado em APIs e Webhooks. Gerado
+                    automaticamente a partir do título, mas pode ser editado
+                    manualmente.
+                  </p>
+                </div>
+                <Input
+                  id="field-slug"
+                  value={slug}
+                  onChange={(event) => {
+                    setSlug(event.target.value);
+                    setIsSlugManual(true);
+                  }}
+                  placeholder="Ex: nome_do_cliente"
+                  pattern="[a-z0-9_]+"
+                />
+                {slug && !/^[a-z0-9_]+$/.test(slug) && (
+                  <p className="text-sm text-destructive">
+                    Use apenas letras minúsculas, números e underscores.
+                  </p>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {isChecklist && (
             <div className="space-y-3 rounded-lg border p-4">

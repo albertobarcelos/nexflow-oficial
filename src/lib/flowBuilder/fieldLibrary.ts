@@ -1,4 +1,5 @@
 import { StepFieldConfiguration, StepFieldType } from "@/types/nexflow";
+import { SYSTEM_FIELDS } from "./systemFields";
 
 export interface FlowBuilderFieldDefinition {
   id: string;
@@ -94,9 +95,31 @@ export const fieldLibrary: FlowBuilderFieldDefinition[] = [
     defaultLabel: "Responsável",
     defaultConfiguration: () => ({}),
   },
+  {
+    id: "cnpjCpf",
+    label: "CNPJ/CPF",
+    description: "Campo com máscara e validação automática de CNPJ ou CPF.",
+    fieldType: "text",
+    defaultLabel: "CNPJ/CPF",
+    defaultConfiguration: () => ({
+      placeholder: "000.000.000-00 ou 00.000.000/0000-00",
+      validation: "cnpj_cpf",
+      cnpjCpfType: "auto",
+    }),
+  },
 ];
 
 export function getFieldDefinition(id: string) {
   return fieldLibrary.find((definition) => definition.id === id);
+}
+
+/**
+ * Retorna o slug padrão para um campo de sistema baseado no ID do campo
+ */
+export function getDefaultSlugForField(fieldId: string): string | null {
+  if (fieldId === "assignee") {
+    return SYSTEM_FIELDS.ASSIGNED_TO;
+  }
+  return null;
 }
 

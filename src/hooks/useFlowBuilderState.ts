@@ -4,6 +4,7 @@ import {
   fieldLibrary,
   FlowBuilderFieldDefinition,
   getFieldDefinition,
+  getDefaultSlugForField,
 } from "@/lib/flowBuilder/fieldLibrary";
 import { useNexflowFlow, useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { useNexflowSteps } from "@/hooks/useNexflowSteps";
@@ -16,6 +17,10 @@ import {
   useFlowVisibilityData,
   useUpdateFlowVisibility,
 } from "@/hooks/useFlowVisibility";
+import {
+  useStepVisibilityData,
+  useUpdateStepVisibility,
+} from "@/hooks/useStepVisibility";
 import {
   NexflowFlow,
   NexflowStep,
@@ -32,6 +37,14 @@ export interface FlowDraft {
   excludedUserIds: string[];
 }
 
+export interface StepDraft {
+  visibilityType: "company" | "team" | "user";
+  visibleTeamIds: string[];
+  excludedUserIds: string[];
+  color?: string;
+  title?: string;
+}
+
 export interface UseFlowBuilderStateReturn {
   flow: NexflowFlow | null;
   flowDraft: FlowDraft;
@@ -39,6 +52,8 @@ export interface UseFlowBuilderStateReturn {
   steps: NexflowStep[];
   activeStepId: string | null;
   activeStep: NexflowStep | null;
+  stepDraft: StepDraft | null;
+  updateStepDraft: (updates: Partial<StepDraft>) => void;
   selectStep: (stepId: string) => void;
   createStep: (payload: { title: string; color: string }) => Promise<void>;
   renameStep: (stepId: string, title: string) => Promise<void>;
@@ -106,6 +121,37 @@ export function useFlowBuilderState(
     () => steps.find((step) => step.id === activeStepId) ?? null,
     [steps, activeStepId]
   );
+
+  // Step visibility hooks
+  const { data: stepVisibilityData } = useStepVisibilityData(activeStepId ?? undefined);
+  const updateStepVisibility = useUpdateStepVisibility();
+
+  const [stepDraft, setStepDraft] = useState<StepDraft | null>(null);
+
+  useEffect(() => {
+    if (activeStepId && stepVisibilityData && activeStep) {
+      setStepDraft({
+        visibilityType: stepVisibilityData.visibilityType as "company" | "team" | "user",
+        visibleTeamIds: stepVisibilityData.teamIds,
+        excludedUserIds: stepVisibilityData.excludedUserIds,
+        color: activeStep.color,
+        title: activeStep.title,
+      });
+    } else {
+      setStepDraft(null);
+    }
+  }, [activeStepId, stepVisibilityData, activeStep]);
+
+  const updateStepDraft = useCallback((updates: Partial<StepDraft>) => {
+    setStepDraft((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        ...updates,
+      };
+    });
+    setHasLocalChanges(true);
+  }, []);
 
   const {
     fields,
@@ -291,9 +337,13 @@ export function useFlowBuilderState(
         return;
       }
 
+      // Obter slug padrão para campos de sistema
+      const defaultSlug = getDefaultSlugForField(definitionId);
+      
       const payload: CreateStepFieldInput = {
         stepId: activeStepId,
         label: definition.defaultLabel,
+        slug: defaultSlug,
         fieldType: definition.fieldType,
         configuration: definition.defaultConfiguration(),
         position: nextPosition(targetIndex),
@@ -447,6 +497,32 @@ export function useFlowBuilderState(
         excludedUserIds: flowDraft.excludedUserIds,
       });
 
+      // Salvar visibilidade da etapa ativa se houver mudanças
+      if (activeStepId && stepDraft) {
+        await updateStepVisibility.mutateAsync({
+          stepId: activeStepId,
+          visibilityType: stepDraft.visibilityType,
+          teamIds: stepDraft.visibleTeamIds,
+          excludedUserIds: stepDraft.excludedUserIds,
+        });
+
+        // Salvar título e cor da etapa se houver mudanças
+        const stepUpdates: { title?: string; color?: string } = {};
+        if (activeStep && stepDraft.title && stepDraft.title !== activeStep.title) {
+          stepUpdates.title = stepDraft.title;
+        }
+        if (activeStep && stepDraft.color && stepDraft.color !== activeStep.color) {
+          stepUpdates.color = stepDraft.color;
+        }
+        
+        if (Object.keys(stepUpdates).length > 0) {
+          await updateStep({
+            id: activeStepId,
+            ...stepUpdates,
+          });
+        }
+      }
+
       setHasLocalChanges(false);
       toast.success("Flow salvo com sucesso!", { id: toastId });
     } catch (error) {
@@ -461,6 +537,9 @@ export function useFlowBuilderState(
     updateFlow,
     waitForPendingMutations,
     updateFlowVisibility,
+    activeStepId,
+    stepDraft,
+    updateStepVisibility,
   ]);
 
   const isDirty = useMemo(() => {
@@ -493,6 +572,8 @@ export function useFlowBuilderState(
     steps,
     activeStepId,
     activeStep,
+    stepDraft,
+    updateStepDraft,
     selectStep: handleSelectStep,
     createStep: handleCreateStep,
     renameStep: handleRenameStep,

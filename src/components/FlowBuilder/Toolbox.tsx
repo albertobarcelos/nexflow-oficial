@@ -12,6 +12,7 @@ import {
   Phone,
   Type,
   UserRound,
+  FileText,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -24,6 +25,7 @@ const iconMap: Record<string, ComponentType<{ className?: string }>> = {
   phone: Phone,
   attachment: Paperclip,
   assignee: UserRound,
+  cnpjCpf: FileText,
 };
 
 const iconStyles: Record<string, string> = {
@@ -35,6 +37,7 @@ const iconStyles: Record<string, string> = {
   phone: "bg-teal-50 text-teal-600",
   attachment: "bg-orange-50 text-orange-600",
   assignee: "bg-rose-50 text-rose-600",
+  cnpjCpf: "bg-amber-50 text-amber-600",
 };
 
 interface ToolboxProps {

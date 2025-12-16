@@ -14,6 +14,7 @@ const mapFieldRow = (row: StepFieldRow): NexflowStepField => ({
   id: row.id,
   stepId: row.step_id,
   label: row.label,
+  slug: row.slug ?? null,
   fieldType: row.field_type,
   isRequired: Boolean(row.is_required),
   position: row.position ?? 0,
@@ -24,6 +25,7 @@ const mapFieldRow = (row: StepFieldRow): NexflowStepField => ({
 export interface CreateStepFieldInput {
   stepId: string;
   label: string;
+  slug?: string | null;
   fieldType: StepFieldType;
   isRequired?: boolean;
   configuration?: StepFieldConfiguration;
@@ -33,6 +35,7 @@ export interface CreateStepFieldInput {
 export interface UpdateStepFieldInput {
   id: string;
   label?: string;
+  slug?: string | null;
   fieldType?: StepFieldType;
   isRequired?: boolean;
   configuration?: StepFieldConfiguration;
@@ -84,6 +87,7 @@ export function useNexflowStepFields(stepId?: string) {
       const payload: Database["nexflow"]["Tables"]["step_fields"]["Insert"] = {
         step_id: targetStepId,
         label: input.label,
+        slug: input.slug ?? null,
         field_type: input.fieldType,
         is_required: input.isRequired ?? false,
         configuration: input.configuration ?? {},
@@ -118,6 +122,7 @@ export function useNexflowStepFields(stepId?: string) {
         id: `temp-field-${Date.now()}`,
         stepId: input.stepId,
         label: input.label,
+        slug: input.slug ?? null,
         fieldType: input.fieldType,
         isRequired: input.isRequired ?? false,
         position:
@@ -148,6 +153,7 @@ export function useNexflowStepFields(stepId?: string) {
     mutationFn: async (input: UpdateStepFieldInput) => {
       const payload: Partial<StepFieldRow> = {};
       if (typeof input.label !== "undefined") payload.label = input.label;
+      if (typeof input.slug !== "undefined") payload.slug = input.slug;
       if (typeof input.fieldType !== "undefined")
         payload.field_type = input.fieldType;
       if (typeof input.isRequired !== "undefined")
@@ -179,6 +185,8 @@ export function useNexflowStepFields(stepId?: string) {
                 ...field,
                 label:
                   typeof input.label !== "undefined" ? input.label : field.label,
+                slug:
+                  typeof input.slug !== "undefined" ? input.slug : field.slug,
                 fieldType:
                   typeof input.fieldType !== "undefined"
                     ? input.fieldType

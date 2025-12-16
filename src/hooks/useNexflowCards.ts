@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
+import { getCurrentClientId, nexflowClient, supabase } from "@/lib/supabase";
 import { Database } from "@/types/database";
 import {
   CardMovementEntry,
@@ -8,6 +8,7 @@ import {
   NexflowCard,
   StepFieldValueMap,
 } from "@/types/nexflow";
+import { separateSystemFields, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
 
 type CardRow = Database["nexflow"]["Tables"]["cards"]["Row"];
 
@@ -23,7 +24,9 @@ const mapCardRow = (row: CardRow): NexflowCard => ({
     ? (row.movement_history as CardMovementEntry[])
     : [],
   parentCardId: row.parent_card_id ?? null,
+  assignedTo: row.assigned_to ?? null,
   position: row.position ?? 0,
+  status: row.status ?? null,
   createdAt: row.created_at,
 });
 
@@ -36,6 +39,8 @@ export interface CreateCardInput {
   checklistProgress?: ChecklistProgressMap;
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
+  assignedTo?: string | null;
+  status?: string | null;
 }
 
 export interface UpdateCardInput {
@@ -47,6 +52,8 @@ export interface UpdateCardInput {
   checklistProgress?: ChecklistProgressMap;
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
+  assignedTo?: string | null;
+  status?: string | null;
   /** Quando true, não exibe toast de sucesso (útil para auto-save) */
   silent?: boolean;
 }
@@ -57,6 +64,7 @@ export interface ReorderCardsInput {
     stepId: string;
     position: number;
     movementHistory?: CardMovementEntry[];
+    status?: string | null;
   }[];
 }
 
@@ -96,6 +104,13 @@ export function useNexflowCards(flowId?: string) {
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
+      // Separar campos de sistema dos campos genéricos
+      const fieldValues = input.fieldValues ?? {};
+      const { systemFields, genericFields } = separateSystemFields(fieldValues);
+      
+      // Obter assigned_to do input direto ou dos systemFields
+      const assignedTo = input.assignedTo ?? systemFields[SYSTEM_FIELDS.ASSIGNED_TO] ?? null;
+
       const payload: Database["nexflow"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
         step_id: input.stepId,
@@ -107,10 +122,12 @@ export function useNexflowCards(flowId?: string) {
             : (cardsQuery.data
                 ?.filter((card) => card.stepId === input.stepId)
                 .reduce((max, card) => Math.max(max, card.position), 0) ?? 0) + 1000,
-        field_values: input.fieldValues ?? {},
+        field_values: genericFields, // Apenas campos genéricos, sem campos de sistema
         checklist_progress: input.checklistProgress ?? {},
         movement_history: input.movementHistory ?? [],
         parent_card_id: input.parentCardId ?? null,
+        assigned_to: assignedTo,
+        status: input.status ?? null,
       };
 
       const { data, error } = await nexflowClient()
@@ -136,31 +153,81 @@ export function useNexflowCards(flowId?: string) {
 
   const updateCardMutation = useMutation({
     mutationFn: async (input: UpdateCardInput) => {
-      const payload: Partial<CardRow> = {};
-      if (typeof input.title !== "undefined") payload.title = input.title;
-      if (typeof input.stepId !== "undefined") payload.step_id = input.stepId;
-      if (typeof input.position !== "undefined") payload.position = input.position;
-      if (typeof input.fieldValues !== "undefined")
-        payload.field_values = input.fieldValues;
-      if (typeof input.checklistProgress !== "undefined")
-        payload.checklist_progress = input.checklistProgress;
-      if (typeof input.movementHistory !== "undefined")
-        payload.movement_history = input.movementHistory;
-      if (typeof input.parentCardId !== "undefined")
-        payload.parent_card_id = input.parentCardId;
-
-      const { data, error } = await nexflowClient()
-        .from("cards")
-        .update(payload)
-        .eq("id", input.id)
-        .select("*")
-        .single();
-
-      if (error || !data) {
-        throw error ?? new Error("Falha ao atualizar card.");
+      // Separar campos de sistema dos campos genéricos se fieldValues for fornecido
+      let genericFieldValues = input.fieldValues;
+      let finalAssignedTo = input.assignedTo;
+      
+      if (typeof input.fieldValues !== "undefined") {
+        const { systemFields, genericFields } = separateSystemFields(input.fieldValues);
+        genericFieldValues = genericFields;
+        
+        // Se assigned_to estiver em systemFields mas não foi passado explicitamente, usar do systemFields
+        if (typeof input.assignedTo === "undefined" && systemFields[SYSTEM_FIELDS.ASSIGNED_TO]) {
+          finalAssignedTo = systemFields[SYSTEM_FIELDS.ASSIGNED_TO];
+        }
       }
 
-      return { card: mapCardRow(data), silent: input.silent };
+      // Construir payload para Edge Function
+      const edgeFunctionPayload: {
+        cardId: string;
+        title?: string;
+        fieldValues?: StepFieldValueMap;
+        checklistProgress?: ChecklistProgressMap;
+        assignedTo?: string | null;
+        stepId?: string;
+        position?: number;
+        movementHistory?: CardMovementEntry[];
+        parentCardId?: string | null;
+        status?: 'inprogress' | 'completed' | 'canceled';
+      } = {
+        cardId: input.id,
+      };
+
+      if (typeof input.title !== "undefined") edgeFunctionPayload.title = input.title;
+      if (typeof genericFieldValues !== "undefined") edgeFunctionPayload.fieldValues = genericFieldValues;
+      if (typeof input.checklistProgress !== "undefined") edgeFunctionPayload.checklistProgress = input.checklistProgress;
+      if (typeof finalAssignedTo !== "undefined") edgeFunctionPayload.assignedTo = finalAssignedTo;
+      if (typeof input.stepId !== "undefined") edgeFunctionPayload.stepId = input.stepId;
+      if (typeof input.position !== "undefined") edgeFunctionPayload.position = input.position;
+      if (typeof input.movementHistory !== "undefined") edgeFunctionPayload.movementHistory = input.movementHistory;
+      if (typeof input.parentCardId !== "undefined") edgeFunctionPayload.parentCardId = input.parentCardId;
+      if (typeof input.status !== "undefined") {
+        edgeFunctionPayload.status = input.status as 'inprogress' | 'completed' | 'canceled';
+      }
+
+      // Chamar Edge Function
+      const { data, error } = await supabase.functions.invoke('update-nexflow-card', {
+        body: edgeFunctionPayload,
+      });
+
+      if (error) {
+        throw new Error(error.message || "Falha ao atualizar card.");
+      }
+
+      if (!data || !data.success || !data.card) {
+        throw new Error(data?.error || "Falha ao atualizar card.");
+      }
+
+      // Mapear resposta da Edge Function para NexflowCard
+      const updatedCard: NexflowCard = {
+        id: data.card.id,
+        flowId: data.card.flowId,
+        stepId: data.card.stepId,
+        clientId: data.card.clientId,
+        title: data.card.title,
+        fieldValues: data.card.fieldValues ?? {},
+        checklistProgress: data.card.checklistProgress ?? {},
+        movementHistory: Array.isArray(data.card.movementHistory) 
+          ? data.card.movementHistory 
+          : [],
+        parentCardId: data.card.parentCardId ?? null,
+        assignedTo: data.card.assignedTo ?? null,
+        position: data.card.position ?? 0,
+        status: data.card.status ?? null,
+        createdAt: data.card.createdAt,
+      };
+
+      return { card: updatedCard, silent: input.silent };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
@@ -168,8 +235,13 @@ export function useNexflowCards(flowId?: string) {
         toast.success("Card atualizado.");
       }
     },
-    onError: () => {
-      toast.error("Erro ao atualizar card.");
+    onError: (error: Error) => {
+      // Verificar se é erro de autorização
+      if (error.message.includes("Acesso negado") || error.message.includes("403")) {
+        toast.error("Você não tem permissão para alterar o título deste card.");
+      } else {
+        toast.error(error.message || "Erro ao atualizar card.");
+      }
     },
   });
 
@@ -196,13 +268,16 @@ export function useNexflowCards(flowId?: string) {
   const reorderCardsMutation = useMutation({
     mutationFn: async ({ items }: ReorderCardsInput) => {
       await Promise.all(
-        items.map(({ id, stepId, position, movementHistory }) => {
+        items.map(({ id, stepId, position, movementHistory, status }) => {
           const payload: Partial<CardRow> = {
             step_id: stepId,
             position,
           };
           if (typeof movementHistory !== "undefined") {
             payload.movement_history = movementHistory;
+          }
+          if (typeof status !== "undefined") {
+            payload.status = status;
           }
           return nexflowClient().from("cards").update(payload).eq("id", id);
         })
@@ -224,6 +299,10 @@ export function useNexflowCards(flowId?: string) {
                 typeof update.movementHistory !== "undefined"
                   ? update.movementHistory
                   : card.movementHistory,
+              status:
+                typeof update.status !== "undefined"
+                  ? update.status
+                  : card.status,
             }
           : card;
       });

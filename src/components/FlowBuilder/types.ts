@@ -10,7 +10,8 @@ export interface FieldFormValues {
   isRequired: boolean;
   minLength?: number | null;
   maxLength?: number | null;
-  validation?: "none" | "email" | "phone";
+  validation?: "none" | "email" | "phone" | "cnpj_cpf";
+  cnpjCpfType?: "auto" | "cpf" | "cnpj";
   checklistItems: { value: string }[];
 }
 
@@ -22,6 +23,7 @@ export function toFieldFormValues(field: NexflowStepField): FieldFormValues {
     minLength: field.configuration.minLength ?? undefined,
     maxLength: field.configuration.maxLength ?? undefined,
     validation: field.configuration.validation ?? "none",
+    cnpjCpfType: field.configuration.cnpjCpfType as "auto" | "cpf" | "cnpj" | undefined,
     checklistItems:
       field.configuration.items?.map((value) => ({ value })) ?? [
         { value: "Opção 1" },
@@ -47,6 +49,9 @@ export function buildConfigurationFromForm(
     configuration.maxLength =
       typeof values.maxLength === "number" ? values.maxLength : undefined;
     configuration.validation = values.validation ?? "none";
+    if (values.validation === "cnpj_cpf" && values.cnpjCpfType) {
+      configuration.cnpjCpfType = values.cnpjCpfType;
+    }
   }
 
   if (fieldType === "checklist") {

@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Plus, ArrowLeft } from "lucide-react";
+import { Plus, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { StartFormModal, type StartFormPayload } from "@/components/crm/flows/StartFormModal";
 import {
   CardDetailsModal,
@@ -32,11 +32,14 @@ import {
 } from "@/components/crm/flows/CardDetailsModal";
 import { useNexflowFlow, type NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
+import { useUsers } from "@/hooks/useUsers";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import type {
   CardMovementEntry,
   ChecklistProgressMap,
   NexflowCard,
   NexflowStepField,
+  StepFieldValueMap,
 } from "@/types/nexflow";
 import { cn, getReadableTextColor, hexToRgba } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
@@ -264,6 +267,7 @@ export function NexflowBoardPage() {
       fieldValues: payload.fieldValues,
       checklistProgress: payload.checklistProgress,
       movementHistory: payload.movementHistory,
+      assignedTo: payload.assignedTo,
     });
   };
 
@@ -386,8 +390,23 @@ export function NexflowBoardPage() {
       return;
     }
 
+    // Verificar se a etapa de destino é uma etapa de conclusão
+    const targetStep = steps.find((s) => s.id === targetStepId);
+    const newStatus = targetStep?.isCompletionStep ? "completed" : "inprogress";
+
+    // Adicionar status aos updates do card que está sendo movido
+    const updatesWithStatus = updates.map((update) => {
+      if (update.id === card.id) {
+        return {
+          ...update,
+          status: newStatus,
+        };
+      }
+      return update;
+    });
+
     await reorderCards({
-      items: updates,
+      items: updatesWithStatus,
     });
 
     if (movementHistory) {
@@ -405,13 +424,27 @@ export function NexflowBoardPage() {
     values: CardFormValues
   ) => {
     // Auto-save silencioso (sem toast)
-    await updateCard({
+    // Usar a mesma abordagem do checklistProgress - sempre incluir assignedTo
+    const updatePayload: {
+      id: string;
+      title: string;
+      fieldValues: StepFieldValueMap;
+      checklistProgress: ChecklistProgressMap;
+      assignedTo?: string | null;
+      silent: boolean;
+    } = {
       id: card.id,
       title: values.title.trim(),
       fieldValues: values.fields,
       checklistProgress: values.checklist as ChecklistProgressMap,
       silent: true,
-    });
+    };
+    
+    // Sempre incluir assignedTo (mesmo que seja null ou undefined)
+    // Converter undefined para null para garantir que seja enviado
+    updatePayload.assignedTo = values.assignedTo ?? null;
+    
+    await updateCard(updatePayload);
 
     // Atualiza o estado local do card ativo
     setActiveCard((current) =>
@@ -421,6 +454,7 @@ export function NexflowBoardPage() {
             title: values.title.trim(),
             fieldValues: values.fields,
             checklistProgress: values.checklist as ChecklistProgressMap,
+            assignedTo: values.assignedTo ?? null,
           }
         : current
     );
@@ -594,11 +628,22 @@ export function NexflowBoardPage() {
                           </p>
                           <h3
                             className={cn(
-                              "text-base font-semibold",
+                              "text-base font-semibold flex items-center gap-2",
                               isDarkHeader ? "text-white" : "text-slate-900"
                             )}
                           >
                             {step.title}
+                            {step.isCompletionStep && (
+                              <CheckCircle2
+                                className={cn(
+                                  "h-4 w-4",
+                                  isDarkHeader
+                                    ? "text-white opacity-90"
+                                    : "text-slate-700"
+                                )}
+                                title="Etapa de conclusão"
+                              />
+                            )}
                           </h3>
                         </div>
                         <div className="flex flex-col items-end gap-2">
@@ -794,6 +839,11 @@ function SortableCard({
 }
 
 function KanbanCardPreview({ card }: { card: NexflowCard }) {
+  const { data: users = [] } = useUsers();
+  const assignedUser = card.assignedTo
+    ? users.find((user) => user.id === card.assignedTo)
+    : null;
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -802,13 +852,33 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
           {new Date(card.createdAt).toLocaleDateString("pt-BR")}
         </span>
       </div>
-      <p className="mt-1 text-xs text-slate-500">
-        Atualizado em{" "}
-        {new Date(card.createdAt).toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })}
-      </p>
+      <div className="mt-2 flex items-center justify-between">
+        <p className="text-xs text-slate-500">
+          Atualizado em{" "}
+          {new Date(card.createdAt).toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </p>
+        {assignedUser ? (
+          <div className="flex items-center gap-1.5">
+            <UserAvatar
+              user={{
+                name: assignedUser.name,
+                surname: assignedUser.surname,
+                avatar_type: assignedUser.avatar_type,
+                avatar_seed: assignedUser.avatar_seed,
+                custom_avatar_url: assignedUser.custom_avatar_url,
+                avatar_url: assignedUser.avatar_url,
+              }}
+              size="sm"
+            />
+            <span className="text-xs text-slate-600 truncate max-w-[100px]">
+              {assignedUser.name} {assignedUser.surname}
+            </span>
+          </div>
+        ) : null}
+      </div>
     </>
   );
 }

@@ -45,6 +45,9 @@ export function NexflowBuilderPage() {
     updateFlowDraft,
     steps,
     activeStepId,
+    activeStep,
+    stepDraft,
+    updateStepDraft,
     selectStep,
     createStep,
     renameStep,
@@ -195,6 +198,15 @@ export function NexflowBuilderPage() {
     createFieldFromLibrary(availableFields[0].id);
   };
 
+  const handleStepUpdate = async (stepId: string, updates: { title?: string; color?: string }) => {
+    // Apenas atualizar título imediatamente (compatibilidade)
+    // A cor agora é gerenciada via stepDraft e salva apenas quando o usuário clicar em "Salvar"
+    if (updates.title) {
+      await renameStep(stepId, updates.title);
+    }
+    // Cor removida daqui - agora é gerenciada via stepDraft
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       {isLoading ? (
@@ -237,10 +249,14 @@ export function NexflowBuilderPage() {
             flowDraft={flowDraft}
             onFlowDraftChange={updateFlowDraft}
             selectedField={selectedField}
+            activeStep={activeStep}
+            stepDraft={stepDraft}
             onFieldUpdate={updateField}
             onFieldConfigurationUpdate={updateFieldConfiguration}
             onDuplicateField={duplicateField}
             onDeleteField={deleteField}
+            onStepUpdate={handleStepUpdate}
+            onStepDraftChange={updateStepDraft}
           />
         </div>
 

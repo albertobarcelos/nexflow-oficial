@@ -7,7 +7,7 @@ import type { FlowDraft } from "@/hooks/useFlowBuilderState";
 import type { NexflowStepField } from "@/types/nexflow";
 import type { UpdateStepFieldInput } from "@/hooks/useNexflowStepFields";
 import type { StepFieldConfiguration } from "@/types/nexflow";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { UseFormReturn } from "react-hook-form";
 import { FieldConfigRenderer } from "./FieldConfigRenderer";
@@ -18,11 +18,17 @@ import {
 } from "./types";
 import { Separator } from "@/components/ui/separator";
 import { VisibilitySelector } from "./VisibilitySelector";
+import { StepPropertiesContent } from "./StepPropertiesContent";
+import type { NexflowStep } from "@/types/nexflow";
+import type { StepDraft } from "@/hooks/useFlowBuilderState";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface PropertiesPanelProps {
   flowDraft: FlowDraft;
   onFlowDraftChange: (updates: Partial<FlowDraft>) => void;
   selectedField: NexflowStepField | null;
+  activeStep: NexflowStep | null;
+  stepDraft: StepDraft | null;
   onFieldUpdate: (input: UpdateStepFieldInput) => void | Promise<void>;
   onFieldConfigurationUpdate: (
     fieldId: string,
@@ -30,16 +36,22 @@ interface PropertiesPanelProps {
   ) => void | Promise<void>;
   onDuplicateField: (fieldId: string) => void | Promise<void>;
   onDeleteField: (fieldId: string) => void | Promise<void>;
+  onStepUpdate?: (stepId: string, updates: { title?: string; color?: string }) => void | Promise<void>;
+  onStepDraftChange: (updates: Partial<StepDraft>) => void;
 }
 
 export function PropertiesPanel({
   flowDraft,
   onFlowDraftChange,
   selectedField,
+  activeStep,
+  stepDraft,
   onFieldUpdate,
   onFieldConfigurationUpdate,
   onDuplicateField,
   onDeleteField,
+  onStepUpdate,
+  onStepDraftChange,
 }: PropertiesPanelProps) {
   const generalForm = useForm<FlowDraft>({
     defaultValues: flowDraft,
@@ -78,6 +90,16 @@ export function PropertiesPanel({
     onFieldConfigurationUpdate(selectedField.id, configuration);
   };
 
+  // Estado para controlar a aba ativa quando um step está selecionado
+  const [activeTab, setActiveTab] = useState<"step" | "flow">("step");
+
+  // Resetar para aba de step quando um novo step é selecionado
+  useEffect(() => {
+    if (activeStep) {
+      setActiveTab("step");
+    }
+  }, [activeStep]);
+
   return (
     <aside className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       {selectedField ? (
@@ -89,6 +111,27 @@ export function PropertiesPanel({
           onDeleteField={onDeleteField}
           onCommitConfiguration={commitConfiguration}
         />
+      ) : activeStep ? (
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "step" | "flow")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-5 h-auto">
+            <TabsTrigger value="step" className="text-xs px-2 py-1.5">Propriedades da Etapa</TabsTrigger>
+            <TabsTrigger value="flow" className="text-xs px-2 py-1.5">Propriedades do Flow</TabsTrigger>
+          </TabsList>
+          <TabsContent value="step" className="mt-0">
+            <StepPropertiesContent
+              step={activeStep}
+              stepDraft={stepDraft}
+              onStepUpdate={onStepUpdate}
+              onStepDraftChange={onStepDraftChange}
+            />
+          </TabsContent>
+          <TabsContent value="flow" className="mt-0">
+            <GeneralPropertiesContent
+              generalForm={generalForm}
+              onFlowDraftChange={onFlowDraftChange}
+            />
+          </TabsContent>
+        </Tabs>
       ) : (
         <GeneralPropertiesContent
           generalForm={generalForm}

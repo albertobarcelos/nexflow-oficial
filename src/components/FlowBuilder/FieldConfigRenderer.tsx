@@ -91,6 +91,13 @@ export function FieldConfigRenderer({
               setValue("validation", value as FieldFormValues["validation"], {
                 shouldDirty: true,
               });
+              // Resetar cnpjCpfType se mudar de cnpj_cpf para outra validação
+              if (value !== "cnpj_cpf") {
+                setValue("cnpjCpfType", undefined, { shouldDirty: true });
+              } else {
+                // Definir padrão como "auto" se selecionar cnpj_cpf
+                setValue("cnpjCpfType", "auto", { shouldDirty: true });
+              }
               onCommit();
             }}
           >
@@ -101,9 +108,36 @@ export function FieldConfigRenderer({
               <SelectItem value="none">Sem validação</SelectItem>
               <SelectItem value="email">Email</SelectItem>
               <SelectItem value="phone">Telefone</SelectItem>
+              <SelectItem value="cnpj_cpf">CNPJ/CPF</SelectItem>
             </SelectContent>
           </Select>
         </div>
+        {getValues("validation") === "cnpj_cpf" && (
+          <div className="space-y-2">
+            <Label>Tipo de validação</Label>
+            <Select
+              value={getValues("cnpjCpfType") ?? "auto"}
+              onValueChange={(value) => {
+                setValue("cnpjCpfType", value as "auto" | "cpf" | "cnpj", {
+                  shouldDirty: true,
+                });
+                onCommit();
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Automático (CPF ou CNPJ)</SelectItem>
+                <SelectItem value="cpf">Apenas CPF</SelectItem>
+                <SelectItem value="cnpj">Apenas CNPJ</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500">
+              Automático detecta o tipo pela quantidade de dígitos. Selecione um tipo específico para validar apenas CPF ou apenas CNPJ.
+            </p>
+          </div>
+        )}
       </div>
     );
   }

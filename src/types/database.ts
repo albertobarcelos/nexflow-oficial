@@ -1432,7 +1432,6 @@ export interface Database {
           created_at: string;
           owner_id: string | null;
           client_id: string;
-          visibility_type: "company" | "team" | "user";
         };
         Insert: {
           id?: string;
@@ -1443,7 +1442,6 @@ export interface Database {
           created_at?: string;
           owner_id?: string | null;
           client_id: string;
-          visibility_type?: "company" | "team" | "user";
         };
         Update: {
           id?: string;
@@ -1454,7 +1452,6 @@ export interface Database {
           created_at?: string;
           owner_id?: string | null;
           client_id?: string;
-          visibility_type?: "company" | "team" | "user";
         };
         Relationships: [];
       };
@@ -1532,6 +1529,7 @@ export interface Database {
           checklist_progress: Json;
           movement_history: Json | null;
           parent_card_id: string | null;
+          assigned_to: string | null;
           position: number;
           created_at: string;
         };
@@ -1545,6 +1543,7 @@ export interface Database {
           checklist_progress?: Json;
           movement_history?: Json | null;
           parent_card_id?: string | null;
+          assigned_to?: string | null;
           position?: number;
           created_at?: string;
         };
@@ -1558,6 +1557,7 @@ export interface Database {
           checklist_progress?: Json;
           movement_history?: Json | null;
           parent_card_id?: string | null;
+          assigned_to?: string | null;
           position?: number;
           created_at?: string;
         };
@@ -1612,50 +1612,6 @@ export interface Database {
           user_id?: string;
           can_view?: boolean;
           can_edit_fields?: boolean | null;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-
-      flow_team_access: {
-        Row: {
-          id: string;
-          flow_id: string;
-          team_id: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          flow_id: string;
-          team_id: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          flow_id?: string;
-          team_id?: string;
-          created_at?: string;
-        };
-        Relationships: [];
-      };
-
-      flow_user_exclusions: {
-        Row: {
-          id: string;
-          flow_id: string;
-          user_id: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          flow_id: string;
-          user_id: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          flow_id?: string;
-          user_id?: string;
           created_at?: string;
         };
         Relationships: [];

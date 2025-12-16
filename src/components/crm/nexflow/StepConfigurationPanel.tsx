@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNexflowStepFields } from "@/hooks/useNexflowStepFields";
+import { useNexflowSteps } from "@/hooks/useNexflowSteps";
 import { StepFieldModal } from "@/components/crm/nexflow/StepFieldModal";
 import { NexflowStep, NexflowStepField } from "@/types/nexflow";
 import {
@@ -49,6 +51,10 @@ export function StepConfigurationPanel({
 }: StepConfigurationPanelProps) {
   const [stepName, setStepName] = useState(step?.title ?? "");
   const [isRenaming, setIsRenaming] = useState(false);
+  const [isCompletionStep, setIsCompletionStep] = useState(
+    step?.isCompletionStep ?? false
+  );
+  const [isSavingCompletion, setIsSavingCompletion] = useState(false);
   const [fieldModalState, setFieldModalState] = useState<
     { mode: "create" | "edit"; field?: NexflowStepField } | null
   >(null);
@@ -59,10 +65,12 @@ export function StepConfigurationPanel({
     isLoading,
     deleteField,
   } = useNexflowStepFields(activeStepId);
+  const { updateStep } = useNexflowSteps(flowId);
 
   useEffect(() => {
     setStepName(step?.title ?? "");
-  }, [step?.id, step?.title]);
+    setIsCompletionStep(step?.isCompletionStep ?? false);
+  }, [step?.id, step?.title, step?.isCompletionStep]);
 
   const currentStepLabel = useMemo(() => {
     if (!step) return "Selecione uma etapa";
@@ -78,6 +86,23 @@ export function StepConfigurationPanel({
       await onRenameStep(stepName.trim());
     } finally {
       setIsRenaming(false);
+    }
+  };
+
+  const handleToggleCompletionStep = async (checked: boolean) => {
+    if (!step) return;
+    try {
+      setIsSavingCompletion(true);
+      setIsCompletionStep(checked);
+      await updateStep({
+        id: step.id,
+        isCompletionStep: checked,
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar etapa de conclusão:", error);
+      setIsCompletionStep(!checked); // Reverter em caso de erro
+    } finally {
+      setIsSavingCompletion(false);
     }
   };
 
@@ -137,6 +162,24 @@ export function StepConfigurationPanel({
                     </AlertDialogContent>
                   </AlertDialog>
                 )}
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <Label htmlFor="step-completion">Marcar como etapa de conclusão</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Quando um card for movido para esta etapa, seu status será
+                    automaticamente atualizado para "concluído".
+                  </p>
+                </div>
+                <Switch
+                  id="step-completion"
+                  checked={isCompletionStep}
+                  onCheckedChange={handleToggleCompletionStep}
+                  disabled={isSavingCompletion}
+                />
               </div>
             </section>
 

@@ -15,7 +15,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
-import { Plus, Settings, Trash2, Edit2, GripHorizontal } from "lucide-react";
+import { Plus, Settings, Trash2, Edit2, GripHorizontal, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNexflowSteps } from "@/hooks/useNexflowSteps";
 import { Input } from "@/components/ui/input";
@@ -231,6 +231,7 @@ interface SortableStepCardProps {
     id: string;
     title: string;
     position: number;
+    isCompletionStep?: boolean;
   };
   isEditing: boolean;
   editingValue: string;
@@ -334,7 +335,15 @@ function SortableStepCard({
           </div>
         ) : (
           <>
-            <h3 className="text-base font-semibold">{step.title}</h3>
+            <h3 className="text-base font-semibold flex items-center gap-2">
+              {step.title}
+              {step.isCompletionStep && (
+                <CheckCircle2
+                  className="h-4 w-4 text-green-600"
+                  title="Etapa de conclusão"
+                />
+              )}
+            </h3>
             <p className="text-sm text-muted-foreground">
               Configure campos específicos clicando na engrenagem.
             </p>

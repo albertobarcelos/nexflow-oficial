@@ -14,6 +14,7 @@ const mapStepRow = (row: StepRow): NexflowStep => ({
   title: row.title,
   color: row.color ?? DEFAULT_STEP_COLOR,
   position: row.position,
+  isCompletionStep: Boolean(row.is_completion_step),
   createdAt: row.created_at,
 });
 
@@ -21,6 +22,7 @@ interface CreateStepInput {
   title: string;
   color: string;
   position?: number;
+  isCompletionStep?: boolean;
 }
 
 interface UpdateStepInput {
@@ -28,6 +30,7 @@ interface UpdateStepInput {
   title?: string;
   color?: string;
   position?: number;
+  isCompletionStep?: boolean;
 }
 
 interface ReorderStepsInput {
@@ -46,6 +49,7 @@ export function useNexflowSteps(flowId?: string) {
         return [];
       }
 
+      // Buscar diretamente da tabela (Flow Builder precisa ver TODAS as etapas para editar)
       const { data, error } = await nexflowClient()
         .from("steps")
         .select("*")
@@ -62,7 +66,7 @@ export function useNexflowSteps(flowId?: string) {
   });
 
   const createStepMutation = useMutation<NexflowStep, Error, CreateStepInput>({
-    mutationFn: async ({ title, color, position }: CreateStepInput) => {
+    mutationFn: async ({ title, color, position, isCompletionStep }: CreateStepInput) => {
       if (!flowId) {
         throw new Error("Flow não informado.");
       }
@@ -81,6 +85,7 @@ export function useNexflowSteps(flowId?: string) {
           title,
           color,
           position: targetPosition,
+          is_completion_step: isCompletionStep ?? false,
         })
         .select("*")
         .single();
@@ -91,7 +96,7 @@ export function useNexflowSteps(flowId?: string) {
 
       return mapStepRow(data);
     },
-    onMutate: async ({ title, color, position }) => {
+    onMutate: async ({ title, color, position, isCompletionStep }) => {
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
       if (!flowId) {
@@ -108,6 +113,7 @@ export function useNexflowSteps(flowId?: string) {
         title,
         color,
         position: provisionalPosition,
+        isCompletionStep: isCompletionStep ?? false,
         createdAt: new Date().toISOString(),
       };
 
@@ -133,11 +139,12 @@ export function useNexflowSteps(flowId?: string) {
   });
 
   const updateStepMutation = useMutation({
-    mutationFn: async ({ id, title, color, position }: UpdateStepInput) => {
+    mutationFn: async ({ id, title, color, position, isCompletionStep }: UpdateStepInput) => {
       const payload: Partial<StepRow> = {};
       if (typeof title !== "undefined") payload.title = title;
       if (typeof color !== "undefined") payload.color = color;
       if (typeof position !== "undefined") payload.position = position;
+      if (typeof isCompletionStep !== "undefined") payload.is_completion_step = isCompletionStep;
 
       const { error } = await nexflowClient()
         .from("steps")
@@ -148,7 +155,7 @@ export function useNexflowSteps(flowId?: string) {
         throw error;
       }
     },
-    onMutate: async ({ id, title, color, position }) => {
+    onMutate: async ({ id, title, color, position, isCompletionStep }) => {
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
 
@@ -162,6 +169,10 @@ export function useNexflowSteps(flowId?: string) {
                 color: typeof color !== "undefined" ? color : step.color,
                 position:
                   typeof position !== "undefined" ? position : step.position,
+                isCompletionStep:
+                  typeof isCompletionStep !== "undefined"
+                    ? isCompletionStep
+                    : step.isCompletionStep,
               }
             : step
         )

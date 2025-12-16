@@ -21,6 +21,9 @@ import type {
   StepFieldValueMap,
 } from "@/types/nexflow";
 import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
+import { useUsers } from "@/hooks/useUsers";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isSystemField, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
 
 export interface StartFormPayload {
   title: string;
@@ -28,6 +31,7 @@ export interface StartFormPayload {
   checklistProgress: ChecklistProgressMap;
   movementHistory: CardMovementEntry[];
   parentCardId?: string | null;
+  assignedTo?: string | null;
 }
 
 interface StartFormModalProps {
@@ -44,6 +48,7 @@ type StartFormValues = {
 
 export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { data: users = [] } = useUsers();
   const form = useForm<StartFormValues>({
     defaultValues: {
       fields: {},
@@ -134,12 +139,23 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
 
     const fieldValues: StepFieldValueMap = {};
     const checklistProgress: ChecklistProgressMap = {};
+    let assignedTo: string | null = null;
 
     step.fields?.forEach((field) => {
       if (field.fieldType === "checklist") {
         const progress = values.checklist[field.id] ?? {};
         checklistProgress[field.id] = progress;
         fieldValues[field.id] = progress;
+        return;
+      }
+
+      // Separar campos de sistema (assigned_to) dos campos genéricos
+      if (isSystemField(field.slug)) {
+        if (field.slug === SYSTEM_FIELDS.ASSIGNED_TO) {
+          const rawValue = values.fields[field.id];
+          assignedTo = typeof rawValue === "string" && rawValue.trim() ? rawValue.trim() : null;
+        }
+        // Não incluir campos de sistema em fieldValues
         return;
       }
 
@@ -183,6 +199,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
             movedBy: null,
           },
         ],
+        assignedTo,
       });
       reset({
         fields: {},
@@ -304,6 +321,52 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
               required: field.isRequired ? "Campo obrigatório" : false,
             })}
           />
+          {formState.errors.fields?.[field.id]?.message ? (
+            <p className="text-xs text-red-500">
+              {formState.errors.fields?.[field.id]?.message as string}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    // Campo de seleção de usuário (Responsável)
+    if (field.fieldType === "user_select") {
+      const fieldValue = watch(`fields.${field.id}` as const);
+      const activeUsers = users.filter((user) => user.is_active);
+      
+      return (
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-slate-800">
+            {field.label}
+            {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+          </Label>
+          <Select
+            value={(fieldValue as string) ?? ""}
+            onValueChange={(value) => {
+              setValue(`fields.${field.id}` as const, value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Selecione um usuário" />
+            </SelectTrigger>
+            <SelectContent>
+              {activeUsers.length === 0 ? (
+                <SelectItem value="" disabled>
+                  Nenhum usuário disponível
+                </SelectItem>
+              ) : (
+                activeUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name} {user.surname}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
           {formState.errors.fields?.[field.id]?.message ? (
             <p className="text-xs text-red-500">
               {formState.errors.fields?.[field.id]?.message as string}
