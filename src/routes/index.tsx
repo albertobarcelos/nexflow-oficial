@@ -17,10 +17,9 @@ import { NexflowBoardPage } from "@/pages/crm/flows/NexflowBoardPage";
 import { FlowViewsPage } from "@/pages/crm/flows/FlowViewsPage";
 import { FlowsPage } from "@/pages/crm/flows/FlowsPage";
 import OpportunityDetails from "@/pages/crm/OpportunityDetails";
-import { CompaniesPage } from "@/pages/crm/companies/CompaniesPage";
-import { CompanyDetailsPage } from "@/features/companies/pages/CompanyDetailsPage";
-import { PeoplePage } from "@/pages/crm/people/PeoplePage";
-import { EditPersonPage } from "@/pages/crm/people/EditPersonPage";
+
+
+
 // AIDEV-NOTE: Removido EntitiesSettings - sistema simplificado para focar apenas em deals
 import { GeneralSettings } from "@/components/crm/settings/general/GeneralSettings";
 import { TeamSettings } from "@/components/crm/settings/TeamSettings";
@@ -113,22 +112,10 @@ export const router = createBrowserRouter([
         path: "flow/:flowId/opportunities/:id",
         element: <OpportunityDetails />,
       },
-      {
-        path: "companies",
-        element: <CompaniesPage />,
-      },
-      {
-        path: "companies/:id",
-        element: <CompanyDetailsPage />,
-      },
-      {
-        path: "people",
-        element: <PeoplePage />,
-      },
-      {
-        path: "people/:id",
-        element: <EditPersonPage />,
-      },
+     
+     
+      
+      
       // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {
         path: "account/profile",

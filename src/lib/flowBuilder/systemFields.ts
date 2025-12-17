@@ -6,6 +6,7 @@ import type { NexflowCard } from "@/types/nexflow";
  */
 export const SYSTEM_FIELDS = {
   ASSIGNED_TO: "assigned_to",
+  ASSIGNED_TEAM_ID: "assigned_team_id",
   AGENTS: "agents",
 } as const;
 
@@ -28,6 +29,9 @@ export function getSystemFieldValue(
 ): string | null | string[] {
   if (slug === SYSTEM_FIELDS.ASSIGNED_TO) {
     return card.assignedTo ?? null;
+  }
+  if (slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID) {
+    return card.assignedTeamId ?? null;
   }
   if (slug === SYSTEM_FIELDS.AGENTS) {
     return card.agents ?? [];

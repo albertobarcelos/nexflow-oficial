@@ -39,7 +39,9 @@ import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 import { isSystemField, SYSTEM_FIELDS, getSystemFieldValue } from "@/lib/flowBuilder/systemFields";
 import { useUsers } from "@/hooks/useUsers";
+import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AgentsMultiSelect } from "./AgentsMultiSelect";
 
 export interface CardFormValues {
@@ -47,6 +49,8 @@ export interface CardFormValues {
   fields: Record<string, string>;
   checklist: Record<string, Record<string, boolean>>;
   assignedTo?: string | null;
+  assignedTeamId?: string | null;
+  assigneeType?: 'user' | 'team' | 'unassigned';
   agents?: string[];
 }
 
@@ -106,11 +110,12 @@ export function CardDetailsModal({
   }, [card, steps]);
 
   const { data: users = [] } = useUsers();
+  const { data: teams = [] } = useOrganizationTeams();
 
   // Valores iniciais do formulário
   const initialValues = useMemo((): CardFormValues => {
     if (!card) {
-      return { title: "", fields: {}, checklist: {}, assignedTo: null, agents: [] };
+      return { title: "", fields: {}, checklist: {}, assignedTo: null, assignedTeamId: null, assigneeType: 'user', agents: [] };
     }
     
     // Encontrar campo "responsável" nos campos da etapa atual
@@ -136,20 +141,30 @@ export function CardDetailsModal({
     // Separar campos de sistema dos campos genéricos
     const genericFields: Record<string, string> = {};
     let extractedAssignedTo: string | null = card.assignedTo ?? null;
+    let extractedAssignedTeamId: string | null = card.assignedTeamId ?? null;
     
     Object.entries((card.fieldValues as Record<string, string>) ?? {}).forEach(([key, value]) => {
-      // Se for campo de sistema (slug assigned_to ou agents), não incluir em genericFields
+      // Se for campo de sistema (slug assigned_to, assigned_team_id ou agents), não incluir em genericFields
       if (isSystemField(key)) {
         // Se o valor estiver em fieldValues com o slug, usar esse valor
         if (key === SYSTEM_FIELDS.ASSIGNED_TO && value) {
           extractedAssignedTo = value;
         }
+        if (key === SYSTEM_FIELDS.ASSIGNED_TEAM_ID && value) {
+          extractedAssignedTeamId = value;
+        }
         return;
       }
       
-      // Se for o campo "responsável" (pelo ID do campo), extrair para assignedTo
+      // Se for o campo "responsável" (pelo ID do campo), extrair para assignedTo ou assignedTeamId
       if (responsavelFieldId && key === responsavelFieldId && value) {
-        extractedAssignedTo = value;
+        // Verificar se é user ou team baseado no slug do campo
+        const field = currentStep?.fields?.find(f => f.id === responsavelFieldId);
+        if (field?.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID) {
+          extractedAssignedTeamId = value;
+        } else {
+          extractedAssignedTo = value;
+        }
         return; // Não incluir em genericFields
       }
       
@@ -164,11 +179,16 @@ export function CardDetailsModal({
     // Ler agents diretamente do card (não de fieldValues)
     const extractedAgents = card.agents ?? [];
     
+    // Calcular assigneeType - se não houver nenhum, usar 'user' como padrão
+    const assigneeType = extractedAssignedTo ? 'user' : extractedAssignedTeamId ? 'team' : 'user';
+    
     return {
       title: card.title,
       fields: genericFields,
       checklist: (card.checklistProgress as Record<string, Record<string, boolean>>) ?? {},
       assignedTo: extractedAssignedTo,
+      assignedTeamId: extractedAssignedTeamId,
+      assigneeType: assigneeType,
       agents: extractedAgents,
     };
   }, [card, currentStep]);
@@ -382,8 +402,8 @@ export function CardDetailsModal({
       );
     }
     
-    // Campo de seleção de usuário (Responsável) - campo de sistema
-    // Verifica se é user_select E (tem slug assigned_to OU label contém "Responsável")
+    // Campo de seleção de responsável (User ou Team) - campo de sistema
+    // Verifica se é user_select E (tem slug assigned_to, assigned_team_id OU label contém "Responsável")
     // IMPORTANTE: Excluir explicitamente agents para evitar conflito
     const isAssignedToField = 
       field.fieldType === "user_select" && 
@@ -391,13 +411,28 @@ export function CardDetailsModal({
       !field.label.toLowerCase().includes("agents") &&
       !field.label.toLowerCase().includes("agentes") &&
       (field.slug === SYSTEM_FIELDS.ASSIGNED_TO || 
+       field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID ||
        field.label.toLowerCase().includes("responsável"));
     
     if (isAssignedToField) {
+      // Calcular assigneeType baseado nos valores do formulário ou do card
       const assignedToValue = form.watch("assignedTo");
+      const assignedTeamIdValue = form.watch("assignedTeamId");
+      const formAssigneeType = form.watch("assigneeType");
+      
+      // Se não houver assigneeType no form, calcular baseado nos valores
+      const assigneeType = formAssigneeType ?? 
+        (assignedToValue ? 'user' : assignedTeamIdValue ? 'team' : 'user');
+      
       const activeUsers = users.filter((user) => user.is_active);
+      const activeTeams = teams.filter((team) => team.is_active);
+      
       const selectedUser = assignedToValue 
         ? activeUsers.find((user) => user.id === assignedToValue)
+        : null;
+      
+      const selectedTeam = assignedTeamIdValue
+        ? activeTeams.find((team) => team.id === assignedTeamIdValue)
         : null;
       
       return (
@@ -410,40 +445,123 @@ export function CardDetailsModal({
               </span>
             )}
           </Label>
-          <div className="relative">
-            <Select
-              value={assignedToValue ?? undefined}
+          
+          {/* Toggle para escolher entre User e Team */}
+          <div className="mb-3">
+            <RadioGroup
+              value={assigneeType}
               onValueChange={(value) => {
-                const newValue = value && value.trim() ? value : null;
-                form.setValue("assignedTo", newValue, {
+                const newType = value as 'user' | 'team';
+                form.setValue("assigneeType", newType, {
                   shouldDirty: true,
                   shouldValidate: true,
                 });
+                
+                // Limpar o campo não selecionado
+                if (newType === 'user') {
+                  form.setValue("assignedTeamId", null, { shouldDirty: true });
+                } else if (newType === 'team') {
+                  form.setValue("assignedTo", null, { shouldDirty: true });
+                }
               }}
+              className="flex gap-4"
             >
-              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
-                <SelectValue placeholder="Selecione um usuário">
-                  {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {activeUsers.length === 0 ? (
-                  <div className="px-2 py-1.5 text-sm text-gray-500">
-                    Nenhum usuário disponível
-                  </div>
-                ) : (
-                  activeUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name} {user.surname}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-              <ChevronDown className="h-5 w-5" />
-            </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="user" id="assignee-user" />
+                <Label htmlFor="assignee-user" className="cursor-pointer">
+                  Usuário
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="team" id="assignee-team" />
+                <Label htmlFor="assignee-team" className="cursor-pointer">
+                  Time
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
+          
+          {/* Seletor de Usuário */}
+          {assigneeType === 'user' && (
+            <div className="relative">
+              <Select
+                value={assignedToValue ?? undefined}
+                onValueChange={(value) => {
+                  const newValue = value && value.trim() ? value : null;
+                  form.setValue("assignedTo", newValue, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                  if (newValue) {
+                    form.setValue("assigneeType", 'user', { shouldDirty: true });
+                  }
+                }}
+              >
+                <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
+                  <SelectValue placeholder="Selecione um usuário">
+                    {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {activeUsers.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-gray-500">
+                      Nenhum usuário disponível
+                    </div>
+                  ) : (
+                    activeUsers.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} {user.surname}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                <ChevronDown className="h-5 w-5" />
+              </div>
+            </div>
+          )}
+          
+          {/* Seletor de Time */}
+          {assigneeType === 'team' && (
+            <div className="relative">
+              <Select
+                value={assignedTeamIdValue ?? undefined}
+                onValueChange={(value) => {
+                  const newValue = value && value.trim() ? value : null;
+                  form.setValue("assignedTeamId", newValue, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                  if (newValue) {
+                    form.setValue("assigneeType", 'team', { shouldDirty: true });
+                  }
+                }}
+              >
+                <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
+                  <SelectValue placeholder="Selecione um time">
+                    {selectedTeam ? selectedTeam.name : "Selecione um time"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {activeTeams.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-gray-500">
+                      Nenhum time disponível
+                    </div>
+                  ) : (
+                    activeTeams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                <ChevronDown className="h-5 w-5" />
+              </div>
+            </div>
+          )}
         </div>
       );
     }

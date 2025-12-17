@@ -11,24 +11,32 @@ import {
 
 type CardRow = Database["nexflow"]["Tables"]["cards"]["Row"];
 
-const mapCardRow = (row: CardRow): NexflowCard => ({
-  id: row.id,
-  flowId: row.flow_id,
-  stepId: row.step_id,
-  clientId: row.client_id,
-  title: row.title,
-  fieldValues: (row.field_values as StepFieldValueMap) ?? {},
-  checklistProgress: (row.checklist_progress as ChecklistProgressMap) ?? {},
-  movementHistory: Array.isArray(row.movement_history)
-    ? (row.movement_history as CardMovementEntry[])
-    : [],
-  parentCardId: row.parent_card_id ?? null,
-  assignedTo: row.assigned_to ?? null,
-  agents: Array.isArray(row.agents) ? row.agents : undefined,
-  position: row.position ?? 0,
-  status: row.status ?? null,
-  createdAt: row.created_at,
-});
+const mapCardRow = (row: CardRow): NexflowCard => {
+  const assignedTo = row.assigned_to ?? null;
+  const assignedTeamId = row.assigned_team_id ?? null;
+  const assigneeType = assignedTo ? 'user' : assignedTeamId ? 'team' : 'unassigned';
+  
+  return {
+    id: row.id,
+    flowId: row.flow_id,
+    stepId: row.step_id,
+    clientId: row.client_id,
+    title: row.title,
+    fieldValues: (row.field_values as StepFieldValueMap) ?? {},
+    checklistProgress: (row.checklist_progress as ChecklistProgressMap) ?? {},
+    movementHistory: Array.isArray(row.movement_history)
+      ? (row.movement_history as CardMovementEntry[])
+      : [],
+    parentCardId: row.parent_card_id ?? null,
+    assignedTo: assignedTo,
+    assignedTeamId: assignedTeamId,
+    assigneeType: assigneeType,
+    agents: Array.isArray(row.agents) ? row.agents : undefined,
+    position: row.position ?? 0,
+    status: row.status ?? null,
+    createdAt: row.created_at,
+  };
+};
 
 export interface CreateCardInput {
   stepId: string;

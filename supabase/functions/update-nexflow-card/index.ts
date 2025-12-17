@@ -12,6 +12,7 @@ interface UpdateCardPayload {
   fieldValues?: Record<string, unknown>;
   checklistProgress?: Record<string, Record<string, boolean>>;
   assignedTo?: string | null;
+  assignedTeamId?: string | null;
   stepId?: string;
   position?: number;
   movementHistory?: Array<{
@@ -85,7 +86,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { cardId, title, fieldValues, checklistProgress, assignedTo, stepId, position, movementHistory, parentCardId, status } = body;
+    const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, movementHistory, parentCardId, status } = body;
 
     if (!cardId) {
       return new Response(
@@ -234,6 +235,19 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Validar exclusão mútua: não permitir assignedTo e assignedTeamId simultaneamente
+    if (assignedTo !== undefined && assignedTeamId !== undefined) {
+      if (assignedTo !== null && assignedTeamId !== null) {
+        return new Response(
+          JSON.stringify({ error: "Não é possível atribuir a um usuário e um time simultaneamente. Escolha apenas um." }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+    }
+
     // Construir payload de atualização
     const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -242,7 +256,24 @@ Deno.serve(async (req: Request) => {
     if (title !== undefined) updatePayload.title = title;
     if (fieldValues !== undefined) updatePayload.field_values = fieldValues;
     if (checklistProgress !== undefined) updatePayload.checklist_progress = checklistProgress;
-    if (assignedTo !== undefined) updatePayload.assigned_to = assignedTo;
+    
+    // Lógica de exclusão mútua para assignedTo e assignedTeamId
+    if (assignedTo !== undefined) {
+      updatePayload.assigned_to = assignedTo;
+      // Se está atribuindo a um usuário, limpar atribuição de time
+      if (assignedTo !== null) {
+        updatePayload.assigned_team_id = null;
+      }
+    }
+    
+    if (assignedTeamId !== undefined) {
+      updatePayload.assigned_team_id = assignedTeamId;
+      // Se está atribuindo a um time, limpar atribuição de usuário
+      if (assignedTeamId !== null) {
+        updatePayload.assigned_to = null;
+      }
+    }
+    
     if (stepId !== undefined) updatePayload.step_id = stepId;
     if (position !== undefined) updatePayload.position = position;
     if (movementHistory !== undefined) updatePayload.movement_history = movementHistory;
@@ -273,6 +304,10 @@ Deno.serve(async (req: Request) => {
     }
 
     // Mapear resposta para formato esperado pelo frontend
+    const assignedToValue = updatedCard.assigned_to ?? null;
+    const assignedTeamIdValue = updatedCard.assigned_team_id ?? null;
+    const assigneeType = assignedToValue ? 'user' : assignedTeamIdValue ? 'team' : 'unassigned';
+    
     const mappedCard = {
       id: updatedCard.id,
       flowId: updatedCard.flow_id,
@@ -285,7 +320,9 @@ Deno.serve(async (req: Request) => {
         ? updatedCard.movement_history 
         : [],
       parentCardId: updatedCard.parent_card_id ?? null,
-      assignedTo: updatedCard.assigned_to ?? null,
+      assignedTo: assignedToValue,
+      assignedTeamId: assignedTeamIdValue,
+      assigneeType: assigneeType,
       position: updatedCard.position ?? 0,
       status: updatedCard.status ?? null,
       createdAt: updatedCard.created_at,

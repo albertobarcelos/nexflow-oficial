@@ -12,24 +12,32 @@ import { separateSystemFields, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFie
 
 type CardRow = Database["nexflow"]["Tables"]["cards"]["Row"];
 
-const mapCardRow = (row: CardRow): NexflowCard => ({
-  id: row.id,
-  flowId: row.flow_id,
-  stepId: row.step_id,
-  clientId: row.client_id,
-  title: row.title,
-  fieldValues: (row.field_values as StepFieldValueMap) ?? {},
-  checklistProgress: (row.checklist_progress as ChecklistProgressMap) ?? {},
-  movementHistory: Array.isArray(row.movement_history)
-    ? (row.movement_history as CardMovementEntry[])
-    : [],
-  parentCardId: row.parent_card_id ?? null,
-  assignedTo: row.assigned_to ?? null,
-  agents: Array.isArray(row.agents) ? row.agents : undefined,
-  position: row.position ?? 0,
-  status: row.status ?? null,
-  createdAt: row.created_at,
-});
+const mapCardRow = (row: CardRow): NexflowCard => {
+  const assignedTo = row.assigned_to ?? null;
+  const assignedTeamId = row.assigned_team_id ?? null;
+  const assigneeType = assignedTo ? 'user' : assignedTeamId ? 'team' : 'unassigned';
+  
+  return {
+    id: row.id,
+    flowId: row.flow_id,
+    stepId: row.step_id,
+    clientId: row.client_id,
+    title: row.title,
+    fieldValues: (row.field_values as StepFieldValueMap) ?? {},
+    checklistProgress: (row.checklist_progress as ChecklistProgressMap) ?? {},
+    movementHistory: Array.isArray(row.movement_history)
+      ? (row.movement_history as CardMovementEntry[])
+      : [],
+    parentCardId: row.parent_card_id ?? null,
+    assignedTo: assignedTo,
+    assignedTeamId: assignedTeamId,
+    assigneeType: assigneeType,
+    agents: Array.isArray(row.agents) ? row.agents : undefined,
+    position: row.position ?? 0,
+    status: row.status ?? null,
+    createdAt: row.created_at,
+  };
+};
 
 export interface CreateCardInput {
   stepId: string;
@@ -41,6 +49,7 @@ export interface CreateCardInput {
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
+  assignedTeamId?: string | null;
   agents?: string[];
   status?: string | null;
 }
@@ -55,6 +64,7 @@ export interface UpdateCardInput {
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
+  assignedTeamId?: string | null;
   agents?: string[];
   status?: string | null;
   /** Quando true, não exibe toast de sucesso (útil para auto-save) */
@@ -114,8 +124,15 @@ export function useNexflowCards(flowId?: string) {
       // Obter assigned_to do input direto ou dos systemFields
       const assignedTo = input.assignedTo ?? (systemFields[SYSTEM_FIELDS.ASSIGNED_TO] as string | null) ?? null;
       
+      // Obter assigned_team_id do input direto ou dos systemFields
+      const assignedTeamId = input.assignedTeamId ?? (systemFields[SYSTEM_FIELDS.ASSIGNED_TEAM_ID] as string | null) ?? null;
+      
       // Obter agents do input direto ou dos systemFields
       const agents = input.agents ?? (Array.isArray(systemFields[SYSTEM_FIELDS.AGENTS]) ? systemFields[SYSTEM_FIELDS.AGENTS] as string[] : undefined);
+
+      // Garantir exclusão mútua: se ambos estiverem preenchidos, priorizar assignedTo
+      const finalAssignedTo = assignedTo;
+      const finalAssignedTeamId = assignedTo ? null : assignedTeamId;
 
       const payload: Database["nexflow"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
@@ -132,7 +149,8 @@ export function useNexflowCards(flowId?: string) {
         checklist_progress: input.checklistProgress ?? {},
         movement_history: input.movementHistory ?? [],
         parent_card_id: input.parentCardId ?? null,
-        assigned_to: assignedTo,
+        assigned_to: finalAssignedTo,
+        assigned_team_id: finalAssignedTeamId,
         agents: agents,
         status: input.status ?? null,
       };
@@ -163,6 +181,7 @@ export function useNexflowCards(flowId?: string) {
       // Separar campos de sistema dos campos genéricos se fieldValues for fornecido
       let genericFieldValues = input.fieldValues;
       let finalAssignedTo = input.assignedTo;
+      let finalAssignedTeamId = input.assignedTeamId;
       let finalAgents = input.agents;
       
       if (typeof input.fieldValues !== "undefined") {
@@ -172,6 +191,11 @@ export function useNexflowCards(flowId?: string) {
         // Se assigned_to estiver em systemFields mas não foi passado explicitamente, usar do systemFields
         if (typeof input.assignedTo === "undefined" && systemFields[SYSTEM_FIELDS.ASSIGNED_TO]) {
           finalAssignedTo = systemFields[SYSTEM_FIELDS.ASSIGNED_TO] as string | null;
+        }
+        
+        // Se assigned_team_id estiver em systemFields mas não foi passado explicitamente, usar do systemFields
+        if (typeof input.assignedTeamId === "undefined" && systemFields[SYSTEM_FIELDS.ASSIGNED_TEAM_ID]) {
+          finalAssignedTeamId = systemFields[SYSTEM_FIELDS.ASSIGNED_TEAM_ID] as string | null;
         }
         
         // Se agents estiver em systemFields mas não foi passado explicitamente, usar do systemFields
@@ -189,6 +213,7 @@ export function useNexflowCards(flowId?: string) {
         fieldValues?: StepFieldValueMap;
         checklistProgress?: ChecklistProgressMap;
         assignedTo?: string | null;
+        assignedTeamId?: string | null;
         agents?: string[];
         stepId?: string;
         position?: number;
@@ -203,6 +228,7 @@ export function useNexflowCards(flowId?: string) {
       if (typeof genericFieldValues !== "undefined") edgeFunctionPayload.fieldValues = genericFieldValues;
       if (typeof input.checklistProgress !== "undefined") edgeFunctionPayload.checklistProgress = input.checklistProgress;
       if (typeof finalAssignedTo !== "undefined") edgeFunctionPayload.assignedTo = finalAssignedTo;
+      if (typeof finalAssignedTeamId !== "undefined") edgeFunctionPayload.assignedTeamId = finalAssignedTeamId;
       if (typeof finalAgents !== "undefined") edgeFunctionPayload.agents = finalAgents;
       if (typeof input.stepId !== "undefined") edgeFunctionPayload.stepId = input.stepId;
       if (typeof input.position !== "undefined") edgeFunctionPayload.position = input.position;
@@ -239,6 +265,8 @@ export function useNexflowCards(flowId?: string) {
           : [],
         parentCardId: data.card.parentCardId ?? null,
         assignedTo: data.card.assignedTo ?? null,
+        assignedTeamId: data.card.assignedTeamId ?? null,
+        assigneeType: data.card.assigneeType ?? (data.card.assignedTo ? 'user' : data.card.assignedTeamId ? 'team' : 'unassigned'),
         agents: Array.isArray(data.card.agents) ? data.card.agents : undefined,
         position: data.card.position ?? 0,
         status: data.card.status ?? null,

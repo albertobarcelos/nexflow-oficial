@@ -78,6 +78,8 @@ export interface NexflowCard {
   movementHistory: CardMovementEntry[];
   parentCardId: string | null;
   assignedTo?: string | null;
+  assignedTeamId?: string | null;
+  assigneeType?: 'user' | 'team' | 'unassigned';
   agents?: string[];
   position: number;
   status?: string | null;

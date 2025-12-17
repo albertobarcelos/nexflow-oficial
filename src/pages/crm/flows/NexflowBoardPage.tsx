@@ -33,7 +33,9 @@ import {
 import { useNexflowFlow, type NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
 import { useUsers } from "@/hooks/useUsers";
+import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { TeamAvatar } from "@/components/ui/team-avatar";
 import type {
   CardMovementEntry,
   ChecklistProgressMap,
@@ -425,13 +427,14 @@ export function NexflowBoardPage() {
     values: CardFormValues
   ) => {
     // Auto-save silencioso (sem toast)
-    // Usar a mesma abordagem do checklistProgress - sempre incluir assignedTo e agents
+    // Usar a mesma abordagem do checklistProgress - sempre incluir assignedTo, assignedTeamId e agents
     const updatePayload: {
       id: string;
       title: string;
       fieldValues: StepFieldValueMap;
       checklistProgress: ChecklistProgressMap;
       assignedTo?: string | null;
+      assignedTeamId?: string | null;
       agents?: string[];
       silent: boolean;
     } = {
@@ -446,12 +449,16 @@ export function NexflowBoardPage() {
     // Converter undefined para null para garantir que seja enviado
     updatePayload.assignedTo = values.assignedTo ?? null;
     
+    // Sempre incluir assignedTeamId (mesmo que seja null ou undefined)
+    updatePayload.assignedTeamId = values.assignedTeamId ?? null;
+    
     // Sempre incluir agents (mesmo que seja array vazio)
     updatePayload.agents = values.agents ?? [];
     
     await updateCard(updatePayload);
 
     // Atualiza o estado local do card ativo
+    const assigneeType = values.assignedTo ? 'user' : values.assignedTeamId ? 'team' : 'unassigned';
     setActiveCard((current) =>
       current && current.id === card.id
         ? {
@@ -460,6 +467,8 @@ export function NexflowBoardPage() {
             fieldValues: values.fields,
             checklistProgress: values.checklist as ChecklistProgressMap,
             assignedTo: values.assignedTo ?? null,
+            assignedTeamId: values.assignedTeamId ?? null,
+            assigneeType: assigneeType,
             agents: values.agents ?? [],
           }
         : current
@@ -880,8 +889,14 @@ function SortableCard({
 
 function KanbanCardPreview({ card }: { card: NexflowCard }) {
   const { data: users = [] } = useUsers();
+  const { data: teams = [] } = useOrganizationTeams();
+  
   const assignedUser = card.assignedTo
     ? users.find((user) => user.id === card.assignedTo)
+    : null;
+  
+  const assignedTeam = card.assignedTeamId
+    ? teams.find((team) => team.id === card.assignedTeamId)
     : null;
 
   // Extrair descrição dos fieldValues se houver um campo de descrição
@@ -943,8 +958,24 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
               />
             </div>
           </div>
+        ) : assignedTeam ? (
+          <div className="flex items-center gap-2" title={assignedTeam.name}>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+              {assignedTeam.name}
+            </span>
+            <div className="w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-700 bg-slate-100 overflow-hidden">
+              <TeamAvatar
+                team={{
+                  id: assignedTeam.id,
+                  name: assignedTeam.name,
+                }}
+                size="sm"
+                className="w-full h-full"
+              />
+            </div>
+          </div>
         ) : (
-          <div className="flex items-center gap-2" title="Sem usuário">
+          <div className="flex items-center gap-2" title="Sem responsável">
             <span className="text-xs text-slate-400 italic">--</span>
           </div>
         )}
