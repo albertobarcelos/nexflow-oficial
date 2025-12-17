@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FlowBuilderFieldDefinition } from "@/lib/flowBuilder/fieldLibrary";
 import { cn } from "@/lib/utils";
 import { useDraggable } from "@dnd-kit/core";
@@ -47,8 +48,8 @@ interface ToolboxProps {
 
 export function Toolbox({ definitions, onAdd }: ToolboxProps) {
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div>
+    <aside className="h-[600px] max-h-[800px] rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col">
+      <div className="p-4 border-b border-slate-200 flex-shrink-0">
         <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
           Tipos de Campo
         </p>
@@ -57,15 +58,17 @@ export function Toolbox({ definitions, onAdd }: ToolboxProps) {
         </p>
       </div>
 
-      <div className="mt-6 space-y-3">
-        {definitions.map((definition) => (
-          <ToolboxItem
-            key={definition.id}
-            definition={definition}
-            onAdd={onAdd}
-          />
-        ))}
-      </div>
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-3">
+          {definitions.map((definition) => (
+            <ToolboxItem
+              key={definition.id}
+              definition={definition}
+              onAdd={onAdd}
+            />
+          ))}
+        </div>
+      </ScrollArea>
     </aside>
   );
 }
@@ -93,14 +96,10 @@ function ToolboxItem({ definition, onAdd }: ToolboxItemProps) {
   return (
     <button
       ref={setNodeRef}
-      style={style}
       {...attributes}
       {...listeners}
       onClick={() => onAdd(definition.id)}
-      className={cn(
-        "flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-orange-500 hover:bg-orange-50",
-        isDragging && "cursor-grabbing border-orange-500 shadow-lg"
-      )}
+      className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-orange-500 hover:bg-orange-50"
       type="button"
     >
       <div

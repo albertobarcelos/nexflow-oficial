@@ -8,11 +8,18 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Cloud,
   Loader2,
   Save,
   Sparkles,
   Trash2,
+  X,
+  Info,
+  History,
+  FileEdit,
+  Paperclip,
+  MessageSquare,
 } from "lucide-react";
 import {
   Dialog,
@@ -33,12 +40,14 @@ import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 import { isSystemField, SYSTEM_FIELDS, getSystemFieldValue } from "@/lib/flowBuilder/systemFields";
 import { useUsers } from "@/hooks/useUsers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AgentsMultiSelect } from "./AgentsMultiSelect";
 
 export interface CardFormValues {
   title: string;
   fields: Record<string, string>;
   checklist: Record<string, Record<string, boolean>>;
   assignedTo?: string | null;
+  agents?: string[];
 }
 
 type SaveStatus = "idle" | "saving" | "saved";
@@ -59,6 +68,8 @@ interface CardDetailsModalProps {
   parentTitle?: string | null;
 }
 
+type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments";
+
 export function CardDetailsModal({
   card,
   steps,
@@ -72,6 +83,7 @@ export function CardDetailsModal({
 }: CardDetailsModalProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isMoving, setIsMoving] = useState(false);
+  const [activeSection, setActiveSection] = useState<ActiveSection>("fields");
 
   // Calcula a etapa atual baseado no card
   const currentStep = useMemo(() => {
@@ -98,11 +110,12 @@ export function CardDetailsModal({
   // Valores iniciais do formulário
   const initialValues = useMemo((): CardFormValues => {
     if (!card) {
-      return { title: "", fields: {}, checklist: {}, assignedTo: null };
+      return { title: "", fields: {}, checklist: {}, assignedTo: null, agents: [] };
     }
     
     // Encontrar campo "responsável" nos campos da etapa atual
     let responsavelFieldId: string | null = null;
+    let agentsFieldId: string | null = null;
     if (currentStep?.fields) {
       for (const field of currentStep.fields) {
         const isResponsavelField = 
@@ -111,7 +124,11 @@ export function CardDetailsModal({
            field.label.toLowerCase().includes("responsável"));
         if (isResponsavelField) {
           responsavelFieldId = field.id;
-          break;
+        }
+        
+        // Encontrar campo agents
+        if (field.slug === SYSTEM_FIELDS.AGENTS) {
+          agentsFieldId = field.id;
         }
       }
     }
@@ -121,7 +138,7 @@ export function CardDetailsModal({
     let extractedAssignedTo: string | null = card.assignedTo ?? null;
     
     Object.entries((card.fieldValues as Record<string, string>) ?? {}).forEach(([key, value]) => {
-      // Se for campo de sistema (slug assigned_to), não incluir em genericFields
+      // Se for campo de sistema (slug assigned_to ou agents), não incluir em genericFields
       if (isSystemField(key)) {
         // Se o valor estiver em fieldValues com o slug, usar esse valor
         if (key === SYSTEM_FIELDS.ASSIGNED_TO && value) {
@@ -136,14 +153,23 @@ export function CardDetailsModal({
         return; // Não incluir em genericFields
       }
       
+      // Se for o campo agents (pelo ID do campo), não incluir em genericFields
+      if (agentsFieldId && key === agentsFieldId) {
+        return; // Não incluir em genericFields
+      }
+      
       genericFields[key] = value;
     });
+    
+    // Ler agents diretamente do card (não de fieldValues)
+    const extractedAgents = card.agents ?? [];
     
     return {
       title: card.title,
       fields: genericFields,
       checklist: (card.checklistProgress as Record<string, Record<string, boolean>>) ?? {},
       assignedTo: extractedAssignedTo,
+      agents: extractedAgents,
     };
   }, [card, currentStep]);
 
@@ -154,6 +180,15 @@ export function CardDetailsModal({
   });
 
   const { isDirty } = form.formState;
+
+  // Cálculo do progresso do fluxo
+  const progressPercentage = useMemo(() => {
+    if (!currentStep || !steps.length) return 0;
+    const orderedSteps = [...steps].sort((a, b) => a.position - b.position);
+    const currentIndex = orderedSteps.findIndex((s) => s.id === currentStep.id);
+    if (currentIndex < 0) return 0;
+    return ((currentIndex + 1) / orderedSteps.length) * 100;
+  }, [currentStep, steps]);
 
   const timelineSteps = useMemo(() => {
     if (!card || !currentStep) {
@@ -187,6 +222,13 @@ export function CardDetailsModal({
       step: stepMap.get(entry.toStepId),
     }));
   }, [card, currentStep, steps]);
+
+  // Última atualização do histórico
+  const lastHistoryUpdate = useMemo(() => {
+    if (!card || !timelineSteps.length) return null;
+    const lastEntry = timelineSteps[timelineSteps.length - 1];
+    return format(new Date(lastEntry.entry.movedAt), "dd/MM", { locale: ptBR });
+  }, [card, timelineSteps]);
 
   // Watch específico para campos
   const watchFields = form.watch("fields");
@@ -303,10 +345,51 @@ export function CardDetailsModal({
   );
 
   const renderEditableField = (field: NexflowStepField) => {
+    // Campo Agents (multi-seleção) - campo de sistema
+    // PRIORIDADE: Verificar agents ANTES de assigned_to
+    // Verifica por slug ou por label contendo "agents" ou "agentes" (case insensitive)
+    const isAgentsField = 
+      field.slug === SYSTEM_FIELDS.AGENTS ||
+      (field.fieldType === "user_select" && 
+       field.label.toLowerCase().includes("agents")) ||
+      (field.fieldType === "user_select" && 
+       field.label.toLowerCase().includes("agentes"));
+    
+    if (isAgentsField) {
+      const agentsValue = form.watch("agents") ?? [];
+      
+      return (
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {field.label}
+            {field.isRequired && (
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
+                Obrigatório
+              </span>
+            )}
+          </Label>
+          <AgentsMultiSelect
+            value={agentsValue}
+            onChange={(agentIds) => {
+              form.setValue("agents", agentIds, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            placeholder="Selecione os responsáveis"
+          />
+        </div>
+      );
+    }
+    
     // Campo de seleção de usuário (Responsável) - campo de sistema
     // Verifica se é user_select E (tem slug assigned_to OU label contém "Responsável")
+    // IMPORTANTE: Excluir explicitamente agents para evitar conflito
     const isAssignedToField = 
       field.fieldType === "user_select" && 
+      field.slug !== SYSTEM_FIELDS.AGENTS &&
+      !field.label.toLowerCase().includes("agents") &&
+      !field.label.toLowerCase().includes("agentes") &&
       (field.slug === SYSTEM_FIELDS.ASSIGNED_TO || 
        field.label.toLowerCase().includes("responsável"));
     
@@ -318,46 +401,49 @@ export function CardDetailsModal({
         : null;
       
       return (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {field.label}
             {field.isRequired && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
                 Obrigatório
               </span>
             )}
+          </Label>
+          <div className="relative">
+            <Select
+              value={assignedToValue ?? undefined}
+              onValueChange={(value) => {
+                const newValue = value && value.trim() ? value : null;
+                form.setValue("assignedTo", newValue, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+            >
+              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
+                <SelectValue placeholder="Selecione um usuário">
+                  {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {activeUsers.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-gray-500">
+                    Nenhum usuário disponível
+                  </div>
+                ) : (
+                  activeUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} {user.surname}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+              <ChevronDown className="h-5 w-5" />
+            </div>
           </div>
-          <Select
-            value={assignedToValue ?? undefined}
-            onValueChange={(value) => {
-              // O value sempre será uma string válida do SelectItem
-              // Converter para string ou null explicitamente
-              const newValue = value && value.trim() ? value : null;
-              form.setValue("assignedTo", newValue, {
-                shouldDirty: true,
-                shouldValidate: true,
-              });
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione um usuário">
-                {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {activeUsers.length === 0 ? (
-                <div className="px-2 py-1.5 text-sm text-slate-500">
-                  Nenhum usuário disponível
-                </div>
-              ) : (
-                activeUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name} {user.surname}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
         </div>
       );
     }
@@ -365,23 +451,23 @@ export function CardDetailsModal({
     if (field.fieldType === "checklist") {
       const items = field.configuration.items ?? [];
       return (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {field.label}
             {field.isRequired && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
                 Obrigatório
               </span>
             )}
-          </div>
+          </Label>
           {items.length === 0 ? (
-            <p className="text-xs text-slate-400">Sem itens configurados.</p>
+            <p className="text-xs text-gray-400">Sem itens configurados.</p>
           ) : (
-            <div className="space-y-2 rounded-xl bg-slate-50 p-3">
+            <div className="space-y-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3">
               {items.map((item) => (
                 <label
                   key={item}
-                  className="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700 transition-colors hover:text-slate-900"
+                  className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white"
                 >
                   <Checkbox
                     checked={watchChecklist?.[field.id]?.[item] === true}
@@ -406,59 +492,65 @@ export function CardDetailsModal({
           : undefined;
 
       return (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {field.label}
             {field.isRequired && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
                 Obrigatório
               </span>
             )}
+          </Label>
+          <div className="relative rounded-md shadow-sm group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <CalendarIcon className="text-gray-400 group-focus-within:text-blue-600 transition-colors text-lg" />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-10 pr-4 transition-shadow text-left font-normal",
+                    !parsedValue && "text-gray-400"
+                  )}
+                >
+                  {parsedValue ? format(parsedValue, "PPP", { locale: ptBR }) : "Selecione a data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={parsedValue}
+                  onSelect={(date) => handleDateChange(field.id, date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !parsedValue && "text-slate-400"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {parsedValue ? format(parsedValue, "PPP", { locale: ptBR }) : "Selecione a data"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={parsedValue}
-                onSelect={(date) => handleDateChange(field.id, date)}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
         </div>
       );
     }
 
     if (field.configuration.variant === "long") {
       return (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {field.label}
             {field.isRequired && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
                 Obrigatório
               </span>
             )}
+          </Label>
+          <div className="relative rounded-md shadow-sm">
+            <Textarea
+              rows={4}
+              placeholder={(field.configuration.placeholder as string) ?? "Digite sua resposta..."}
+              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow resize-none"
+              {...form.register(`fields.${field.id}`)}
+            />
           </div>
-          <Textarea
-            rows={3}
-            placeholder={(field.configuration.placeholder as string) ?? ""}
-            className="resize-none"
-            {...form.register(`fields.${field.id}`)}
-          />
         </div>
       );
     }
@@ -467,39 +559,42 @@ export function CardDetailsModal({
     if (field.configuration.validation === "cnpj_cpf") {
       const cnpjCpfType = (field.configuration.cnpjCpfType as "auto" | "cpf" | "cnpj") ?? "auto";
       return (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {field.label}
             {field.isRequired && (
-              <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
                 Obrigatório
               </span>
             )}
-          </div>
-          <Input
-            placeholder={(field.configuration.placeholder as string) ?? ""}
-            value={formatCnpjCpf((watchFields[field.id] as string) ?? "", cnpjCpfType)}
-            onChange={(e) => {
-              const formatted = formatCnpjCpf(e.target.value, cnpjCpfType);
-              form.setValue(`fields.${field.id}`, formatted, {
-                shouldDirty: true,
-                shouldValidate: true,
-              });
-            }}
-            onBlur={() => {
-              const value = (watchFields[field.id] as string) ?? "";
-              if (value && !validateCnpjCpf(value, cnpjCpfType)) {
-                form.setError(`fields.${field.id}`, {
-                  type: "manual",
-                  message: "CPF/CNPJ inválido",
+          </Label>
+          <div className="relative rounded-md shadow-sm">
+            <Input
+              placeholder={(field.configuration.placeholder as string) ?? "000.000.000-00 ou 00.000.000/0000-00"}
+              value={formatCnpjCpf((watchFields[field.id] as string) ?? "", cnpjCpfType)}
+              onChange={(e) => {
+                const formatted = formatCnpjCpf(e.target.value, cnpjCpfType);
+                form.setValue(`fields.${field.id}`, formatted, {
+                  shouldDirty: true,
+                  shouldValidate: true,
                 });
-              } else {
-                form.clearErrors(`fields.${field.id}`);
-              }
-            }}
-          />
+              }}
+              onBlur={() => {
+                const value = (watchFields[field.id] as string) ?? "";
+                if (value && !validateCnpjCpf(value, cnpjCpfType)) {
+                  form.setError(`fields.${field.id}`, {
+                    type: "manual",
+                    message: "CPF/CNPJ inválido",
+                  });
+                } else {
+                  form.clearErrors(`fields.${field.id}`);
+                }
+              }}
+              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow"
+            />
+          </div>
           {form.formState.errors.fields?.[field.id] && (
-            <p className="text-xs text-red-500">
+            <p className="text-xs text-red-500 mt-1">
               {form.formState.errors.fields?.[field.id]?.message as string}
             </p>
           )}
@@ -508,20 +603,23 @@ export function CardDetailsModal({
     }
 
     return (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-slate-700">{field.label}</Label>
+      <div>
+        <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          {field.label}
           {field.isRequired && (
-            <span className="text-[10px] font-medium uppercase tracking-wide text-amber-600">
+            <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
               Obrigatório
             </span>
           )}
+        </Label>
+        <div className="relative rounded-md shadow-sm">
+          <Input
+            type={field.fieldType === "number" ? "number" : "text"}
+            placeholder={(field.configuration.placeholder as string) ?? ""}
+            className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow"
+            {...form.register(`fields.${field.id}`)}
+          />
         </div>
-        <Input
-          type={field.fieldType === "number" ? "number" : "text"}
-          placeholder={(field.configuration.placeholder as string) ?? ""}
-          {...form.register(`fields.${field.id}`)}
-        />
       </div>
     );
   };
@@ -634,331 +732,476 @@ export function CardDetailsModal({
     [onClose]
   );
 
+  // Renderização de conteúdo por seção
+  const renderSectionContent = () => {
+    switch (activeSection) {
+      case "overview":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Informações do Card
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                    Título
+                  </p>
+                  <p className="text-sm text-gray-900 dark:text-white">{card?.title}</p>
+                </div>
+                {currentStep && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Etapa Atual
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: currentStep.color }}
+                      />
+                      <p className="text-sm text-gray-900 dark:text-white">{currentStep.title}</p>
+                    </div>
+                  </div>
+                )}
+                {card && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      Criado em
+                    </p>
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      {format(new Date(card.createdAt), "dd MMM yyyy, HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            {(subtaskCount > 0 || card?.parentCardId) && (
+              <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-4">
+                {subtaskCount > 0 && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold">{subtaskCount}</span> sub-card
+                    {subtaskCount > 1 ? "s" : ""} vinculado{subtaskCount > 1 ? "s" : ""}
+                  </p>
+                )}
+                {card?.parentCardId && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
+                    Pertence a: <span className="font-medium">{parentTitle ?? "outro card"}</span>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      case "history":
+        return (
+          <div className="space-y-4">
+            {timelineSteps.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                  <Sparkles className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  Card recém-criado
+                </p>
+                {card && (
+                  <p className="mt-1 text-xs text-gray-400">
+                    Criado em{" "}
+                    {format(new Date(card.createdAt), "dd MMM yyyy, HH:mm", { locale: ptBR })}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <ul className="relative space-y-4">
+                <span className="absolute bottom-0 left-[5px] top-2 w-[2px] bg-gradient-to-b from-gray-300 to-gray-200 dark:from-gray-600 dark:to-gray-700" />
+                {timelineSteps.map(({ entry, step }) => (
+                  <li key={entry.id} className="relative pl-6">
+                    <div
+                      className="absolute left-0 top-1 h-3 w-3 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"
+                      style={{ backgroundColor: step?.color ?? "#94a3b8" }}
+                    />
+                    <div className="rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm ring-1 ring-gray-100 dark:ring-gray-700">
+                      <div className="flex items-center justify-between gap-2">
+                        <p
+                          className="text-sm font-medium"
+                          style={{ color: step?.color ?? "#334155" }}
+                        >
+                          {step?.title ?? "Etapa"}
+                        </p>
+                        <span className="shrink-0 text-[10px] text-gray-400">
+                          {format(new Date(entry.movedAt), "dd/MM HH:mm", { locale: ptBR })}
+                        </span>
+                      </div>
+                      {step?.fields?.length ? (
+                        <div className="mt-3 space-y-2 border-t border-gray-50 dark:border-gray-700 pt-3">
+                          {step.fields.map((field) => (
+                            <div key={field.id}>
+                              <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">
+                                {field.label}
+                              </p>
+                              {renderTimelineFieldValue(field)}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        );
+      case "fields":
+        return (
+          <div className="space-y-6">
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: currentStep?.color ?? "#F59E0B" }}
+                />
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                  Etapa Atual
+                </span>
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {currentStep?.title ?? "Etapa"}
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Preencha os campos abaixo para avançar o card no fluxo.
+              </p>
+            </div>
+
+            <div className="mb-6 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
+              <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nome do Card (Identificador)
+              </Label>
+              <Input
+                {...form.register("title")}
+                className="w-full max-w-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-600 focus:ring-blue-600 sm:text-sm"
+              />
+            </div>
+
+            {currentStep?.fields?.length ? (
+              <div className="space-y-6">
+                {currentStep.fields.map((field) => (
+                  <div key={field.id}>{renderEditableField(field)}</div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-6 text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Nenhum campo configurado nesta etapa.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      case "attachments":
+        return (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-12 text-center">
+              <Paperclip className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Funcionalidade de anexos será implementada em breve.
+              </p>
+            </div>
+          </div>
+        );
+      case "comments":
+        return (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-12 text-center">
+              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Funcionalidade de comentários será implementada em breve.
+              </p>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   if (!card) {
     return null;
   }
 
+  // Gerar ID do card (usando últimos caracteres do UUID)
+  const cardId = card.id.split("-")[0].toUpperCase().slice(0, 4) + "-" + card.id.split("-")[1].slice(0, 4);
+
   return (
     <Dialog open={Boolean(card)} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-6xl flex-col overflow-hidden rounded-3xl border-slate-200 p-0"
+        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 p-0 shadow-2xl"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
+        hideCloseButton
       >
-        {/* DialogTitle para acessibilidade (visualmente oculto) */}
-        <DialogTitle className="sr-only">
-          Detalhes do Card: {card.title}
-        </DialogTitle>
+        <DialogTitle className="sr-only">Detalhes do Card: {card.title}</DialogTitle>
 
-        <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3 md:px-6 md:py-4">
-            <div className="flex items-center gap-4">
-              <div>
-                <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                  Card
-                </p>
-                <h2 className="text-lg font-semibold text-slate-900 md:text-xl">
-                  {card.title}
-                </h2>
-                {currentStep ? (
-                  <div className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-500">
-                    <span
-                      className="inline-block h-2 w-2 rounded-full"
-                      style={{ backgroundColor: currentStep.color }}
-                    />
+        <div className="flex h-full flex-col bg-white dark:bg-gray-900">
+          {/* Header Redesenhado */}
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start shrink-0">
+            <div>
+              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Card
+              </span>
+              <div className="flex items-center gap-3 mt-1">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{card.title}</h1>
+                <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-2 py-0.5 rounded text-xs border border-gray-200 dark:border-gray-600 font-mono">
+                  #{cardId}
+                </span>
+              </div>
+              {currentStep && (
+                <div className="flex items-center gap-2 mt-2">
+                  <span
+                    className="w-2.5 h-2.5 rounded-full"
+                    style={{ backgroundColor: currentStep.color }}
+                  />
+                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                     {currentStep.title}
-                  </div>
-                ) : null}
-              </div>
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              {/* Indicador de status */}
-              <AnimatePresence mode="wait">
-                {saveStatus === "saving" && (
-                  <motion.div
-                    key="saving"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600"
-                  >
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Salvando...
-                  </motion.div>
-                )}
-                {saveStatus === "saved" && (
-                  <motion.div
-                    key="saved"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600"
-                  >
-                    <Cloud className="h-3 w-3" />
-                    Salvo
-                  </motion.div>
-                )}
-                {isDirty && saveStatus === "idle" && (
-                  <motion.div
-                    key="unsaved"
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-600"
-                  >
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    Não salvo
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </button>
           </div>
 
-          {/* Content Grid */}
-          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[0.3fr_0.7fr]">
-            {/* Timeline (Esquerda - 30%) */}
-            <div className="flex h-full flex-col overflow-hidden border-b border-slate-100 bg-slate-50/50 md:border-b-0 md:border-r">
-              {/* Header Fixo */}
-              <div className="shrink-0 border-b border-slate-100 px-4 py-4 md:px-5">
-                <h3 className="text-sm font-semibold text-slate-800">
-                  Histórico de etapas
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Contexto das etapas concluídas
-                </p>
-              </div>
-              {/* Área de Scroll */}
-              <div className="flex-1 overflow-y-auto px-4 py-4 md:px-5">
-                {timelineSteps.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                      <Sparkles className="h-5 w-5 text-slate-400" />
-                    </div>
-                    <p className="text-sm font-medium text-slate-600">
-                      Card recém-criado
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      Criado em{" "}
-                      {format(new Date(card.createdAt), "dd MMM yyyy, HH:mm", {
-                        locale: ptBR,
-                      })}
-                    </p>
-                  </div>
-                ) : (
-                  <ul className="relative space-y-4">
-                    {/* Linha vertical */}
-                    <span className="absolute bottom-0 left-[5px] top-2 w-[2px] bg-gradient-to-b from-slate-300 to-slate-200" />
-                    {timelineSteps.map(({ entry, step }) => (
-                      <li key={entry.id} className="relative pl-6">
-                        {/* Círculo */}
-                        <div
-                          className="absolute left-0 top-1 h-3 w-3 rounded-full border-2 border-white shadow-sm"
-                          style={{
-                            backgroundColor: step?.color ?? "#94a3b8",
-                          }}
-                        />
-                        <div className="rounded-xl bg-white p-3 shadow-sm ring-1 ring-slate-100">
-                          <div className="flex items-center justify-between gap-2">
-                            <p
-                              className="text-sm font-medium"
-                              style={{ color: step?.color ?? "#334155" }}
-                            >
-                              {step?.title ?? "Etapa"}
-                            </p>
-                            <span className="shrink-0 text-[10px] text-slate-400">
-                              {format(new Date(entry.movedAt), "dd/MM HH:mm", {
-                                locale: ptBR,
-                              })}
-                            </span>
-                          </div>
-                          {step?.fields?.length ? (
-                            <div className="mt-2 space-y-2 border-t border-slate-50 pt-2">
-                              {step.fields.map((field) => (
-                                <div key={field.id}>
-                                  <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-                                    {field.label}
-                                  </p>
-                                  {renderTimelineFieldValue(field)}
-                                </div>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {/* Sub-cards info */}
-                {(subtaskCount > 0 || card.parentCardId) && (
-                  <div className="mt-6 rounded-xl border border-dashed border-slate-200 bg-white p-3">
-                    {subtaskCount > 0 && (
-                      <p className="text-xs text-slate-600">
-                        <span className="font-semibold text-slate-800">
-                          {subtaskCount} sub-card{subtaskCount > 1 ? "s" : ""}
-                        </span>{" "}
-                        vinculado{subtaskCount > 1 ? "s" : ""}
-                      </p>
-                    )}
-                    {card.parentCardId && (
-                      <p className="mt-1 text-xs text-slate-500">
-                        Pertence a:{" "}
-                        <span className="font-medium text-slate-700">
-                          {parentTitle ?? "outro card"}
-                        </span>
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Formulário (Direita - 70%) */}
-            <div className="relative flex h-full max-h-full flex-col overflow-hidden bg-white">
-              {/* Área de Scroll */}
-              <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
-                <div className="space-y-5">
-                  {/* Título */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Título do card
-                    </Label>
-                    <Input
-                      {...form.register("title")}
-                      className="text-base font-medium text-slate-900"
-                    />
-                  </div>
-
-                  {/* Campos da etapa atual */}
-                  {currentStep?.fields?.length ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="inline-block h-2 w-2 rounded-full"
-                          style={{ backgroundColor: currentStep.color }}
-                        />
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          Campos da etapa: {currentStep.title}
-                        </p>
-                      </div>
-                      <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/30 p-4">
-                        {currentStep.fields.map((field) => (
-                          <div key={field.id}>{renderEditableField(field)}</div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
-                      <p className="text-sm text-slate-500">
-                        Nenhum campo configurado nesta etapa.
-                      </p>
-                    </div>
+          {/* Layout Principal: Sidebar + Conteúdo */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Sidebar de Navegação */}
+            <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
+              <nav className="p-4 space-y-1">
+                <button
+                  onClick={() => setActiveSection("overview")}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                    activeSection === "overview"
+                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
                   )}
-                </div>
-              </div>
-
-              {/* Footer com botões */}
-              <div className="z-10 shrink-0 border-t border-slate-100 bg-white px-4 py-3 md:px-6 md:py-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  {/* Lado Esquerdo: Deletar e Salvar */}
-                  <div className="flex items-center gap-2">
-                    {/* Botão Deletar */}
-                    {onDelete && (
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        onClick={handleDelete}
-                        className="gap-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Deletar
-                      </Button>
+                >
+                  {activeSection === "overview" && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                  )}
+                  <Info
+                    className={cn(
+                      "h-5 w-5",
+                      activeSection === "overview"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
                     )}
-                    {/* Botão Salvar */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleSave}
-                      disabled={!isDirty || saveStatus === "saving"}
-                      className={cn(
-                        "gap-2 border-slate-300 transition-all",
-                        isDirty && saveStatus === "idle" && "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                      )}
-                    >
-                      {saveStatus === "saving" ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="h-4 w-4" />
-                          Salvar alterações
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                  />
+                  <span>Visão Geral</span>
+                </button>
 
-                  {/* Lado Direito: Retornar e Mover */}
-                  <div className="flex items-center gap-2">
-                    {/* Botão Retornar Etapa */}
-                    {previousStep && onUpdateCard && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleMoveBack}
-                        disabled={isMoving || !previousStep}
-                        className="gap-2"
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                        Retornar para {previousStep.title}
-                      </Button>
+                <button
+                  onClick={() => setActiveSection("history")}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                    activeSection === "history"
+                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  )}
+                >
+                  {activeSection === "history" && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                  )}
+                  <History
+                    className={cn(
+                      "h-5 w-5",
+                      activeSection === "history"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
                     )}
-                    {/* Botão Mover */}
-                    <Button
-                      type="button"
-                      onClick={handleMoveNext}
-                      disabled={isMoveDisabled || isMoving || !nextStep}
-                      className={cn(
-                        "gap-2 text-sm font-medium shadow-lg transition-all duration-200",
-                        isMoveDisabled || !nextStep
-                          ? "bg-slate-100 text-slate-400"
-                          : "text-white hover:brightness-110"
-                      )}
-                      style={
-                        !isMoveDisabled && nextStep
-                          ? {
-                              backgroundColor: nextStep.color ?? currentStep?.color ?? "#3b82f6",
-                            }
-                          : undefined
-                      }
-                    >
-                      {isMoving ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Movendo...
-                        </>
-                      ) : nextStep ? (
-                        <>
-                          Mover para {nextStep.title}
-                          <ChevronRight className="h-4 w-4" />
-                        </>
-                      ) : (
-                        "Última etapa"
-                      )}
-                    </Button>
+                  />
+                  <div className="flex flex-col">
+                    <span>Histórico</span>
+                    {lastHistoryUpdate && (
+                      <span className="text-[10px] text-gray-400 font-normal">
+                        Última atualização: {lastHistoryUpdate}
+                      </span>
+                    )}
                   </div>
+                </button>
+
+                <div className="relative">
+                  {activeSection === "fields" && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                  )}
+                  <button
+                    onClick={() => setActiveSection("fields")}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium shadow-sm border border-gray-200 dark:border-gray-600 text-left",
+                      activeSection === "fields"
+                        ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-white"
+                        : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                    )}
+                  >
+                    <FileEdit
+                      className={cn(
+                        "h-5 w-5",
+                        activeSection === "fields"
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-gray-400"
+                      )}
+                    />
+                    <span>Campos da Etapa</span>
+                  </button>
                 </div>
-                {isMoveDisabled && nextStep && !isMoving && (
-                  <p className="mt-2 text-center text-xs text-amber-600 sm:text-right">
-                    Preencha os campos obrigatórios para avançar
-                  </p>
-                )}
+
+                <button
+                  onClick={() => setActiveSection("attachments")}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                    activeSection === "attachments"
+                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  )}
+                >
+                  {activeSection === "attachments" && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                  )}
+                  <Paperclip
+                    className={cn(
+                      "h-5 w-5",
+                      activeSection === "attachments"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
+                    )}
+                  />
+                  <span>Anexos</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveSection("comments")}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                    activeSection === "comments"
+                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  )}
+                >
+                  {activeSection === "comments" && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                  )}
+                  <MessageSquare
+                    className={cn(
+                      "h-5 w-5",
+                      activeSection === "comments"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
+                    )}
+                  />
+                  <span>Comentários</span>
+                </button>
+              </nav>
+
+              {/* Barra de Progresso do Fluxo */}
+              <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-xs text-gray-400 dark:text-gray-500 font-medium mb-2 uppercase">
+                  Progresso do Fluxo
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1 text-[10px] text-gray-400">
+                  <span>Início</span>
+                  <span>{Math.round(progressPercentage)}%</span>
+                  <span>Fim</span>
+                </div>
               </div>
             </div>
+
+            {/* Área de Conteúdo Principal */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-8">
+              <div className="max-w-3xl mx-auto">{renderSectionContent()}</div>
+            </div>
           </div>
+
+          {/* Footer Redesenhado */}
+          {activeSection === "fields" && (
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
+              {onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg transition-colors shadow-sm text-sm font-medium"
+                >
+                  <Trash2 className="h-5 w-5" />
+                  Deletar
+                </button>
+              )}
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                <button
+                  onClick={handleSave}
+                  disabled={!isDirty || saveStatus === "saving"}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg transition-colors shadow-sm text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {saveStatus === "saving" ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-5 w-5" />
+                      Salvar alterações
+                    </>
+                  )}
+                </button>
+                {previousStep && onUpdateCard && (
+                  <button
+                    onClick={handleMoveBack}
+                    disabled={isMoving || !previousStep}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg transition-colors shadow-sm text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                    Retornar para {previousStep.title}
+                  </button>
+                )}
+                <button
+                  onClick={handleMoveNext}
+                  disabled={isMoveDisabled || isMoving || !nextStep}
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-lg transition-colors shadow-md shadow-teal-500/20 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={
+                    !isMoveDisabled && nextStep
+                      ? {
+                          backgroundColor: nextStep.color ?? currentStep?.color ?? "#14B8A6",
+                        }
+                      : undefined
+                  }
+                >
+                  {isMoving ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Movendo...
+                    </>
+                  ) : nextStep ? (
+                    <>
+                      Mover para {nextStep.title}
+                      <ChevronRight className="h-5 w-5" />
+                    </>
+                  ) : (
+                    "Última etapa"
+                  )}
+                </button>
+              </div>
+              {isMoveDisabled && nextStep && !isMoving && (
+                <p className="mt-2 text-center text-xs text-amber-600 sm:text-right">
+                  Preencha os campos obrigatórios para avançar
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

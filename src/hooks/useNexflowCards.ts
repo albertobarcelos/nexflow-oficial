@@ -25,6 +25,7 @@ const mapCardRow = (row: CardRow): NexflowCard => ({
     : [],
   parentCardId: row.parent_card_id ?? null,
   assignedTo: row.assigned_to ?? null,
+  agents: Array.isArray(row.agents) ? row.agents : undefined,
   position: row.position ?? 0,
   status: row.status ?? null,
   createdAt: row.created_at,
@@ -40,6 +41,7 @@ export interface CreateCardInput {
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
+  agents?: string[];
   status?: string | null;
 }
 
@@ -53,6 +55,7 @@ export interface UpdateCardInput {
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
+  agents?: string[];
   status?: string | null;
   /** Quando true, não exibe toast de sucesso (útil para auto-save) */
   silent?: boolean;
@@ -109,7 +112,10 @@ export function useNexflowCards(flowId?: string) {
       const { systemFields, genericFields } = separateSystemFields(fieldValues);
       
       // Obter assigned_to do input direto ou dos systemFields
-      const assignedTo = input.assignedTo ?? systemFields[SYSTEM_FIELDS.ASSIGNED_TO] ?? null;
+      const assignedTo = input.assignedTo ?? (systemFields[SYSTEM_FIELDS.ASSIGNED_TO] as string | null) ?? null;
+      
+      // Obter agents do input direto ou dos systemFields
+      const agents = input.agents ?? (Array.isArray(systemFields[SYSTEM_FIELDS.AGENTS]) ? systemFields[SYSTEM_FIELDS.AGENTS] as string[] : undefined);
 
       const payload: Database["nexflow"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
@@ -127,6 +133,7 @@ export function useNexflowCards(flowId?: string) {
         movement_history: input.movementHistory ?? [],
         parent_card_id: input.parentCardId ?? null,
         assigned_to: assignedTo,
+        agents: agents,
         status: input.status ?? null,
       };
 
@@ -156,6 +163,7 @@ export function useNexflowCards(flowId?: string) {
       // Separar campos de sistema dos campos genéricos se fieldValues for fornecido
       let genericFieldValues = input.fieldValues;
       let finalAssignedTo = input.assignedTo;
+      let finalAgents = input.agents;
       
       if (typeof input.fieldValues !== "undefined") {
         const { systemFields, genericFields } = separateSystemFields(input.fieldValues);
@@ -163,7 +171,14 @@ export function useNexflowCards(flowId?: string) {
         
         // Se assigned_to estiver em systemFields mas não foi passado explicitamente, usar do systemFields
         if (typeof input.assignedTo === "undefined" && systemFields[SYSTEM_FIELDS.ASSIGNED_TO]) {
-          finalAssignedTo = systemFields[SYSTEM_FIELDS.ASSIGNED_TO];
+          finalAssignedTo = systemFields[SYSTEM_FIELDS.ASSIGNED_TO] as string | null;
+        }
+        
+        // Se agents estiver em systemFields mas não foi passado explicitamente, usar do systemFields
+        if (typeof input.agents === "undefined" && systemFields[SYSTEM_FIELDS.AGENTS]) {
+          finalAgents = Array.isArray(systemFields[SYSTEM_FIELDS.AGENTS]) 
+            ? systemFields[SYSTEM_FIELDS.AGENTS] as string[] 
+            : undefined;
         }
       }
 
@@ -174,6 +189,7 @@ export function useNexflowCards(flowId?: string) {
         fieldValues?: StepFieldValueMap;
         checklistProgress?: ChecklistProgressMap;
         assignedTo?: string | null;
+        agents?: string[];
         stepId?: string;
         position?: number;
         movementHistory?: CardMovementEntry[];
@@ -187,6 +203,7 @@ export function useNexflowCards(flowId?: string) {
       if (typeof genericFieldValues !== "undefined") edgeFunctionPayload.fieldValues = genericFieldValues;
       if (typeof input.checklistProgress !== "undefined") edgeFunctionPayload.checklistProgress = input.checklistProgress;
       if (typeof finalAssignedTo !== "undefined") edgeFunctionPayload.assignedTo = finalAssignedTo;
+      if (typeof finalAgents !== "undefined") edgeFunctionPayload.agents = finalAgents;
       if (typeof input.stepId !== "undefined") edgeFunctionPayload.stepId = input.stepId;
       if (typeof input.position !== "undefined") edgeFunctionPayload.position = input.position;
       if (typeof input.movementHistory !== "undefined") edgeFunctionPayload.movementHistory = input.movementHistory;
@@ -222,6 +239,7 @@ export function useNexflowCards(flowId?: string) {
           : [],
         parentCardId: data.card.parentCardId ?? null,
         assignedTo: data.card.assignedTo ?? null,
+        agents: Array.isArray(data.card.agents) ? data.card.agents : undefined,
         position: data.card.position ?? 0,
         status: data.card.status ?? null,
         createdAt: data.card.createdAt,

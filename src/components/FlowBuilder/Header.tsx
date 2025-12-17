@@ -95,165 +95,186 @@ export function FlowBuilderHeader({
   };
 
   return (
-    <header className="flex flex-col gap-6 rounded-2xl bg-white p-6 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
+    <>
+      <header className="w-full px-8 py-6 flex items-start justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="flex items-start gap-6">
           {onBack && (
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
               onClick={onBack}
-              className="text-slate-500 hover:text-slate-900"
+              className="group flex items-center text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors mt-1"
             >
-              <ArrowLeft className="mr-1 h-4 w-4" />
-              Voltar
-            </Button>
+              <ArrowLeft className="text-xl mr-1 h-5 w-5" />
+              <span className="font-medium text-sm">Voltar</span>
+            </button>
           )}
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
               Flow Builder
-            </p>
-            <h1 className="text-2xl font-bold text-slate-900">{flowName}</h1>
+            </span>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white leading-none mb-3">
+              {flowName}
+            </h1>
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold w-fit">
+              {steps.length} etapas
+            </div>
           </div>
         </div>
-        {flowDescription && (
-          <p className="text-sm text-slate-500">{flowDescription}</p>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-            {steps.length} etapas
-          </span>
-          {pendingMutations > 0 && (
-            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-medium text-orange-600">
-              {pendingMutations} alterações pendentes
-            </span>
-          )}
+        <div className="flex items-center gap-4">
+          {/* Espaço reservado para futuras ações do header */}
         </div>
-      </div>
+      </header>
 
-      <div className="flex flex-col gap-4 lg:w-1/2">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Etapas do fluxo
-          </p>
-          <Button
-            size="sm"
-            className="bg-blue-900 text-white hover:bg-blue-800"
-            onClick={() => {
-              setNewStepName("");
-              setNewStepColor(nextColor);
-              setIsCreateStepOpen(true);
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nova etapa
-          </Button>
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {steps.map((step) => (
-            <div
-              key={step.id}
-              className={cn(
-                "group relative min-w-[170px] rounded-xl border px-4 py-3",
-                step.id === activeStepId
-                  ? "border-orange-500 bg-orange-50 text-orange-700"
-                  : "border-slate-200 bg-slate-50 text-slate-600"
-              )}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-8 py-8">
+        <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-4">
+            <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase text-left">
+              Etapas do Fluxo
+            </h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              onClick={() => {
+                setNewStepName("");
+                setNewStepColor(nextColor);
+                setIsCreateStepOpen(true);
+              }}
+              className="flex items-center gap-2 bg-primary hover:bg-blue-800 text-white px-5 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-sm font-medium"
             >
-              {editingStepId === step.id ? (
-                <Input
-                  value={stepDraft}
-                  autoFocus
-                  onChange={(event) => setStepDraft(event.target.value)}
-                  onBlur={() => commitEditing(step.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      commitEditing(step.id);
-                    }
-                    if (event.key === "Escape") {
-                      setEditingStepId(null);
-                    }
-                  }}
-                  className="h-8 bg-white text-sm"
-                />
+              <Plus className="text-sm h-4 w-4" />
+              Nova etapa
+            </Button>
+            <Button
+              type="button"
+              onClick={onSave}
+              disabled={isSaving || !canSave}
+              className="flex items-center gap-2 bg-orange-200 hover:bg-orange-300 dark:bg-orange-700 dark:hover:bg-orange-600 text-white dark:text-orange-50 px-8 py-3 rounded-xl shadow-sm transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="text-lg h-5 w-5 animate-spin" />
+                  Salvando...
+                </>
               ) : (
-                <div className="flex w-full items-center justify-between text-sm font-semibold gap-3">
-                  <button
-                    type="button"
-                    className="flex flex-1 items-center gap-2 truncate text-left"
-                    onClick={() => onSelectStep(step.id)}
-                    onDoubleClick={() => startEditing(step)}
-                  >
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: step.color }}
+                <>
+                  <Save className="text-lg h-5 w-5" />
+                  Salvar
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="flex flex-nowrap items-center gap-4 overflow-x-auto overflow-y-hidden pb-4 -mx-2 px-2" style={{ scrollbarWidth: 'thin' }}>
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-center gap-4 flex-shrink-0">
+                <div
+                  className={cn(
+                    "group relative flex items-center justify-between w-64 p-4 rounded-xl border shadow-sm cursor-pointer hover:shadow-md transition-all",
+                    step.id === activeStepId
+                      ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-500/50"
+                      : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600"
+                  )}
+                >
+                  {editingStepId === step.id ? (
+                    <Input
+                      value={stepDraft}
+                      autoFocus
+                      onChange={(event) => setStepDraft(event.target.value)}
+                      onBlur={() => commitEditing(step.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          commitEditing(step.id);
+                        }
+                        if (event.key === "Escape") {
+                          setEditingStepId(null);
+                        }
+                      }}
+                      className="h-8 bg-white text-sm flex-1"
                     />
-                    <span className="truncate">{step.title}</span>
-                  </button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                  ) : (
+                    <>
                       <button
                         type="button"
-                        className="ml-2 flex rounded-full p-1 text-slate-400 hover:bg-white hover:text-slate-600"
-                        onClick={(e) => e.stopPropagation()}
+                        className="flex flex-1 items-center gap-3"
+                        onClick={() => onSelectStep(step.id)}
+                        onDoubleClick={() => startEditing(step)}
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <div
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: step.color }}
+                        />
+                        <span
+                          className={cn(
+                            "font-semibold text-sm",
+                            step.id === activeStepId
+                              ? "text-orange-700 dark:text-orange-400"
+                              : "text-slate-600 dark:text-slate-300"
+                          )}
+                        >
+                          {step.title}
+                        </span>
                       </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      side="bottom"
-                      align="center"
-                      sideOffset={6}
-                      className="min-w-[160px]"
-                    >
-                      <DropdownMenuItem
-                        onClick={() => startEditing(step)}
-                        className="flex items-center gap-2"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        Renomear
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDeleteStep(step.id)}
-                        disabled={!canDeleteSteps}
-                        className={cn(
-                          "flex items-center gap-2 text-destructive focus:text-destructive",
-                          !canDeleteSteps && "opacity-60"
-                        )}
-                      >
-                        <Trash className="h-4 w-4" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="text-lg h-5 w-5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          side="bottom"
+                          align="center"
+                          sideOffset={6}
+                          className="min-w-[160px]"
+                        >
+                          <DropdownMenuItem
+                            onClick={() => startEditing(step)}
+                            className="flex items-center gap-2"
+                          >
+                            <Pencil className="h-4 w-4" />
+                            Renomear
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onDeleteStep(step.id)}
+                            disabled={!canDeleteSteps}
+                            className={cn(
+                              "flex items-center gap-2 text-destructive focus:text-destructive",
+                              !canDeleteSteps && "opacity-60"
+                            )}
+                          >
+                            <Trash className="h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+                {index < steps.length - 1 && (
+                  <div className="w-8 h-[2px] bg-slate-300 dark:bg-slate-700 rounded-full flex-shrink-0" />
+                )}
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setNewStepName("");
+                setNewStepColor(nextColor);
+                setIsCreateStepOpen(true);
+              }}
+              className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:text-primary hover:border-primary cursor-pointer transition-colors flex-shrink-0"
+            >
+              <Plus className="text-lg h-5 w-5" />
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <Button
-          type="button"
-          className="h-11 rounded-xl bg-orange-500 px-6 text-base font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:bg-orange-300"
-          onClick={onSave}
-          disabled={isSaving || !canSave}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Salvar
-            </>
-          )}
-        </Button>
-      </div>
+      </main>
 
       <Dialog open={isCreateStepOpen} onOpenChange={setIsCreateStepOpen}>
         <DialogContent>
@@ -316,7 +337,7 @@ export function FlowBuilderHeader({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </header>
+    </>
   );
 }
 

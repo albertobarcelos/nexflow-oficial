@@ -23,7 +23,10 @@ const mapCardRow = (row: CardRow): NexflowCard => ({
     ? (row.movement_history as CardMovementEntry[])
     : [],
   parentCardId: row.parent_card_id ?? null,
+  assignedTo: row.assigned_to ?? null,
+  agents: Array.isArray(row.agents) ? row.agents : undefined,
   position: row.position ?? 0,
+  status: row.status ?? null,
   createdAt: row.created_at,
 });
 
@@ -36,6 +39,9 @@ export interface CreateCardInput {
   checklistProgress?: ChecklistProgressMap;
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
+  assignedTo?: string | null;
+  agents?: string[];
+  status?: string | null;
 }
 
 export interface UpdateCardInput {
@@ -47,6 +53,9 @@ export interface UpdateCardInput {
   checklistProgress?: ChecklistProgressMap;
   movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
+  assignedTo?: string | null;
+  agents?: string[];
+  status?: string | null;
   /** Quando true, não exibe toast de sucesso (útil para auto-save) */
   silent?: boolean;
 }
@@ -127,6 +136,9 @@ export function useNexflowCardsInfinite(flowId?: string) {
         checklist_progress: input.checklistProgress ?? {},
         movement_history: input.movementHistory ?? [],
         parent_card_id: input.parentCardId ?? null,
+        assigned_to: input.assignedTo ?? null,
+        agents: input.agents,
+        status: input.status ?? null,
       };
 
       const { data, error } = await nexflowClient()
@@ -159,6 +171,7 @@ export function useNexflowCardsInfinite(flowId?: string) {
         fieldValues?: StepFieldValueMap;
         checklistProgress?: ChecklistProgressMap;
         assignedTo?: string | null;
+        agents?: string[];
         stepId?: string;
         position?: number;
         movementHistory?: CardMovementEntry[];
@@ -171,10 +184,15 @@ export function useNexflowCardsInfinite(flowId?: string) {
       if (typeof input.title !== "undefined") edgeFunctionPayload.title = input.title;
       if (typeof input.fieldValues !== "undefined") edgeFunctionPayload.fieldValues = input.fieldValues;
       if (typeof input.checklistProgress !== "undefined") edgeFunctionPayload.checklistProgress = input.checklistProgress;
+      if (typeof input.assignedTo !== "undefined") edgeFunctionPayload.assignedTo = input.assignedTo;
+      if (typeof input.agents !== "undefined") edgeFunctionPayload.agents = input.agents;
       if (typeof input.stepId !== "undefined") edgeFunctionPayload.stepId = input.stepId;
       if (typeof input.position !== "undefined") edgeFunctionPayload.position = input.position;
       if (typeof input.movementHistory !== "undefined") edgeFunctionPayload.movementHistory = input.movementHistory;
       if (typeof input.parentCardId !== "undefined") edgeFunctionPayload.parentCardId = input.parentCardId;
+      if (typeof input.status !== "undefined") {
+        edgeFunctionPayload.status = input.status as 'inprogress' | 'completed' | 'canceled';
+      }
 
       // Chamar Edge Function
       const { data, error } = await supabase.functions.invoke('update-nexflow-card', {
@@ -203,6 +221,7 @@ export function useNexflowCardsInfinite(flowId?: string) {
           : [],
         parentCardId: data.card.parentCardId ?? null,
         assignedTo: data.card.assignedTo ?? null,
+        agents: Array.isArray(data.card.agents) ? data.card.agents : undefined,
         position: data.card.position ?? 0,
         status: data.card.status ?? null,
         createdAt: data.card.createdAt,

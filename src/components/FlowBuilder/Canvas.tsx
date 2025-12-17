@@ -8,8 +8,10 @@ import { CSS } from "@dnd-kit/utilities";
 import type { NexflowStepField } from "@/types/nexflow";
 import { FieldCard, SortableHandlers } from "./FieldCard";
 import { Button } from "@/components/ui/button";
-import { Inbox } from "lucide-react";
+import { Inbox, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
 
 interface CanvasProps {
   fields: NexflowStepField[];
@@ -35,12 +37,20 @@ export function Canvas({
     },
   });
 
+  // Verificar se há mais de um campo "responsável" na etapa
+  const responsavelFields = fields.filter(
+    (field) =>
+      field.fieldType === "user_select" &&
+      field.slug === SYSTEM_FIELDS.ASSIGNED_TO
+  );
+  const hasMultipleResponsavel = responsavelFields.length > 1;
+
   return (
     <section
       ref={setNodeRef}
       className={cn(
         "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition",
-        "min-h-[620px]",
+        "min-h-[620px] my-1.5",
         isOver && "border border-dashed border-orange-400 bg-orange-50/40"
       )}
     >
@@ -53,6 +63,16 @@ export function Canvas({
             Arraste campos e organize a ordem desejada.
           </p>
         </div>
+
+        {hasMultipleResponsavel && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Múltiplos campos "Responsável"</AlertTitle>
+            <AlertDescription>
+              Há {responsavelFields.length} campos "Responsável" nesta etapa. Apenas um campo "Responsável" é permitido por etapa. Remova os campos extras antes de salvar.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {fields.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50/80 p-10 text-center">

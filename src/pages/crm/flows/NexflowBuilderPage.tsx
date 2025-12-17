@@ -19,7 +19,7 @@ import { useFlowBuilderState } from "@/hooks/useFlowBuilderState";
 import { useFlowPermissions } from "@/hooks/useFlowPermissions";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, UserRound, Type, AlignLeft, CheckSquare, CalendarDays, Mail, Phone, Paperclip, FileText } from "lucide-react";
 import type { FlowBuilderFieldDefinition } from "@/lib/flowBuilder/fieldLibrary";
 import type { NexflowStepField } from "@/types/nexflow";
 
@@ -235,7 +235,7 @@ export function NexflowBuilderPage() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
+        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
           <Toolbox definitions={availableFields} onAdd={createFieldFromLibrary} />
           <Canvas
             fields={fields}
@@ -260,7 +260,12 @@ export function NexflowBuilderPage() {
           />
         </div>
 
-        <DragOverlay>
+        <DragOverlay
+          style={{
+            cursor: "grabbing",
+            opacity: 0.9,
+          }}
+        >
           {activeDrag?.type === "field" && activeDrag.field ? (
             <div className="w-[420px] max-w-full">
               <FieldCard
@@ -273,8 +278,40 @@ export function NexflowBuilderPage() {
             </div>
           ) : null}
           {activeDrag?.type === "toolbox" && activeDrag.definition ? (
-            <div className="rounded-xl border border-orange-400 bg-white px-4 py-2 text-sm font-semibold text-orange-600 shadow-lg">
-              {activeDrag.definition.label}
+            <div className="rounded-xl border-2 border-orange-400 bg-white px-4 py-3 shadow-2xl transform rotate-2">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50">
+                  {activeDrag.definition.label === "Responsável" ? (
+                    <UserRound className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "Texto Curto" ? (
+                    <Type className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "Texto Longo" ? (
+                    <AlignLeft className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "Checkbox" ? (
+                    <CheckSquare className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "Data" ? (
+                    <CalendarDays className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "Email" ? (
+                    <Mail className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "Telefone" ? (
+                    <Phone className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "Anexo" ? (
+                    <Paperclip className="h-5 w-5 text-orange-600" />
+                  ) : activeDrag.definition.label === "CNPJ/CPF" ? (
+                    <FileText className="h-5 w-5 text-orange-600" />
+                  ) : (
+                    <Type className="h-5 w-5 text-orange-600" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-orange-700">
+                    {activeDrag.definition.label}
+                  </p>
+                  <p className="text-xs text-orange-500">
+                    {activeDrag.definition.description}
+                  </p>
+                </div>
+              </div>
             </div>
           ) : null}
         </DragOverlay>

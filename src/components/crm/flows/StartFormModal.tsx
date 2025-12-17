@@ -24,6 +24,7 @@ import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 import { useUsers } from "@/hooks/useUsers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isSystemField, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
+import { AgentsMultiSelect } from "./AgentsMultiSelect";
 
 export interface StartFormPayload {
   title: string;
@@ -32,6 +33,7 @@ export interface StartFormPayload {
   movementHistory: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
+  agents?: string[];
 }
 
 interface StartFormModalProps {
@@ -44,6 +46,7 @@ interface StartFormModalProps {
 type StartFormValues = {
   fields: Record<string, string | number | undefined>;
   checklist: Record<string, Record<string, boolean>>;
+  agents?: string[];
 };
 
 export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartFormModalProps) {
@@ -53,6 +56,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
     defaultValues: {
       fields: {},
       checklist: {},
+      agents: [],
     },
   });
 
@@ -94,7 +98,8 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
           }),
           {}
         );
-      } else {
+      } else if (field.slug !== SYSTEM_FIELDS.AGENTS) {
+        // Não incluir campo agents em defaultFields
         defaultFields[field.id] = "";
       }
     });
@@ -102,6 +107,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
     reset({
       fields: defaultFields,
       checklist: defaultChecklist,
+      agents: [],
     });
   }, [step, open, reset]);
 
@@ -140,6 +146,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
     const fieldValues: StepFieldValueMap = {};
     const checklistProgress: ChecklistProgressMap = {};
     let assignedTo: string | null = null;
+    let agents: string[] = values.agents ?? [];
 
     step.fields?.forEach((field) => {
       if (field.fieldType === "checklist") {
@@ -149,12 +156,13 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
         return;
       }
 
-      // Separar campos de sistema (assigned_to) dos campos genéricos
+      // Separar campos de sistema (assigned_to e agents) dos campos genéricos
       if (isSystemField(field.slug)) {
         if (field.slug === SYSTEM_FIELDS.ASSIGNED_TO) {
           const rawValue = values.fields[field.id];
           assignedTo = typeof rawValue === "string" && rawValue.trim() ? rawValue.trim() : null;
         }
+        // Agents já está em values.agents, não precisa extrair de fields
         // Não incluir campos de sistema em fieldValues
         return;
       }
@@ -200,10 +208,12 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
           },
         ],
         assignedTo,
+        agents: agents.length > 0 ? agents : undefined,
       });
       reset({
         fields: {},
         checklist: {},
+        agents: [],
       });
       onOpenChange(false);
     } catch (error) {
@@ -326,6 +336,30 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
               {formState.errors.fields?.[field.id]?.message as string}
             </p>
           ) : null}
+        </div>
+      );
+    }
+
+    // Campo Agents (multi-seleção) - campo de sistema
+    if (field.slug === SYSTEM_FIELDS.AGENTS) {
+      const agentsValue = watch("agents") ?? [];
+      
+      return (
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-slate-800">
+            {field.label}
+            {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+          </Label>
+          <AgentsMultiSelect
+            value={agentsValue}
+            onChange={(agentIds) => {
+              setValue("agents", agentIds, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            placeholder="Selecione os responsáveis"
+          />
         </div>
       );
     }

@@ -27,6 +27,17 @@ import {
   NexflowStepField,
   StepFieldConfiguration,
 } from "@/types/nexflow";
+import { SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
+
+/**
+ * Verifica se um campo é do tipo "responsável" (user_select com slug assigned_to)
+ */
+function isResponsavelField(field: NexflowStepField): boolean {
+  return (
+    field.fieldType === "user_select" &&
+    field.slug === SYSTEM_FIELDS.ASSIGNED_TO
+  );
+}
 
 export interface FlowDraft {
   name: string;
@@ -340,6 +351,15 @@ export function useFlowBuilderState(
       // Obter slug padrão para campos de sistema
       const defaultSlug = getDefaultSlugForField(definitionId);
       
+      // Validar se já existe um campo "responsável" na etapa
+      if (definitionId === "assignee" || (definition.fieldType === "user_select" && defaultSlug === SYSTEM_FIELDS.ASSIGNED_TO)) {
+        const existingResponsavelFields = fields.filter((field) => isResponsavelField(field));
+        if (existingResponsavelFields.length > 0) {
+          toast.error("Já existe um campo 'Responsável' nesta etapa. Apenas um campo 'Responsável' é permitido por etapa.");
+          return;
+        }
+      }
+      
       const payload: CreateStepFieldInput = {
         stepId: activeStepId,
         label: definition.defaultLabel,
@@ -410,6 +430,15 @@ export function useFlowBuilderState(
         return;
       }
 
+      // Validar se está tentando duplicar um campo "responsável" e já existe um
+      if (isResponsavelField(targetField)) {
+        const existingResponsavelFields = fields.filter((field) => isResponsavelField(field));
+        if (existingResponsavelFields.length > 0) {
+          toast.error("Já existe um campo 'Responsável' nesta etapa. Apenas um campo 'Responsável' é permitido por etapa.");
+          return;
+        }
+      }
+
       const cloneConfig = JSON.parse(
         JSON.stringify(targetField.configuration ?? {})
       ) as StepFieldConfiguration;
@@ -422,6 +451,8 @@ export function useFlowBuilderState(
           isRequired: targetField.isRequired,
           configuration: cloneConfig,
           position: nextPosition(),
+          // Não duplicar o slug para campos de sistema
+          slug: isResponsavelField(targetField) ? null : targetField.slug,
         })
       );
     },
@@ -472,6 +503,15 @@ export function useFlowBuilderState(
     if (!flowDraft.name.trim()) {
       toast.error("O flow precisa de um nome para ser salvo.");
       return;
+    }
+
+    // Validar se há mais de um campo "responsável" na etapa ativa
+    if (activeStepId) {
+      const responsavelFields = fields.filter((field) => isResponsavelField(field));
+      if (responsavelFields.length > 1) {
+        toast.error("Não é possível salvar: há mais de um campo 'Responsável' na etapa atual. Apenas um campo 'Responsável' é permitido por etapa.");
+        return;
+      }
     }
 
     setIsSaving(true);

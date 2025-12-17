@@ -268,6 +268,7 @@ export function NexflowBoardPage() {
       checklistProgress: payload.checklistProgress,
       movementHistory: payload.movementHistory,
       assignedTo: payload.assignedTo,
+      agents: payload.agents,
     });
   };
 
@@ -424,13 +425,14 @@ export function NexflowBoardPage() {
     values: CardFormValues
   ) => {
     // Auto-save silencioso (sem toast)
-    // Usar a mesma abordagem do checklistProgress - sempre incluir assignedTo
+    // Usar a mesma abordagem do checklistProgress - sempre incluir assignedTo e agents
     const updatePayload: {
       id: string;
       title: string;
       fieldValues: StepFieldValueMap;
       checklistProgress: ChecklistProgressMap;
       assignedTo?: string | null;
+      agents?: string[];
       silent: boolean;
     } = {
       id: card.id,
@@ -444,6 +446,9 @@ export function NexflowBoardPage() {
     // Converter undefined para null para garantir que seja enviado
     updatePayload.assignedTo = values.assignedTo ?? null;
     
+    // Sempre incluir agents (mesmo que seja array vazio)
+    updatePayload.agents = values.agents ?? [];
+    
     await updateCard(updatePayload);
 
     // Atualiza o estado local do card ativo
@@ -455,6 +460,7 @@ export function NexflowBoardPage() {
             fieldValues: values.fields,
             checklistProgress: values.checklist as ChecklistProgressMap,
             assignedTo: values.assignedTo ?? null,
+            agents: values.agents ?? [],
           }
         : current
     );
@@ -510,38 +516,87 @@ export function NexflowBoardPage() {
 
   const isLoadingPage = isLoading || isLoadingCards;
 
+  // Função auxiliar para obter classes de cor Tailwind baseadas na cor hex
+  const getColorClasses = (hexColor: string) => {
+    // Mapeia cores comuns para classes Tailwind
+    const colorMap: Record<string, { header: string; body: string; border: string }> = {
+      "#2563eb": { header: "bg-blue-600 dark:bg-blue-700", body: "bg-blue-50/50 dark:bg-slate-900/50", border: "border-blue-100 dark:border-slate-800" },
+      "#0ea5e9": { header: "bg-sky-600 dark:bg-sky-700", body: "bg-sky-50/50 dark:bg-slate-900/50", border: "border-sky-100 dark:border-slate-800" },
+      "#14b8a6": { header: "bg-teal-500 dark:bg-teal-600", body: "bg-teal-50/50 dark:bg-slate-900/50", border: "border-teal-100 dark:border-slate-800" },
+      "#f97316": { header: "bg-orange-500 dark:bg-orange-600", body: "bg-orange-50/50 dark:bg-slate-900/50", border: "border-orange-100 dark:border-slate-800" },
+      "#ec4899": { header: "bg-pink-500 dark:bg-pink-600", body: "bg-pink-50/50 dark:bg-slate-900/50", border: "border-pink-100 dark:border-slate-800" },
+      "#8b5cf6": { header: "bg-purple-600 dark:bg-purple-700", body: "bg-purple-50/50 dark:bg-slate-900/50", border: "border-purple-100 dark:border-slate-800" },
+      "#22c55e": { header: "bg-green-500 dark:bg-green-600", body: "bg-green-50/50 dark:bg-slate-900/50", border: "border-green-100 dark:border-slate-800" },
+      "#f59e0b": { header: "bg-amber-500 dark:bg-amber-600", body: "bg-amber-50/50 dark:bg-slate-900/50", border: "border-amber-100 dark:border-slate-800" },
+      "#ef4444": { header: "bg-red-500 dark:bg-red-600", body: "bg-red-50/50 dark:bg-slate-900/50", border: "border-red-100 dark:border-slate-800" },
+      "#6366f1": { header: "bg-indigo-600 dark:bg-indigo-700", body: "bg-indigo-50/50 dark:bg-slate-900/50", border: "border-indigo-100 dark:border-slate-800" },
+    };
+    
+    const normalized = hexColor.toLowerCase();
+    return colorMap[normalized] || colorMap["#2563eb"];
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-sans h-screen flex flex-col overflow-hidden transition-colors duration-200">
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-1">
+            <span className="text-xl font-bold text-slate-800 dark:text-white tracking-tight italic">NEXFLOW</span>
+            <span className="text-xl font-light text-slate-500 dark:text-slate-400">CRM</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
+            <TabsList className="bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+              <TabsTrigger 
+                value="kanban"
+                className={cn(
+                  "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  viewMode === "kanban"
+                    ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                Kanban
+              </TabsTrigger>
+              <TabsTrigger 
+                value="list"
+                className={cn(
+                  "px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  viewMode === "list"
+                    ? "bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                )}
+              >
+                Lista
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </header>
+
+      <div className="bg-white dark:bg-slate-900/50 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={handleGoBack}
-            className="text-slate-500"
+            className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="h-4 w-4" />
             Voltar
           </Button>
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-slate-400">
-              Execução do Flow
-            </p>
-            <h1 className="text-lg font-semibold text-slate-900">
+            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Execução do Flow</div>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-tight">
               {flow?.name ?? "Flow"}
             </h1>
           </div>
         </div>
+      </div>
 
-        <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
-          <TabsList>
-            <TabsTrigger value="kanban">Kanban</TabsTrigger>
-            <TabsTrigger value="list">Lista</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </header>
-
-      <main className="p-4">
+      <main className="flex-1 overflow-x-auto overflow-y-hidden p-6 custom-scrollbar bg-slate-50 dark:bg-slate-950">
         {isLoadingPage ? (
           <div className="text-center text-slate-500 py-12">Carregando...</div>
         ) : viewMode === "list" ? (
@@ -590,7 +645,7 @@ export function NexflowBoardPage() {
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
           >
-            <div className="flex gap-4 overflow-x-auto pb-8">
+            <div className="flex h-full gap-6">
               {steps.map((step) => {
                 const columnData = cardsByStepPaginated[step.id];
                 const columnCards = columnData?.cards ?? [];
@@ -599,103 +654,85 @@ export function NexflowBoardPage() {
                 const accentColor = step.color ?? "#2563eb";
                 const headerTextColor = getReadableTextColor(accentColor);
                 const isDarkHeader = headerTextColor.toLowerCase() === "#ffffff";
-                const columnBodyColor = hexToRgba(accentColor, 0.05);
+                const colorClasses = getColorClasses(accentColor);
                 const isStartColumn = step.id === startStep?.id;
+                
                 return (
                   <div
                     key={step.id}
-                    className="flex w-72 flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-200 shadow-sm p-0"
-                    style={{
-                      minHeight: "calc(100vh - 220px)",
-                      borderTop: `6px solid ${accentColor}`,
-                    }}
+                    className="w-80 shrink-0 flex flex-col h-full"
                   >
                     <div
-                      className="shrink-0 px-4 py-3"
+                      className={cn(
+                        "rounded-t-2xl p-4 shadow-lg z-10 relative",
+                        colorClasses.header
+                      )}
                       style={{
-                        backgroundColor: accentColor,
-                        color: headerTextColor,
+                        boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.05)}`,
                       }}
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                          <p className="text-[11px] uppercase tracking-wide opacity-80 flex items-center gap-2">
-                            <span
-                              className="inline-flex h-2.5 w-2.5 rounded-full"
-                              style={{ backgroundColor: headerTextColor, opacity: 0.75 }}
-                            />
-                            Etapa
-                          </p>
-                          <h3
-                            className={cn(
-                              "text-base font-semibold flex items-center gap-2",
-                              isDarkHeader ? "text-white" : "text-slate-900"
-                            )}
-                          >
-                            {step.title}
-                            {step.isCompletionStep && (
-                              <CheckCircle2
-                                className={cn(
-                                  "h-4 w-4",
-                                  isDarkHeader
-                                    ? "text-white opacity-90"
-                                    : "text-slate-700"
-                                )}
-                                title="Etapa de conclusão"
-                              />
-                            )}
-                          </h3>
+                      <div className="flex items-center justify-between text-white mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-white/50 rounded-full"></div>
+                          <span className="text-xs font-semibold uppercase tracking-wide opacity-90">Etapa</span>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
-                          <span className="text-xs opacity-80">
-                            {totalCards} {totalCards === 1 ? "card" : "cards"}
-                          </span>
-                          {isStartColumn ? (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setIsStartFormOpen(true)}
-                              className={cn(
-                                "h-8 text-xs font-medium",
-                                isDarkHeader
-                                  ? "bg-white/20 text-white hover:bg-white/30"
-                                  : "bg-slate-900/10 text-slate-900 hover:bg-slate-900/20"
-                              )}
-                            >
-                              <Plus className="mr-1 h-3.5 w-3.5" />
-                              Novo card
-                            </Button>
-                          ) : null}
-                        </div>
+                        <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium">
+                          {totalCards} {totalCards === 1 ? "card" : "cards"}
+                        </span>
                       </div>
+                      <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                        {step.title}
+                        {step.isCompletionStep && (
+                          <CheckCircle2 className="h-4 w-4 opacity-90" />
+                        )}
+                      </h2>
+                      {isStartColumn && (
+                        <button
+                          onClick={() => setIsStartFormOpen(true)}
+                          className="w-full mt-2 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white text-sm py-2 rounded-lg transition-colors backdrop-blur-sm border border-white/10"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Novo card
+                        </button>
+                      )}
                     </div>
-
                     <div
-                      className="flex-1 overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-3"
-                      style={{ backgroundColor: columnBodyColor }}
+                      className={cn(
+                        "flex-1 border-x border-b rounded-b-2xl p-3 overflow-y-auto custom-scrollbar",
+                        colorClasses.body,
+                        colorClasses.border
+                      )}
                     >
                       <ColumnDropZone stepId={step.id}>
                         <SortableContext
                           items={columnCards.map((card) => card.id)}
                           strategy={verticalListSortingStrategy}
                         >
-                          {columnCards.map((card) => (
-                            <SortableCard
-                              key={card.id}
-                              card={card}
-                              onClick={() => setActiveCard(card)}
-                              stepId={step.id}
-                              isActiveDrag={draggedCardId === card.id}
-                              shouldShake={shakeCardId === card.id}
-                              isCelebrating={celebratedCardId === card.id}
-                            />
-                          ))}
+                          {columnCards.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
+                              Nenhum card aqui
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-3">
+                              {columnCards.map((card) => (
+                                <SortableCard
+                                  key={card.id}
+                                  card={card}
+                                  onClick={() => setActiveCard(card)}
+                                  stepId={step.id}
+                                  isActiveDrag={draggedCardId === card.id}
+                                  shouldShake={shakeCardId === card.id}
+                                  isCelebrating={celebratedCardId === card.id}
+                                />
+                              ))}
+                            </div>
+                          )}
                         </SortableContext>
                         {hasMore && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="w-full mt-2 text-xs text-slate-500 hover:text-slate-700"
+                            className="w-full mt-2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
                             onClick={() => handleLoadMoreForStep(step.id)}
                             disabled={isFetchingNextPage}
                           >
@@ -714,6 +751,7 @@ export function NexflowBoardPage() {
                   </div>
                 );
               })}
+              <div className="w-6 shrink-0"></div>
             </div>
 
             <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
@@ -823,9 +861,11 @@ function SortableCard({
         damping: 20,
       }}
       className={cn(
-        "relative cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition",
+        "relative cursor-pointer rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm transition-all group",
         isActiveDrag ? "opacity-40" : "opacity-100",
-        shouldShake ? "ring-2 ring-red-300 bg-red-50/60" : "hover:border-slate-300"
+        shouldShake 
+          ? "ring-2 ring-red-300 bg-red-50/60" 
+          : "hover:shadow-md hover:-translate-y-0.5"
       )}
       onClick={onClick}
     >
@@ -844,40 +884,70 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
     ? users.find((user) => user.id === card.assignedTo)
     : null;
 
+  // Extrair descrição dos fieldValues se houver um campo de descrição
+  const description = useMemo(() => {
+    // Procura por campos de texto longo que possam ser descrição
+    // Isso é uma heurística - pode ser ajustado conforme necessário
+    return null;
+  }, [card.fieldValues]);
+
+  const createdAt = new Date(card.createdAt);
+  const updatedAt = createdAt; // Usar createdAt como fallback já que updatedAt não existe no tipo
+
   return (
     <>
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-slate-900">{card.title}</p>
-        <span className="text-[10px] uppercase tracking-wide text-slate-400">
-          {new Date(card.createdAt).toLocaleDateString("pt-BR")}
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">
+          {card.title}
+        </h3>
+        <span className="text-[10px] font-medium text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+          {createdAt.toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          })}
         </span>
       </div>
-      <div className="mt-2 flex items-center justify-between">
-        <p className="text-xs text-slate-500">
-          Atualizado em{" "}
-          {new Date(card.createdAt).toLocaleTimeString("pt-BR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+      {description && (
+        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">
+          {description}
         </p>
+      )}
+      <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex flex-col">
+          <span className="text-[10px] text-slate-400">Atualizado</span>
+          <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">
+            {updatedAt.toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+        </div>
         {assignedUser ? (
-          <div className="flex items-center gap-1.5">
-            <UserAvatar
-              user={{
-                name: assignedUser.name,
-                surname: assignedUser.surname,
-                avatar_type: assignedUser.avatar_type,
-                avatar_seed: assignedUser.avatar_seed,
-                custom_avatar_url: assignedUser.custom_avatar_url,
-                avatar_url: assignedUser.avatar_url,
-              }}
-              size="sm"
-            />
-            <span className="text-xs text-slate-600 truncate max-w-[100px]">
-              {assignedUser.name} {assignedUser.surname}
+          <div className="flex items-center gap-2" title={`${assignedUser.name} ${assignedUser.surname}`}>
+            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+              {assignedUser.name.split(" ")[0]}
             </span>
+            <div className="w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-700 bg-slate-100 overflow-hidden">
+              <UserAvatar
+                user={{
+                  name: assignedUser.name,
+                  surname: assignedUser.surname,
+                  avatar_type: assignedUser.avatar_type,
+                  avatar_seed: assignedUser.avatar_seed,
+                  custom_avatar_url: assignedUser.custom_avatar_url,
+                  avatar_url: assignedUser.avatar_url,
+                }}
+                size="sm"
+                className="w-full h-full"
+              />
+            </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-center gap-2" title="Sem usuário">
+            <span className="text-xs text-slate-400 italic">--</span>
+          </div>
+        )}
       </div>
     </>
   );

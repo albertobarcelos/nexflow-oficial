@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FlowDraft } from "@/hooks/useFlowBuilderState";
 import type { NexflowStepField } from "@/types/nexflow";
 import type { UpdateStepFieldInput } from "@/hooks/useNexflowStepFields";
@@ -101,43 +102,47 @@ export function PropertiesPanel({
   }, [activeStep]);
 
   return (
-    <aside className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      {selectedField ? (
-        <FieldPropertiesContent
-          fieldForm={fieldForm}
-          selectedField={selectedField}
-          onFieldUpdate={onFieldUpdate}
-          onDuplicateField={onDuplicateField}
-          onDeleteField={onDeleteField}
-          onCommitConfiguration={commitConfiguration}
-        />
-      ) : activeStep ? (
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "step" | "flow")} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-5 h-auto">
-            <TabsTrigger value="step" className="text-xs px-2 py-1.5">Propriedades da Etapa</TabsTrigger>
-            <TabsTrigger value="flow" className="text-xs px-2 py-1.5">Propriedades do Flow</TabsTrigger>
-          </TabsList>
-          <TabsContent value="step" className="mt-0">
-            <StepPropertiesContent
-              step={activeStep}
-              stepDraft={stepDraft}
-              onStepUpdate={onStepUpdate}
-              onStepDraftChange={onStepDraftChange}
+    <aside className="h-[600px] max-h-[800px] rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
+      <ScrollArea className="flex-1 min-h-0 w-full">
+        <div className="p-5 pb-6" style={{ minWidth: "100%", display: "flex", flexDirection: "column" }}>
+          {selectedField ? (
+            <FieldPropertiesContent
+              fieldForm={fieldForm}
+              selectedField={selectedField}
+              onFieldUpdate={onFieldUpdate}
+              onDuplicateField={onDuplicateField}
+              onDeleteField={onDeleteField}
+              onCommitConfiguration={commitConfiguration}
             />
-          </TabsContent>
-          <TabsContent value="flow" className="mt-0">
+          ) : activeStep ? (
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "step" | "flow")} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-5 h-auto">
+                <TabsTrigger value="step" className="text-[10px] px-2 py-1.5">Propriedades da Etapa</TabsTrigger>
+                <TabsTrigger value="flow" className="text-[10px] px-2 py-1.5">Propriedades do Flow</TabsTrigger>
+              </TabsList>
+              <TabsContent value="step" className="mt-0">
+                <StepPropertiesContent
+                  step={activeStep}
+                  stepDraft={stepDraft}
+                  onStepUpdate={onStepUpdate}
+                  onStepDraftChange={onStepDraftChange}
+                />
+              </TabsContent>
+              <TabsContent value="flow" className="mt-0">
+                <GeneralPropertiesContent
+                  generalForm={generalForm}
+                  onFlowDraftChange={onFlowDraftChange}
+                />
+              </TabsContent>
+            </Tabs>
+          ) : (
             <GeneralPropertiesContent
               generalForm={generalForm}
               onFlowDraftChange={onFlowDraftChange}
             />
-          </TabsContent>
-        </Tabs>
-      ) : (
-        <GeneralPropertiesContent
-          generalForm={generalForm}
-          onFlowDraftChange={onFlowDraftChange}
-        />
-      )}
+          )}
+        </div>
+      </ScrollArea>
     </aside>
   );
 }
@@ -254,7 +259,7 @@ function FieldPropertiesContent({
             {selectedField.fieldType.replace("_", " ")}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-center items-center">
           <Button
             variant="outline"
             size="sm"
