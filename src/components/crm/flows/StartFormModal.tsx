@@ -22,6 +22,7 @@ import type {
 } from "@/types/nexflow";
 import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 import { useUsers } from "@/hooks/useUsers";
+import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isSystemField, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
 import { AgentsMultiSelect } from "./AgentsMultiSelect";
@@ -33,6 +34,7 @@ export interface StartFormPayload {
   movementHistory: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
+  assignedTeamId?: string | null;
   agents?: string[];
 }
 
@@ -52,6 +54,7 @@ type StartFormValues = {
 export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: users = [] } = useUsers();
+  const { data: teams = [] } = useOrganizationTeams();
   const form = useForm<StartFormValues>({
     defaultValues: {
       fields: {},
@@ -146,6 +149,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
     const fieldValues: StepFieldValueMap = {};
     const checklistProgress: ChecklistProgressMap = {};
     let assignedTo: string | null = null;
+    let assignedTeamId: string | null = null;
     let agents: string[] = values.agents ?? [];
 
     step.fields?.forEach((field) => {
@@ -156,11 +160,15 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
         return;
       }
 
-      // Separar campos de sistema (assigned_to e agents) dos campos genéricos
+      // Separar campos de sistema (assigned_to, assigned_team_id e agents) dos campos genéricos
       if (isSystemField(field.slug)) {
         if (field.slug === SYSTEM_FIELDS.ASSIGNED_TO) {
           const rawValue = values.fields[field.id];
           assignedTo = typeof rawValue === "string" && rawValue.trim() ? rawValue.trim() : null;
+        }
+        if (field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID) {
+          const rawValue = values.fields[field.id];
+          assignedTeamId = typeof rawValue === "string" && rawValue.trim() ? rawValue.trim() : null;
         }
         // Agents já está em values.agents, não precisa extrair de fields
         // Não incluir campos de sistema em fieldValues
@@ -192,6 +200,24 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
       : "";
     const title = computedTitle || step.title || "Novo card";
 
+    // Aplicar auto-assignment: se não houver assignedTo ou assignedTeamId definidos manualmente,
+    // aplicar o responsibleUserId ou responsibleTeamId da etapa
+    let finalAssignedTo = assignedTo;
+    let finalAssignedTeamId = assignedTeamId;
+    
+    if (!finalAssignedTo && !finalAssignedTeamId) {
+      // Prioridade: usuário sobre time
+      if (step.responsibleUserId) {
+        finalAssignedTo = step.responsibleUserId;
+        // Adicionar ao array agents se não estiver presente
+        if (!agents.includes(step.responsibleUserId)) {
+          agents = [...agents, step.responsibleUserId];
+        }
+      } else if (step.responsibleTeamId) {
+        finalAssignedTeamId = step.responsibleTeamId;
+      }
+    }
+
     try {
       setIsSubmitting(true);
       await onSubmit({
@@ -207,7 +233,8 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
             movedBy: null,
           },
         ],
-        assignedTo,
+        assignedTo: finalAssignedTo,
+        assignedTeamId: finalAssignedTeamId,
         agents: agents.length > 0 ? agents : undefined,
       });
       reset({
@@ -364,11 +391,57 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
       );
     }
 
-    // Campo de seleção de usuário (Responsável)
+    // Campo de seleção de usuário ou time (Responsável)
     if (field.fieldType === "user_select") {
       const fieldValue = watch(`fields.${field.id}` as const);
+      const isTeamField = field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID;
       const activeUsers = users.filter((user) => user.is_active);
+      const activeTeams = teams.filter((team) => team.is_active);
       
+      if (isTeamField) {
+        // Campo de seleção de time
+        return (
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-slate-800">
+              {field.label}
+              {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+            </Label>
+            <Select
+              value={(fieldValue as string) ?? ""}
+              onValueChange={(value) => {
+                setValue(`fields.${field.id}` as const, value, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um time" />
+              </SelectTrigger>
+              <SelectContent>
+                {activeTeams.length === 0 ? (
+                  <SelectItem value="" disabled>
+                    Nenhum time disponível
+                  </SelectItem>
+                ) : (
+                  activeTeams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {formState.errors.fields?.[field.id]?.message ? (
+              <p className="text-xs text-red-500">
+                {formState.errors.fields?.[field.id]?.message as string}
+              </p>
+            ) : null}
+          </div>
+        );
+      }
+      
+      // Campo de seleção de usuário
       return (
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-slate-800">

@@ -8,7 +8,7 @@ import {
   NexflowCard,
   StepFieldValueMap,
 } from "@/types/nexflow";
-import { separateSystemFields, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
+import { separateSystemFields, SYSTEM_FIELDS, isSystemField } from "@/lib/flowBuilder/systemFields";
 
 type CardRow = Database["nexflow"]["Tables"]["cards"]["Row"];
 
@@ -203,6 +203,71 @@ export function useNexflowCards(flowId?: string) {
           finalAgents = Array.isArray(systemFields[SYSTEM_FIELDS.AGENTS]) 
             ? systemFields[SYSTEM_FIELDS.AGENTS] as string[] 
             : undefined;
+        }
+        
+        // IMPORTANTE: Também verificar se há valores de campos de sistema pelos IDs dos campos
+        // Isso é necessário porque os valores podem vir com o ID do campo em vez do slug
+        // Buscar o card para obter o stepId e então buscar os campos da etapa
+        if (input.fieldValues && Object.keys(input.fieldValues).length > 0) {
+          try {
+            const { data: cardData } = await nexflowClient()
+              .from("cards")
+              .select("step_id")
+              .eq("id", input.id)
+              .single();
+            
+            if (cardData?.step_id) {
+              const { data: stepFields } = await nexflowClient()
+                .schema("nexflow")
+                .from("step_fields")
+                .select("id, slug")
+                .eq("step_id", cardData.step_id);
+              
+              if (stepFields) {
+                // Criar um mapa de field.id -> slug para identificar campos de sistema
+                const fieldIdToSlug = new Map<string, string>();
+                stepFields.forEach((field) => {
+                  if (field.slug) {
+                    fieldIdToSlug.set(field.id, field.slug);
+                  }
+                });
+                
+                // Verificar cada valor em fieldValues e extrair campos de sistema
+                const fieldsToRemove: string[] = [];
+                for (const [fieldId, value] of Object.entries(input.fieldValues)) {
+                  const slug = fieldIdToSlug.get(fieldId);
+                  if (slug && isSystemField(slug)) {
+                    // Este é um campo de sistema, extrair o valor
+                    if (slug === SYSTEM_FIELDS.ASSIGNED_TO && typeof input.assignedTo === "undefined") {
+                      finalAssignedTo = typeof value === "string" && value.trim() ? value.trim() : null;
+                      fieldsToRemove.push(fieldId);
+                    } else if (slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID && typeof input.assignedTeamId === "undefined") {
+                      finalAssignedTeamId = typeof value === "string" && value.trim() ? value.trim() : null;
+                      fieldsToRemove.push(fieldId);
+                    } else if (slug === SYSTEM_FIELDS.AGENTS && typeof input.agents === "undefined") {
+                      finalAgents = Array.isArray(value) ? value as string[] : [];
+                      fieldsToRemove.push(fieldId);
+                    } else {
+                      // Se já foi passado explicitamente, apenas remover do genericFields
+                      fieldsToRemove.push(fieldId);
+                    }
+                  }
+                }
+                
+                // Remover campos de sistema do genericFieldValues
+                if (fieldsToRemove.length > 0) {
+                  const cleanedGenericFields = { ...genericFieldValues };
+                  fieldsToRemove.forEach((fieldId) => {
+                    delete cleanedGenericFields[fieldId];
+                  });
+                  genericFieldValues = cleanedGenericFields;
+                }
+              }
+            }
+          } catch (error) {
+            // Se houver erro ao buscar campos, continuar com a lógica normal
+            console.warn("Erro ao buscar campos da etapa para extrair campos de sistema:", error);
+          }
         }
       }
 

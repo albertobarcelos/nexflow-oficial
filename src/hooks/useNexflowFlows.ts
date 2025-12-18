@@ -46,6 +46,9 @@ const mapStepRow = (row: StepRow): NexflowStep => ({
   color: row.color ?? "#2563eb",
   position: row.position,
   createdAt: row.created_at,
+  isCompletionStep: Boolean(row.is_completion_step),
+  responsibleUserId: row.responsible_user_id ?? null,
+  responsibleTeamId: row.responsible_team_id ?? null,
 });
 
 const mapStepFieldRow = (row: StepFieldRow): NexflowStepField => ({

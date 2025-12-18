@@ -1,5 +1,15 @@
+// @ts-ignore - JSR imports são específicos do Deno runtime e funcionam no Supabase Edge Functions
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore - JSR imports são específicos do Deno runtime e funcionam no Supabase Edge Functions
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// Declaração de tipo para Deno (necessário para TypeScript no editor)
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve(handler: (req: Request) => Promise<Response> | Response): void;
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,8 +21,9 @@ interface UpdateCardPayload {
   title?: string;
   fieldValues?: Record<string, unknown>;
   checklistProgress?: Record<string, Record<string, boolean>>;
-  assignedTo?: string | null;
-  assignedTeamId?: string | null;
+  assignedTo?: string | null; // Campo Responsável
+  assignedTeamId?: string | null; // Campo Time
+  // agents?: string[]; // Não será usado atualmente - será criado campo específico futuramente
   stepId?: string;
   position?: number;
   movementHistory?: Array<{
@@ -87,6 +98,27 @@ Deno.serve(async (req: Request) => {
     }
 
     const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, movementHistory, parentCardId, status } = body;
+    // NOTA: agents não será processado atualmente - será criado campo específico futuramente
+
+    // #region agent log
+    console.log(JSON.stringify({
+      location: 'update-nexflow-card/index.ts:100',
+      message: 'Edge Function received payload',
+      data: { 
+        cardId, 
+        assignedTo, 
+        assignedTeamId, 
+        stepId, 
+        hasAssignedTeamId: typeof assignedTeamId !== 'undefined',
+        assignedTeamIdType: typeof assignedTeamId,
+        assignedTeamIdValue: assignedTeamId
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'B'
+    }));
+    // #endregion
 
     if (!cardId) {
       return new Response(
@@ -235,19 +267,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Validar exclusão mútua: não permitir assignedTo e assignedTeamId simultaneamente
-    if (assignedTo !== undefined && assignedTeamId !== undefined) {
-      if (assignedTo !== null && assignedTeamId !== null) {
-        return new Response(
-          JSON.stringify({ error: "Não é possível atribuir a um usuário e um time simultaneamente. Escolha apenas um." }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-    }
-
     // Construir payload de atualização
     const updatePayload: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -257,28 +276,68 @@ Deno.serve(async (req: Request) => {
     if (fieldValues !== undefined) updatePayload.field_values = fieldValues;
     if (checklistProgress !== undefined) updatePayload.checklist_progress = checklistProgress;
     
-    // Lógica de exclusão mútua para assignedTo e assignedTeamId
+    // Campo Responsável (assigned_to) - independente do campo Time
     if (assignedTo !== undefined) {
       updatePayload.assigned_to = assignedTo;
-      // Se está atribuindo a um usuário, limpar atribuição de time
-      if (assignedTo !== null) {
-        updatePayload.assigned_team_id = null;
-      }
     }
     
+    // Campo Time (assigned_team_id) - independente do campo Responsável
     if (assignedTeamId !== undefined) {
+      // #region agent log
+      console.log(JSON.stringify({
+        location: 'update-nexflow-card/index.ts:301',
+        message: 'Processing assignedTeamId',
+        data: { assignedTeamId, cardId, willSetToNull: assignedTeamId === null },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'B'
+      }));
+      // #endregion
       updatePayload.assigned_team_id = assignedTeamId;
-      // Se está atribuindo a um time, limpar atribuição de usuário
-      if (assignedTeamId !== null) {
-        updatePayload.assigned_to = null;
-      }
     }
+
+    // #region agent log
+    console.log(JSON.stringify({
+      location: 'update-nexflow-card/index.ts:310',
+      message: 'Update payload before database update',
+      data: { 
+        updatePayload, 
+        hasAssignedTeamId: 'assigned_team_id' in updatePayload,
+        assignedTeamIdValue: updatePayload.assigned_team_id,
+        assignedToValue: updatePayload.assigned_to
+      },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'B'
+    }));
+    // #endregion
+    
+    // NOTA: Campo agents não será usado atualmente
+    // Futuramente será criado um campo específico para agents
+    // Por enquanto, não atualizamos a coluna agents
+    // if (agents !== undefined) {
+    //   updatePayload.agents = agents;
+    // }
     
     if (stepId !== undefined) updatePayload.step_id = stepId;
     if (position !== undefined) updatePayload.position = position;
     if (movementHistory !== undefined) updatePayload.movement_history = movementHistory;
     if (parentCardId !== undefined) updatePayload.parent_card_id = parentCardId;
     if (status !== undefined) updatePayload.status = status;
+
+    // #region agent log
+    console.log(JSON.stringify({
+      location: 'update-nexflow-card/index.ts:318',
+      message: 'About to update card in database',
+      data: { cardId, updatePayload, hasAssignedTeamIdInPayload: 'assigned_team_id' in updatePayload, assignedTeamIdValue: updatePayload.assigned_team_id },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'B'
+    }));
+    // #endregion
 
     // Atualizar card
     const { data: updatedCard, error: updateError } = await supabase
@@ -288,6 +347,30 @@ Deno.serve(async (req: Request) => {
       .eq('id', cardId)
       .select('*')
       .single();
+
+    // #region agent log
+    if (updateError) {
+      console.log(JSON.stringify({
+        location: 'update-nexflow-card/index.ts:327',
+        message: 'Database update error',
+        data: { cardId, error: updateError.message, code: updateError.code, updatePayload },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'B'
+      }));
+    } else {
+      console.log(JSON.stringify({
+        location: 'update-nexflow-card/index.ts:333',
+        message: 'Database update successful - raw card from DB',
+        data: { cardId: updatedCard.id, assigned_to: updatedCard.assigned_to, assigned_team_id: updatedCard.assigned_team_id, hasAssignedTeamId: updatedCard.assigned_team_id !== null },
+        timestamp: Date.now(),
+        sessionId: 'debug-session',
+        runId: 'run1',
+        hypothesisId: 'B'
+      }));
+    }
+    // #endregion
 
     if (updateError) {
       console.error('Erro ao atualizar card:', updateError);
@@ -307,6 +390,18 @@ Deno.serve(async (req: Request) => {
     const assignedToValue = updatedCard.assigned_to ?? null;
     const assignedTeamIdValue = updatedCard.assigned_team_id ?? null;
     const assigneeType = assignedToValue ? 'user' : assignedTeamIdValue ? 'team' : 'unassigned';
+
+    // #region agent log
+    console.log(JSON.stringify({
+      location: 'update-nexflow-card/index.ts:307',
+      message: 'Card updated - response mapping',
+      data: { cardId: updatedCard.id, assignedToValue, assignedTeamIdValue, assigneeType, rawAssignedTeamId: updatedCard.assigned_team_id },
+      timestamp: Date.now(),
+      sessionId: 'debug-session',
+      runId: 'run1',
+      hypothesisId: 'B'
+    }));
+    // #endregion
     
     const mappedCard = {
       id: updatedCard.id,
@@ -323,6 +418,8 @@ Deno.serve(async (req: Request) => {
       assignedTo: assignedToValue,
       assignedTeamId: assignedTeamIdValue,
       assigneeType: assigneeType,
+      // agents não será usado atualmente - campo será criado futuramente
+      // agents: Array.isArray(updatedCard.agents) ? updatedCard.agents : [],
       position: updatedCard.position ?? 0,
       status: updatedCard.status ?? null,
       createdAt: updatedCard.created_at,

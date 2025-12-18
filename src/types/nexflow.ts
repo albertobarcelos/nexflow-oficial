@@ -31,6 +31,8 @@ export interface NexflowStep {
   color: string;
   isCompletionStep?: boolean;
   createdAt: string;
+  responsibleUserId?: string | null;
+  responsibleTeamId?: string | null;
 }
 
 export interface StepFieldConfiguration extends Record<string, Json | undefined> {

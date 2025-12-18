@@ -96,6 +96,14 @@ export const fieldLibrary: FlowBuilderFieldDefinition[] = [
     defaultConfiguration: () => ({}),
   },
   {
+    id: "assignee_team",
+    label: "Time",
+    description: "Seleção de time para atribuição ao card.",
+    fieldType: "user_select",
+    defaultLabel: "Time",
+    defaultConfiguration: () => ({}),
+  },
+  {
     id: "cnpjCpf",
     label: "CNPJ/CPF",
     description: "Campo com máscara e validação automática de CNPJ ou CPF.",
@@ -119,6 +127,9 @@ export function getFieldDefinition(id: string) {
 export function getDefaultSlugForField(fieldId: string): string | null {
   if (fieldId === "assignee") {
     return SYSTEM_FIELDS.ASSIGNED_TO;
+  }
+  if (fieldId === "assignee_team") {
+    return SYSTEM_FIELDS.ASSIGNED_TEAM_ID;
   }
   return null;
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
@@ -41,7 +41,6 @@ import { isSystemField, SYSTEM_FIELDS, getSystemFieldValue } from "@/lib/flowBui
 import { useUsers } from "@/hooks/useUsers";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AgentsMultiSelect } from "./AgentsMultiSelect";
 
 export interface CardFormValues {
@@ -120,15 +119,36 @@ export function CardDetailsModal({
     
     // Encontrar campo "responsável" nos campos da etapa atual
     let responsavelFieldId: string | null = null;
+    let responsavelTeamFieldId: string | null = null;
     let agentsFieldId: string | null = null;
     if (currentStep?.fields) {
       for (const field of currentStep.fields) {
+        // Campo de responsável (usuário)
         const isResponsavelField = 
           field.fieldType === "user_select" && 
-          (field.slug === SYSTEM_FIELDS.ASSIGNED_TO || 
-           field.label.toLowerCase().includes("responsável"));
+          field.slug === SYSTEM_FIELDS.ASSIGNED_TO;
         if (isResponsavelField) {
           responsavelFieldId = field.id;
+        }
+        
+        // Campo de responsável (time)
+        const isResponsavelTeamField = 
+          field.fieldType === "user_select" && 
+          field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID;
+        if (isResponsavelTeamField) {
+          responsavelTeamFieldId = field.id;
+        }
+        
+        // Campo de responsável genérico (sem slug específico, mas com label "responsável")
+        if (!responsavelFieldId && !responsavelTeamFieldId) {
+          const isGenericResponsavelField = 
+            field.fieldType === "user_select" && 
+            field.label.toLowerCase().includes("responsável") &&
+            field.slug !== SYSTEM_FIELDS.AGENTS;
+          if (isGenericResponsavelField) {
+            // Se não tem slug específico, assumir que é assigned_to
+            responsavelFieldId = field.id;
+          }
         }
         
         // Encontrar campo agents
@@ -156,15 +176,15 @@ export function CardDetailsModal({
         return;
       }
       
-      // Se for o campo "responsável" (pelo ID do campo), extrair para assignedTo ou assignedTeamId
+      // Se for o campo "responsável time" (pelo ID do campo), extrair para assignedTeamId
+      if (responsavelTeamFieldId && key === responsavelTeamFieldId && value) {
+        extractedAssignedTeamId = value;
+        return; // Não incluir em genericFields
+      }
+      
+      // Se for o campo "responsável usuário" (pelo ID do campo), extrair para assignedTo
       if (responsavelFieldId && key === responsavelFieldId && value) {
-        // Verificar se é user ou team baseado no slug do campo
-        const field = currentStep?.fields?.find(f => f.id === responsavelFieldId);
-        if (field?.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID) {
-          extractedAssignedTeamId = value;
-        } else {
-          extractedAssignedTo = value;
-        }
+        extractedAssignedTo = value;
         return; // Não incluir em genericFields
       }
       
@@ -198,6 +218,24 @@ export function CardDetailsModal({
     mode: "onChange",
     values: initialValues, // Sincroniza quando card muda
   });
+
+  // #region agent log
+  useEffect(() => {
+    if (card) {
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CardDetailsModal.tsx:202',message:'Card prop changed',data:{cardId:card.id,assignedTo:card.assignedTo,assignedTeamId:card.assignedTeamId,initialValuesAssignedTo:initialValues.assignedTo,initialValuesAssignedTeamId:initialValues.assignedTeamId,initialValuesAssigneeType:initialValues.assigneeType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
+    }
+  }, [card?.id, card?.assignedTo, card?.assignedTeamId, initialValues.assignedTo, initialValues.assignedTeamId, initialValues.assigneeType]);
+  // #endregion
+
+  // Resetar formulário quando card muda (especialmente assignedTeamId)
+  useEffect(() => {
+    if (card) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CardDetailsModal.tsx:212',message:'Resetting form with new initialValues',data:{cardId:card.id,assignedTeamId:initialValues.assignedTeamId,assigneeType:initialValues.assigneeType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+      // #endregion
+      form.reset(initialValues);
+    }
+  }, [card?.id, initialValues, form]);
 
   const { isDirty } = form.formState;
 
@@ -402,34 +440,96 @@ export function CardDetailsModal({
       );
     }
     
-    // Campo de seleção de responsável (User ou Team) - campo de sistema
-    // Verifica se é user_select E (tem slug assigned_to, assigned_team_id OU label contém "Responsável")
-    // IMPORTANTE: Excluir explicitamente agents para evitar conflito
+    // Campo de seleção de responsável (User) - campo de sistema
+    // Verifica se é user_select com slug assigned_to OU label contém "Responsável" (mas não assigned_team_id)
+    // IMPORTANTE: Excluir explicitamente agents e assigned_team_id para evitar conflito
     const isAssignedToField = 
       field.fieldType === "user_select" && 
       field.slug !== SYSTEM_FIELDS.AGENTS &&
+      field.slug !== SYSTEM_FIELDS.ASSIGNED_TEAM_ID &&
       !field.label.toLowerCase().includes("agents") &&
       !field.label.toLowerCase().includes("agentes") &&
-      (field.slug === SYSTEM_FIELDS.ASSIGNED_TO || 
-       field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID ||
-       field.label.toLowerCase().includes("responsável"));
+      (field.slug === SYSTEM_FIELDS.ASSIGNED_TO ||
+       (field.label.toLowerCase().includes("responsável") && field.slug !== SYSTEM_FIELDS.ASSIGNED_TEAM_ID));
     
     if (isAssignedToField) {
-      // Calcular assigneeType baseado nos valores do formulário ou do card
+      // Campo de responsável mostra apenas usuários
       const assignedToValue = form.watch("assignedTo");
-      const assignedTeamIdValue = form.watch("assignedTeamId");
-      const formAssigneeType = form.watch("assigneeType");
-      
-      // Se não houver assigneeType no form, calcular baseado nos valores
-      const assigneeType = formAssigneeType ?? 
-        (assignedToValue ? 'user' : assignedTeamIdValue ? 'team' : 'user');
-      
       const activeUsers = users.filter((user) => user.is_active);
-      const activeTeams = teams.filter((team) => team.is_active);
       
       const selectedUser = assignedToValue 
         ? activeUsers.find((user) => user.id === assignedToValue)
         : null;
+      
+      return (
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+            {field.label}
+            {field.isRequired && (
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
+                Obrigatório
+              </span>
+            )}
+          </Label>
+          
+          {/* Seletor de Usuário */}
+          <div className="relative">
+            <Select
+              value={assignedToValue ?? undefined}
+              onValueChange={(value) => {
+                const newValue = value && value.trim() ? value : null;
+                form.setValue("assignedTo", newValue, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                });
+              }}
+            >
+              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
+                <SelectValue placeholder="Selecione um usuário">
+                  {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {activeUsers.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-gray-500">
+                    Nenhum usuário disponível
+                  </div>
+                ) : (
+                  activeUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} {user.surname}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+              <ChevronDown className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    // Campo de seleção de time - campo de sistema
+    // Verifica se é user_select com slug assigned_team_id OU label contém "time" (mas não "responsável")
+    // IMPORTANTE: Excluir explicitamente agents e assigned_to para evitar conflito
+    const fieldLabelLower = field.label.toLowerCase();
+    const isTeamField = 
+      field.fieldType === "user_select" && 
+      field.slug !== SYSTEM_FIELDS.AGENTS &&
+      field.slug !== SYSTEM_FIELDS.ASSIGNED_TO &&
+      !fieldLabelLower.includes("agents") &&
+      !fieldLabelLower.includes("agentes") &&
+      !fieldLabelLower.includes("responsável") &&
+      (field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID ||
+       fieldLabelLower === "time" ||
+       (fieldLabelLower.includes("time") && !fieldLabelLower.includes("responsável")));
+    
+    if (isTeamField) {
+      // Campo de time mostra apenas times
+      const assignedTeamIdValue = form.watch("assignedTeamId");
+      const activeTeams = teams.filter((team) => team.is_active);
       
       const selectedTeam = assignedTeamIdValue
         ? activeTeams.find((team) => team.id === assignedTeamIdValue)
@@ -446,122 +546,41 @@ export function CardDetailsModal({
             )}
           </Label>
           
-          {/* Toggle para escolher entre User e Team */}
-          <div className="mb-3">
-            <RadioGroup
-              value={assigneeType}
+          {/* Seletor de Time */}
+          <div className="relative">
+            <Select
+              value={assignedTeamIdValue ?? undefined}
               onValueChange={(value) => {
-                const newType = value as 'user' | 'team';
-                form.setValue("assigneeType", newType, {
+                const newValue = value && value.trim() ? value : null;
+                form.setValue("assignedTeamId", newValue, {
                   shouldDirty: true,
                   shouldValidate: true,
                 });
-                
-                // Limpar o campo não selecionado
-                if (newType === 'user') {
-                  form.setValue("assignedTeamId", null, { shouldDirty: true });
-                } else if (newType === 'team') {
-                  form.setValue("assignedTo", null, { shouldDirty: true });
-                }
               }}
-              className="flex gap-4"
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="user" id="assignee-user" />
-                <Label htmlFor="assignee-user" className="cursor-pointer">
-                  Usuário
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="team" id="assignee-team" />
-                <Label htmlFor="assignee-team" className="cursor-pointer">
-                  Time
-                </Label>
-              </div>
-            </RadioGroup>
+              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
+                <SelectValue placeholder="Selecione um time">
+                  {selectedTeam ? selectedTeam.name : "Selecione um time"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {activeTeams.length === 0 ? (
+                  <div className="px-2 py-1.5 text-sm text-gray-500">
+                    Nenhum time disponível
+                  </div>
+                ) : (
+                  activeTeams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+              <ChevronDown className="h-5 w-5" />
+            </div>
           </div>
-          
-          {/* Seletor de Usuário */}
-          {assigneeType === 'user' && (
-            <div className="relative">
-              <Select
-                value={assignedToValue ?? undefined}
-                onValueChange={(value) => {
-                  const newValue = value && value.trim() ? value : null;
-                  form.setValue("assignedTo", newValue, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                  if (newValue) {
-                    form.setValue("assigneeType", 'user', { shouldDirty: true });
-                  }
-                }}
-              >
-                <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
-                  <SelectValue placeholder="Selecione um usuário">
-                    {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {activeUsers.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-gray-500">
-                      Nenhum usuário disponível
-                    </div>
-                  ) : (
-                    activeUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name} {user.surname}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                <ChevronDown className="h-5 w-5" />
-              </div>
-            </div>
-          )}
-          
-          {/* Seletor de Time */}
-          {assigneeType === 'team' && (
-            <div className="relative">
-              <Select
-                value={assignedTeamIdValue ?? undefined}
-                onValueChange={(value) => {
-                  const newValue = value && value.trim() ? value : null;
-                  form.setValue("assignedTeamId", newValue, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                  if (newValue) {
-                    form.setValue("assigneeType", 'team', { shouldDirty: true });
-                  }
-                }}
-              >
-                <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
-                  <SelectValue placeholder="Selecione um time">
-                    {selectedTeam ? selectedTeam.name : "Selecione um time"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {activeTeams.length === 0 ? (
-                    <div className="px-2 py-1.5 text-sm text-gray-500">
-                      Nenhum time disponível
-                    </div>
-                  ) : (
-                    activeTeams.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                <ChevronDown className="h-5 w-5" />
-              </div>
-            </div>
-          )}
         </div>
       );
     }
@@ -749,10 +768,11 @@ export function CardDetailsModal({
     setSaveStatus("saving");
     try {
       const values = form.getValues();
-      // Garantir que assignedTo seja sempre definido (mesmo que null)
+      // Garantir que assignedTo e assignedTeamId sejam sempre definidos (mesmo que null)
       const formValues: CardFormValues = {
         ...values,
         assignedTo: values.assignedTo !== undefined ? values.assignedTo : null,
+        assignedTeamId: values.assignedTeamId !== undefined ? values.assignedTeamId : null,
       };
       await onSave(card, formValues);
       setSaveStatus("saved");

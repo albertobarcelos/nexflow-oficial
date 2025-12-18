@@ -30,6 +30,7 @@ import {
   CardDetailsModal,
   type CardFormValues,
 } from "@/components/crm/flows/CardDetailsModal";
+import { StepResponsibleSelector } from "@/components/crm/flows/StepResponsibleSelector";
 import { useNexflowFlow, type NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
 import { useUsers } from "@/hooks/useUsers";
@@ -127,7 +128,14 @@ export function NexflowBoardPage() {
       entry.cards.sort((a, b) => a.position - b.position);
       const visibleCount = getVisibleCount(stepId);
       entry.hasMore = entry.total > visibleCount;
+      const beforeSlice = entry.cards.length;
       entry.cards = entry.cards.slice(0, visibleCount);
+      
+      // #region agent log
+      if (stepId === 'f3affc62-ab87-416f-b78a-14555af5138b') {
+        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:131',message:'Paginated cards for step ttt',data:{stepId,total:entry.total,visibleCount,beforeSlice,afterSlice:entry.cards.length,cardIds:entry.cards.map(c=>c.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      }
+      // #endregion
     });
 
     return result;
@@ -270,6 +278,7 @@ export function NexflowBoardPage() {
       checklistProgress: payload.checklistProgress,
       movementHistory: payload.movementHistory,
       assignedTo: payload.assignedTo,
+      assignedTeamId: payload.assignedTeamId,
       agents: payload.agents,
     });
   };
@@ -397,20 +406,109 @@ export function NexflowBoardPage() {
     const targetStep = steps.find((s) => s.id === targetStepId);
     const newStatus = targetStep?.isCompletionStep ? "completed" : "inprogress";
 
-    // Adicionar status aos updates do card que está sendo movido
+    // Aplicar auto-assignment se o card está mudando de etapa
+    let assignedTo: string | null | undefined = undefined;
+    let assignedTeamId: string | null | undefined = undefined;
+    let agents: string[] | undefined = undefined;
+
+    if (movingAcrossSteps && targetStep) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:406',message:'Auto-assignment check',data:{targetStepId:targetStep.id,targetStepTitle:targetStep.title,responsibleUserId:targetStep.responsibleUserId,responsibleTeamId:targetStep.responsibleTeamId,cardId:card.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      // Prioridade: usuário sobre time
+      if (targetStep.responsibleUserId) {
+        assignedTo = targetStep.responsibleUserId;
+        assignedTeamId = null; // Limpar time ao atribuir usuário
+        // Adicionar ao array agents se não estiver presente
+        const currentAgents = card.agents ?? [];
+        if (!currentAgents.includes(targetStep.responsibleUserId)) {
+          agents = [...currentAgents, targetStep.responsibleUserId];
+        }
+      } else if (targetStep.responsibleTeamId) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:417',message:'Setting assignedTeamId from step',data:{targetStepId:targetStep.id,responsibleTeamId:targetStep.responsibleTeamId,cardId:card.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+        // #endregion
+        assignedTeamId = targetStep.responsibleTeamId;
+        assignedTo = null; // Limpar usuário ao atribuir time
+      }
+    }
+
+    // Adicionar status e atribuições aos updates do card que está sendo movido
     const updatesWithStatus = updates.map((update) => {
       if (update.id === card.id) {
-        return {
+        const cardUpdate: typeof update & {
+          status?: string;
+          assignedTo?: string | null;
+          assignedTeamId?: string | null;
+          agents?: string[];
+        } = {
           ...update,
           status: newStatus,
         };
+
+        // Aplicar auto-assignment apenas se mudou de etapa
+        if (movingAcrossSteps) {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:436',message:'Applying auto-assignment to card update',data:{cardId:card.id,assignedTo,assignedTeamId,agents,hasAssignedTo:typeof assignedTo !== 'undefined',hasAssignedTeamId:typeof assignedTeamId !== 'undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+          // #endregion
+          if (typeof assignedTo !== "undefined") {
+            cardUpdate.assignedTo = assignedTo;
+          }
+          if (typeof assignedTeamId !== "undefined") {
+            cardUpdate.assignedTeamId = assignedTeamId;
+          }
+          if (typeof agents !== "undefined") {
+            cardUpdate.agents = agents;
+          }
+        }
+
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:448',message:'Final card update payload',data:{cardId:cardUpdate.id,assignedTo:cardUpdate.assignedTo,assignedTeamId:cardUpdate.assignedTeamId,status:cardUpdate.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+
+        return cardUpdate;
       }
       return update;
     });
 
+    // Garantir que a etapa de destino tenha contagem visível suficiente para mostrar o card
+    if (movingAcrossSteps && targetStepId) {
+      const currentVisibleCount = getVisibleCount(targetStepId);
+      const destinationCardsCount = (cardsByStep[targetStepId] ?? []).length;
+      // Se o card seria o primeiro na nova etapa e a contagem visível é menor que o necessário
+      if (destinationCardsCount >= currentVisibleCount) {
+        setVisibleCountPerStep((prev) => ({
+          ...prev,
+          [targetStepId]: Math.max(currentVisibleCount, destinationCardsCount + 1),
+        }));
+      }
+    }
+
     await reorderCards({
       items: updatesWithStatus,
     });
+
+    // #region agent log
+    const movedCardUpdate = updatesWithStatus.find(u => u.id === card.id);
+    if (movedCardUpdate && movingAcrossSteps) {
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:470',message:'After reorderCards - updating activeCard if needed',data:{cardId:card.id,newStepId:movedCardUpdate.stepId,assignedTeamId:movedCardUpdate.assignedTeamId,isActiveCard:activeCard?.id === card.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
+      
+      // Atualizar activeCard se for o card que está sendo movido
+      if (activeCard && activeCard.id === card.id) {
+        setActiveCard((current) => {
+          if (!current || current.id !== card.id) return current;
+          return {
+            ...current,
+            stepId: movedCardUpdate.stepId,
+            assignedTo: typeof movedCardUpdate.assignedTo !== "undefined" ? movedCardUpdate.assignedTo : current.assignedTo,
+            assignedTeamId: typeof movedCardUpdate.assignedTeamId !== "undefined" ? movedCardUpdate.assignedTeamId : current.assignedTeamId,
+            agents: typeof movedCardUpdate.agents !== "undefined" ? movedCardUpdate.agents : current.agents,
+            status: typeof movedCardUpdate.status !== "undefined" ? movedCardUpdate.status : current.status,
+          };
+        });
+      }
+    }
+    // #endregion
 
     if (movementHistory) {
       triggerCelebration(card.id);
@@ -694,6 +792,9 @@ export function NexflowBoardPage() {
                         {step.isCompletionStep && (
                           <CheckCircle2 className="h-4 w-4 opacity-90" />
                         )}
+                        {id && (
+                          <StepResponsibleSelector step={step} flowId={id} />
+                        )}
                       </h2>
                       {isStartColumn && (
                         <button
@@ -939,23 +1040,43 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
           </span>
         </div>
         {assignedUser ? (
-          <div className="flex items-center gap-2" title={`${assignedUser.name} ${assignedUser.surname}`}>
+          <div className="flex items-center gap-2" title={`${assignedUser.name} ${assignedUser.surname}${assignedTeam ? ` - ${assignedTeam.name}` : ''}`}>
             <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
               {assignedUser.name.split(" ")[0]}
             </span>
-            <div className="w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-700 bg-slate-100 overflow-hidden">
-              <UserAvatar
-                user={{
-                  name: assignedUser.name,
-                  surname: assignedUser.surname,
-                  avatar_type: assignedUser.avatar_type,
-                  avatar_seed: assignedUser.avatar_seed,
-                  custom_avatar_url: assignedUser.custom_avatar_url,
-                  avatar_url: assignedUser.avatar_url,
-                }}
-                size="sm"
-                className="w-full h-full"
-              />
+            {/* Stack de avatares: usuário na frente, time atrás */}
+            <div className="relative flex items-center">
+              {/* Avatar do time (atrás) - apenas se existir */}
+              {assignedTeam && (
+                <div className="absolute -left-2 w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-700 bg-blue-100 dark:bg-blue-900 flex items-center justify-center z-0">
+                  <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300">
+                    {(() => {
+                      const words = assignedTeam.name.trim().split(/\s+/);
+                      if (words.length >= 2) {
+                        return `${words[0].charAt(0)}${words[1].charAt(0)}`.toUpperCase();
+                      } else if (words.length === 1) {
+                        return words[0].substring(0, 2).toUpperCase();
+                      }
+                      return "T";
+                    })()}
+                  </span>
+                </div>
+              )}
+              {/* Avatar do usuário (na frente) */}
+              <div className={`w-6 h-6 rounded-full ring-2 ring-white dark:ring-slate-700 bg-slate-100 overflow-hidden ${assignedTeam ? 'relative z-10' : ''}`}>
+                <UserAvatar
+                  user={{
+                    name: assignedUser.name,
+                    surname: assignedUser.surname,
+                    avatar_type: assignedUser.avatar_type,
+                    avatar_seed: assignedUser.avatar_seed,
+                    custom_avatar_url: assignedUser.custom_avatar_url,
+                    avatar_url: assignedUser.avatar_url,
+                  }}
+                  size="sm"
+                  className="w-full h-full"
+                />
+              </div>
             </div>
           </div>
         ) : assignedTeam ? (

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { nexflowClient } from "@/lib/supabase";
+import { nexflowClient, supabase } from "@/lib/supabase";
 import { Database } from "@/types/database";
 import { NexflowStep } from "@/types/nexflow";
 
@@ -16,6 +16,8 @@ const mapStepRow = (row: StepRow): NexflowStep => ({
   position: row.position,
   isCompletionStep: Boolean(row.is_completion_step),
   createdAt: row.created_at,
+  responsibleUserId: row.responsible_user_id ?? null,
+  responsibleTeamId: row.responsible_team_id ?? null,
 });
 
 interface CreateStepInput {
@@ -31,6 +33,8 @@ interface UpdateStepInput {
   color?: string;
   position?: number;
   isCompletionStep?: boolean;
+  responsibleUserId?: string | null;
+  responsibleTeamId?: string | null;
 }
 
 interface ReorderStepsInput {
@@ -139,23 +143,47 @@ export function useNexflowSteps(flowId?: string) {
   });
 
   const updateStepMutation = useMutation({
-    mutationFn: async ({ id, title, color, position, isCompletionStep }: UpdateStepInput) => {
+    mutationFn: async ({ id, title, color, position, isCompletionStep, responsibleUserId, responsibleTeamId }: UpdateStepInput) => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:146',message:'updateStepMutation called',data:{id,responsibleUserId,responsibleTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       const payload: Partial<StepRow> = {};
       if (typeof title !== "undefined") payload.title = title;
       if (typeof color !== "undefined") payload.color = color;
       if (typeof position !== "undefined") payload.position = position;
       if (typeof isCompletionStep !== "undefined") payload.is_completion_step = isCompletionStep;
+      // Garantir que null seja explicitamente enviado para limpar o campo
+      if (typeof responsibleUserId !== "undefined") {
+        payload.responsible_user_id = responsibleUserId; // Inclui null
+      }
+      if (typeof responsibleTeamId !== "undefined") {
+        payload.responsible_team_id = responsibleTeamId; // Inclui null
+      }
 
-      const { error } = await nexflowClient()
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:153',message:'Payload before update',data:{payload,hasResponsibleTeamId:typeof responsibleTeamId !== 'undefined',responsibleTeamIdValue:responsibleTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+
+      const { data: updatedStep, error } = await nexflowClient()
         .from("steps")
         .update(payload)
-        .eq("id", id);
+        .eq("id", id)
+        .select("responsible_user_id, responsible_team_id")
+        .single();
+
+      // #region agent log
+      if (error) {
+        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:160',message:'Error updating step',data:{error:error.message,code:error.code,id,payload},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      } else {
+        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:162',message:'Step updated successfully',data:{id,responsibleTeamId,updatedResponsibleTeamId:updatedStep?.responsible_team_id,updatedResponsibleUserId:updatedStep?.responsible_user_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      }
+      // #endregion
 
       if (error) {
         throw error;
       }
     },
-    onMutate: async ({ id, title, color, position, isCompletionStep }) => {
+    onMutate: async ({ id, title, color, position, isCompletionStep, responsibleUserId, responsibleTeamId }) => {
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
 
@@ -173,6 +201,14 @@ export function useNexflowSteps(flowId?: string) {
                   typeof isCompletionStep !== "undefined"
                     ? isCompletionStep
                     : step.isCompletionStep,
+                responsibleUserId:
+                  typeof responsibleUserId !== "undefined"
+                    ? responsibleUserId
+                    : step.responsibleUserId,
+                responsibleTeamId:
+                  typeof responsibleTeamId !== "undefined"
+                    ? responsibleTeamId
+                    : step.responsibleTeamId,
               }
             : step
         )
@@ -187,6 +223,13 @@ export function useNexflowSteps(flowId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      // Invalidar também o cache do useNexflowFlow para atualizar os steps no board
+      if (flowId) {
+        queryClient.invalidateQueries({ queryKey: ["nexflow", "flow", flowId] });
+      } else {
+        // Se não tiver flowId, invalidar todas as queries de flow
+        queryClient.invalidateQueries({ queryKey: ["nexflow", "flow"] });
+      }
       toast.success("Etapa atualizada com sucesso!");
     },
     onError: () => {
@@ -196,13 +239,26 @@ export function useNexflowSteps(flowId?: string) {
 
   const deleteStepMutation = useMutation({
     mutationFn: async (stepId: string) => {
-      const { error } = await nexflowClient()
-        .from("steps")
-        .delete()
-        .eq("id", stepId);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:241',message:'Calling delete-nexflow-step Edge Function',data:{stepId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+
+      const { data, error } = await supabase.functions.invoke('delete-nexflow-step', {
+        body: { stepId },
+      });
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:247',message:'Edge Function response',data:{hasError:!!error,errorMessage:error?.message,errorContext:error?.context,hasData:!!data,data,stepId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
 
       if (error) {
-        throw error;
+        // Se houver data mesmo com error, pode conter a mensagem de erro
+        const errorMessage = data?.error || error.message || "Falha ao excluir etapa.";
+        throw new Error(errorMessage);
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || "Falha ao excluir etapa.");
       }
     },
     onMutate: async (stepId: string) => {
@@ -214,17 +270,22 @@ export function useNexflowSteps(flowId?: string) {
       );
       return { previousSteps };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, _variables, context) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
+      toast.error(error.message || "Erro ao remover etapa. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
+      // Invalidar também o cache do useNexflowFlow para atualizar os steps no board
+      if (flowId) {
+        queryClient.invalidateQueries({ queryKey: ["nexflow", "flow", flowId] });
+      } else {
+        // Se não tiver flowId, invalidar todas as queries de flow
+        queryClient.invalidateQueries({ queryKey: ["nexflow", "flow"] });
+      }
       toast.success("Etapa removida com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao remover etapa. Tente novamente.");
     },
   });
 

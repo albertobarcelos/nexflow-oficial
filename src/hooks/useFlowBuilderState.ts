@@ -39,6 +39,16 @@ function isResponsavelField(field: NexflowStepField): boolean {
   );
 }
 
+/**
+ * Verifica se um campo é do tipo "responsável time" (user_select com slug assigned_team_id)
+ */
+function isResponsavelTeamField(field: NexflowStepField): boolean {
+  return (
+    field.fieldType === "user_select" &&
+    field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID
+  );
+}
+
 export interface FlowDraft {
   name: string;
   description: string;
@@ -351,11 +361,20 @@ export function useFlowBuilderState(
       // Obter slug padrão para campos de sistema
       const defaultSlug = getDefaultSlugForField(definitionId);
       
-      // Validar se já existe um campo "responsável" na etapa
+      // Validar se já existe um campo "responsável" (usuário) na etapa
       if (definitionId === "assignee" || (definition.fieldType === "user_select" && defaultSlug === SYSTEM_FIELDS.ASSIGNED_TO)) {
         const existingResponsavelFields = fields.filter((field) => isResponsavelField(field));
         if (existingResponsavelFields.length > 0) {
           toast.error("Já existe um campo 'Responsável' nesta etapa. Apenas um campo 'Responsável' é permitido por etapa.");
+          return;
+        }
+      }
+      
+      // Validar se já existe um campo "responsável time" na etapa
+      if (definitionId === "assignee_team" || (definition.fieldType === "user_select" && defaultSlug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID)) {
+        const existingResponsavelTeamFields = fields.filter((field) => isResponsavelTeamField(field));
+        if (existingResponsavelTeamFields.length > 0) {
+          toast.error("Já existe um campo 'Responsável (Time)' nesta etapa. Apenas um campo 'Responsável (Time)' é permitido por etapa.");
           return;
         }
       }
