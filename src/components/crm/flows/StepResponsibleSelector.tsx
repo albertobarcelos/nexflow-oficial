@@ -29,12 +29,6 @@ export function StepResponsibleSelector({
   const { data: teams = [] } = useOrganizationTeams();
   const { updateStep, isUpdating } = useNexflowSteps(flowId);
 
-  // #region agent log
-  if (teams.length > 0) {
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StepResponsibleSelector.tsx:32',message:'Teams loaded',data:{teamsCount:teams.length,teams:teams.map(t=>({id:t.id,name:t.name,is_active:t.is_active})),stepResponsibleTeamId:step.responsibleTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  }
-  // #endregion
-
   const hasResponsible = Boolean(step.responsibleUserId || step.responsibleTeamId);
 
   const handleSelectUser = async (userId: string | null) => {
@@ -51,27 +45,15 @@ export function StepResponsibleSelector({
   };
 
   const handleSelectTeam = async (teamId: string | null) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StepResponsibleSelector.tsx:47',message:'handleSelectTeam called',data:{stepId:step.id,teamId,flowId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
     try {
       const updatePayload = {
         id: step.id,
         responsibleTeamId: teamId,
         responsibleUserId: null, // Limpar usuário ao selecionar time
       };
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StepResponsibleSelector.tsx:54',message:'Calling updateStep with payload',data:updatePayload,timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       await updateStep(updatePayload);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StepResponsibleSelector.tsx:58',message:'updateStep completed successfully',data:{stepId:step.id,teamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       setOpen(false);
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'StepResponsibleSelector.tsx:63',message:'Error updating step',data:{error:error instanceof Error?error.message:String(error),stepId:step.id,teamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       console.error("Erro ao atualizar responsável:", error);
     }
   };

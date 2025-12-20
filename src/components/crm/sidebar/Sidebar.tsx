@@ -13,6 +13,7 @@ import {
   LucideProps,
   Database,
   Workflow,
+  Target,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountProfile } from "@/hooks/useAccountProfile";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { useHuntersAccess } from "@/hooks/useHuntersAccess";
 // AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 interface MenuItem {
@@ -77,6 +79,7 @@ export function Sidebar() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { user: userProfile, lastUpdate } = useAccountProfile();
+  const { hasAccess: hasHuntersAccess } = useHuntersAccess();
 
   // AIDEV-NOTE: Detecta se estamos dentro de um flow OU nas páginas de Empresas/Pessoas
   const isInsideFlow = location.pathname.includes('/flow/') && params.id;
@@ -101,6 +104,15 @@ export function Sidebar() {
     );
   }
 
+  // Adiciona Hunters se o usuário tiver acesso
+  if (hasHuntersAccess) {
+    menuItems.push({
+      title: "Hunters",
+      icon: Target,
+      href: "/crm/hunters",
+    });
+  }
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -122,7 +134,7 @@ export function Sidebar() {
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
               location.pathname + location.search === item.href :
-              item.href === '/crm/flows' ? location.pathname.startsWith(item.href) : location.pathname === item.href;
+              (item.href === '/crm/flows' || item.href === '/crm/hunters') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
               
             return (
               <Button

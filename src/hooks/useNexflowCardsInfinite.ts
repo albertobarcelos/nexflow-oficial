@@ -1,4 +1,5 @@
-import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getCurrentClientId, nexflowClient, supabase } from "@/lib/supabase";
 import { Database } from "@/types/database";
@@ -85,9 +86,18 @@ export interface ReorderCardsInput {
 
 const CARDS_PER_PAGE = 30;
 
-export function useNexflowCardsInfinite(flowId?: string) {
+export interface UseNexflowCardsInfiniteOptions {
+  assignedTo?: string | null;
+  assignedTeamId?: string | null;
+}
+
+export function useNexflowCardsInfinite(
+  flowId?: string,
+  options?: UseNexflowCardsInfiniteOptions
+) {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "cards", "infinite", flowId];
+  const { assignedTo, assignedTeamId } = options ?? {};
+  const queryKey = ["nexflow", "cards", "infinite", flowId, assignedTo, assignedTeamId];
 
   const cardsInfiniteQuery = useInfiniteQuery({
     queryKey,
@@ -100,10 +110,20 @@ export function useNexflowCardsInfinite(flowId?: string) {
       const from = pageParam * CARDS_PER_PAGE;
       const to = from + CARDS_PER_PAGE - 1;
 
-      const { data, error, count } = await nexflowClient()
+      let query = nexflowClient()
         .from("cards")
         .select("*", { count: "exact" })
-        .eq("flow_id", flowId)
+        .eq("flow_id", flowId);
+
+      // Aplicar filtros se fornecidos
+      if (assignedTo !== undefined && assignedTo !== null) {
+        query = query.eq("assigned_to", assignedTo);
+      }
+      if (assignedTeamId !== undefined && assignedTeamId !== null) {
+        query = query.eq("assigned_team_id", assignedTeamId);
+      }
+
+      const { data, error, count } = await query
         .order("step_id", { ascending: true })
         .order("position", { ascending: true })
         .range(from, to);
@@ -285,9 +305,6 @@ export function useNexflowCardsInfinite(flowId?: string) {
 
   const reorderCardsMutation = useMutation({
     mutationFn: async ({ items }: ReorderCardsInput) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:276',message:'reorderCardsMutation called',data:{itemsCount:items.length,items:items.map(i=>({id:i.id,hasAssignedTeamId:typeof i.assignedTeamId !== 'undefined',assignedTeamId:i.assignedTeamId}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       await Promise.all(
         items.map(async ({ id, stepId, position, movementHistory, status, assignedTo, assignedTeamId, agents }) => {
           // Se houver atribuições, usar Edge Function para garantir lógica de exclusão mútua
@@ -315,21 +332,9 @@ export function useNexflowCardsInfinite(flowId?: string) {
             if (typeof assignedTeamId !== "undefined") edgeFunctionPayload.assignedTeamId = assignedTeamId;
             if (typeof agents !== "undefined") edgeFunctionPayload.agents = agents;
 
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:300',message:'Calling Edge Function with payload',data:{cardId:id,edgeFunctionPayload,hasAssignedTeamId:typeof assignedTeamId !== 'undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
-
             const { data, error } = await supabase.functions.invoke('update-nexflow-card', {
               body: edgeFunctionPayload,
             });
-
-            // #region agent log
-            if (error) {
-              fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:306',message:'Edge Function error',data:{error:error.message,cardId:id,assignedTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            } else {
-              fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:309',message:'Edge Function success',data:{cardId:id,response:data,assignedTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            }
-            // #endregion
 
             if (error) {
               throw new Error(error.message || "Falha ao atualizar card.");
@@ -352,64 +357,85 @@ export function useNexflowCardsInfinite(flowId?: string) {
       );
     },
     onMutate: async ({ items }) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:291',message:'reorderCardsMutation onMutate called',data:{itemsCount:items.length,items:items.map(i=>({id:i.id,stepId:i.stepId,hasAssignedTeamId:typeof i.assignedTeamId !== 'undefined',assignedTeamId:i.assignedTeamId}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-      // #endregion
       await queryClient.cancelQueries({ queryKey });
       const previousPages = queryClient.getQueryData<typeof cardsInfiniteQuery.data>(queryKey);
 
       if (previousPages) {
         const updatedPages = previousPages.pages.map((page) => ({
           ...page,
-          cards: page.cards.map((card) => {
-            const update = items.find((item) => item.id === card.id);
-            if (!update) return card;
+          cards: page.cards
+            .map((card) => {
+              const update = items.find((item) => item.id === card.id);
+              if (!update) return card;
 
-            const updatedCard = {
-              ...card,
-              stepId: update.stepId,
-              position: update.position,
-              movementHistory:
-                typeof update.movementHistory !== "undefined"
-                  ? update.movementHistory
-                  : card.movementHistory,
-              status:
-                typeof update.status !== "undefined"
-                  ? update.status
-                  : card.status,
-              assignedTo:
-                typeof update.assignedTo !== "undefined"
-                  ? update.assignedTo
-                  : card.assignedTo,
-              assignedTeamId:
-                typeof update.assignedTeamId !== "undefined"
-                  ? update.assignedTeamId
-                  : card.assignedTeamId,
-              agents:
-                typeof update.agents !== "undefined"
-                  ? update.agents
-                  : card.agents,
-            };
+              // Aplicar atualizações, garantindo exclusão mútua entre assignedTo e assignedTeamId
+              let finalAssignedTo = typeof update.assignedTo !== "undefined"
+                ? update.assignedTo
+                : card.assignedTo;
+              let finalAssignedTeamId = typeof update.assignedTeamId !== "undefined"
+                ? update.assignedTeamId
+                : card.assignedTeamId;
 
-            // #region agent log
-            if (update.stepId !== card.stepId) {
-              fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:325',message:'Card stepId changed in cache',data:{cardId:card.id,oldStepId:card.stepId,newStepId:update.stepId,assignedTeamId:updatedCard.assignedTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-            }
-            // #endregion
+              // Garantir exclusão mútua: se assignedTo é definido, assignedTeamId deve ser null
+              if (finalAssignedTo !== null && finalAssignedTo !== undefined) {
+                finalAssignedTeamId = null;
+              }
+              // Se assignedTeamId é definido, assignedTo deve ser null
+              if (finalAssignedTeamId !== null && finalAssignedTeamId !== undefined) {
+                finalAssignedTo = null;
+              }
 
-            return updatedCard;
-          }),
+              const updatedCard = {
+                ...card,
+                stepId: update.stepId,
+                position: update.position,
+                movementHistory:
+                  typeof update.movementHistory !== "undefined"
+                    ? update.movementHistory
+                    : card.movementHistory,
+                status:
+                  typeof update.status !== "undefined"
+                    ? update.status
+                    : card.status,
+                assignedTo: finalAssignedTo,
+                assignedTeamId: finalAssignedTeamId,
+                agents:
+                  typeof update.agents !== "undefined"
+                    ? update.agents
+                    : card.agents,
+              };
+
+              return updatedCard;
+            })
+            // Filtrar cards que não correspondem mais aos filtros ativos
+            .filter((card) => {
+              // Se não há filtros ativos (ambos são null ou undefined), manter todos os cards
+              const hasUserFilter = assignedTo !== undefined && assignedTo !== null;
+              const hasTeamFilter = assignedTeamId !== undefined && assignedTeamId !== null;
+              
+              if (!hasUserFilter && !hasTeamFilter) {
+                return true;
+              }
+
+              // Verificar filtro por usuário
+              if (hasUserFilter) {
+                // Card deve ter assignedTo igual ao filtro
+                if (card.assignedTo !== assignedTo) {
+                  return false;
+                }
+              }
+
+              // Verificar filtro por time
+              if (hasTeamFilter) {
+                // Card deve ter assignedTeamId igual ao filtro
+                if (card.assignedTeamId !== assignedTeamId) {
+                  return false;
+                }
+              }
+
+              return true;
+            }),
         }));
-
-        // #region agent log
-        const movedCards = items.filter(i => {
-          const oldCard = previousPages.pages.flatMap(p => p.cards).find(c => c.id === i.id);
-          return oldCard && oldCard.stepId !== i.stepId;
-        });
-        if (movedCards.length > 0) {
-          fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:340',message:'Cards moved between steps in cache',data:{movedCards:movedCards.map(c=>({id:c.id,newStepId:c.stepId,assignedTeamId:c.assignedTeamId})),totalCardsAfterUpdate:updatedPages.flatMap(p => p.cards).length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-        }
-        // #endregion
 
         queryClient.setQueryData(queryKey, { ...previousPages, pages: updatedPages });
       }
@@ -427,6 +453,67 @@ export function useNexflowCardsInfinite(flowId?: string) {
     },
   });
 
+  // Função para buscar cards no servidor por termo de pesquisa
+  const searchCardsOnServer = useCallback(
+    async (searchQuery: string, stepId?: string): Promise<NexflowCard[]> => {
+      if (!flowId || !searchQuery.trim() || searchQuery.length < 2) {
+        return [];
+      }
+
+      // Buscar por título primeiro (mais eficiente)
+      let query = nexflowClient()
+        .from("cards")
+        .select("*")
+        .eq("flow_id", flowId)
+        .ilike("title", `%${searchQuery}%`);
+
+      // Aplicar filtros se fornecidos
+      if (assignedTo !== undefined && assignedTo !== null) {
+        query = query.eq("assigned_to", assignedTo);
+      }
+      if (assignedTeamId !== undefined && assignedTeamId !== null) {
+        query = query.eq("assigned_team_id", assignedTeamId);
+      }
+
+      // Filtrar por etapa se especificado
+      if (stepId) {
+        query = query.eq("step_id", stepId);
+      }
+
+      const { data, error } = await query
+        .order("step_id", { ascending: true })
+        .order("position", { ascending: true })
+        .limit(100); // Limitar resultados da busca
+
+      if (error || !data) {
+        console.error("Erro ao buscar cards no servidor:", error);
+        return [];
+      }
+
+      // Filtrar também por field_values no cliente (já que JSONB não suporta ilike diretamente)
+      const mappedCards = data.map(mapCardRow);
+      const normalizedQuery = searchQuery.toLowerCase().trim();
+      
+      return mappedCards.filter((card) => {
+        // Já foi filtrado por título no servidor, mas vamos verificar field_values também
+        const fieldValuesStr = Object.values(card.fieldValues)
+          .map((value) => {
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'string') return value.toLowerCase();
+            if (typeof value === 'number') return value.toString();
+            if (Array.isArray(value)) return value.join(' ').toLowerCase();
+            if (typeof value === 'object') return JSON.stringify(value).toLowerCase();
+            return String(value).toLowerCase();
+          })
+          .join(' ');
+
+        return card.title.toLowerCase().includes(normalizedQuery) || 
+               fieldValuesStr.includes(normalizedQuery);
+      });
+    },
+    [flowId, assignedTo, assignedTeamId]
+  );
+
   return {
     cards: allCards,
     isLoading: cardsInfiniteQuery.isLoading,
@@ -440,6 +527,7 @@ export function useNexflowCardsInfinite(flowId?: string) {
     deleteCard: deleteCardMutation.mutateAsync,
     reorderCards: reorderCardsMutation.mutateAsync,
     isReordering: reorderCardsMutation.isPending,
+    searchCardsOnServer,
   };
 }
 

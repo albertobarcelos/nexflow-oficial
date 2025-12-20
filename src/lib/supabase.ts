@@ -299,9 +299,4 @@ export {
   getCurrentUserWithClient as getRLSUserWithClient,
   checkUserPermission as checkRLSPermission,
   logRLSInstructions
-} from './supabase/rls';
-
-// Log das instruções RLS na inicialização (desenvolvimento)
-if (appConfig.app.debugMode) {
-  logRLSInstructions();
-} 
+} from './supabase/rls'; 

@@ -36,16 +36,9 @@ export function useOrganizationTeams() {
           .order("name");
 
         if (error) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOrganizationTeams.ts:38',message:'Error fetching teams',data:{error:error.message,code:error.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-          // #endregion
           console.error("Erro ao buscar times:", error);
           return [];
         }
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOrganizationTeams.ts:42',message:'Teams fetched from database',data:{teamsCount:teams?.length || 0,teams:teams?.map((t:any)=>({id:t.id,name:t.name,is_active:t.is_active,client_id:t.client_id})) || []},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
 
         // Para cada time, contar os membros e processar dados do cliente
         const teamsWithCount = await Promise.all(
@@ -75,15 +68,8 @@ export function useOrganizationTeams() {
           })
         );
 
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOrganizationTeams.ts:71',message:'Teams processed and returned',data:{teamsCount:teamsWithCount.length,teams:teamsWithCount.map(t=>({id:t.id,name:t.name,is_active:t.is_active,member_count:t.member_count}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
-
         return teamsWithCount;
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOrganizationTeams.ts:76',message:'Exception in useOrganizationTeams',data:{error:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
         console.error("Erro ao buscar times:", error);
         return [];
       }

@@ -144,9 +144,6 @@ export function useNexflowSteps(flowId?: string) {
 
   const updateStepMutation = useMutation({
     mutationFn: async ({ id, title, color, position, isCompletionStep, responsibleUserId, responsibleTeamId }: UpdateStepInput) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:146',message:'updateStepMutation called',data:{id,responsibleUserId,responsibleTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       const payload: Partial<StepRow> = {};
       if (typeof title !== "undefined") payload.title = title;
       if (typeof color !== "undefined") payload.color = color;
@@ -160,24 +157,12 @@ export function useNexflowSteps(flowId?: string) {
         payload.responsible_team_id = responsibleTeamId; // Inclui null
       }
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:153',message:'Payload before update',data:{payload,hasResponsibleTeamId:typeof responsibleTeamId !== 'undefined',responsibleTeamIdValue:responsibleTeamId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-
       const { data: updatedStep, error } = await nexflowClient()
         .from("steps")
         .update(payload)
         .eq("id", id)
         .select("responsible_user_id, responsible_team_id")
         .single();
-
-      // #region agent log
-      if (error) {
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:160',message:'Error updating step',data:{error:error.message,code:error.code,id,payload},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      } else {
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:162',message:'Step updated successfully',data:{id,responsibleTeamId,updatedResponsibleTeamId:updatedStep?.responsible_team_id,updatedResponsibleUserId:updatedStep?.responsible_user_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      }
-      // #endregion
 
       if (error) {
         throw error;
@@ -239,17 +224,9 @@ export function useNexflowSteps(flowId?: string) {
 
   const deleteStepMutation = useMutation({
     mutationFn: async (stepId: string) => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:241',message:'Calling delete-nexflow-step Edge Function',data:{stepId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       const { data, error } = await supabase.functions.invoke('delete-nexflow-step', {
         body: { stepId },
       });
-
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowSteps.ts:247',message:'Edge Function response',data:{hasError:!!error,errorMessage:error?.message,errorContext:error?.context,hasData:!!data,data,stepId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
 
       if (error) {
         // Se houver data mesmo com error, pode conter a mensagem de erro

@@ -219,20 +219,9 @@ export function CardDetailsModal({
     values: initialValues, // Sincroniza quando card muda
   });
 
-  // #region agent log
-  useEffect(() => {
-    if (card) {
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CardDetailsModal.tsx:202',message:'Card prop changed',data:{cardId:card.id,assignedTo:card.assignedTo,assignedTeamId:card.assignedTeamId,initialValuesAssignedTo:initialValues.assignedTo,initialValuesAssignedTeamId:initialValues.assignedTeamId,initialValuesAssigneeType:initialValues.assigneeType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-    }
-  }, [card?.id, card?.assignedTo, card?.assignedTeamId, initialValues.assignedTo, initialValues.assignedTeamId, initialValues.assigneeType]);
-  // #endregion
-
   // Resetar formulário quando card muda (especialmente assignedTeamId)
   useEffect(() => {
     if (card) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'CardDetailsModal.tsx:212',message:'Resetting form with new initialValues',data:{cardId:card.id,assignedTeamId:initialValues.assignedTeamId,assigneeType:initialValues.assigneeType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
-      // #endregion
       form.reset(initialValues);
     }
   }, [card?.id, initialValues, form]);

@@ -21,10 +21,18 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Plus, ArrowLeft, CheckCircle2, Search, X } from "lucide-react";
 import { StartFormModal, type StartFormPayload } from "@/components/crm/flows/StartFormModal";
 import {
   CardDetailsModal,
@@ -66,6 +74,21 @@ export function NexflowBoardPage() {
   const VISIBLE_INCREMENT = 10;
   const [visibleCountPerStep, setVisibleCountPerStep] = useState<Record<string, number>>({});
 
+  // Estado de filtros
+  const [filterUserId, setFilterUserId] = useState<string | null>(null);
+  const [filterTeamId, setFilterTeamId] = useState<string | null>(null);
+
+  // Estado de pesquisa por etapa
+  const [searchQueryPerStep, setSearchQueryPerStep] = useState<Record<string, string>>({});
+  // Estado para controlar se o campo de pesquisa está expandido por etapa
+  const [isSearchExpandedPerStep, setIsSearchExpandedPerStep] = useState<Record<string, boolean>>({});
+  // Estado para armazenar resultados da busca no servidor por etapa
+  const [serverSearchResultsPerStep, setServerSearchResultsPerStep] = useState<Record<string, NexflowCard[]>>({});
+  // Estado para controlar se está buscando no servidor
+  const [isSearchingOnServer, setIsSearchingOnServer] = useState<Record<string, boolean>>({});
+  // Refs para debounce timers por etapa
+  const searchDebounceTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
+
   // Handler para voltar com invalidação de cache
   const handleGoBack = useCallback(() => {
     // Invalida o cache dos flows para forçar refetch ao voltar
@@ -84,8 +107,133 @@ export function NexflowBoardPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useNexflowCardsInfinite(id);
+    searchCardsOnServer,
+  } = useNexflowCardsInfinite(id, {
+    assignedTo: filterUserId,
+    assignedTeamId: filterTeamId,
+  });
+  const { data: users = [] } = useUsers();
+  const { data: teams = [] } = useOrganizationTeams();
   const startStep = steps[0] ?? null;
+
+  // Limpar timers ao desmontar
+  useEffect(() => {
+    return () => {
+      Object.values(searchDebounceTimersRef.current).forEach((timer) => {
+        if (timer) clearTimeout(timer);
+      });
+    };
+  }, []);
+
+  // Função para normalizar termo de busca (remove acentos, lowercase)
+  const normalizeSearchTerm = useCallback((text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  }, []);
+
+  // Função para buscar em todos os campos do card
+  const searchCards = useCallback(
+    (cards: NexflowCard[], searchQuery: string): NexflowCard[] => {
+      if (!searchQuery.trim()) {
+        return cards;
+      }
+
+      const normalizedQuery = normalizeSearchTerm(searchQuery);
+      const statusMap: Record<string, string> = {
+        inprogress: 'em progresso',
+        completed: 'concluído',
+        canceled: 'cancelado',
+      };
+
+      return cards.filter((card) => {
+        // Buscar no título
+        if (normalizeSearchTerm(card.title).includes(normalizedQuery)) {
+          return true;
+        }
+
+        // Buscar no status (traduzido)
+        if (card.status && statusMap[card.status]) {
+          if (normalizeSearchTerm(statusMap[card.status]).includes(normalizedQuery)) {
+            return true;
+          }
+        }
+
+        // Buscar na data formatada
+        try {
+          const createdDate = new Date(card.createdAt);
+          const formattedDate = createdDate.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          });
+          if (normalizeSearchTerm(formattedDate).includes(normalizedQuery)) {
+            return true;
+          }
+        } catch {
+          // Ignorar erros de data
+        }
+
+        // Buscar no nome do usuário atribuído
+        if (card.assignedTo) {
+          const assignedUser = users.find((u) => u.id === card.assignedTo);
+          if (assignedUser) {
+            const fullName = `${assignedUser.name} ${assignedUser.surname}`;
+            if (normalizeSearchTerm(fullName).includes(normalizedQuery)) {
+              return true;
+            }
+          }
+        }
+
+        // Buscar no nome do time atribuído
+        if (card.assignedTeamId) {
+          const assignedTeam = teams.find((t) => t.id === card.assignedTeamId);
+          if (assignedTeam) {
+            if (normalizeSearchTerm(assignedTeam.name).includes(normalizedQuery)) {
+              return true;
+            }
+          }
+        }
+
+        // Buscar em fieldValues
+        const fieldValuesStr = Object.values(card.fieldValues)
+          .map((value) => {
+            if (value === null || value === undefined) return '';
+            if (typeof value === 'string') return value;
+            if (typeof value === 'number') return value.toString();
+            if (Array.isArray(value)) return value.join(' ');
+            if (typeof value === 'object') return JSON.stringify(value);
+            return String(value);
+          })
+          .join(' ');
+
+        if (normalizeSearchTerm(fieldValuesStr).includes(normalizedQuery)) {
+          return true;
+        }
+
+        // Buscar em checklistProgress (itens marcados)
+        const checklistItems = Object.entries(card.checklistProgress || {})
+          .flatMap(([fieldId, progress]) => {
+            if (typeof progress === 'object' && progress !== null) {
+              return Object.entries(progress as Record<string, boolean>)
+                .filter(([, checked]) => checked)
+                .map(([item]) => item);
+            }
+            return [];
+          })
+          .join(' ');
+
+        if (normalizeSearchTerm(checklistItems).includes(normalizedQuery)) {
+          return true;
+        }
+
+        return false;
+      });
+    },
+    [normalizeSearchTerm, users, teams]
+  );
 
   // Função auxiliar para obter contagem visível de uma etapa
   const getVisibleCount = useCallback(
@@ -106,6 +254,34 @@ export function NexflowBoardPage() {
     })
   );
 
+  // Cards já vêm filtrados do servidor quando os filtros estão ativos
+  // Mantemos filteredCards para compatibilidade, mas os cards já estão filtrados
+  const filteredCards = useMemo(() => {
+    // Se não há filtros ativos, retornar todos os cards
+    if (filterUserId === null && filterTeamId === null) {
+      return cards;
+    }
+    
+    // Aplicar filtros adicionais no cliente como fallback (caso o servidor não tenha aplicado)
+    return cards.filter((card) => {
+      // Filtro por usuário
+      if (filterUserId !== null) {
+        if (card.assignedTo !== filterUserId) {
+          return false;
+        }
+      }
+
+      // Filtro por time
+      if (filterTeamId !== null) {
+        if (card.assignedTeamId !== filterTeamId) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [cards, filterUserId, filterTeamId]);
+
   // Cards agrupados por step com informações de paginação
   const cardsByStepPaginated = useMemo(() => {
     const result: Record<
@@ -113,38 +289,57 @@ export function NexflowBoardPage() {
       { cards: NexflowCard[]; total: number; hasMore: boolean }
     > = {};
 
-    // Agrupar cards por step
-    cards.forEach((card) => {
+    // Agrupar cards por step (usando cards filtrados)
+    filteredCards.forEach((card) => {
       if (!result[card.stepId]) {
         result[card.stepId] = { cards: [], total: 0, hasMore: false };
       }
       result[card.stepId].cards.push(card);
-      result[card.stepId].total++;
     });
 
-    // Ordenar e aplicar limite visível
+    // Ordenar, aplicar pesquisa e calcular totais
     Object.keys(result).forEach((stepId) => {
       const entry = result[stepId];
       entry.cards.sort((a, b) => a.position - b.position);
+      
+      // Aplicar filtro de pesquisa se houver termo de busca
+      const searchQuery = searchQueryPerStep[stepId];
+      if (searchQuery) {
+        // Buscar primeiro nos cards já carregados
+        const localResults = searchCards(entry.cards, searchQuery);
+        
+        // Combinar com resultados do servidor se houver
+        const serverResults = serverSearchResultsPerStep[stepId] || [];
+        
+        // Combinar resultados, removendo duplicatas
+        const combinedResults = [...localResults];
+        const localIds = new Set(localResults.map(c => c.id));
+        
+        serverResults.forEach((serverCard) => {
+          if (!localIds.has(serverCard.id)) {
+            combinedResults.push(serverCard);
+          }
+        });
+        
+        entry.cards = combinedResults;
+      }
+      
+      // Calcular total após pesquisa (se houver)
+      entry.total = entry.cards.length;
+      
+      // Aplicar limite visível
       const visibleCount = getVisibleCount(stepId);
       entry.hasMore = entry.total > visibleCount;
-      const beforeSlice = entry.cards.length;
       entry.cards = entry.cards.slice(0, visibleCount);
-      
-      // #region agent log
-      if (stepId === 'f3affc62-ab87-416f-b78a-14555af5138b') {
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:131',message:'Paginated cards for step ttt',data:{stepId,total:entry.total,visibleCount,beforeSlice,afterSlice:entry.cards.length,cardIds:entry.cards.map(c=>c.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-      }
-      // #endregion
     });
 
     return result;
-  }, [cards, getVisibleCount]);
+  }, [filteredCards, getVisibleCount, searchQueryPerStep, searchCards, serverSearchResultsPerStep]);
 
-  // Mantém cardsByStep para compatibilidade com código existente (usa todos os cards)
+  // Mantém cardsByStep para compatibilidade com código existente (usa cards filtrados)
   const cardsByStep = useMemo(() => {
     const map: Record<string, NexflowCard[]> = {};
-    cards.forEach((card) => {
+    filteredCards.forEach((card) => {
       if (!map[card.stepId]) {
         map[card.stepId] = [];
       }
@@ -155,7 +350,7 @@ export function NexflowBoardPage() {
       column.sort((a, b) => a.position - b.position)
     );
     return map;
-  }, [cards]);
+  }, [filteredCards]);
 
   const triggerCelebration = useCallback(
     (cardId: string) => {
@@ -412,9 +607,6 @@ export function NexflowBoardPage() {
     let agents: string[] | undefined = undefined;
 
     if (movingAcrossSteps && targetStep) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:406',message:'Auto-assignment check',data:{targetStepId:targetStep.id,targetStepTitle:targetStep.title,responsibleUserId:targetStep.responsibleUserId,responsibleTeamId:targetStep.responsibleTeamId,cardId:card.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
       // Prioridade: usuário sobre time
       if (targetStep.responsibleUserId) {
         assignedTo = targetStep.responsibleUserId;
@@ -425,9 +617,6 @@ export function NexflowBoardPage() {
           agents = [...currentAgents, targetStep.responsibleUserId];
         }
       } else if (targetStep.responsibleTeamId) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:417',message:'Setting assignedTeamId from step',data:{targetStepId:targetStep.id,responsibleTeamId:targetStep.responsibleTeamId,cardId:card.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-        // #endregion
         assignedTeamId = targetStep.responsibleTeamId;
         assignedTo = null; // Limpar usuário ao atribuir time
       }
@@ -448,9 +637,6 @@ export function NexflowBoardPage() {
 
         // Aplicar auto-assignment apenas se mudou de etapa
         if (movingAcrossSteps) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:436',message:'Applying auto-assignment to card update',data:{cardId:card.id,assignedTo,assignedTeamId,agents,hasAssignedTo:typeof assignedTo !== 'undefined',hasAssignedTeamId:typeof assignedTeamId !== 'undefined'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-          // #endregion
           if (typeof assignedTo !== "undefined") {
             cardUpdate.assignedTo = assignedTo;
           }
@@ -461,10 +647,6 @@ export function NexflowBoardPage() {
             cardUpdate.agents = agents;
           }
         }
-
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:448',message:'Final card update payload',data:{cardId:cardUpdate.id,assignedTo:cardUpdate.assignedTo,assignedTeamId:cardUpdate.assignedTeamId,status:cardUpdate.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
 
         return cardUpdate;
       }
@@ -488,13 +670,14 @@ export function NexflowBoardPage() {
       items: updatesWithStatus,
     });
 
-    // #region agent log
-    const movedCardUpdate = updatesWithStatus.find(u => u.id === card.id);
-    if (movedCardUpdate && movingAcrossSteps) {
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:470',message:'After reorderCards - updating activeCard if needed',data:{cardId:card.id,newStepId:movedCardUpdate.stepId,assignedTeamId:movedCardUpdate.assignedTeamId,isActiveCard:activeCard?.id === card.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-      
-      // Atualizar activeCard se for o card que está sendo movido
-      if (activeCard && activeCard.id === card.id) {
+    // Atualizar activeCard se for o card que está sendo movido
+    const movedCardUpdate = updatesWithStatus.find(u => u.id === card.id) as typeof updatesWithStatus[0] & {
+      assignedTo?: string | null;
+      assignedTeamId?: string | null;
+      agents?: string[];
+      status?: string;
+    } | undefined;
+    if (movedCardUpdate && movingAcrossSteps && activeCard && activeCard.id === card.id) {
         setActiveCard((current) => {
           if (!current || current.id !== card.id) return current;
           return {
@@ -506,9 +689,7 @@ export function NexflowBoardPage() {
             status: typeof movedCardUpdate.status !== "undefined" ? movedCardUpdate.status : current.status,
           };
         });
-      }
     }
-    // #endregion
 
     if (movementHistory) {
       triggerCelebration(card.id);
@@ -604,19 +785,21 @@ export function NexflowBoardPage() {
 
   // Handler para carregar mais cards em uma coluna específica
   const handleLoadMoreForStep = useCallback(
-    (stepId: string) => {
+    async (stepId: string) => {
       const current = visibleCountPerStep[stepId] ?? VISIBLE_INCREMENT;
       const stepTotal = cardsByStep[stepId]?.length ?? 0;
 
-      // Se mostrar mais revelaria cards ainda não carregados, buscar mais
-      if (current + VISIBLE_INCREMENT > stepTotal && hasNextPage && !isFetchingNextPage) {
-        void fetchNextPage();
-      }
-
+      // Sempre incrementar o contador visível primeiro (otimistic update)
       setVisibleCountPerStep((prev) => ({
         ...prev,
         [stepId]: current + VISIBLE_INCREMENT,
       }));
+
+      // Se há mais páginas no servidor e não está carregando, buscar mais
+      // Isso garante que continuaremos buscando enquanto houver mais páginas
+      if (hasNextPage && !isFetchingNextPage) {
+        await fetchNextPage();
+      }
     },
     [visibleCountPerStep, cardsByStep, hasNextPage, isFetchingNextPage, fetchNextPage]
   );
@@ -679,6 +862,45 @@ export function NexflowBoardPage() {
               </TabsTrigger>
             </TabsList>
           </Tabs>
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={filterUserId ?? "all"}
+              onValueChange={(value) => setFilterUserId(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-[180px] h-9 text-sm">
+                <SelectValue placeholder="Filtrar por usuário" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os usuários</SelectItem>
+                {users
+                  .filter((user) => user.is_active)
+                  .map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} {user.surname}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={filterTeamId ?? "all"}
+              onValueChange={(value) => setFilterTeamId(value === "all" ? null : value)}
+            >
+              <SelectTrigger className="w-[180px] h-9 text-sm">
+                <SelectValue placeholder="Filtrar por time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os times</SelectItem>
+                {teams
+                  .filter((team) => team.is_active)
+                  .map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </header>
 
@@ -721,7 +943,7 @@ export function NexflowBoardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cards.map((card) => {
+                  {filteredCards.map((card) => {
                     const step = steps.find((item) => item.id === card.stepId);
                     return (
                       <tr
@@ -796,6 +1018,124 @@ export function NexflowBoardPage() {
                           <StepResponsibleSelector step={step} flowId={id} />
                         )}
                       </h2>
+                      {!isSearchExpandedPerStep[step.id] ? (
+                        <button
+                          onClick={() => {
+                            setIsSearchExpandedPerStep((prev) => ({
+                              ...prev,
+                              [step.id]: true,
+                            }));
+                          }}
+                          className="self-start mb-2 p-1 rounded-md hover:bg-white/10 transition-colors text-white/50 hover:text-white/70"
+                          aria-label="Abrir pesquisa"
+                        >
+                          <Search className="h-3.5 w-3.5" />
+                        </button>
+                      ) : (
+                        <div className="mb-2 w-full">
+                          <div className="relative w-full">
+                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
+                            <Input
+                              type="text"
+                              placeholder="Pesquisar cards..."
+                              value={searchQueryPerStep[step.id] ?? ''}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                setSearchQueryPerStep((prev) => ({
+                                  ...prev,
+                                  [step.id]: value,
+                                }));
+
+                                // Limpar timer anterior se existir
+                                if (searchDebounceTimersRef.current[step.id]) {
+                                  clearTimeout(searchDebounceTimersRef.current[step.id]);
+                                }
+
+                                // Se o termo for muito curto, limpar resultados do servidor imediatamente
+                                if (value.trim().length < 3) {
+                                  setServerSearchResultsPerStep((prev) => {
+                                    const next = { ...prev };
+                                    delete next[step.id];
+                                    return next;
+                                  });
+                                  return;
+                                }
+
+                                // Debounce: aguardar 500ms antes de buscar no servidor
+                                searchDebounceTimersRef.current[step.id] = setTimeout(async () => {
+                                  if (searchCardsOnServer) {
+                                    setIsSearchingOnServer((prev) => ({
+                                      ...prev,
+                                      [step.id]: true,
+                                    }));
+
+                                    try {
+                                      const serverResults = await searchCardsOnServer(value.trim(), step.id);
+                                      setServerSearchResultsPerStep((prev) => ({
+                                        ...prev,
+                                        [step.id]: serverResults,
+                                      }));
+                                    } catch (error) {
+                                      console.error("Erro ao buscar no servidor:", error);
+                                      setServerSearchResultsPerStep((prev) => {
+                                        const next = { ...prev };
+                                        delete next[step.id];
+                                        return next;
+                                      });
+                                    } finally {
+                                      setIsSearchingOnServer((prev) => {
+                                        const next = { ...prev };
+                                        delete next[step.id];
+                                        return next;
+                                      });
+                                    }
+                                  }
+                                }, 500);
+                              }}
+                              onBlur={() => {
+                                // Não colapsar se houver texto
+                                if (!(searchQueryPerStep[step.id] ?? '').trim()) {
+                                  setIsSearchExpandedPerStep((prev) => ({
+                                    ...prev,
+                                    [step.id]: false,
+                                  }));
+                                }
+                              }}
+                              autoFocus
+                              className="w-full h-8 pl-8 pr-8 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/15 focus:border-white/30 text-sm"
+                            />
+                            {isSearchingOnServer[step.id] && (
+                              <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                                <Loader2 className="h-3 w-3 animate-spin text-white/70" />
+                              </div>
+                            )}
+                            {(searchQueryPerStep[step.id] ?? '') && !isSearchingOnServer[step.id] && (
+                              <button
+                                onClick={() => {
+                                  setSearchQueryPerStep((prev) => {
+                                    const next = { ...prev };
+                                    delete next[step.id];
+                                    return next;
+                                  });
+                                  setServerSearchResultsPerStep((prev) => {
+                                    const next = { ...prev };
+                                    delete next[step.id];
+                                    return next;
+                                  });
+                                  setIsSearchExpandedPerStep((prev) => ({
+                                    ...prev,
+                                    [step.id]: false,
+                                  }));
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors"
+                                aria-label="Limpar pesquisa"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       {isStartColumn && (
                         <button
                           onClick={() => setIsStartFormOpen(true)}
