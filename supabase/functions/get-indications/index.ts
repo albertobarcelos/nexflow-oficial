@@ -165,8 +165,12 @@ Deno.serve(async (req: Request) => {
         client_id,
         hunter_id,
         related_card_ids,
-        form_data,
         status,
+        responsible,
+        indication_name,
+        cnpj_cpf,
+        phone,
+        description,
         created_at,
         updated_at
       `)

@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Info, Plus, Layers, Settings2, Trash2 } from "lucide-react";
+import { Info, Plus, Layers, Settings2, Trash2, Tag, Workflow } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { useFlowPermissions } from "@/hooks/useFlowPermissions";
 import { supabase } from "@/lib/supabase";
 import type { NexflowFlow } from "@/types/nexflow";
 import { FlowSettingsModal } from "@/components/crm/flows/FlowSettingsModal";
+import { FlowTagsModal } from "@/components/crm/flows/FlowTagsModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ export function FlowsPage() {
   const { permissions } = useFlowPermissions();
   const [selectedFlow, setSelectedFlow] = useState<NexflowFlow | null>(null);
   const [flowToDelete, setFlowToDelete] = useState<NexflowFlow | null>(null);
+  const [flowForTags, setFlowForTags] = useState<NexflowFlow | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const canCreateFlow = permissions?.canCreateFlow ?? false;
@@ -143,18 +145,55 @@ export function FlowsPage() {
 
                     <div className="mt-4 flex items-center justify-between">
                       {canEditFlow(flow) ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            navigate(`/crm/flows/${flow.id}/builder`);
-                          }}
-                        >
-                          <Layers className="mr-2 h-4 w-4" />
-                          Editar Estrutura
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          {/* Botão Editar Estrutura */}
+                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                            <button
+                              className="flex items-center h-8 px-2 text-xs"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                navigate(`/crm/flows/${flow.id}/builder`);
+                              }}
+                            >
+                              <Layers className="h-4 w-4 flex-shrink-0" />
+                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                Editar Estrutura
+                              </span>
+                            </button>
+                          </div>
+
+                          {/* Botão Editar Tags */}
+                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                            <button
+                              className="flex items-center h-8 px-2 text-xs"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setFlowForTags(flow);
+                              }}
+                            >
+                              <Tag className="h-4 w-4 flex-shrink-0" />
+                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                Editar Tags
+                              </span>
+                            </button>
+                          </div>
+
+                          {/* Botão Editar Processos */}
+                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                            <button
+                              className="flex items-center h-8 px-2 text-xs"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                // Função será implementada futuramente
+                              }}
+                            >
+                              <Workflow className="h-4 w-4 flex-shrink-0" />
+                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                Editar Processos
+                              </span>
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         <div></div>
                       )}
@@ -188,6 +227,17 @@ export function FlowsPage() {
             setSelectedFlow(null);
           }
         }}
+      />
+
+      <FlowTagsModal
+        open={Boolean(flowForTags)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFlowForTags(null);
+          }
+        }}
+        flowId={flowForTags?.id || ""}
+        flowName={flowForTags?.name || ""}
       />
 
       <AlertDialog

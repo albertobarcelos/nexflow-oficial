@@ -102,6 +102,7 @@ export function useNexflowCardsInfinite(
   const cardsInfiniteQuery = useInfiniteQuery({
     queryKey,
     enabled: Boolean(flowId),
+    maxPages: undefined, // Permitir carregar todas as páginas necessárias
     queryFn: async ({ pageParam = 0 }): Promise<{ cards: NexflowCard[]; nextPage: number | null }> => {
       if (!flowId) {
         return { cards: [], nextPage: null };

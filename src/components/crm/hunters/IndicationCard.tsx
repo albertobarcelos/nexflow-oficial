@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Indication, IndicationStatus } from "@/types/indications";
-import { Calendar, User, Phone, Mail, Building2, FileText, Link2 } from "lucide-react";
+import { Calendar, User, Phone, FileText, Link2, CreditCard } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -24,7 +24,6 @@ const statusColors: Record<IndicationStatus, string> = {
 };
 
 export function IndicationCard({ indication }: IndicationCardProps) {
-  const formData = indication.form_data || {};
   const hunter = indication.hunter;
 
   return (
@@ -33,11 +32,14 @@ export function IndicationCard({ indication }: IndicationCardProps) {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="text-lg">
-              {formData.nome || formData.name || "Indicação sem nome"}
+              {indication.indication_name || "Indicação sem nome"}
             </CardTitle>
-            <CardDescription className="mt-1">
-              {formData.empresa || formData.company || "Sem empresa"}
-            </CardDescription>
+            {indication.cnpj_cpf && (
+              <CardDescription className="mt-1 flex items-center gap-1">
+                <CreditCard className="h-3 w-3" />
+                <span>{indication.cnpj_cpf}</span>
+              </CardDescription>
+            )}
           </div>
           <Badge className={statusColors[indication.status]}>
             {statusLabels[indication.status]}
@@ -47,40 +49,34 @@ export function IndicationCard({ indication }: IndicationCardProps) {
       <CardContent className="space-y-4">
         {/* Informações de contato */}
         <div className="space-y-2">
-          {formData.telefone || formData.phone ? (
+          {indication.phone && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Phone className="h-4 w-4" />
-              <span>{formData.telefone || formData.phone}</span>
+              <span>{indication.phone}</span>
             </div>
-          ) : null}
-          
-          {formData.email ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Mail className="h-4 w-4" />
-              <span>{formData.email}</span>
-            </div>
-          ) : null}
+          )}
         </div>
 
-        {/* Necessidades/Observações */}
-        {(formData.necessidades || formData.observacoes) && (
+        {/* Descrição */}
+        {indication.description && (
           <div className="space-y-1">
-            {formData.necessidades ? (
-              <div className="flex items-start gap-2 text-sm">
-                <FileText className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                <div>
-                  <span className="font-medium text-muted-foreground">Necessidades: </span>
-                  <span>{formData.necessidades}</span>
-                </div>
+            <div className="flex items-start gap-2 text-sm">
+              <FileText className="h-4 w-4 mt-0.5 text-muted-foreground" />
+              <div>
+                <span className="font-medium text-muted-foreground">Descrição: </span>
+                <span>{indication.description}</span>
               </div>
-            ) : null}
-            
-            {formData.observacoes ? (
-              <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                <FileText className="h-4 w-4 mt-0.5" />
-                <span>{formData.observacoes}</span>
-              </div>
-            ) : null}
+            </div>
+          </div>
+        )}
+
+        {/* Responsável */}
+        {indication.responsible && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <User className="h-4 w-4" />
+            <span>
+              Responsável: {indication.responsible}
+            </span>
           </div>
         )}
 

@@ -5,19 +5,6 @@
 export type IndicationStatus = 'pending' | 'processed' | 'converted' | 'rejected';
 
 /**
- * Dados do formulário de indicação (armazenado em form_data como JSONB)
- */
-export interface IndicationFormData {
-  nome?: string;
-  telefone?: string;
-  email?: string;
-  empresa?: string;
-  necessidades?: string;
-  observacoes?: string;
-  [key: string]: unknown; // Permite campos adicionais flexíveis
-}
-
-/**
  * Informações do Hunter
  */
 export interface Hunter {
@@ -35,8 +22,12 @@ export interface Indication {
   client_id: string;
   hunter_id: string;
   related_card_ids: string[];
-  form_data: IndicationFormData;
   status: IndicationStatus;
+  responsible?: string | null;
+  indication_name?: string | null;
+  cnpj_cpf?: string | null;
+  phone?: string | null;
+  description?: string | null;
   created_at: string;
   updated_at: string;
   hunter?: Hunter | null;

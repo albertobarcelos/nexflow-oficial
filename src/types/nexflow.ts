@@ -103,3 +103,11 @@ export interface NexflowStepVisibility {
   canEditFields: boolean;
 }
 
+export interface FlowTag {
+  id: string;
+  flow_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+

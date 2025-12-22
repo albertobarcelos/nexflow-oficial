@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import {
   DndContext,
@@ -41,10 +41,23 @@ import {
 import { StepResponsibleSelector } from "@/components/crm/flows/StepResponsibleSelector";
 import { useNexflowFlow, type NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
+import { nexflowClient } from "@/lib/supabase";
 import { useUsers } from "@/hooks/useUsers";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { TeamAvatar } from "@/components/ui/team-avatar";
+import { useCardTags } from "@/hooks/useCardTags";
+import { Badge } from "@/components/ui/badge";
+import { Tag } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import type {
   CardMovementEntry,
   ChecklistProgressMap,
@@ -56,6 +69,53 @@ import { cn, getReadableTextColor, hexToRgba } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 
 type ViewMode = "kanban" | "list";
+
+// Componente para exibir tags de um card no modo lista
+function ListCardTags({ cardId }: { cardId: string }) {
+  const { data: cardTags = [], isLoading } = useCardTags(cardId);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-1">
+        <Loader2 className="h-3 w-3 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (cardTags.length === 0) {
+    return <span className="text-slate-400 text-xs italic">--</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 max-w-full">
+      {cardTags.slice(0, 2).map((tag) => (
+        <Badge
+          key={tag.id}
+          variant="outline"
+          className="text-[10px] font-medium px-1.5 py-0.5 border shrink-0 max-w-[90px] truncate"
+          style={{
+            backgroundColor: `${tag.color}15`,
+            borderColor: tag.color,
+            color: tag.color,
+          }}
+          title={tag.name}
+        >
+          <Tag className="h-2.5 w-2.5 mr-0.5 shrink-0" />
+          <span className="truncate">{tag.name}</span>
+        </Badge>
+      ))}
+      {cardTags.length > 2 && (
+        <Badge
+          variant="secondary"
+          className="text-[10px] px-1.5 py-0.5 shrink-0"
+          title={`${cardTags.length - 2} tags adicionais`}
+        >
+          +{cardTags.length - 2}
+        </Badge>
+      )}
+    </div>
+  );
+}
 
 export function NexflowBoardPage() {
   const { id } = useParams<{ id: string }>();
@@ -74,20 +134,22 @@ export function NexflowBoardPage() {
   const VISIBLE_INCREMENT = 10;
   const [visibleCountPerStep, setVisibleCountPerStep] = useState<Record<string, number>>({});
 
+  // Estado de paginação para modo lista
+  const LIST_PAGE_SIZE = 20;
+  const [listPage, setListPage] = useState(1);
+
   // Estado de filtros
   const [filterUserId, setFilterUserId] = useState<string | null>(null);
   const [filterTeamId, setFilterTeamId] = useState<string | null>(null);
 
-  // Estado de pesquisa por etapa
-  const [searchQueryPerStep, setSearchQueryPerStep] = useState<Record<string, string>>({});
-  // Estado para controlar se o campo de pesquisa está expandido por etapa
-  const [isSearchExpandedPerStep, setIsSearchExpandedPerStep] = useState<Record<string, boolean>>({});
-  // Estado para armazenar resultados da busca no servidor por etapa
-  const [serverSearchResultsPerStep, setServerSearchResultsPerStep] = useState<Record<string, NexflowCard[]>>({});
+  // Estado de pesquisa global
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  // Estado para armazenar resultados da busca no servidor
+  const [serverSearchResults, setServerSearchResults] = useState<NexflowCard[]>([]);
   // Estado para controlar se está buscando no servidor
-  const [isSearchingOnServer, setIsSearchingOnServer] = useState<Record<string, boolean>>({});
-  // Refs para debounce timers por etapa
-  const searchDebounceTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const [isSearchingOnServer, setIsSearchingOnServer] = useState<boolean>(false);
+  // Ref para debounce timer
+  const searchDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handler para voltar com invalidação de cache
   const handleGoBack = useCallback(() => {
@@ -112,16 +174,61 @@ export function NexflowBoardPage() {
     assignedTo: filterUserId,
     assignedTeamId: filterTeamId,
   });
+
+  // Buscar contagem real de cards por etapa no banco de dados
+  const { data: stepCounts = {} } = useQuery({
+    queryKey: ["nexflow", "cards", "count-by-step", id, filterUserId, filterTeamId],
+    queryFn: async (): Promise<Record<string, number>> => {
+      if (!id || steps.length === 0) return {};
+
+      const client = nexflowClient();
+      const counts: Record<string, number> = {};
+
+      // Buscar contagem para cada etapa
+      await Promise.all(
+        steps.map(async (step) => {
+          let query = client
+            .from("cards")
+            .select("*", { count: "exact", head: true })
+            .eq("flow_id", id)
+            .eq("step_id", step.id);
+
+          // Aplicar filtros se fornecidos
+          if (filterUserId !== null && filterUserId !== undefined) {
+            query = query.eq("assigned_to", filterUserId);
+          }
+          if (filterTeamId !== null && filterTeamId !== undefined) {
+            query = query.eq("assigned_team_id", filterTeamId);
+          }
+
+          const { count, error } = await query;
+
+          if (error) {
+            console.error(`Erro ao contar cards da etapa ${step.id}:`, error);
+            counts[step.id] = 0;
+          } else {
+            counts[step.id] = count ?? 0;
+          }
+        })
+      );
+
+      return counts;
+    },
+    enabled: Boolean(id) && !isLoading && steps.length > 0,
+    staleTime: 1000 * 30, // Cache por 30 segundos
+    refetchOnWindowFocus: false, // Não refazer query ao focar na janela
+  });
+
   const { data: users = [] } = useUsers();
   const { data: teams = [] } = useOrganizationTeams();
   const startStep = steps[0] ?? null;
 
-  // Limpar timers ao desmontar
+  // Limpar timer ao desmontar
   useEffect(() => {
     return () => {
-      Object.values(searchDebounceTimersRef.current).forEach((timer) => {
-        if (timer) clearTimeout(timer);
-      });
+      if (searchDebounceTimerRef.current) {
+        clearTimeout(searchDebounceTimerRef.current);
+      }
     };
   }, []);
 
@@ -302,20 +409,21 @@ export function NexflowBoardPage() {
       const entry = result[stepId];
       entry.cards.sort((a, b) => a.position - b.position);
       
-      // Aplicar filtro de pesquisa se houver termo de busca
-      const searchQuery = searchQueryPerStep[stepId];
-      if (searchQuery) {
-        // Buscar primeiro nos cards já carregados
+      // Aplicar filtro de pesquisa global se houver termo de busca
+      if (searchQuery.trim()) {
+        // Buscar primeiro nos cards já carregados desta etapa
         const localResults = searchCards(entry.cards, searchQuery);
         
-        // Combinar com resultados do servidor se houver
-        const serverResults = serverSearchResultsPerStep[stepId] || [];
+        // Filtrar resultados do servidor para esta etapa específica
+        const serverResultsForStep = serverSearchResults.filter(
+          (card) => card.stepId === stepId
+        );
         
         // Combinar resultados, removendo duplicatas
         const combinedResults = [...localResults];
         const localIds = new Set(localResults.map(c => c.id));
         
-        serverResults.forEach((serverCard) => {
+        serverResultsForStep.forEach((serverCard) => {
           if (!localIds.has(serverCard.id)) {
             combinedResults.push(serverCard);
           }
@@ -334,7 +442,7 @@ export function NexflowBoardPage() {
     });
 
     return result;
-  }, [filteredCards, getVisibleCount, searchQueryPerStep, searchCards, serverSearchResultsPerStep]);
+  }, [filteredCards, getVisibleCount, searchQuery, searchCards, serverSearchResults]);
 
   // Mantém cardsByStep para compatibilidade com código existente (usa cards filtrados)
   const cardsByStep = useMemo(() => {
@@ -351,6 +459,70 @@ export function NexflowBoardPage() {
     );
     return map;
   }, [filteredCards]);
+
+  // Cards filtrados e pesquisados para o modo lista
+  const listViewCards = useMemo(() => {
+    let result: NexflowCard[] = [];
+
+    // Se há pesquisa, aplicar busca
+    if (searchQuery.trim()) {
+      // Buscar primeiro nos cards já carregados
+      const localResults = searchCards(filteredCards, searchQuery);
+      
+      // Combinar com resultados do servidor, removendo duplicatas
+      const localIds = new Set(localResults.map(c => c.id));
+      const serverResults = serverSearchResults.filter(
+        (card) => !localIds.has(card.id)
+      );
+      
+      result = [...localResults, ...serverResults];
+    } else {
+      // Sem pesquisa, usar apenas cards filtrados
+      result = [...filteredCards];
+    }
+
+    // Ordenar: primeiro por step (usando position do step), depois por position do card
+    result.sort((a, b) => {
+      const stepA = steps.find((s) => s.id === a.stepId);
+      const stepB = steps.find((s) => s.id === b.stepId);
+      const stepPositionA = stepA?.position ?? 0;
+      const stepPositionB = stepB?.position ?? 0;
+      
+      if (stepPositionA !== stepPositionB) {
+        return stepPositionA - stepPositionB;
+      }
+      
+      return a.position - b.position;
+    });
+
+    return result;
+  }, [filteredCards, searchQuery, searchCards, serverSearchResults, steps]);
+
+  // Resetar página quando pesquisa ou filtros mudarem
+  useEffect(() => {
+    setListPage(1);
+  }, [searchQuery, filterUserId, filterTeamId]);
+
+  // Carregar mais páginas automaticamente no modo lista quando necessário
+  useEffect(() => {
+    if (viewMode === "list" && hasNextPage && !isFetchingNextPage) {
+      // Se temos menos cards do que o necessário para a página atual, carregar mais
+      const currentPageEnd = listPage * LIST_PAGE_SIZE;
+      if (listViewCards.length < currentPageEnd && listViewCards.length < 1000) {
+        // Limitar a 1000 cards para não sobrecarregar o navegador
+        void fetchNextPage();
+      }
+    }
+  }, [viewMode, hasNextPage, isFetchingNextPage, listViewCards.length, listPage, fetchNextPage]);
+
+  // Cards paginados para o modo lista
+  const paginatedListViewCards = useMemo(() => {
+    const startIndex = (listPage - 1) * LIST_PAGE_SIZE;
+    const endIndex = startIndex + LIST_PAGE_SIZE;
+    return listViewCards.slice(startIndex, endIndex);
+  }, [listViewCards, listPage]);
+
+  const totalListPages = Math.ceil(listViewCards.length / LIST_PAGE_SIZE);
 
   const triggerCelebration = useCallback(
     (cardId: string) => {
@@ -476,6 +648,8 @@ export function NexflowBoardPage() {
       assignedTeamId: payload.assignedTeamId,
       agents: payload.agents,
     });
+    // Invalidar contagem de cards por etapa
+    void queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", "count-by-step", id] });
   };
 
   const handleValidateRequiredFields = useCallback(
@@ -670,6 +844,11 @@ export function NexflowBoardPage() {
       items: updatesWithStatus,
     });
 
+    // Invalidar contagem de cards por etapa quando há movimentação entre etapas
+    if (movingAcrossSteps) {
+      void queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", "count-by-step", id] });
+    }
+
     // Atualizar activeCard se for o card que está sendo movido
     const movedCardUpdate = updatesWithStatus.find(u => u.id === card.id) as typeof updatesWithStatus[0] & {
       assignedTo?: string | null;
@@ -777,6 +956,9 @@ export function NexflowBoardPage() {
 
     await reorderCards({ items: updates });
     
+    // Invalidar contagem de cards por etapa quando há movimentação
+    void queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", "count-by-step", id] });
+    
     // Celebração após mover
     if (movementHistory) {
       triggerCelebration(card.id);
@@ -827,7 +1009,10 @@ export function NexflowBoardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-sans h-screen flex flex-col overflow-hidden transition-colors duration-200">
+    <div className={cn(
+      "min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-sans flex flex-col transition-colors duration-200",
+      viewMode === "list" ? "h-auto min-h-screen" : "h-screen overflow-hidden"
+    )}>
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-1">
@@ -864,6 +1049,76 @@ export function NexflowBoardPage() {
           </Tabs>
           <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
           <div className="flex items-center gap-2">
+            {/* Campo de pesquisa global */}
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                type="text"
+                placeholder="Pesquisar em todas as etapas..."
+                value={searchQuery}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchQuery(value);
+
+                  // Limpar timer anterior se existir
+                  if (searchDebounceTimerRef.current) {
+                    clearTimeout(searchDebounceTimerRef.current);
+                  }
+
+                  // Se o termo for muito curto, limpar resultados do servidor imediatamente
+                  if (value.trim().length < 3) {
+                    setServerSearchResults([]);
+                    return;
+                  }
+
+                  // Debounce: aguardar 500ms antes de buscar no servidor
+                  searchDebounceTimerRef.current = setTimeout(async () => {
+                    if (searchCardsOnServer) {
+                      setIsSearchingOnServer(true);
+
+                      try {
+                        // Buscar em todas as etapas
+                        const allStepIds = steps.map((step) => step.id);
+                        const allResults: NexflowCard[] = [];
+                        
+                        for (const stepId of allStepIds) {
+                          const stepResults = await searchCardsOnServer(value.trim(), stepId);
+                          allResults.push(...stepResults);
+                        }
+                        
+                        setServerSearchResults(allResults);
+                      } catch (error) {
+                        console.error("Erro ao buscar no servidor:", error);
+                        setServerSearchResults([]);
+                      } finally {
+                        setIsSearchingOnServer(false);
+                      }
+                    }
+                  }, 500);
+                }}
+                className="h-9 pl-8 pr-8 text-sm"
+              />
+              {isSearchingOnServer && (
+                <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+                </div>
+              )}
+              {searchQuery && !isSearchingOnServer && (
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setServerSearchResults([]);
+                    if (searchDebounceTimerRef.current) {
+                      clearTimeout(searchDebounceTimerRef.current);
+                    }
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  aria-label="Limpar pesquisa"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
             <Select
               value={filterUserId ?? "all"}
               onValueChange={(value) => setFilterUserId(value === "all" ? null : value)}
@@ -925,46 +1180,282 @@ export function NexflowBoardPage() {
         </div>
       </div>
 
-      <main className="flex-1 overflow-x-auto overflow-y-hidden p-6 custom-scrollbar bg-slate-50 dark:bg-slate-950">
+      <main className={cn(
+        "flex-1 custom-scrollbar bg-slate-50 dark:bg-slate-950",
+        viewMode === "list" 
+          ? "overflow-y-auto overflow-x-hidden p-6 pb-8" 
+          : "overflow-x-auto overflow-y-hidden p-6"
+      )}>
         {isLoadingPage ? (
           <div className="text-center text-slate-500 py-12">Carregando...</div>
         ) : viewMode === "list" ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Cards</CardTitle>
+          <Card className="w-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle>Cards</CardTitle>
+                {isSearchingOnServer && (
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Buscando...</span>
+                  </div>
+                )}
+              </div>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-100 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-4 py-2">Título</th>
-                    <th className="px-4 py-2">Etapa</th>
-                    <th className="px-4 py-2">Atualizado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCards.map((card) => {
-                    const step = steps.find((item) => item.id === card.stepId);
-                    return (
-                      <tr
-                        key={card.id}
-                        className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
-                        onClick={() => setActiveCard(card)}
-                      >
-                        <td className="px-4 py-3 font-medium text-slate-800">
-                          {card.title}
-                        </td>
-                        <td className="px-4 py-3 text-slate-500">
-                          {step?.title ?? "Etapa"}
-                        </td>
-                        <td className="px-4 py-3 text-slate-400 text-xs">
-                          {new Date(card.createdAt).toLocaleDateString("pt-BR")}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <CardContent className="p-0">
+              {listViewCards.length === 0 ? (
+                <div className="text-center py-12 text-slate-500 px-6">
+                  {searchQuery.trim() ? "Nenhum resultado encontrado" : "Nenhum card encontrado"}
+                </div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-100 dark:bg-slate-800 text-left text-xs uppercase tracking-wide text-slate-500">
+                          <th className="px-3 py-2 min-w-[200px] max-w-[300px]">Título</th>
+                          <th className="px-3 py-2 min-w-[120px] max-w-[180px]">Etapa</th>
+                          <th className="px-3 py-2 min-w-[150px] max-w-[200px]">Tags</th>
+                          <th className="px-3 py-2 min-w-[150px] max-w-[200px]">Responsável</th>
+                          <th className="px-3 py-2 min-w-[100px] max-w-[120px] whitespace-nowrap">Atualizado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedListViewCards.map((card) => {
+                          const step = steps.find((item) => item.id === card.stepId);
+                          const assignedUser = card.assignedTo
+                            ? users.find((user) => user.id === card.assignedTo)
+                            : null;
+                          const assignedTeam = card.assignedTeamId
+                            ? teams.find((team) => team.id === card.assignedTeamId)
+                            : null;
+                          const createdAt = new Date(card.createdAt);
+                          
+                          return (
+                            <tr
+                              key={card.id}
+                              className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors"
+                              onClick={() => setActiveCard(card)}
+                            >
+                              <td className="px-3 py-3 font-medium text-slate-800 dark:text-slate-100">
+                                <div className="max-w-[300px] truncate" title={card.title}>
+                                  {card.title}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 text-slate-500 dark:text-slate-400">
+                                <div className="max-w-[180px] truncate" title={step?.title ?? "Etapa"}>
+                                  {step?.title ?? "Etapa"}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3">
+                                <div className="max-w-[200px]">
+                                  <ListCardTags cardId={card.id} />
+                                </div>
+                              </td>
+                              <td className="px-3 py-3">
+                                <div className="max-w-[200px]">
+                                  {assignedUser ? (
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="shrink-0">
+                                        <UserAvatar
+                                          user={{
+                                            name: assignedUser.name,
+                                            surname: assignedUser.surname,
+                                            avatar_type: assignedUser.avatar_type,
+                                            avatar_seed: assignedUser.avatar_seed,
+                                            custom_avatar_url: assignedUser.custom_avatar_url,
+                                            avatar_url: assignedUser.avatar_url,
+                                          }}
+                                          size="sm"
+                                        />
+                                      </div>
+                                      <span className="text-xs text-slate-600 dark:text-slate-300 truncate" title={`${assignedUser.name} ${assignedUser.surname}`}>
+                                        {assignedUser.name.split(" ")[0]} {assignedUser.surname.split(" ")[0]}
+                                      </span>
+                                    </div>
+                                  ) : assignedTeam ? (
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div className="shrink-0">
+                                        <TeamAvatar
+                                          team={{
+                                            id: assignedTeam.id,
+                                            name: assignedTeam.name,
+                                          }}
+                                          size="sm"
+                                        />
+                                      </div>
+                                      <span className="text-xs text-slate-600 dark:text-slate-300 truncate" title={assignedTeam.name}>
+                                        {assignedTeam.name}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-slate-400 italic">--</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-3 text-slate-400 dark:text-slate-500 text-xs whitespace-nowrap">
+                                <div>
+                                  {createdAt.toLocaleDateString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                  })}
+                                </div>
+                                <div className="text-[10px] mt-0.5">
+                                  {createdAt.toLocaleTimeString("pt-BR", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="mt-4 px-6 pb-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-200 dark:border-slate-800 pt-4">
+                    <div className="text-sm text-slate-500 dark:text-slate-400">
+                      Mostrando {((listPage - 1) * LIST_PAGE_SIZE) + 1} a {Math.min(listPage * LIST_PAGE_SIZE, listViewCards.length)} de {listViewCards.length} {listViewCards.length === 1 ? "resultado" : "resultados"}
+                      {hasNextPage && (
+                        <span className="ml-2 text-xs text-slate-400">
+                          (carregando mais...)
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {hasNextPage && !isFetchingNextPage && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            // Carregar todas as páginas disponíveis
+                            let attempts = 0;
+                            const maxAttempts = 1000; // Limite de segurança (1000 páginas * 30 = 30k cards)
+                            
+                            while (attempts < maxAttempts) {
+                              // Verificar se ainda há próxima página antes de buscar
+                              const queryData = queryClient.getQueryData<{
+                                pages: Array<{ cards: NexflowCard[]; nextPage: number | null }>;
+                                pageParams: number[];
+                              }>(["nexflow", "cards", "infinite", id, filterUserId, filterTeamId]);
+                              
+                              const lastPage = queryData?.pages[queryData.pages.length - 1];
+                              const stillHasNext = lastPage?.nextPage !== null && lastPage?.nextPage !== undefined;
+                              
+                              if (!stillHasNext) {
+                                break;
+                              }
+                              
+                              await fetchNextPage();
+                              attempts++;
+                              
+                              // Pequeno delay para evitar sobrecarga e permitir atualização do estado
+                              await new Promise(resolve => setTimeout(resolve, 300));
+                            }
+                          }}
+                          className="text-xs"
+                        >
+                          Carregar todos os cards
+                        </Button>
+                      )}
+                      {isFetchingNextPage && (
+                        <div className="flex items-center gap-2 text-xs text-slate-500">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Carregando...
+                        </div>
+                      )}
+                      {totalListPages > 1 && (
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setListPage((prev) => Math.max(1, prev - 1));
+                              }}
+                              className={listPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            />
+                          </PaginationItem>
+                          {(() => {
+                            const pages: (number | "ellipsis")[] = [];
+                            const showEllipsis = totalListPages > 7;
+
+                            if (!showEllipsis) {
+                              // Se há poucas páginas, mostrar todas
+                              for (let i = 1; i <= totalListPages; i++) {
+                                pages.push(i);
+                              }
+                            } else {
+                              // Sempre mostrar primeira página
+                              pages.push(1);
+
+                              if (listPage <= 4) {
+                                // Perto do início: 1, 2, 3, 4, 5, ..., última
+                                for (let i = 2; i <= 5; i++) {
+                                  pages.push(i);
+                                }
+                                pages.push("ellipsis");
+                                pages.push(totalListPages);
+                              } else if (listPage >= totalListPages - 3) {
+                                // Perto do fim: 1, ..., n-4, n-3, n-2, n-1, n
+                                pages.push("ellipsis");
+                                for (let i = totalListPages - 4; i <= totalListPages; i++) {
+                                  pages.push(i);
+                                }
+                              } else {
+                                // No meio: 1, ..., atual-1, atual, atual+1, ..., última
+                                pages.push("ellipsis");
+                                pages.push(listPage - 1);
+                                pages.push(listPage);
+                                pages.push(listPage + 1);
+                                pages.push("ellipsis");
+                                pages.push(totalListPages);
+                              }
+                            }
+
+                            return pages.map((item, index) => {
+                              if (item === "ellipsis") {
+                                return (
+                                  <PaginationItem key={`ellipsis-${index}`}>
+                                    <PaginationEllipsis />
+                                  </PaginationItem>
+                                );
+                              }
+                              return (
+                                <PaginationItem key={item}>
+                                  <PaginationLink
+                                    href="#"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setListPage(item);
+                                    }}
+                                    isActive={item === listPage}
+                                    className="cursor-pointer"
+                                  >
+                                    {item}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              );
+                            });
+                          })()}
+                          <PaginationItem>
+                            <PaginationNext
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setListPage((prev) => Math.min(totalListPages, prev + 1));
+                              }}
+                              className={listPage === totalListPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         ) : (
@@ -978,11 +1469,10 @@ export function NexflowBoardPage() {
               {steps.map((step) => {
                 const columnData = cardsByStepPaginated[step.id];
                 const columnCards = columnData?.cards ?? [];
-                const totalCards = columnData?.total ?? 0;
+                // Usar contagem real do banco de dados se disponível, senão usar contagem local
+                const totalCards = stepCounts[step.id] ?? columnData?.total ?? 0;
                 const hasMore = columnData?.hasMore ?? false;
                 const accentColor = step.color ?? "#2563eb";
-                const headerTextColor = getReadableTextColor(accentColor);
-                const isDarkHeader = headerTextColor.toLowerCase() === "#ffffff";
                 const colorClasses = getColorClasses(accentColor);
                 const isStartColumn = step.id === startStep?.id;
                 
@@ -1018,124 +1508,6 @@ export function NexflowBoardPage() {
                           <StepResponsibleSelector step={step} flowId={id} />
                         )}
                       </h2>
-                      {!isSearchExpandedPerStep[step.id] ? (
-                        <button
-                          onClick={() => {
-                            setIsSearchExpandedPerStep((prev) => ({
-                              ...prev,
-                              [step.id]: true,
-                            }));
-                          }}
-                          className="self-start mb-2 p-1 rounded-md hover:bg-white/10 transition-colors text-white/50 hover:text-white/70"
-                          aria-label="Abrir pesquisa"
-                        >
-                          <Search className="h-3.5 w-3.5" />
-                        </button>
-                      ) : (
-                        <div className="mb-2 w-full">
-                          <div className="relative w-full">
-                            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
-                            <Input
-                              type="text"
-                              placeholder="Pesquisar cards..."
-                              value={searchQueryPerStep[step.id] ?? ''}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                setSearchQueryPerStep((prev) => ({
-                                  ...prev,
-                                  [step.id]: value,
-                                }));
-
-                                // Limpar timer anterior se existir
-                                if (searchDebounceTimersRef.current[step.id]) {
-                                  clearTimeout(searchDebounceTimersRef.current[step.id]);
-                                }
-
-                                // Se o termo for muito curto, limpar resultados do servidor imediatamente
-                                if (value.trim().length < 3) {
-                                  setServerSearchResultsPerStep((prev) => {
-                                    const next = { ...prev };
-                                    delete next[step.id];
-                                    return next;
-                                  });
-                                  return;
-                                }
-
-                                // Debounce: aguardar 500ms antes de buscar no servidor
-                                searchDebounceTimersRef.current[step.id] = setTimeout(async () => {
-                                  if (searchCardsOnServer) {
-                                    setIsSearchingOnServer((prev) => ({
-                                      ...prev,
-                                      [step.id]: true,
-                                    }));
-
-                                    try {
-                                      const serverResults = await searchCardsOnServer(value.trim(), step.id);
-                                      setServerSearchResultsPerStep((prev) => ({
-                                        ...prev,
-                                        [step.id]: serverResults,
-                                      }));
-                                    } catch (error) {
-                                      console.error("Erro ao buscar no servidor:", error);
-                                      setServerSearchResultsPerStep((prev) => {
-                                        const next = { ...prev };
-                                        delete next[step.id];
-                                        return next;
-                                      });
-                                    } finally {
-                                      setIsSearchingOnServer((prev) => {
-                                        const next = { ...prev };
-                                        delete next[step.id];
-                                        return next;
-                                      });
-                                    }
-                                  }
-                                }, 500);
-                              }}
-                              onBlur={() => {
-                                // Não colapsar se houver texto
-                                if (!(searchQueryPerStep[step.id] ?? '').trim()) {
-                                  setIsSearchExpandedPerStep((prev) => ({
-                                    ...prev,
-                                    [step.id]: false,
-                                  }));
-                                }
-                              }}
-                              autoFocus
-                              className="w-full h-8 pl-8 pr-8 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:bg-white/15 focus:border-white/30 text-sm"
-                            />
-                            {isSearchingOnServer[step.id] && (
-                              <div className="absolute right-10 top-1/2 -translate-y-1/2">
-                                <Loader2 className="h-3 w-3 animate-spin text-white/70" />
-                              </div>
-                            )}
-                            {(searchQueryPerStep[step.id] ?? '') && !isSearchingOnServer[step.id] && (
-                              <button
-                                onClick={() => {
-                                  setSearchQueryPerStep((prev) => {
-                                    const next = { ...prev };
-                                    delete next[step.id];
-                                    return next;
-                                  });
-                                  setServerSearchResultsPerStep((prev) => {
-                                    const next = { ...prev };
-                                    delete next[step.id];
-                                    return next;
-                                  });
-                                  setIsSearchExpandedPerStep((prev) => ({
-                                    ...prev,
-                                    [step.id]: false,
-                                  }));
-                                }}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors"
-                                aria-label="Limpar pesquisa"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )}
                       {isStartColumn && (
                         <button
                           onClick={() => setIsStartFormOpen(true)}
@@ -1234,6 +1606,8 @@ export function NexflowBoardPage() {
         onMoveNext={handleMoveCardForward}
         onDelete={async (cardId) => {
           await deleteCard(cardId);
+          // Invalidar contagem de cards por etapa
+          void queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", "count-by-step", id] });
           setActiveCard(null); // Fecha o modal após deletar
         }}
         onUpdateCard={async (input) => {
@@ -1331,6 +1705,7 @@ function SortableCard({
 function KanbanCardPreview({ card }: { card: NexflowCard }) {
   const { data: users = [] } = useUsers();
   const { data: teams = [] } = useOrganizationTeams();
+  const { data: cardTags = [] } = useCardTags(card.id);
   
   const assignedUser = card.assignedTo
     ? users.find((user) => user.id === card.assignedTo)
@@ -1364,6 +1739,34 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
           })}
         </span>
       </div>
+      {/* Tags do card */}
+      {cardTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 mb-2">
+          {cardTags.slice(0, 3).map((tag) => (
+            <Badge
+              key={tag.id}
+              variant="outline"
+              className="text-[10px] font-medium px-1.5 py-0 border"
+              style={{
+                backgroundColor: `${tag.color}15`,
+                borderColor: tag.color,
+                color: tag.color,
+              }}
+            >
+              <Tag className="h-2.5 w-2.5 mr-0.5" />
+              {tag.name}
+            </Badge>
+          ))}
+          {cardTags.length > 3 && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] px-1.5 py-0"
+            >
+              +{cardTags.length - 3}
+            </Badge>
+          )}
+        </div>
+      )}
       {description && (
         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">
           {description}
