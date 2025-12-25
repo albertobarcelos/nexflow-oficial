@@ -14,6 +14,7 @@ import {
   Database,
   Workflow,
   Target,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAccountProfile } from "@/hooks/useAccountProfile";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useHuntersAccess } from "@/hooks/useHuntersAccess";
+import { useOpportunitiesAccess } from "@/hooks/useOpportunitiesAccess";
 // AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 interface MenuItem {
@@ -80,6 +82,7 @@ export function Sidebar() {
   const { user } = useAuth();
   const { user: userProfile, lastUpdate } = useAccountProfile();
   const { hasAccess: hasHuntersAccess } = useHuntersAccess();
+  const { hasAccess: hasOpportunitiesAccess } = useOpportunitiesAccess();
 
   // AIDEV-NOTE: Detecta se estamos dentro de um flow OU nas páginas de Empresas/Pessoas
   const isInsideFlow = location.pathname.includes('/flow/') && params.id;
@@ -113,6 +116,15 @@ export function Sidebar() {
     });
   }
 
+  // Adiciona Oportunidades se o usuário tiver acesso
+  if (hasOpportunitiesAccess) {
+    menuItems.push({
+      title: "Oportunidades",
+      icon: Sparkles,
+      href: "/crm/opportunities",
+    });
+  }
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -134,7 +146,7 @@ export function Sidebar() {
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
               location.pathname + location.search === item.href :
-              (item.href === '/crm/flows' || item.href === '/crm/hunters') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
+              (item.href === '/crm/flows' || item.href === '/crm/hunters' || item.href === '/crm/opportunities') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
               
             return (
               <Button

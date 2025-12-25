@@ -31,7 +31,6 @@ export interface StartFormPayload {
   title: string;
   fieldValues: StepFieldValueMap;
   checklistProgress: ChecklistProgressMap;
-  movementHistory: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
   assignedTeamId?: string | null;
@@ -224,15 +223,6 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
         title,
         fieldValues,
         checklistProgress,
-        movementHistory: [
-          {
-            id: crypto.randomUUID?.() ?? `${Date.now()}`,
-            fromStepId: null,
-            toStepId: step.id,
-            movedAt: new Date().toISOString(),
-            movedBy: null,
-          },
-        ],
         assignedTo: finalAssignedTo,
         assignedTeamId: finalAssignedTeamId,
         agents: agents.length > 0 ? agents : undefined,

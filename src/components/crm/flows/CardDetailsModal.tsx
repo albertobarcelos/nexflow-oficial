@@ -48,6 +48,7 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useCardTags, useAddCardTag, useRemoveCardTag } from "@/hooks/useCardTags";
 import { useFlowTags } from "@/hooks/useFlowTags";
+import { useCardHistory } from "@/hooks/useCardHistory";
 
 export interface CardFormValues {
   title: string;
@@ -71,7 +72,6 @@ interface CardDetailsModalProps {
   onUpdateCard?: (input: {
     id: string;
     stepId?: string;
-    movementHistory?: CardMovementEntry[];
   }) => Promise<void>;
   subtaskCount: number;
   parentTitle?: string | null;
@@ -232,6 +232,7 @@ export function CardDetailsModal({
 
   const { data: users = [] } = useUsers();
   const { data: teams = [] } = useOrganizationTeams();
+  const { data: cardHistory = [] } = useCardHistory(card?.id);
 
   // Valores iniciais do formulário
   const initialValues = useMemo((): CardFormValues => {
@@ -365,8 +366,9 @@ export function CardDetailsModal({
     }
 
     const orderedSteps = [...steps].sort((a, b) => a.position - b.position);
-    const history = (card.movementHistory ?? []).filter(
-      (entry) => entry.toStepId !== card.stepId
+    // Filtrar histórico para mostrar apenas etapas anteriores à atual
+    const history = cardHistory.filter(
+      (entry) => entry.toStepId && entry.toStepId !== card.stepId
     );
 
     if (history.length === 0) {
@@ -388,9 +390,9 @@ export function CardDetailsModal({
     orderedSteps.forEach((step) => stepMap.set(step.id, step));
     return history.map((entry) => ({
       entry,
-      step: stepMap.get(entry.toStepId),
-    }));
-  }, [card, currentStep, steps]);
+      step: entry.toStepId ? stepMap.get(entry.toStepId) : undefined,
+    })).filter((item) => item.step); // Filtrar entradas sem step correspondente
+  }, [card, currentStep, steps, cardHistory]);
 
   // Última atualização do histórico
   const lastHistoryUpdate = useMemo(() => {
@@ -931,19 +933,10 @@ export function CardDetailsModal({
         await onSave(card, currentValues);
       }
       // Usar onUpdateCard para mudar stepId
+      // O histórico será inserido automaticamente pela edge function na tabela card_history
       await onUpdateCard({
         id: card.id,
         stepId: previousStep.id,
-        movementHistory: [
-          ...(card.movementHistory ?? []),
-          {
-            id: crypto.randomUUID?.() ?? `${Date.now()}`,
-            fromStepId: card.stepId,
-            toStepId: previousStep.id,
-            movedAt: new Date().toISOString(),
-            movedBy: null,
-          },
-        ],
       });
       onClose(); // Fecha modal após mover
     } catch (error) {

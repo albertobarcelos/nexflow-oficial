@@ -1564,6 +1564,43 @@ export interface Database {
         Relationships: [];
       };
 
+      card_history: {
+        Row: {
+          id: string;
+          card_id: string;
+          client_id: string;
+          from_step_id: string | null;
+          to_step_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          action_type: string;
+          details: Json;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          client_id: string;
+          from_step_id?: string | null;
+          to_step_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          action_type?: string;
+          details?: Json;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          client_id?: string;
+          from_step_id?: string | null;
+          to_step_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          action_type?: string;
+          details?: Json;
+        };
+        Relationships: [];
+      };
+
       flow_access: {
         Row: {
           id: string;

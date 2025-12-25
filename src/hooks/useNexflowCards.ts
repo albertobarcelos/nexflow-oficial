@@ -25,9 +25,7 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     title: row.title,
     fieldValues: (row.field_values as StepFieldValueMap) ?? {},
     checklistProgress: (row.checklist_progress as ChecklistProgressMap) ?? {},
-    movementHistory: Array.isArray(row.movement_history)
-      ? (row.movement_history as CardMovementEntry[])
-      : [],
+    movementHistory: [], // Histórico agora é buscado da tabela card_history via hook useCardHistory
     parentCardId: row.parent_card_id ?? null,
     assignedTo: assignedTo,
     assignedTeamId: assignedTeamId,
@@ -46,7 +44,6 @@ export interface CreateCardInput {
   position?: number;
   fieldValues?: StepFieldValueMap;
   checklistProgress?: ChecklistProgressMap;
-  movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
   assignedTeamId?: string | null;
@@ -61,7 +58,6 @@ export interface UpdateCardInput {
   position?: number;
   fieldValues?: StepFieldValueMap;
   checklistProgress?: ChecklistProgressMap;
-  movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
   assignedTeamId?: string | null;
@@ -76,7 +72,6 @@ export interface ReorderCardsInput {
     id: string;
     stepId: string;
     position: number;
-    movementHistory?: CardMovementEntry[];
     status?: string | null;
   }[];
 }
@@ -147,7 +142,6 @@ export function useNexflowCards(flowId?: string) {
                 .reduce((max, card) => Math.max(max, card.position), 0) ?? 0) + 1000,
         field_values: genericFields, // Apenas campos genéricos, sem campos de sistema
         checklist_progress: input.checklistProgress ?? {},
-        movement_history: input.movementHistory ?? [],
         parent_card_id: input.parentCardId ?? null,
         assigned_to: finalAssignedTo,
         assigned_team_id: finalAssignedTeamId,
@@ -282,7 +276,6 @@ export function useNexflowCards(flowId?: string) {
         agents?: string[];
         stepId?: string;
         position?: number;
-        movementHistory?: CardMovementEntry[];
         parentCardId?: string | null;
         status?: 'inprogress' | 'completed' | 'canceled';
       } = {
@@ -297,7 +290,6 @@ export function useNexflowCards(flowId?: string) {
       if (typeof finalAgents !== "undefined") edgeFunctionPayload.agents = finalAgents;
       if (typeof input.stepId !== "undefined") edgeFunctionPayload.stepId = input.stepId;
       if (typeof input.position !== "undefined") edgeFunctionPayload.position = input.position;
-      if (typeof input.movementHistory !== "undefined") edgeFunctionPayload.movementHistory = input.movementHistory;
       if (typeof input.parentCardId !== "undefined") edgeFunctionPayload.parentCardId = input.parentCardId;
       if (typeof input.status !== "undefined") {
         edgeFunctionPayload.status = input.status as 'inprogress' | 'completed' | 'canceled';
@@ -325,9 +317,7 @@ export function useNexflowCards(flowId?: string) {
         title: data.card.title,
         fieldValues: data.card.fieldValues ?? {},
         checklistProgress: data.card.checklistProgress ?? {},
-        movementHistory: Array.isArray(data.card.movementHistory) 
-          ? data.card.movementHistory 
-          : [],
+        movementHistory: [], // Histórico agora é buscado da tabela card_history via hook useCardHistory
         parentCardId: data.card.parentCardId ?? null,
         assignedTo: data.card.assignedTo ?? null,
         assignedTeamId: data.card.assignedTeamId ?? null,
@@ -379,14 +369,11 @@ export function useNexflowCards(flowId?: string) {
   const reorderCardsMutation = useMutation({
     mutationFn: async ({ items }: ReorderCardsInput) => {
       await Promise.all(
-        items.map(({ id, stepId, position, movementHistory, status }) => {
+        items.map(({ id, stepId, position, status }) => {
           const payload: Partial<CardRow> = {
             step_id: stepId,
             position,
           };
-          if (typeof movementHistory !== "undefined") {
-            payload.movement_history = movementHistory;
-          }
           if (typeof status !== "undefined") {
             payload.status = status;
           }
@@ -406,10 +393,6 @@ export function useNexflowCards(flowId?: string) {
               ...card,
               stepId: update.stepId,
               position: update.position,
-              movementHistory:
-                typeof update.movementHistory !== "undefined"
-                  ? update.movementHistory
-                  : card.movementHistory,
               status:
                 typeof update.status !== "undefined"
                   ? update.status

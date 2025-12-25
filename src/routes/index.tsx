@@ -32,6 +32,7 @@ import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 import { HuntersPage } from "@/pages/crm/hunters/HuntersPage";
+import { OpportunitiesPage } from "@/pages/crm/opportunities/OpportunitiesPage";
 
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -116,6 +117,10 @@ export const router = createBrowserRouter([
       {
         path: "hunters",
         element: <HuntersPage />,
+      },
+      {
+        path: "opportunities",
+        element: <OpportunitiesPage />,
       },
       // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {

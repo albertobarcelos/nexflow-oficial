@@ -542,17 +542,6 @@ export function NexflowBoardPage() {
     []
   );
 
-  const buildMovementEntry = useCallback(
-    (card: NexflowCard, toStepId: string): CardMovementEntry => ({
-      id: crypto.randomUUID?.() ?? `${Date.now()}`,
-      fromStepId: card.stepId,
-      toStepId,
-      movedAt: new Date().toISOString(),
-      movedBy: null,
-    }),
-    []
-  );
-
   const buildReorderUpdates = useCallback(
     (
       card: NexflowCard,
@@ -576,10 +565,8 @@ export function NexflowBoardPage() {
         targetIndex = destinationCards.length;
       }
 
-      const movementHistory =
-        targetStepId !== sourceStepId
-          ? [...(card.movementHistory ?? []), buildMovementEntry(card, targetStepId)]
-          : undefined;
+      // O histórico será inserido automaticamente pela edge function na tabela card_history
+      // quando o stepId mudar, então não precisamos mais construir movementHistory aqui
 
       if (targetStepId === sourceStepId) {
         const reordered = arrayMove([...destinationCards], sourceIndex, targetIndex);
@@ -588,9 +575,7 @@ export function NexflowBoardPage() {
             id: item.id,
             stepId: targetStepId,
             position: (index + 1) * 1000,
-            ...(movementHistory && item.id === card.id ? { movementHistory } : {}),
           })),
-          movementHistory,
         };
       }
 
@@ -610,13 +595,11 @@ export function NexflowBoardPage() {
             id: item.id,
             stepId: targetStepId,
             position: (index + 1) * 1000,
-            ...(movementHistory && item.id === card.id ? { movementHistory } : {}),
           })),
         ],
-        movementHistory,
       };
     },
-    [buildMovementEntry, cardsByStep]
+    [cardsByStep]
   );
 
   const subtaskCount = useMemo(() => {
@@ -643,7 +626,6 @@ export function NexflowBoardPage() {
       title: payload.title,
       fieldValues: payload.fieldValues,
       checklistProgress: payload.checklistProgress,
-      movementHistory: payload.movementHistory,
       assignedTo: payload.assignedTo,
       assignedTeamId: payload.assignedTeamId,
       agents: payload.agents,
@@ -761,7 +743,7 @@ export function NexflowBoardPage() {
         ? destinationCards.findIndex((item) => item.id === overCard.id)
         : destinationCards.length;
 
-    const { updates, movementHistory } = buildReorderUpdates(
+    const { updates } = buildReorderUpdates(
       card,
       targetStepId,
       targetIndex
@@ -770,6 +752,9 @@ export function NexflowBoardPage() {
     if (!updates.length) {
       return;
     }
+
+    // Verificar se houve mudança de etapa para trigger de celebração
+    const movedAcrossSteps = card.stepId !== targetStepId;
 
     // Verificar se a etapa de destino é uma etapa de conclusão
     const targetStep = steps.find((s) => s.id === targetStepId);
@@ -870,7 +855,8 @@ export function NexflowBoardPage() {
         });
     }
 
-    if (movementHistory) {
+    // Trigger celebração se houve mudança de etapa
+    if (movedAcrossSteps) {
       triggerCelebration(card.id);
     }
   };
@@ -949,7 +935,7 @@ export function NexflowBoardPage() {
     setActiveCard(null);
 
     // Constrói e executa a movimentação
-    const { updates, movementHistory } = buildReorderUpdates(card, nextStep.id);
+    const { updates } = buildReorderUpdates(card, nextStep.id);
     if (!updates.length) {
       return;
     }
@@ -959,10 +945,8 @@ export function NexflowBoardPage() {
     // Invalidar contagem de cards por etapa quando há movimentação
     void queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", "count-by-step", id] });
     
-    // Celebração após mover
-    if (movementHistory) {
-      triggerCelebration(card.id);
-    }
+    // Celebração após mover (sempre há mudança de etapa neste caso)
+    triggerCelebration(card.id);
   };
 
   // Handler para carregar mais cards em uma coluna específica
@@ -1614,7 +1598,6 @@ export function NexflowBoardPage() {
           await updateCard({
             id: input.id,
             stepId: input.stepId,
-            movementHistory: input.movementHistory,
           });
         }}
         subtaskCount={subtaskCount}

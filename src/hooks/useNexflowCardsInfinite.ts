@@ -25,9 +25,7 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     title: row.title,
     fieldValues: (row.field_values as StepFieldValueMap) ?? {},
     checklistProgress: (row.checklist_progress as ChecklistProgressMap) ?? {},
-    movementHistory: Array.isArray(row.movement_history)
-      ? (row.movement_history as CardMovementEntry[])
-      : [],
+    movementHistory: [], // Histórico agora é buscado da tabela card_history via hook useCardHistory
     parentCardId: row.parent_card_id ?? null,
     assignedTo: assignedTo,
     assignedTeamId: assignedTeamId,
@@ -46,7 +44,6 @@ export interface CreateCardInput {
   position?: number;
   fieldValues?: StepFieldValueMap;
   checklistProgress?: ChecklistProgressMap;
-  movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
   assignedTeamId?: string | null;
@@ -61,7 +58,6 @@ export interface UpdateCardInput {
   position?: number;
   fieldValues?: StepFieldValueMap;
   checklistProgress?: ChecklistProgressMap;
-  movementHistory?: CardMovementEntry[];
   parentCardId?: string | null;
   assignedTo?: string | null;
   assignedTeamId?: string | null;
@@ -76,7 +72,6 @@ export interface ReorderCardsInput {
     id: string;
     stepId: string;
     position: number;
-    movementHistory?: CardMovementEntry[];
     status?: string;
     assignedTo?: string | null;
     assignedTeamId?: string | null;
@@ -169,7 +164,6 @@ export function useNexflowCardsInfinite(
                 .reduce((max, card) => Math.max(max, card.position), 0) ?? 0) + 1000,
         field_values: input.fieldValues ?? {},
         checklist_progress: input.checklistProgress ?? {},
-        movement_history: input.movementHistory ?? [],
         parent_card_id: input.parentCardId ?? null,
         assigned_to: input.assignedTo ?? null,
         assigned_team_id: input.assignedTeamId ?? null,
@@ -211,7 +205,6 @@ export function useNexflowCardsInfinite(
         agents?: string[];
         stepId?: string;
         position?: number;
-        movementHistory?: CardMovementEntry[];
         parentCardId?: string | null;
         status?: 'inprogress' | 'completed' | 'canceled';
       } = {
@@ -226,7 +219,6 @@ export function useNexflowCardsInfinite(
       if (typeof input.agents !== "undefined") edgeFunctionPayload.agents = input.agents;
       if (typeof input.stepId !== "undefined") edgeFunctionPayload.stepId = input.stepId;
       if (typeof input.position !== "undefined") edgeFunctionPayload.position = input.position;
-      if (typeof input.movementHistory !== "undefined") edgeFunctionPayload.movementHistory = input.movementHistory;
       if (typeof input.parentCardId !== "undefined") edgeFunctionPayload.parentCardId = input.parentCardId;
       if (typeof input.status !== "undefined") {
         edgeFunctionPayload.status = input.status as 'inprogress' | 'completed' | 'canceled';
@@ -254,9 +246,7 @@ export function useNexflowCardsInfinite(
         title: data.card.title,
         fieldValues: data.card.fieldValues ?? {},
         checklistProgress: data.card.checklistProgress ?? {},
-        movementHistory: Array.isArray(data.card.movementHistory) 
-          ? data.card.movementHistory 
-          : [],
+        movementHistory: [], // Histórico agora é buscado da tabela card_history via hook useCardHistory
         parentCardId: data.card.parentCardId ?? null,
         assignedTo: data.card.assignedTo ?? null,
         assignedTeamId: data.card.assignedTeamId ?? null,
@@ -307,14 +297,13 @@ export function useNexflowCardsInfinite(
   const reorderCardsMutation = useMutation({
     mutationFn: async ({ items }: ReorderCardsInput) => {
       await Promise.all(
-        items.map(async ({ id, stepId, position, movementHistory, status, assignedTo, assignedTeamId, agents }) => {
+        items.map(async ({ id, stepId, position, status, assignedTo, assignedTeamId, agents }) => {
           // Se houver atribuições, usar Edge Function para garantir lógica de exclusão mútua
           if (typeof assignedTo !== "undefined" || typeof assignedTeamId !== "undefined" || typeof agents !== "undefined" || typeof status !== "undefined") {
             const edgeFunctionPayload: {
               cardId: string;
               stepId?: string;
               position?: number;
-              movementHistory?: CardMovementEntry[];
               status?: 'inprogress' | 'completed' | 'canceled';
               assignedTo?: string | null;
               assignedTeamId?: string | null;
@@ -325,7 +314,6 @@ export function useNexflowCardsInfinite(
 
             if (typeof stepId !== "undefined") edgeFunctionPayload.stepId = stepId;
             if (typeof position !== "undefined") edgeFunctionPayload.position = position;
-            if (typeof movementHistory !== "undefined") edgeFunctionPayload.movementHistory = movementHistory;
             if (typeof status !== "undefined") {
               edgeFunctionPayload.status = status as 'inprogress' | 'completed' | 'canceled';
             }
@@ -346,9 +334,6 @@ export function useNexflowCardsInfinite(
               step_id: stepId,
               position,
             };
-            if (typeof movementHistory !== "undefined") {
-              payload.movement_history = movementHistory;
-            }
             const { error } = await nexflowClient().from("cards").update(payload).eq("id", id);
             if (error) {
               throw error;
@@ -390,10 +375,6 @@ export function useNexflowCardsInfinite(
                 ...card,
                 stepId: update.stepId,
                 position: update.position,
-                movementHistory:
-                  typeof update.movementHistory !== "undefined"
-                    ? update.movementHistory
-                    : card.movementHistory,
                 status:
                   typeof update.status !== "undefined"
                     ? update.status

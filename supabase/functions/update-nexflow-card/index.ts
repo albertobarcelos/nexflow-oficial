@@ -26,13 +26,6 @@ interface UpdateCardPayload {
   // agents?: string[]; // Não será usado atualmente - será criado campo específico futuramente
   stepId?: string;
   position?: number;
-  movementHistory?: Array<{
-    id: string;
-    fromStepId: string | null;
-    toStepId: string;
-    movedAt: string;
-    movedBy?: string | null;
-  }>;
   parentCardId?: string | null;
   status?: 'inprogress' | 'completed' | 'canceled';
 }
@@ -97,7 +90,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, movementHistory, parentCardId, status } = body;
+    const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, parentCardId, status } = body;
     // NOTA: agents não será processado atualmente - será criado campo específico futuramente
 
     // #region agent log
@@ -178,7 +171,7 @@ Deno.serve(async (req: Request) => {
     const { data: card, error: cardError } = await supabase
       .schema('nexflow')
       .from('cards')
-      .select('client_id, flow_id')
+      .select('client_id, flow_id, step_id')
       .eq('id', cardId)
       .single();
 
@@ -323,7 +316,6 @@ Deno.serve(async (req: Request) => {
     
     if (stepId !== undefined) updatePayload.step_id = stepId;
     if (position !== undefined) updatePayload.position = position;
-    if (movementHistory !== undefined) updatePayload.movement_history = movementHistory;
     if (parentCardId !== undefined) updatePayload.parent_card_id = parentCardId;
     if (status !== undefined) updatePayload.status = status;
 
@@ -338,6 +330,27 @@ Deno.serve(async (req: Request) => {
       hypothesisId: 'B'
     }));
     // #endregion
+
+    // Se stepId está mudando, registrar no histórico antes de atualizar
+    if (stepId !== undefined && stepId !== card.step_id) {
+      const { error: historyError } = await supabase
+        .schema('nexflow')
+        .from('card_history')
+        .insert({
+          card_id: cardId,
+          client_id: card.client_id,
+          from_step_id: card.step_id,
+          to_step_id: stepId,
+          created_by: userId,
+          action_type: 'move',
+          details: {},
+        });
+
+      if (historyError) {
+        console.error('Erro ao inserir histórico do card:', historyError);
+        // Não falhar a atualização se o histórico falhar, apenas logar o erro
+      }
+    }
 
     // Atualizar card
     const { data: updatedCard, error: updateError } = await supabase
@@ -411,9 +424,7 @@ Deno.serve(async (req: Request) => {
       title: updatedCard.title,
       fieldValues: updatedCard.field_values ?? {},
       checklistProgress: updatedCard.checklist_progress ?? {},
-      movementHistory: Array.isArray(updatedCard.movement_history) 
-        ? updatedCard.movement_history 
-        : [],
+      movementHistory: [], // Histórico agora é buscado da tabela card_history via hook useCardHistory
       parentCardId: updatedCard.parent_card_id ?? null,
       assignedTo: assignedToValue,
       assignedTeamId: assignedTeamIdValue,
