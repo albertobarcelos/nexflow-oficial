@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient, supabase } from "@/lib/supabase";
 import { Database } from "@/types/database";
-import { NexflowStep } from "@/types/nexflow";
+import { NexflowStep, StepType } from "@/types/nexflow";
 
 type StepRow = Database["nexflow"]["Tables"]["steps"]["Row"];
 
@@ -15,6 +15,7 @@ const mapStepRow = (row: StepRow): NexflowStep => ({
   color: row.color ?? DEFAULT_STEP_COLOR,
   position: row.position,
   isCompletionStep: Boolean(row.is_completion_step),
+  stepType: (row.step_type as StepType) ?? "standard",
   createdAt: row.created_at,
   responsibleUserId: row.responsible_user_id ?? null,
   responsibleTeamId: row.responsible_team_id ?? null,
@@ -25,6 +26,7 @@ interface CreateStepInput {
   color: string;
   position?: number;
   isCompletionStep?: boolean;
+  stepType?: StepType;
 }
 
 interface UpdateStepInput {
@@ -33,6 +35,7 @@ interface UpdateStepInput {
   color?: string;
   position?: number;
   isCompletionStep?: boolean;
+  stepType?: StepType;
   responsibleUserId?: string | null;
   responsibleTeamId?: string | null;
 }
@@ -70,7 +73,7 @@ export function useNexflowSteps(flowId?: string) {
   });
 
   const createStepMutation = useMutation<NexflowStep, Error, CreateStepInput>({
-    mutationFn: async ({ title, color, position, isCompletionStep }: CreateStepInput) => {
+    mutationFn: async ({ title, color, position, isCompletionStep, stepType }: CreateStepInput) => {
       if (!flowId) {
         throw new Error("Flow não informado.");
       }
@@ -90,6 +93,7 @@ export function useNexflowSteps(flowId?: string) {
           color,
           position: targetPosition,
           is_completion_step: isCompletionStep ?? false,
+          step_type: stepType ?? "standard",
         })
         .select("*")
         .single();
@@ -100,7 +104,7 @@ export function useNexflowSteps(flowId?: string) {
 
       return mapStepRow(data);
     },
-    onMutate: async ({ title, color, position, isCompletionStep }) => {
+    onMutate: async ({ title, color, position, isCompletionStep, stepType }) => {
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
       if (!flowId) {
@@ -118,6 +122,7 @@ export function useNexflowSteps(flowId?: string) {
         color,
         position: provisionalPosition,
         isCompletionStep: isCompletionStep ?? false,
+        stepType: stepType ?? "standard",
         createdAt: new Date().toISOString(),
       };
 
@@ -143,12 +148,13 @@ export function useNexflowSteps(flowId?: string) {
   });
 
   const updateStepMutation = useMutation({
-    mutationFn: async ({ id, title, color, position, isCompletionStep, responsibleUserId, responsibleTeamId }: UpdateStepInput) => {
+    mutationFn: async ({ id, title, color, position, isCompletionStep, stepType, responsibleUserId, responsibleTeamId }: UpdateStepInput) => {
       const payload: Partial<StepRow> = {};
       if (typeof title !== "undefined") payload.title = title;
       if (typeof color !== "undefined") payload.color = color;
       if (typeof position !== "undefined") payload.position = position;
       if (typeof isCompletionStep !== "undefined") payload.is_completion_step = isCompletionStep;
+      if (typeof stepType !== "undefined") payload.step_type = stepType;
       // Garantir que null seja explicitamente enviado para limpar o campo
       if (typeof responsibleUserId !== "undefined") {
         payload.responsible_user_id = responsibleUserId; // Inclui null
@@ -168,7 +174,7 @@ export function useNexflowSteps(flowId?: string) {
         throw error;
       }
     },
-    onMutate: async ({ id, title, color, position, isCompletionStep, responsibleUserId, responsibleTeamId }) => {
+    onMutate: async ({ id, title, color, position, isCompletionStep, stepType, responsibleUserId, responsibleTeamId }) => {
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
 
@@ -186,6 +192,10 @@ export function useNexflowSteps(flowId?: string) {
                   typeof isCompletionStep !== "undefined"
                     ? isCompletionStep
                     : step.isCompletionStep,
+                stepType:
+                  typeof stepType !== "undefined"
+                    ? stepType
+                    : step.stepType,
                 responsibleUserId:
                   typeof responsibleUserId !== "undefined"
                     ? responsibleUserId

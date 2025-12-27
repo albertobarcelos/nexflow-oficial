@@ -5,14 +5,23 @@ import { useToast } from "@/hooks/use-toast";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { OpportunityCard } from "@/components/crm/opportunities/OpportunityCard";
 import { RocketLoader } from "@/components/ui/rocket-loader";
-import { Loader2 } from "lucide-react";
+import { Loader2, Settings, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { AutoCreateConfigDialog } from "@/components/crm/opportunities/AutoCreateConfigDialog";
+import { CreateCardFromOpportunityDialog } from "@/components/crm/opportunities/CreateCardFromOpportunityDialog";
+import { OpportunityDetailsPanel } from "@/components/crm/opportunities/OpportunityDetailsPanel";
 
 export function OpportunitiesPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [hasAccess, setHasAccess] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
+  const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
+  const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<string | null>(null);
+  const [opportunityForCard, setOpportunityForCard] = useState<any>(null);
   
   const {
     opportunities,
@@ -114,11 +123,22 @@ export function OpportunitiesPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Oportunidades</h1>
-        <p className="text-muted-foreground text-sm md:text-base">
-          Visualize e gerencie as oportunidades de clientes
-        </p>
+      <div className="flex items-start justify-between">
+        <div className="space-y-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Oportunidades</h1>
+          <p className="text-muted-foreground text-sm md:text-base">
+            Visualize e gerencie as oportunidades de clientes
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setIsAutoCreateDialogOpen(true)}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            AutoCreate Config
+          </Button>
+        </div>
       </div>
 
       {/* Conteúdo */}
@@ -156,14 +176,36 @@ export function OpportunitiesPage() {
                 opportunity={opportunity}
                 index={index}
                 onClick={() => {
-                  // TODO: Implementar navegação para detalhes da oportunidade
-                  console.log("Oportunidade clicada:", opportunity.id);
+                  setSelectedOpportunity(opportunity.id);
+                  setIsDetailsPanelOpen(true);
+                }}
+                onCreateCard={() => {
+                  setOpportunityForCard(opportunity);
+                  setIsCreateCardDialogOpen(true);
                 }}
               />
             ))}
           </AnimatePresence>
         </motion.div>
       )}
+
+      {/* Dialogs */}
+      <AutoCreateConfigDialog
+        open={isAutoCreateDialogOpen}
+        onOpenChange={setIsAutoCreateDialogOpen}
+      />
+
+      <CreateCardFromOpportunityDialog
+        open={isCreateCardDialogOpen}
+        onOpenChange={setIsCreateCardDialogOpen}
+        opportunity={opportunityForCard}
+      />
+
+      <OpportunityDetailsPanel
+        open={isDetailsPanelOpen}
+        onOpenChange={setIsDetailsPanelOpen}
+        opportunityId={selectedOpportunity}
+      />
     </div>
   );
 }

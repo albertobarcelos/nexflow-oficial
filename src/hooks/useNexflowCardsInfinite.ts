@@ -31,9 +31,13 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     assignedTeamId: assignedTeamId,
     assigneeType: assigneeType,
     agents: Array.isArray(row.agents) ? row.agents : undefined,
+    opportunityId: row.opportunity_id ?? null,
     position: row.position ?? 0,
     status: row.status ?? null,
     createdAt: row.created_at,
+    cardType: row.card_type ?? 'onboarding',
+    product: row.product ?? null,
+    value: row.value ? Number(row.value) : null,
   };
 };
 
@@ -63,6 +67,8 @@ export interface UpdateCardInput {
   assignedTeamId?: string | null;
   agents?: string[];
   status?: string | null;
+  product?: string | null;
+  value?: number | null;
   /** Quando true, não exibe toast de sucesso (útil para auto-save) */
   silent?: boolean;
 }
@@ -151,6 +157,20 @@ export function useNexflowCardsInfinite(
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
+      // Buscar o flow para obter a category
+      const { data: flow, error: flowError } = await nexflowClient()
+        .from("flows")
+        .select("category")
+        .eq("id", input.flowId)
+        .single();
+
+      if (flowError || !flow) {
+        throw new Error("Não foi possível encontrar o flow.");
+      }
+
+      // Determinar card_type baseado na category do flow
+      const cardType = flow.category === 'finance' ? 'finance' : 'onboarding';
+
       const payload: Database["nexflow"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
         step_id: input.stepId,
@@ -169,6 +189,9 @@ export function useNexflowCardsInfinite(
         assigned_team_id: input.assignedTeamId ?? null,
         agents: input.agents,
         status: input.status ?? null,
+        card_type: cardType,
+        product: null,
+        value: null,
       };
 
       const { data, error } = await nexflowClient()
@@ -207,6 +230,8 @@ export function useNexflowCardsInfinite(
         position?: number;
         parentCardId?: string | null;
         status?: 'inprogress' | 'completed' | 'canceled';
+        product?: string | null;
+        value?: number | null;
       } = {
         cardId: input.id,
       };
@@ -223,6 +248,8 @@ export function useNexflowCardsInfinite(
       if (typeof input.status !== "undefined") {
         edgeFunctionPayload.status = input.status as 'inprogress' | 'completed' | 'canceled';
       }
+      if (typeof input.product !== "undefined") edgeFunctionPayload.product = input.product;
+      if (typeof input.value !== "undefined") edgeFunctionPayload.value = input.value;
 
       // Chamar Edge Function
       const { data, error } = await supabase.functions.invoke('update-nexflow-card', {
@@ -254,6 +281,9 @@ export function useNexflowCardsInfinite(
         position: data.card.position ?? 0,
         status: data.card.status ?? null,
         createdAt: data.card.createdAt,
+        cardType: data.card.cardType ?? 'onboarding',
+        product: data.card.product ?? null,
+        value: data.card.value ? Number(data.card.value) : null,
       };
 
       return { card: updatedCard, silent: input.silent };

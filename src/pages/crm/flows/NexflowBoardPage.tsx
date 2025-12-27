@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, ArrowLeft, CheckCircle2, Search, X } from "lucide-react";
+import { Plus, ArrowLeft, CheckCircle2, Search, X, Snowflake } from "lucide-react";
 import { StartFormModal, type StartFormPayload } from "@/components/crm/flows/StartFormModal";
 import {
   CardDetailsModal,
@@ -47,8 +47,9 @@ import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { TeamAvatar } from "@/components/ui/team-avatar";
 import { useCardTags } from "@/hooks/useCardTags";
+import { useCardHistory } from "@/hooks/useCardHistory";
 import { Badge } from "@/components/ui/badge";
-import { Tag } from "lucide-react";
+import { Tag, Clock } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -756,9 +757,24 @@ export function NexflowBoardPage() {
     // Verificar se houve mudança de etapa para trigger de celebração
     const movedAcrossSteps = card.stepId !== targetStepId;
 
-    // Verificar se a etapa de destino é uma etapa de conclusão
+    // Verificar se a etapa de destino é uma etapa de conclusão ou tipo especial
     const targetStep = steps.find((s) => s.id === targetStepId);
-    const newStatus = targetStep?.isCompletionStep ? "completed" : "inprogress";
+    let newStatus: "inprogress" | "completed" | "canceled" = "inprogress";
+    let shouldFreeze = false;
+    
+    if (targetStep) {
+      // Prioridade: stepType sobre isCompletionStep
+      if (targetStep.stepType === "finisher") {
+        newStatus = "completed";
+      } else if (targetStep.stepType === "fail") {
+        newStatus = "canceled";
+      } else if (targetStep.stepType === "freezing") {
+        shouldFreeze = true;
+        newStatus = "inprogress"; // Status do original permanece inprogress
+      } else if (targetStep.isCompletionStep) {
+        newStatus = "completed";
+      }
+    }
 
     // Aplicar auto-assignment se o card está mudando de etapa
     let assignedTo: string | null | undefined = undefined;
@@ -812,8 +828,11 @@ export function NexflowBoardPage() {
       return update;
     });
 
+    // Lógica de freezing é tratada na Edge Function
+    // Quando card cai em etapa freezing, a Edge Function cria o clone e move o original
+
     // Garantir que a etapa de destino tenha contagem visível suficiente para mostrar o card
-    if (movingAcrossSteps && targetStepId) {
+    if (movingAcrossSteps && targetStepId && !shouldFreeze) {
       const currentVisibleCount = getVisibleCount(targetStepId);
       const destinationCardsCount = (cardsByStep[targetStepId] ?? []).length;
       // Se o card seria o primeiro na nova etapa e a contagem visível é menor que o necessário
@@ -880,6 +899,8 @@ export function NexflowBoardPage() {
       assignedTo?: string | null;
       assignedTeamId?: string | null;
       agents?: string[];
+      product?: string | null;
+      value?: number | null;
       silent: boolean;
     } = {
       id: card.id,
@@ -899,6 +920,10 @@ export function NexflowBoardPage() {
     // Sempre incluir agents (mesmo que seja array vazio)
     updatePayload.agents = values.agents ?? [];
     
+    // Incluir campos financeiros se existirem
+    if (values.product !== undefined) updatePayload.product = values.product;
+    if (values.value !== undefined) updatePayload.value = values.value;
+    
     await updateCard(updatePayload);
 
     // Atualiza o estado local do card ativo
@@ -914,6 +939,8 @@ export function NexflowBoardPage() {
             assignedTeamId: values.assignedTeamId ?? null,
             assigneeType: assigneeType,
             agents: values.agents ?? [],
+            product: values.product ?? null,
+            value: values.value ?? null,
           }
         : current
     );
@@ -1529,6 +1556,7 @@ export function NexflowBoardPage() {
                                   isActiveDrag={draggedCardId === card.id}
                                   shouldShake={shakeCardId === card.id}
                                   isCelebrating={celebratedCardId === card.id}
+                                  currentStep={step}
                                 />
                               ))}
                             </div>
@@ -1614,6 +1642,7 @@ interface SortableCardProps {
   isActiveDrag: boolean;
   shouldShake: boolean;
   isCelebrating: boolean;
+  currentStep?: NexflowStepWithFields | null;
 }
 
 function SortableCard({
@@ -1623,7 +1652,10 @@ function SortableCard({
   isActiveDrag,
   shouldShake,
   isCelebrating,
+  currentStep,
 }: SortableCardProps) {
+  // Verificar se o card está congelado (tem parentCardId ou está em etapa freezing)
+  const isFrozenCard = card.parentCardId !== null || currentStep?.stepType === 'freezing';
   const {
     attributes,
     listeners,
@@ -1672,10 +1704,65 @@ function SortableCard({
         isActiveDrag ? "opacity-40" : "opacity-100",
         shouldShake 
           ? "ring-2 ring-red-300 bg-red-50/60" 
-          : "hover:shadow-md hover:-translate-y-0.5"
+          : "hover:shadow-md hover:-translate-y-0.5",
+        // Efeito visual para cards concluídos
+        card.status === "completed" && "bg-green-50/30 dark:bg-green-900/10 border-green-200 dark:border-green-800/50 relative overflow-hidden",
+        // Efeito visual para cards cancelados
+        card.status === "canceled" && "bg-red-50/30 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 relative overflow-hidden",
+        // Efeito visual para cards congelados
+        isFrozenCard && "bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50 relative overflow-hidden"
       )}
       onClick={onClick}
     >
+      {/* Máscara/overlay para cards concluídos */}
+      {card.status === "completed" && (
+        <div className="absolute inset-0 bg-gradient-to-br from-green-100/20 to-transparent dark:from-green-900/10 pointer-events-none rounded-xl" />
+      )}
+      
+      {/* Máscara/overlay para cards cancelados */}
+      {card.status === "canceled" && (
+        <div className="absolute inset-0 bg-gradient-to-br from-red-100/20 to-transparent dark:from-red-900/10 pointer-events-none rounded-xl" />
+      )}
+
+      {/* Máscara/overlay para cards congelados - efeito de gelo */}
+      {isFrozenCard && (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/30 via-cyan-100/20 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 pointer-events-none rounded-xl" />
+          {/* Efeito de brilho/gelo */}
+          <div className="absolute inset-0 bg-gradient-to-t from-white/10 via-transparent to-transparent pointer-events-none rounded-xl" />
+        </>
+      )}
+      
+      {/* Badge de status concluído */}
+      {card.status === "completed" && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 bg-green-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
+            <CheckCircle2 className="h-3 w-3" />
+            <span>Concluído</span>
+          </div>
+        </div>
+      )}
+
+      {/* Badge de status cancelado */}
+      {card.status === "canceled" && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 bg-red-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
+            <X className="h-3 w-3" />
+            <span>Cancelado</span>
+          </div>
+        </div>
+      )}
+
+      {/* Badge de status congelado */}
+      {isFrozenCard && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 bg-blue-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
+            <Snowflake className="h-3 w-3" />
+            <span>Congelado</span>
+          </div>
+        </div>
+      )}
+
       <KanbanCardPreview card={card} />
 
       <AnimatePresence>
@@ -1689,6 +1776,7 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
   const { data: users = [] } = useUsers();
   const { data: teams = [] } = useOrganizationTeams();
   const { data: cardTags = [] } = useCardTags(card.id);
+  const { data: cardHistory = [] } = useCardHistory(card.id, card.parentCardId);
   
   const assignedUser = card.assignedTo
     ? users.find((user) => user.id === card.assignedTo)
@@ -1707,6 +1795,29 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
 
   const createdAt = new Date(card.createdAt);
   const updatedAt = createdAt; // Usar createdAt como fallback já que updatedAt não existe no tipo
+
+  // Obter última movimentação do histórico
+  const lastMovement = useMemo(() => {
+    if (cardHistory.length === 0) return null;
+    return cardHistory[cardHistory.length - 1];
+  }, [cardHistory]);
+
+  // Formatar data da última movimentação
+  const lastMovementDate = useMemo(() => {
+    if (!lastMovement) return null;
+    const date = new Date(lastMovement.movedAt);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "agora";
+    if (diffMins < 60) return `${diffMins}min atrás`;
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    if (diffDays < 7) return `${diffDays}d atrás`;
+    return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  }, [lastMovement]);
 
   return (
     <>
@@ -1750,20 +1861,73 @@ function KanbanCardPreview({ card }: { card: NexflowCard }) {
           )}
         </div>
       )}
+      {/* Campos financeiros - apenas para cards do tipo finance */}
+      {card.cardType === 'finance' && (card.product || card.value) && (
+        <div className="mb-3 p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="space-y-1.5">
+            {card.product && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                  Produto:
+                </span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                  {card.product}
+                </span>
+              </div>
+            )}
+            {card.value !== null && card.value !== undefined && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wide">
+                  Valor:
+                </span>
+                <span className="text-xs font-semibold text-slate-800 dark:text-slate-100">
+                  {new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  }).format(card.value)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {description && (
         <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-4">
           {description}
         </p>
       )}
       <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-        <div className="flex flex-col">
-          <span className="text-[10px] text-slate-400">Atualizado</span>
-          <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">
-            {updatedAt.toLocaleTimeString("pt-BR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-slate-400">Atualizado</span>
+            <span className="text-[10px] font-medium text-slate-600 dark:text-slate-300">
+              {updatedAt.toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+          {/* Histórico de movimentação */}
+          {lastMovement && (
+            <div className="flex items-center gap-1 mt-1">
+              <Clock className="h-2.5 w-2.5 text-slate-400" />
+              <div className="flex flex-col">
+                <span className="text-[9px] text-slate-400">
+                  {lastMovementDate}
+                </span>
+                {lastMovement.userName && (
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[80px]" title={lastMovement.userName}>
+                    por {lastMovement.userName.split(" ")[0]}
+                  </span>
+                )}
+                {lastMovement.fromStepTitle && lastMovement.toStepTitle && (
+                  <span className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[100px]" title={`${lastMovement.fromStepTitle} → ${lastMovement.toStepTitle}`}>
+                    {lastMovement.fromStepTitle} → {lastMovement.toStepTitle}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         {assignedUser ? (
           <div className="flex items-center gap-2" title={`${assignedUser.name} ${assignedUser.surname}${assignedTeam ? ` - ${assignedTeam.name}` : ''}`}>

@@ -26,6 +26,7 @@ import {
   NexflowStep,
   NexflowStepField,
   StepFieldConfiguration,
+  StepType,
 } from "@/types/nexflow";
 import { SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
 
@@ -64,6 +65,7 @@ export interface StepDraft {
   excludedUserIds: string[];
   color?: string;
   title?: string;
+  stepType?: StepType;
 }
 
 export interface UseFlowBuilderStateReturn {
@@ -157,6 +159,7 @@ export function useFlowBuilderState(
         excludedUserIds: stepVisibilityData.excludedUserIds,
         color: activeStep.color,
         title: activeStep.title,
+        stepType: activeStep.stepType ?? "standard",
       });
     } else {
       setStepDraft(null);
@@ -565,13 +568,16 @@ export function useFlowBuilderState(
           excludedUserIds: stepDraft.excludedUserIds,
         });
 
-        // Salvar título e cor da etapa se houver mudanças
-        const stepUpdates: { title?: string; color?: string } = {};
+        // Salvar título, cor e tipo da etapa se houver mudanças
+        const stepUpdates: { title?: string; color?: string; stepType?: StepType } = {};
         if (activeStep && stepDraft.title && stepDraft.title !== activeStep.title) {
           stepUpdates.title = stepDraft.title;
         }
         if (activeStep && stepDraft.color && stepDraft.color !== activeStep.color) {
           stepUpdates.color = stepDraft.color;
+        }
+        if (activeStep && stepDraft.stepType && stepDraft.stepType !== activeStep.stepType) {
+          stepUpdates.stepType = stepDraft.stepType;
         }
         
         if (Object.keys(stepUpdates).length > 0) {
@@ -599,6 +605,8 @@ export function useFlowBuilderState(
     activeStepId,
     stepDraft,
     updateStepVisibility,
+    updateStep,
+    activeStep,
   ]);
 
   const isDirty = useMemo(() => {

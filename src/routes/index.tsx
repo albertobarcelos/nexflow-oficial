@@ -16,6 +16,7 @@ import { NexflowBuilderPage } from "@/pages/crm/flows/NexflowBuilderPage";
 import { NexflowBoardPage } from "@/pages/crm/flows/NexflowBoardPage";
 import { FlowViewsPage } from "@/pages/crm/flows/FlowViewsPage";
 import { FlowsPage } from "@/pages/crm/flows/FlowsPage";
+import { ProcessBuilderPage } from "@/pages/crm/flows/ProcessBuilderPage";
 import OpportunityDetails from "@/pages/crm/OpportunityDetails";
 
 
@@ -101,6 +102,10 @@ export const router = createBrowserRouter([
       {
         path: "flows/:id/board",
         element: <NexflowBoardPage />,
+      },
+      {
+        path: "flows/:id/processes",
+        element: <ProcessBuilderPage />,
       },
       {
         path: "flows/builder",

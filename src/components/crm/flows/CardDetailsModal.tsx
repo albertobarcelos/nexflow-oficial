@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   Cloud,
   Loader2,
   Save,
@@ -22,12 +23,16 @@ import {
   MessageSquare,
   Plus,
   Tag,
+  Workflow,
+  Lock,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,6 +54,14 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useCardTags, useAddCardTag, useRemoveCardTag } from "@/hooks/useCardTags";
 import { useFlowTags } from "@/hooks/useFlowTags";
 import { useCardHistory } from "@/hooks/useCardHistory";
+import { OpportunityFloatingWidget } from "./OpportunityFloatingWidget";
+import { ProcessesView } from "./ProcessesView";
+import { ProcessDetails } from "./ProcessDetails";
+import { useQuery } from "@tanstack/react-query";
+import { nexflowClient } from "@/lib/supabase";
+import type { CardStepAction } from "@/types/nexflow";
+import { Database, Json } from "@/types/database";
+import { Phone, Mail, Calendar as CalendarIconProcess, CheckSquare, List } from "lucide-react";
 
 export interface CardFormValues {
   title: string;
@@ -58,6 +71,8 @@ export interface CardFormValues {
   assignedTeamId?: string | null;
   assigneeType?: 'user' | 'team' | 'unassigned';
   agents?: string[];
+  product?: string | null;
+  value?: number | null;
 }
 
 type SaveStatus = "idle" | "saving" | "saved";
@@ -77,7 +92,341 @@ interface CardDetailsModalProps {
   parentTitle?: string | null;
 }
 
-type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments";
+type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments" | "processes";
+
+type StepActionRow = Database["nexflow"]["Tables"]["step_actions"]["Row"];
+
+interface ProcessWithAction extends CardStepAction {
+  stepAction: StepActionRow | null;
+}
+
+const getActionIcon = (actionType: string | null) => {
+  switch (actionType) {
+    case "phone_call":
+      return Phone;
+    case "email":
+      return Mail;
+    case "linkedin_message":
+    case "whatsapp":
+      return MessageSquare;
+    case "meeting":
+      return CalendarIconProcess;
+    case "task":
+      return CheckSquare;
+    default:
+      return List;
+  }
+};
+
+/**
+ * Componente para exibir processos na sidebar
+ */
+function ProcessesSidebar({ 
+  card, 
+  selectedProcessId, 
+  onSelectProcess 
+}: { 
+  card: NexflowCard | null;
+  selectedProcessId: string | null;
+  onSelectProcess: (processId: string) => void;
+}) {
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
+
+  const toggleDay = (day: number) => {
+    setExpandedDays((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(day)) {
+        newSet.delete(day);
+      } else {
+        newSet.add(day);
+      }
+      return newSet;
+    });
+  };
+  // Buscar card_step_actions do card
+  const { data: cardStepActions = [], isLoading: isLoadingActions } = useQuery({
+    queryKey: ["nexflow", "card_step_actions", card?.id],
+    enabled: Boolean(card?.id),
+    queryFn: async (): Promise<CardStepAction[]> => {
+      if (!card?.id) return [];
+
+      const { data, error } = await nexflowClient()
+        .from("card_step_actions")
+        .select("*")
+        .eq("card_id", card.id)
+        .order("scheduled_date", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      if (!data) return [];
+
+      return data.map((row) => ({
+        id: row.id,
+        cardId: row.card_id,
+        stepActionId: row.step_action_id,
+        stepId: row.step_id,
+        status: row.status as CardStepAction["status"],
+        scheduledDate: row.scheduled_date,
+        completedAt: row.completed_at,
+        completedBy: row.completed_by,
+        notes: row.notes,
+        executionData: (row.execution_data as Record<string, Json | undefined>) || {},
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    },
+  });
+
+  // Buscar dados completos dos step_actions
+  const stepActionIds = useMemo(
+    () => cardStepActions.map((csa) => csa.stepActionId).filter(Boolean),
+    [cardStepActions]
+  );
+
+  const { data: stepActions = [], isLoading: isLoadingStepActions } = useQuery({
+    queryKey: ["nexflow", "step_actions", "by-ids", stepActionIds],
+    enabled: stepActionIds.length > 0,
+    queryFn: async (): Promise<StepActionRow[]> => {
+      if (stepActionIds.length === 0) return [];
+
+      const { data, error } = await nexflowClient()
+        .from("step_actions")
+        .select("*")
+        .in("id", stepActionIds);
+
+      if (error) throw error;
+      if (!data) return [];
+
+      return data;
+    },
+  });
+
+  // Combinar card_step_actions com step_actions
+  const processesWithActions: ProcessWithAction[] = useMemo(() => {
+    const stepActionsMap = new Map(stepActions.map((sa) => [sa.id, sa]));
+    return cardStepActions.map((csa) => ({
+      ...csa,
+      stepAction: stepActionsMap.get(csa.stepActionId) || null,
+    }));
+  }, [cardStepActions, stepActions]);
+
+  // Agrupar processos por dia (day_offset)
+  const processesByDay = useMemo(() => {
+    const grouped: Record<number, ProcessWithAction[]> = {};
+
+    processesWithActions.forEach((process) => {
+      const dayOffset = process.stepAction?.day_offset ?? 1;
+      if (!grouped[dayOffset]) {
+        grouped[dayOffset] = [];
+      }
+      grouped[dayOffset].push(process);
+    });
+
+    // Ordenar por day_offset e depois por position
+    return Object.entries(grouped)
+      .map(([day, procs]) => ({
+        day: parseInt(day, 10),
+        processes: procs.sort((a, b) => {
+          const posA = a.stepAction?.position ?? 0;
+          const posB = b.stepAction?.position ?? 0;
+          return posA - posB;
+        }),
+      }))
+      .sort((a, b) => a.day - b.day);
+  }, [processesWithActions]);
+
+  // Expandir todos os dias por padrão quando processesByDay mudar
+  useEffect(() => {
+    if (processesByDay.length > 0) {
+      setExpandedDays((prev) => {
+        const newSet = new Set(prev);
+        processesByDay.forEach(({ day }) => {
+          newSet.add(day);
+        });
+        return newSet;
+      });
+    }
+  }, [processesByDay]);
+
+  // Calcular data base (created_at do card)
+  const cardCreatedAt = useMemo(() => {
+    if (!card?.createdAt) {
+      return new Date();
+    }
+    return new Date(card.createdAt);
+  }, [card?.createdAt]);
+
+  // Calcular data agendada para um processo
+  const getScheduledDate = (process: ProcessWithAction) => {
+    if (process.scheduledDate) {
+      return new Date(process.scheduledDate);
+    }
+    const dayOffset = process.stepAction?.day_offset ?? 1;
+    const scheduledDate = new Date(cardCreatedAt);
+    scheduledDate.setDate(scheduledDate.getDate() + dayOffset - 1);
+    return scheduledDate;
+  };
+
+  const getStatusBadge = (status: CardStepAction["status"]) => {
+    switch (status) {
+      case "completed":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+            Concluído
+          </span>
+        );
+      case "in_progress":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+            Em andamento
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+            Pendente
+          </span>
+        );
+      case "skipped":
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+            Pulado
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (isLoadingActions || isLoadingStepActions) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (processesByDay.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-8 px-4">
+        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+          Nenhum processo encontrado
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 overflow-y-auto custom-scrollbar h-full">
+      {processesByDay.map(({ day, processes: dayProcesses }) => {
+        const isExpanded = expandedDays.has(day);
+        const hasCompleted = dayProcesses.every((p) => p.status === "completed");
+        
+        return (
+          <div key={day} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+            <button
+              onClick={() => toggleDay(day)}
+              className={cn(
+                "w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
+                isExpanded && "border-b border-gray-200 dark:border-gray-700"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                )}
+                <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                  Dia {day}
+                </h3>
+                {hasCompleted && (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                )}
+              </div>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                {dayProcesses.length} {dayProcesses.length === 1 ? "atividade" : "atividades"}
+              </span>
+            </button>
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-2 space-y-2">
+                    {dayProcesses.map((process) => {
+            const isCompleted = process.status === "completed";
+            const Icon = getActionIcon(process.stepAction?.action_type ?? null);
+            const scheduledDate = getScheduledDate(process);
+            const dateStr = format(scheduledDate, "dd/MM", { locale: ptBR });
+            const timeStr = format(scheduledDate, "HH:mm", { locale: ptBR });
+
+            const isSelected = process.id === selectedProcessId;
+            
+            return (
+              <div
+                key={process.id}
+                onClick={() => onSelectProcess(process.id)}
+                className={cn(
+                  "px-3 py-2.5 rounded-lg border transition-colors cursor-pointer",
+                  isSelected
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-600 shadow-sm"
+                    : isCompleted
+                    ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
+                    : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600"
+                )}
+              >
+                <div className="flex items-start gap-2.5">
+                  <div
+                    className={cn(
+                      "mt-0.5 shrink-0",
+                      isCompleted
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-gray-400 dark:text-gray-500"
+                    )}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Icon className="h-4 w-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        "text-xs font-medium leading-tight mb-1",
+                        isCompleted
+                          ? "text-gray-500 dark:text-gray-400 line-through"
+                          : "text-gray-900 dark:text-white"
+                      )}
+                    >
+                      {process.stepAction?.title || "Processo sem título"}
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                        {dateStr} • {timeStr}
+                      </span>
+                      {getStatusBadge(process.status)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+                    );
+                  })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * Componente para gerenciar tags do card
@@ -209,6 +558,8 @@ export function CardDetailsModal({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isMoving, setIsMoving] = useState(false);
   const [activeSection, setActiveSection] = useState<ActiveSection>("fields");
+  const [activeTab, setActiveTab] = useState<"informacoes" | "processos">("informacoes");
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
 
   // Calcula a etapa atual baseado no card
   const currentStep = useMemo(() => {
@@ -232,12 +583,92 @@ export function CardDetailsModal({
 
   const { data: users = [] } = useUsers();
   const { data: teams = [] } = useOrganizationTeams();
-  const { data: cardHistory = [] } = useCardHistory(card?.id);
+  // Para cards congelados, buscar histórico do card original (parent_card_id)
+  const { data: cardHistory = [] } = useCardHistory(card?.id, card?.parentCardId);
+  
+  // Verificar se o card está congelado (tem parent_card_id ou está em etapa freezing)
+  const isFrozenCard = useMemo(() => {
+    if (!card || !currentStep) return false;
+    return card.parentCardId !== null || currentStep.stepType === 'freezing';
+  }, [card, currentStep]);
+
+  // Buscar card_step_actions do card para exibir detalhes
+  const { data: cardStepActions = [] } = useQuery({
+    queryKey: ["nexflow", "card_step_actions", card?.id],
+    enabled: Boolean(card?.id),
+    queryFn: async (): Promise<CardStepAction[]> => {
+      if (!card?.id) return [];
+
+      const { data, error } = await nexflowClient()
+        .from("card_step_actions")
+        .select("*")
+        .eq("card_id", card.id)
+        .order("scheduled_date", { ascending: true })
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+      if (!data) return [];
+
+      return data.map((row) => ({
+        id: row.id,
+        cardId: row.card_id,
+        stepActionId: row.step_action_id,
+        stepId: row.step_id,
+        status: row.status as CardStepAction["status"],
+        scheduledDate: row.scheduled_date,
+        completedAt: row.completed_at,
+        completedBy: row.completed_by,
+        notes: row.notes,
+        executionData: (row.execution_data as Record<string, Json | undefined>) || {},
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    },
+  });
+
+  // Buscar dados completos dos step_actions
+  const stepActionIds = useMemo(
+    () => cardStepActions.map((csa) => csa.stepActionId).filter(Boolean),
+    [cardStepActions]
+  );
+
+  const { data: stepActions = [] } = useQuery({
+    queryKey: ["nexflow", "step_actions", "by-ids", stepActionIds],
+    enabled: stepActionIds.length > 0,
+    queryFn: async (): Promise<StepActionRow[]> => {
+      if (stepActionIds.length === 0) return [];
+
+      const { data, error } = await nexflowClient()
+        .from("step_actions")
+        .select("*")
+        .in("id", stepActionIds);
+
+      if (error) throw error;
+      if (!data) return [];
+
+      return data;
+    },
+  });
+
+  // Combinar card_step_actions com step_actions
+  const processesWithActions: ProcessWithAction[] = useMemo(() => {
+    const stepActionsMap = new Map(stepActions.map((sa) => [sa.id, sa]));
+    return cardStepActions.map((csa) => ({
+      ...csa,
+      stepAction: stepActionsMap.get(csa.stepActionId) || null,
+    }));
+  }, [cardStepActions, stepActions]);
+
+  // Obter processo selecionado
+  const selectedProcess = useMemo(() => {
+    if (!selectedProcessId) return null;
+    return processesWithActions.find((p) => p.id === selectedProcessId) || null;
+  }, [selectedProcessId, processesWithActions]);
 
   // Valores iniciais do formulário
   const initialValues = useMemo((): CardFormValues => {
     if (!card) {
-      return { title: "", fields: {}, checklist: {}, assignedTo: null, assignedTeamId: null, assigneeType: 'user', agents: [] };
+      return { title: "", fields: {}, checklist: {}, assignedTo: null, assignedTeamId: null, assigneeType: 'user', agents: [], product: null, value: null };
     }
     
     // Encontrar campo "responsável" nos campos da etapa atual
@@ -333,6 +764,8 @@ export function CardDetailsModal({
       assignedTeamId: extractedAssignedTeamId,
       assigneeType: assigneeType,
       agents: extractedAgents,
+      product: card.product ?? null,
+      value: card.value ? Number(card.value) : null,
     };
   }, [card, currentStep]);
 
@@ -348,6 +781,27 @@ export function CardDetailsModal({
       form.reset(initialValues);
     }
   }, [card?.id, initialValues, form]);
+
+  // Sincronizar aba ativa com seção ativa
+  useEffect(() => {
+    if (activeSection === "processes") {
+      setActiveTab("processos");
+    } else {
+      setActiveTab("informacoes");
+    }
+  }, [activeSection]);
+
+  // Auto-selecionar primeiro processo quando abrir a aba de processos
+  useEffect(() => {
+    if (activeSection === "processes" && !selectedProcessId && processesWithActions.length > 0) {
+      const firstActive = processesWithActions.find(
+        (p) => p.status === "pending" || p.status === "in_progress"
+      ) || processesWithActions[0];
+      if (firstActive) {
+        setSelectedProcessId(firstActive.id);
+      }
+    }
+  }, [activeSection, selectedProcessId, processesWithActions]);
 
   const { isDirty } = form.formState;
 
@@ -366,10 +820,20 @@ export function CardDetailsModal({
     }
 
     const orderedSteps = [...steps].sort((a, b) => a.position - b.position);
-    // Filtrar histórico para mostrar apenas etapas anteriores à atual
-    const history = cardHistory.filter(
-      (entry) => entry.toStepId && entry.toStepId !== card.stepId
-    );
+    
+    // Incluir todas as entradas de histórico, incluindo a etapa atual se for conclusão/cancelamento
+    // Não filtrar entradas onde entry.toStepId === card.stepId se a ação for 'complete' ou 'cancel'
+    const history = cardHistory.filter((entry) => {
+      if (!entry.toStepId) return false;
+      
+      // Sempre incluir ações de conclusão ou cancelamento, mesmo se for a etapa atual
+      if (entry.actionType === 'complete' || entry.actionType === 'cancel') {
+        return true;
+      }
+      
+      // Para outras ações, incluir apenas se não for a etapa atual
+      return entry.toStepId !== card.stepId;
+    });
 
     if (history.length === 0) {
       return orderedSteps
@@ -590,14 +1054,17 @@ export function CardDetailsModal({
             <Select
               value={assignedToValue ?? undefined}
               onValueChange={(value) => {
-                const newValue = value && value.trim() ? value : null;
-                form.setValue("assignedTo", newValue, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
+                if (!isFrozenCard) {
+                  const newValue = value && value.trim() ? value : null;
+                  form.setValue("assignedTo", newValue, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }
               }}
+              disabled={isFrozenCard}
             >
-              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
+              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue placeholder="Selecione um usuário">
                   {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
                 </SelectValue>
@@ -664,14 +1131,17 @@ export function CardDetailsModal({
             <Select
               value={assignedTeamIdValue ?? undefined}
               onValueChange={(value) => {
-                const newValue = value && value.trim() ? value : null;
-                form.setValue("assignedTeamId", newValue, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
+                if (!isFrozenCard) {
+                  const newValue = value && value.trim() ? value : null;
+                  form.setValue("assignedTeamId", newValue, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  });
+                }
               }}
+              disabled={isFrozenCard}
             >
-              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10">
+              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue placeholder="Selecione um time">
                   {selectedTeam ? selectedTeam.name : "Selecione um time"}
                 </SelectValue>
@@ -721,9 +1191,12 @@ export function CardDetailsModal({
                 >
                   <Checkbox
                     checked={watchChecklist?.[field.id]?.[item] === true}
-                    onCheckedChange={(checked) =>
-                      handleCheckboxChange(field.id, item, checked === true)
-                    }
+                    onCheckedChange={(checked) => {
+                      if (!isFrozenCard) {
+                        handleCheckboxChange(field.id, item, checked === true);
+                      }
+                    }}
+                    disabled={isFrozenCard}
                   />
                   {item}
                 </label>
@@ -772,8 +1245,13 @@ export function CardDetailsModal({
                 <Calendar
                   mode="single"
                   selected={parsedValue}
-                  onSelect={(date) => handleDateChange(field.id, date)}
+                  onSelect={(date) => {
+                    if (!isFrozenCard) {
+                      handleDateChange(field.id, date);
+                    }
+                  }}
                   initialFocus
+                  disabled={isFrozenCard}
                 />
               </PopoverContent>
             </Popover>
@@ -797,8 +1275,9 @@ export function CardDetailsModal({
             <Textarea
               rows={4}
               placeholder={(field.configuration.placeholder as string) ?? "Digite sua resposta..."}
-              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow resize-none"
+              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               {...form.register(`fields.${field.id}`)}
+              disabled={isFrozenCard}
             />
           </div>
         </div>
@@ -823,24 +1302,29 @@ export function CardDetailsModal({
               placeholder={(field.configuration.placeholder as string) ?? "000.000.000-00 ou 00.000.000/0000-00"}
               value={formatCnpjCpf((watchFields[field.id] as string) ?? "", cnpjCpfType)}
               onChange={(e) => {
-                const formatted = formatCnpjCpf(e.target.value, cnpjCpfType);
-                form.setValue(`fields.${field.id}`, formatted, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                });
-              }}
-              onBlur={() => {
-                const value = (watchFields[field.id] as string) ?? "";
-                if (value && !validateCnpjCpf(value, cnpjCpfType)) {
-                  form.setError(`fields.${field.id}`, {
-                    type: "manual",
-                    message: "CPF/CNPJ inválido",
+                if (!isFrozenCard) {
+                  const formatted = formatCnpjCpf(e.target.value, cnpjCpfType);
+                  form.setValue(`fields.${field.id}`, formatted, {
+                    shouldDirty: true,
+                    shouldValidate: true,
                   });
-                } else {
-                  form.clearErrors(`fields.${field.id}`);
                 }
               }}
-              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow"
+              onBlur={() => {
+                if (!isFrozenCard) {
+                  const value = (watchFields[field.id] as string) ?? "";
+                  if (value && !validateCnpjCpf(value, cnpjCpfType)) {
+                    form.setError(`fields.${field.id}`, {
+                      type: "manual",
+                      message: "CPF/CNPJ inválido",
+                    });
+                  } else {
+                    form.clearErrors(`fields.${field.id}`);
+                  }
+                }
+              }}
+              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isFrozenCard}
             />
           </div>
           {form.formState.errors.fields?.[field.id] && (
@@ -866,8 +1350,9 @@ export function CardDetailsModal({
           <Input
             type={field.fieldType === "number" ? "number" : "text"}
             placeholder={(field.configuration.placeholder as string) ?? ""}
-            className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow"
+            className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
             {...form.register(`fields.${field.id}`)}
+            disabled={isFrozenCard}
           />
         </div>
       </div>
@@ -1063,12 +1548,37 @@ export function CardDetailsModal({
                     />
                     <div className="rounded-xl bg-white dark:bg-gray-800 p-4 shadow-sm ring-1 ring-gray-100 dark:ring-gray-700">
                       <div className="flex items-center justify-between gap-2">
-                        <p
-                          className="text-sm font-medium"
-                          style={{ color: step?.color ?? "#334155" }}
-                        >
-                          {step?.title ?? "Etapa"}
-                        </p>
+                        <div className="flex-1">
+                          <p
+                            className="text-sm font-medium"
+                            style={{ color: step?.color ?? "#334155" }}
+                          >
+                            {entry.toStepTitle || step?.title || "Etapa"}
+                          </p>
+                          {/* Mostrar informação de movimentação se disponível */}
+                          {entry.fromStepTitle && entry.toStepTitle && entry.fromStepTitle !== entry.toStepTitle && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {entry.fromStepTitle} → {entry.toStepTitle}
+                            </p>
+                          )}
+                          {/* Mostrar quem moveu se disponível */}
+                          {entry.userName && (
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              Movido por {entry.userName}
+                            </p>
+                          )}
+                          {/* Mostrar tipo de ação se for conclusão ou cancelamento */}
+                          {entry.actionType === 'complete' && (
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
+                              ✓ Concluído
+                            </p>
+                          )}
+                          {entry.actionType === 'cancel' && (
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-1 font-medium">
+                              ✗ Cancelado
+                            </p>
+                          )}
+                        </div>
                         <span className="shrink-0 text-[10px] text-gray-400">
                           {format(new Date(entry.movedAt), "dd/MM HH:mm", { locale: ptBR })}
                         </span>
@@ -1117,11 +1627,53 @@ export function CardDetailsModal({
               <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Nome do Card (Identificador)
               </Label>
-              <Input
-                {...form.register("title")}
-                className="w-full max-w-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-600 focus:ring-blue-600 sm:text-sm"
-              />
+            <Input
+              {...form.register("title")}
+              disabled={isFrozenCard}
+              className="w-full max-w-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-600 focus:ring-blue-600 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            />
             </div>
+
+            {/* Campos financeiros - apenas para cards do tipo finance */}
+            {card?.cardType === 'finance' && (
+              <div className="mb-6 p-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+                  Informações Financeiras
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                      Produto
+                    </Label>
+                    <Input
+                      {...form.register("product")}
+                      disabled={isFrozenCard}
+                      placeholder="Digite o nome do produto"
+                      className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                    />
+                  </div>
+                  <div>
+                    <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                      Valor
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">R$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        {...form.register("value", {
+                          valueAsNumber: true,
+                        })}
+                        disabled={isFrozenCard}
+                        placeholder="0,00"
+                        className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-10 pr-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {currentStep?.fields?.length ? (
               <div className="space-y-6">
@@ -1160,6 +1712,21 @@ export function CardDetailsModal({
             </div>
           </div>
         );
+      case "processes":
+        if (!card) return null;
+        if (selectedProcess) {
+          return <ProcessDetails process={selectedProcess} card={card} />;
+        }
+        return (
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <Workflow className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Selecione um processo na sidebar para visualizar os detalhes
+              </p>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -1168,9 +1735,6 @@ export function CardDetailsModal({
   if (!card) {
     return null;
   }
-
-  // Gerar ID do card (usando últimos caracteres do UUID)
-  const cardId = card.id.split("-")[0].toUpperCase().slice(0, 4) + "-" + card.id.split("-")[1].slice(0, 4);
 
   return (
     <Dialog open={Boolean(card)} onOpenChange={handleOpenChange}>
@@ -1181,19 +1745,21 @@ export function CardDetailsModal({
         hideCloseButton
       >
         <DialogTitle className="sr-only">Detalhes do Card: {card.title}</DialogTitle>
+        <DialogDescription className="sr-only">
+          Visualize e edite os detalhes do card, incluindo campos, histórico e processos
+        </DialogDescription>
 
         <div className="flex h-full flex-col bg-white dark:bg-gray-900">
           {/* Header Redesenhado */}
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start shrink-0">
-            <div>
+            <div className="flex-1">
               <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Card
               </span>
               <div className="flex items-center gap-3 mt-1">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{card.title}</h1>
-                <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 px-2 py-0.5 rounded text-xs border border-gray-200 dark:border-gray-600 font-mono">
-                  #{cardId}
-                </span>
+                {/* Widget flutuante de Lead */}
+                <OpportunityFloatingWidget opportunityId={card.opportunityId} />
               </div>
               {currentStep && (
                 <div className="flex items-center gap-2 mt-2">
@@ -1220,131 +1786,190 @@ export function CardDetailsModal({
           <div className="flex flex-1 overflow-hidden">
             {/* Sidebar de Navegação */}
             <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
-              <nav className="p-4 space-y-1">
-                <button
-                  onClick={() => setActiveSection("overview")}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
-                    activeSection === "overview"
-                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                  )}
-                >
-                  {activeSection === "overview" && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-                  )}
-                  <Info
-                    className={cn(
-                      "h-5 w-5",
-                      activeSection === "overview"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                    )}
-                  />
-                  <span>Visão Geral</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveSection("history")}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
-                    activeSection === "history"
-                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                  )}
-                >
-                  {activeSection === "history" && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-                  )}
-                  <History
-                    className={cn(
-                      "h-5 w-5",
-                      activeSection === "history"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                    )}
-                  />
-                  <div className="flex flex-col">
-                    <span>Histórico</span>
-                    {lastHistoryUpdate && (
-                      <span className="text-[10px] text-gray-400 font-normal">
-                        Última atualização: {lastHistoryUpdate}
-                      </span>
-                    )}
-                  </div>
-                </button>
-
-                <div className="relative">
-                  {activeSection === "fields" && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-                  )}
-                  <button
-                    onClick={() => setActiveSection("fields")}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium shadow-sm border border-gray-200 dark:border-gray-600 text-left",
-                      activeSection === "fields"
-                        ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-white"
-                        : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                    )}
-                  >
-                    <FileEdit
-                      className={cn(
-                        "h-5 w-5",
-                        activeSection === "fields"
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-gray-400"
-                      )}
-                    />
-                    <span>Campos da Etapa</span>
-                  </button>
+              <Tabs 
+                value={activeTab} 
+                onValueChange={(value) => {
+                  const newTab = value as "informacoes" | "processos";
+                  setActiveTab(newTab);
+                  if (newTab === "processos") {
+                    setActiveSection("processes");
+                  } else {
+                    // Se estiver em processos, mudar para fields, senão manter a seção atual
+                    if (activeSection === "processes") {
+                      setActiveSection("fields");
+                    }
+                  }
+                }}
+                className="flex flex-col h-full"
+              >
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-700">
+                    <TabsTrigger 
+                      value="informacoes"
+                      className="text-xs font-medium"
+                    >
+                      Informações
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="processos"
+                      className="text-xs font-medium"
+                    >
+                      Processos
+                    </TabsTrigger>
+                  </TabsList>
                 </div>
 
-                <button
-                  onClick={() => setActiveSection("attachments")}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
-                    activeSection === "attachments"
-                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                  )}
-                >
-                  {activeSection === "attachments" && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-                  )}
-                  <Paperclip
-                    className={cn(
-                      "h-5 w-5",
-                      activeSection === "attachments"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                    )}
-                  />
-                  <span>Anexos</span>
-                </button>
+                <TabsContent value="informacoes" className="flex-1 overflow-y-auto mt-0 p-4 space-y-1">
+                  <nav className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setActiveTab("informacoes");
+                        setActiveSection("overview");
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                        activeSection === "overview"
+                          ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                          : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      {activeSection === "overview" && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                      )}
+                      <Info
+                        className={cn(
+                          "h-5 w-5",
+                          activeSection === "overview"
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
+                        )}
+                      />
+                      <span>Visão Geral</span>
+                    </button>
 
-                <button
-                  onClick={() => setActiveSection("comments")}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
-                    activeSection === "comments"
-                      ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                      : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-                  )}
-                >
-                  {activeSection === "comments" && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-                  )}
-                  <MessageSquare
-                    className={cn(
-                      "h-5 w-5",
-                      activeSection === "comments"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                    )}
+                    <button
+                      onClick={() => {
+                        setActiveTab("informacoes");
+                        setActiveSection("history");
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                        activeSection === "history"
+                          ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                          : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      {activeSection === "history" && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                      )}
+                      <History
+                        className={cn(
+                          "h-5 w-5",
+                          activeSection === "history"
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
+                        )}
+                      />
+                      <div className="flex flex-col">
+                        <span>Histórico</span>
+                        {lastHistoryUpdate && (
+                          <span className="text-[10px] text-gray-400 font-normal">
+                            Última atualização: {lastHistoryUpdate}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    <div className="relative">
+                      {activeSection === "fields" && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                      )}
+                      <button
+                        onClick={() => {
+                          setActiveTab("informacoes");
+                          setActiveSection("fields");
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium shadow-sm border border-gray-200 dark:border-gray-600 text-left",
+                          activeSection === "fields"
+                            ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-white"
+                            : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                        )}
+                      >
+                        <FileEdit
+                          className={cn(
+                            "h-5 w-5",
+                            activeSection === "fields"
+                              ? "text-blue-600 dark:text-blue-400"
+                              : "text-gray-400"
+                          )}
+                        />
+                        <span>Campos da Etapa</span>
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab("informacoes");
+                        setActiveSection("attachments");
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                        activeSection === "attachments"
+                          ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                          : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      {activeSection === "attachments" && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                      )}
+                      <Paperclip
+                        className={cn(
+                          "h-5 w-5",
+                          activeSection === "attachments"
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
+                        )}
+                      />
+                      <span>Anexos</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setActiveTab("informacoes");
+                        setActiveSection("comments");
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                        activeSection === "comments"
+                          ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                          : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                      )}
+                    >
+                      {activeSection === "comments" && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+                      )}
+                      <MessageSquare
+                        className={cn(
+                          "h-5 w-5",
+                          activeSection === "comments"
+                            ? "text-blue-600 dark:text-blue-400"
+                            : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
+                        )}
+                      />
+                      <span>Comentários</span>
+                    </button>
+                  </nav>
+                </TabsContent>
+
+                <TabsContent value="processos" className="flex-1 overflow-y-auto mt-0 p-4">
+                  <ProcessesSidebar 
+                    card={card} 
+                    selectedProcessId={selectedProcessId}
+                    onSelectProcess={setSelectedProcessId}
                   />
-                  <span>Comentários</span>
-                </button>
-              </nav>
+                </TabsContent>
+              </Tabs>
 
               {/* Barra de Progresso do Fluxo */}
               <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700">
@@ -1366,15 +1991,27 @@ export function CardDetailsModal({
             </div>
 
             {/* Área de Conteúdo Principal */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-8">
-              <div className="max-w-3xl mx-auto">{renderSectionContent()}</div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-0">
+              <div className={cn(
+                activeSection === "processes" ? "w-full h-full" : "max-w-3xl mx-auto p-8"
+              )}>
+                {renderSectionContent()}
+              </div>
             </div>
           </div>
 
           {/* Footer Redesenhado */}
           {activeSection === "fields" && (
             <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
-              {onDelete && (
+              {/* Mensagem de card congelado */}
+              {isFrozenCard && (
+                <div className="w-full sm:w-auto flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-2.5 rounded-lg text-sm">
+                  <Lock className="h-4 w-4" />
+                  <span>Este card está congelado e não pode ser editado. Apenas visualização permitida.</span>
+                </div>
+              )}
+              
+              {onDelete && !isFrozenCard && (
                 <button
                   onClick={handleDelete}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg transition-colors shadow-sm text-sm font-medium"
@@ -1386,7 +2023,7 @@ export function CardDetailsModal({
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <button
                   onClick={handleSave}
-                  disabled={!isDirty || saveStatus === "saving"}
+                  disabled={isFrozenCard || !isDirty || saveStatus === "saving"}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg transition-colors shadow-sm text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saveStatus === "saving" ? (
@@ -1401,7 +2038,7 @@ export function CardDetailsModal({
                     </>
                   )}
                 </button>
-                {previousStep && onUpdateCard && (
+                {previousStep && onUpdateCard && !isFrozenCard && (
                   <button
                     onClick={handleMoveBack}
                     disabled={isMoving || !previousStep}
@@ -1413,7 +2050,7 @@ export function CardDetailsModal({
                 )}
                 <button
                   onClick={handleMoveNext}
-                  disabled={isMoveDisabled || isMoving || !nextStep}
+                  disabled={isFrozenCard || isMoveDisabled || isMoving || !nextStep}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-lg transition-colors shadow-md shadow-teal-500/20 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   style={
                     !isMoveDisabled && nextStep

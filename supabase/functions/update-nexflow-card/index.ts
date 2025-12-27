@@ -28,6 +28,8 @@ interface UpdateCardPayload {
   position?: number;
   parentCardId?: string | null;
   status?: 'inprogress' | 'completed' | 'canceled';
+  product?: string | null;
+  value?: number | null;
 }
 
 /**
@@ -90,7 +92,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, parentCardId, status } = body;
+    const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, parentCardId, status, product, value } = body;
     // NOTA: agents não será processado atualmente - será criado campo específico futuramente
 
     // #region agent log
@@ -213,6 +215,42 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Verificar se o card é um card congelado (tem parent_card_id e está em etapa freezing)
+    // Cards congelados não podem ser editados, apenas visualizados
+    const { data: cardStep, error: cardStepError } = await supabase
+      .schema('nexflow')
+      .from('cards')
+      .select('parent_card_id, step_id')
+      .eq('id', cardId)
+      .single();
+
+    if (!cardStepError && cardStep) {
+      // Verificar se o card está em uma etapa freezing
+      const { data: currentStepData, error: stepDataError } = await supabase
+        .schema('nexflow')
+        .from('steps')
+        .select('step_type')
+        .eq('id', cardStep.step_id)
+        .single();
+
+      // Se o card tem parent_card_id OU está em etapa freezing, é um card congelado
+      const isFrozenCard = cardStep.parent_card_id !== null || 
+                          (!stepDataError && currentStepData?.step_type === 'freezing');
+
+      if (isFrozenCard) {
+        // Cards congelados não podem ser editados
+        return new Response(
+          JSON.stringify({ 
+            error: "Este card está congelado e não pode ser editado. Apenas visualização permitida." 
+          }),
+          { 
+            status: 403, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+    }
+
     // Se está tentando alterar o título, verificar permissões
     if (title !== undefined && title !== null) {
       const canEdit = await canUserEditTitle(supabase, userId);
@@ -230,11 +268,15 @@ Deno.serve(async (req: Request) => {
     }
 
     // Validar stepId se fornecido
+    let targetStep: { flow_id: string; step_type: string; position: number } | null = null;
+    let finalStepId = stepId; // Variável para armazenar o stepId final (pode ser modificado pela lógica de freezing)
+    let autoStatus: 'inprogress' | 'completed' | 'canceled' | undefined = undefined; // Status automático baseado no step_type
+    
     if (stepId) {
       const { data: step, error: stepError } = await supabase
         .schema('nexflow')
         .from('steps')
-        .select('flow_id')
+        .select('flow_id, step_type, position')
         .eq('id', stepId)
         .single();
 
@@ -248,6 +290,8 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      targetStep = step;
+
       // Verificar se step pertence ao mesmo flow_id do card
       if (step.flow_id !== card.flow_id) {
         return new Response(
@@ -257,6 +301,143 @@ Deno.serve(async (req: Request) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
+      }
+
+      // Atualizar status automaticamente baseado no step_type quando o card está mudando de etapa
+      // Sempre sobrescrever o status quando o card é movido para uma etapa finisher ou fail
+      if (stepId !== card.step_id) {
+        if (step.step_type === 'finisher') {
+          // Sempre definir como 'completed' quando cai em etapa finisher
+          autoStatus = 'completed';
+        } else if (step.step_type === 'fail') {
+          // Sempre definir como 'canceled' quando cai em etapa fail
+          autoStatus = 'canceled';
+        }
+      }
+
+      // Lógica de freezing: quando card cai em etapa freezing
+      // O card fica congelado na etapa freezing (não editável) e o original vai para a próxima etapa
+      // IMPORTANTE: Cards não podem voltar para etapa freezing - só podem entrar nela uma vez
+      if (step.step_type === 'freezing' && stepId !== card.step_id) {
+        // Verificar se o card já foi congelado antes (tem parent_card_id ou já existe um card congelado apontando para ele)
+        const { data: currentCardFull, error: currentCardFullError } = await supabase
+          .schema('nexflow')
+          .from('cards')
+          .select('parent_card_id')
+          .eq('id', cardId)
+          .single();
+
+        if (!currentCardFullError && currentCardFull) {
+          // Se o card já tem parent_card_id, significa que ele já foi congelado antes
+          if (currentCardFull.parent_card_id !== null) {
+            return new Response(
+              JSON.stringify({ error: "Este card já foi congelado anteriormente e não pode retornar para uma etapa de congelamento." }),
+              { 
+                status: 400, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+
+          // Verificar se já existe um card congelado apontando para este card (indicando que já foi congelado)
+          const { data: existingFrozenCard, error: frozenCheckError } = await supabase
+            .schema('nexflow')
+            .from('cards')
+            .select('id')
+            .eq('parent_card_id', cardId)
+            .limit(1)
+            .maybeSingle();
+
+          if (!frozenCheckError && existingFrozenCard) {
+            return new Response(
+              JSON.stringify({ error: "Este card já foi congelado anteriormente e não pode retornar para uma etapa de congelamento." }),
+              { 
+                status: 400, 
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+              }
+            );
+          }
+        }
+
+        // Buscar próxima etapa
+        const { data: nextStep, error: nextStepError } = await supabase
+          .schema('nexflow')
+          .from('steps')
+          .select('id, position')
+          .eq('flow_id', card.flow_id)
+          .gt('position', step.position)
+          .order('position', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (!nextStep || nextStepError) {
+          return new Response(
+            JSON.stringify({ error: "Não há próxima etapa para mover o card original após congelamento." }),
+            { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+
+        // O card fica na etapa freezing (congelado, não editável)
+        // O card original será movido para a próxima etapa em uma segunda atualização
+        // Por enquanto, deixamos o card na freezing e retornamos indicando que precisa de segunda atualização
+        // Mas na verdade, vamos fazer diferente: criar um clone na freezing e mover o original
+        
+        // Buscar dados completos do card atual
+        const { data: currentCard, error: currentCardError } = await supabase
+          .schema('nexflow')
+          .from('cards')
+          .select('*')
+          .eq('id', cardId)
+          .single();
+
+        if (currentCardError || !currentCard) {
+          return new Response(
+            JSON.stringify({ error: "Erro ao buscar dados do card", details: currentCardError?.message }),
+            { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+
+        // Criar card congelado na etapa freezing (clone que aponta para o original)
+        // Este card congelado não pode ser editado e compartilha o histórico do original
+        const { data: frozenCard, error: frozenCardError } = await supabase
+          .schema('nexflow')
+          .from('cards')
+          .insert({
+            flow_id: currentCard.flow_id,
+            step_id: stepId, // Etapa freezing
+            client_id: currentCard.client_id,
+            title: currentCard.title, // Mesmo título do original
+            field_values: currentCard.field_values,
+            checklist_progress: currentCard.checklist_progress,
+            parent_card_id: cardId, // Aponta para o original - histórico compartilhado via parent_card_id
+            assigned_to: currentCard.assigned_to,
+            assigned_team_id: currentCard.assigned_team_id,
+            agents: currentCard.agents,
+            status: currentCard.status, // Manter status do original
+            position: 0,
+          })
+          .select('*')
+          .single();
+
+        if (frozenCardError) {
+          console.error('Erro ao criar card congelado:', frozenCardError);
+          return new Response(
+            JSON.stringify({ error: "Erro ao criar card congelado", details: frozenCardError.message }),
+            { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+
+        // Mover card original para a próxima etapa
+        finalStepId = nextStep.id;
       }
     }
 
@@ -314,16 +495,23 @@ Deno.serve(async (req: Request) => {
     //   updatePayload.agents = agents;
     // }
     
-    if (stepId !== undefined) updatePayload.step_id = stepId;
+    if (finalStepId !== undefined) updatePayload.step_id = finalStepId;
     if (position !== undefined) updatePayload.position = position;
     if (parentCardId !== undefined) updatePayload.parent_card_id = parentCardId;
-    if (status !== undefined) updatePayload.status = status;
+    // Priorizar status automático (baseado no step_type) sobre o status fornecido pelo frontend
+    if (autoStatus !== undefined) {
+      updatePayload.status = autoStatus;
+    } else if (status !== undefined) {
+      updatePayload.status = status;
+    }
+    if (product !== undefined) updatePayload.product = product;
+    if (value !== undefined) updatePayload.value = value;
 
     // #region agent log
     console.log(JSON.stringify({
       location: 'update-nexflow-card/index.ts:318',
       message: 'About to update card in database',
-      data: { cardId, updatePayload, hasAssignedTeamIdInPayload: 'assigned_team_id' in updatePayload, assignedTeamIdValue: updatePayload.assigned_team_id },
+      data: { cardId, updatePayload, finalStepId, hasAssignedTeamIdInPayload: 'assigned_team_id' in updatePayload, assignedTeamIdValue: updatePayload.assigned_team_id },
       timestamp: Date.now(),
       sessionId: 'debug-session',
       runId: 'run1',
@@ -332,24 +520,175 @@ Deno.serve(async (req: Request) => {
     // #endregion
 
     // Se stepId está mudando, registrar no histórico antes de atualizar
-    if (stepId !== undefined && stepId !== card.step_id) {
-      const { error: historyError } = await supabase
-        .schema('nexflow')
-        .from('card_history')
-        .insert({
-          card_id: cardId,
-          client_id: card.client_id,
-          from_step_id: card.step_id,
-          to_step_id: stepId,
-          created_by: userId,
-          action_type: 'move',
-          details: {},
-        });
+    // IMPORTANTE: Registrar histórico para TODAS as mudanças de step, incluindo finisher e fail
+    // Nota: Se houver erro de permissão, apenas logar e continuar (não falhar a atualização)
+    const isStepChanging = finalStepId !== undefined && finalStepId !== card.step_id;
+    
+    // Log para diagnóstico
+    if (stepId && stepId !== card.step_id) {
+      console.log('Verificando registro de histórico:', {
+        stepId,
+        finalStepId,
+        currentStepId: card.step_id,
+        isStepChanging,
+        stepType: targetStep?.step_type,
+        autoStatus,
+      });
+    }
+    
+    if (isStepChanging) {
+      try {
+        // Validar que userId existe
+        if (!userId) {
+          console.error('Erro ao registrar histórico: userId não está disponível', {
+            cardId,
+            fromStepId: card.step_id,
+            toStepId: finalStepId,
+          });
+        } else {
+          // Buscar informações dos steps para adicionar no details
+          let fromStepTitle: string | null = null;
+          let fromStepType: string | null = null;
+          let toStepTitle: string | null = null;
+          let toStepType: string | null = null;
+          
+          if (card.step_id) {
+            const { data: fromStep } = await supabase
+              .schema('nexflow')
+              .from('steps')
+              .select('title, step_type')
+              .eq('id', card.step_id)
+              .single();
+            fromStepTitle = fromStep?.title ?? null;
+            fromStepType = fromStep?.step_type ?? null;
+          }
+          
+          if (finalStepId) {
+            const { data: toStep } = await supabase
+              .schema('nexflow')
+              .from('steps')
+              .select('title, step_type')
+              .eq('id', finalStepId)
+              .single();
+            toStepTitle = toStep?.title ?? null;
+            toStepType = toStep?.step_type ?? null;
+          }
+          
+          // Buscar informações do usuário para adicionar no details
+          let userName: string | null = null;
+          const { data: userData } = await supabase
+            .from('core_client_users')
+            .select('name, surname')
+            .eq('id', userId)
+            .single();
+          
+          if (userData) {
+            userName = `${userData.name || ''} ${userData.surname || ''}`.trim() || null;
+          }
+          
+          // Preparar details com informações adicionais, incluindo tipo de step
+          const historyDetails: Record<string, unknown> = {
+            from_step_title: fromStepTitle,
+            from_step_type: fromStepType,
+            to_step_title: toStepTitle,
+            to_step_type: toStepType,
+            user_name: userName,
+            moved_at: new Date().toISOString(),
+            status_change: autoStatus || null, // Incluir se houve mudança automática de status
+          };
+          
+          // Determinar action_type baseado no tipo de step de destino
+          let actionType = 'move';
+          if (toStepType === 'finisher') {
+            actionType = 'complete';
+          } else if (toStepType === 'fail') {
+            actionType = 'cancel';
+          }
+          
+          // Inserir histórico com validações
+          const historyPayload: Record<string, unknown> = {
+            card_id: cardId,
+            client_id: card.client_id,
+            action_type: actionType,
+            details: historyDetails,
+          };
+          
+          // Adicionar step IDs apenas se existirem
+          if (card.step_id) {
+            historyPayload.from_step_id = card.step_id;
+          }
+          if (finalStepId) {
+            historyPayload.to_step_id = finalStepId;
+          }
+          // Adicionar created_by apenas se userId for válido
+          if (userId) {
+            historyPayload.created_by = userId;
+          }
+          
+          console.log('Tentando registrar histórico:', {
+            cardId,
+            fromStepId: card.step_id,
+            toStepId: finalStepId,
+            actionType,
+            toStepType,
+            userId,
+            payload: historyPayload,
+          });
+          
+          const { error: historyError, data: historyData } = await supabase
+            .schema('nexflow')
+            .from('card_history')
+            .insert(historyPayload)
+            .select()
+            .single();
 
-      if (historyError) {
-        console.error('Erro ao inserir histórico do card:', historyError);
-        // Não falhar a atualização se o histórico falhar, apenas logar o erro
+          if (historyError) {
+            console.error('Erro ao inserir histórico do card:', {
+              error: historyError,
+              message: historyError.message,
+              code: historyError.code,
+              details: historyError.details,
+              payload: historyPayload,
+              cardId,
+              fromStepId: card.step_id,
+              toStepId: finalStepId,
+              toStepType,
+            });
+            // Não falhar a atualização se o histórico falhar, apenas logar o erro
+          } else {
+            console.log('Histórico registrado com sucesso:', {
+              historyId: historyData?.id,
+              cardId,
+              fromStepId: card.step_id,
+              toStepId: finalStepId,
+              fromStepType,
+              toStepType,
+              actionType,
+              userId,
+              userName,
+            });
+          }
+        }
+      } catch (historyErr) {
+        console.error('Exceção ao inserir histórico do card:', {
+          error: historyErr,
+          message: historyErr instanceof Error ? historyErr.message : 'Erro desconhecido',
+          stack: historyErr instanceof Error ? historyErr.stack : undefined,
+          cardId,
+          fromStepId: card.step_id,
+          toStepId: finalStepId,
+        });
+        // Continuar mesmo se houver erro de permissão ou outro erro
       }
+    } else if (stepId && stepId !== card.step_id) {
+      // Log quando o histórico não deveria ser registrado (para diagnóstico)
+      console.warn('Histórico NÃO será registrado (condição não atendida):', {
+        stepId,
+        finalStepId,
+        currentStepId: card.step_id,
+        isStepChanging,
+        reason: finalStepId === undefined ? 'finalStepId é undefined' : 'finalStepId === card.step_id',
+      });
     }
 
     // Atualizar card
@@ -434,6 +773,9 @@ Deno.serve(async (req: Request) => {
       position: updatedCard.position ?? 0,
       status: updatedCard.status ?? null,
       createdAt: updatedCard.created_at,
+      cardType: updatedCard.card_type ?? 'onboarding',
+      product: updatedCard.product ?? null,
+      value: updatedCard.value ? Number(updatedCard.value) : null,
     };
 
     return new Response(

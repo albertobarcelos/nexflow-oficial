@@ -184,7 +184,7 @@ export function FlowsPage() {
                               className="flex items-center h-8 px-2 text-xs"
                               onClick={(event) => {
                                 event.stopPropagation();
-                                // Função será implementada futuramente
+                                navigate(`/crm/flows/${flow.id}/processes`);
                               }}
                             >
                               <Workflow className="h-4 w-4 flex-shrink-0" />

@@ -1,24 +1,31 @@
 import { motion } from "framer-motion";
-import { Phone, Building2, User, Calendar } from "lucide-react";
+import { Phone, Building2, User, Calendar, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Opportunity } from "@/hooks/useOpportunities";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
   onClick?: () => void;
+  onCreateCard?: () => void;
   index?: number;
 }
 
 /**
  * Card flutuante para exibir uma oportunidade
  */
-export function OpportunityCard({ opportunity, onClick, index = 0 }: OpportunityCardProps) {
+export function OpportunityCard({ opportunity, onClick, onCreateCard, index = 0 }: OpportunityCardProps) {
   const formattedDate = opportunity.created_at
     ? format(new Date(opportunity.created_at), "dd 'de' MMM 'de' yyyy", { locale: ptBR })
     : "";
+
+  const handleCreateCard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCreateCard?.();
+  };
 
   return (
     <motion.div
@@ -124,6 +131,19 @@ export function OpportunityCard({ opportunity, onClick, index = 0 }: Opportunity
             </span>
           </div>
         )}
+      </div>
+
+      {/* Botão de ação flutuante */}
+      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleCreateCard}
+          className="h-8 px-3 text-xs"
+        >
+          <Plus className="h-3.5 w-3.5 mr-1.5" />
+          Criar Card
+        </Button>
       </div>
 
       {/* Efeito de hover */}

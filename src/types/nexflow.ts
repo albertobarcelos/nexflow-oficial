@@ -12,6 +12,10 @@ export type StepFieldType =
 
 export type FlowAccessRole = "viewer" | "editor" | "admin";
 
+export type ActionType = "phone_call" | "email" | "linkedin_message" | "whatsapp" | "meeting" | "task";
+
+export type StepType = "standard" | "finisher" | "fail" | "freezing";
+
 export interface NexflowFlow {
   id: string;
   name: string;
@@ -30,6 +34,7 @@ export interface NexflowStep {
   position: number;
   color: string;
   isCompletionStep?: boolean;
+  stepType?: StepType;
   createdAt: string;
   responsibleUserId?: string | null;
   responsibleTeamId?: string | null;
@@ -67,6 +72,12 @@ export interface CardMovementEntry {
   toStepId: string;
   movedAt: string;
   movedBy?: string | null;
+  // Informações adicionais do details
+  fromStepTitle?: string | null;
+  toStepTitle?: string | null;
+  userName?: string | null;
+  actionType?: string;
+  details?: Record<string, unknown>;
 }
 
 export interface NexflowCard {
@@ -83,9 +94,14 @@ export interface NexflowCard {
   assignedTeamId?: string | null;
   assigneeType?: 'user' | 'team' | 'unassigned';
   agents?: string[];
+  opportunityId?: string | null;
   position: number;
   status?: string | null;
   createdAt: string;
+  linkedActions?: CardStepAction[]; // Processos vinculados ao card
+  cardType?: 'finance' | 'onboarding';
+  product?: string | null;
+  value?: number | null;
 }
 
 export interface NexflowFlowAccess {
@@ -111,3 +127,50 @@ export interface FlowTag {
   created_at: string;
 }
 
+// Tipos para Step Actions (Processos)
+export interface StepActionSettings {
+  allowNotes?: boolean;
+  requiredCompletion?: boolean;
+  [key: string]: Json | undefined;
+}
+
+export interface NexflowStepAction {
+  id: string;
+  stepId: string;
+  dayOffset: number;
+  position: number;
+  title: string;
+  actionType: ActionType;
+  description?: string | null;
+  scriptTemplate?: string | null;
+  checklistItems: string[];
+  isRequired: boolean;
+  settings: StepActionSettings;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Agrupamento de ações por day_offset
+export interface StepActionsByDay {
+  dayOffset: number;
+  actions: NexflowStepAction[];
+}
+
+// Status de execução de uma ação vinculada a um card
+export type CardStepActionStatus = "pending" | "in_progress" | "completed" | "skipped";
+
+// Vinculação entre card e step_action (processo)
+export interface CardStepAction {
+  id: string;
+  cardId: string;
+  stepActionId: string;
+  stepId: string;
+  status: CardStepActionStatus;
+  scheduledDate: string | null;
+  completedAt: string | null;
+  completedBy: string | null;
+  notes: string | null;
+  executionData: Record<string, Json | undefined>;
+  createdAt: string;
+  updatedAt: string;
+}

@@ -1,176 +1,126 @@
-// AIDEV-NOTE: EntityTemplates removido - sistema simplificado sem entidades dinâmicas
-// AIDEV-NOTE: ConfigurationDropdown removido - cards de flows antigos removidos
-// AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado sem entidades dinâmicas
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { Info, Plus } from "lucide-react";
+import { useState } from "react";
+import { Share2, Lightbulb, CheckCircle, XCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
-// AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
-
-type UserData = {
-    client_id: string;
-};
-
-// AIDEV-NOTE: Tipo Flow removido - cards antigos removidos
-type Entity = {
-    id: string;
-    name: string;
-    description: string | null;
-    icon: string;
-    color: string;
-    count?: number;
-    table?: string;
-};
-
-// Função helper para obter dados do usuário
-const getCurrentUserData = async (): Promise<UserData> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Usuário não autenticado");
-
-    // A função agora busca diretamente pelo ID do usuário
-    const { data, error } = await supabase
-        .from('core_client_users')
-        .select('client_id')
-        .eq('id', user.id) // CORRIGIDO: usa a coluna 'id'
-        .single();
-
-    if (error) {
-        console.error('Error fetching user data:', error);
-        throw error;
-    }
-
-    if (!data) {
-        throw new Error("Dados do colaborador não encontrados.");
-    }
-
-    return {
-        client_id: data.client_id,
-    };
-};
+import { useDashboardStats, PeriodFilter } from "@/hooks/useDashboardStats";
+import { useOpportunityFlowData } from "@/hooks/useOpportunityFlowData";
+import { useRecentActivities } from "@/hooks/useRecentActivities";
+import { useSalesOriginData } from "@/hooks/useSalesOriginData";
+import { MetricCard } from "@/components/crm/dashboard/MetricCard";
+import { OpportunityFlowChart } from "@/components/crm/dashboard/OpportunityFlowChart";
+import { SalesOriginChart } from "@/components/crm/dashboard/SalesOriginChart";
+import { RecentActivitiesTable } from "@/components/crm/dashboard/RecentActivitiesTable";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Home() {
-    const navigate = useNavigate();
-    const { toast } = useToast();
-    // AIDEV-NOTE: showEntityTemplates removido - sistema simplificado sem entidades dinâmicas
-    const isMobile = useIsMobile();
+  const [period, setPeriod] = useState<PeriodFilter>('today');
+  
+  const { metrics, isLoading: isLoadingStats } = useDashboardStats(period);
+  const { data: flowData, isLoading: isLoadingFlow } = useOpportunityFlowData(period);
+  const { activities, isLoading: isLoadingActivities } = useRecentActivities(10);
+  const { data: salesOriginData, isLoading: isLoadingSales } = useSalesOriginData();
 
-    const { data: user } = useQuery<UserData>({
-        queryKey: ["user"],
-        queryFn: getCurrentUserData,
-    });
+  const periodButtons: { label: string; value: PeriodFilter }[] = [
+    { label: 'Hoje', value: 'today' },
+    { label: '7 Dias', value: '7days' },
+    { label: '30 Dias', value: '30days' },
+    { label: 'Custom', value: 'custom' },
+  ];
 
-    // AIDEV-NOTE: Query de flows removida - cards antigos removidos do dashboard
-    // AIDEV-NOTE: Entidades dinâmicas removidas - sistema simplificado
-    // Agora focamos apenas em Companies, People e Deals fixos
-    const entities: Entity[] = [];
-
-    // Ícones para entidades
-    const getEntityIcon = (iconName: string) => {
-        const iconMap: Record<string, string> = {
-            'database': '🗃️',
-            'building2': '🏢',
-            'users': '👥',
-            'package': '📦',
-            'home': '🏠',
-            'car': '🚗',
-            'graduation-cap': '🎓',
-            'briefcase': '💼',
-            'heart': '❤️',
-            'shopping-cart': '🛒'
-        };
-        return iconMap[iconName] || '🗃️';
-    };
-
-    return (
-        <div className="min-h-screen bg-[#f8faff] p-4 md:p-8">
-            <div className="bg-white rounded-2xl p-4 md:p-8 shadow-sm">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
-                    <h1 className="text-xl md:text-2xl">
-                        <span className="font-bold">Olá!</span>, vamos arrasar hoje!
-                    </h1>
-                </div>
-
-                <div className="space-y-6 md:space-y-8">
-                    <div>
-                        <div className="flex items-center gap-2 mb-4">
-                            <h2 className="text-base md:text-lg font-medium">Bases de Dados</h2>
-                            <Info className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                            <div
-                                className="border border-gray-300 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-not-allowed opacity-50 min-h-[100px] md:min-h-[120px]"
-                                title="Funcionalidade removida - sistema simplificado para deals"
-                            >
-                                <Plus className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
-                                <span className="text-gray-400 text-xs md:text-sm text-center">Criar Base (Desabilitado)</span>
-                            </div>
-                            {/* Link para EntityPage de mock, só em dev */}
-                            {process.env.NODE_ENV === 'development' && (
-                                <Button
-                                    variant="outline"
-                                    className="rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 min-h-[100px] md:min-h-[120px] border border-blue-400 text-blue-700 hover:bg-blue-50"
-                                    onClick={() => navigate('/crm/entity/mock')}
-                                    style={{ gridColumn: 'auto' }}
-                                >
-                                    <span className="text-lg">🧪</span>
-                                    <span className="text-xs md:text-sm text-center">Abrir Mock EntityPage</span>
-                                </Button>
-                            )}
-                            {/* Entidades dinâmicas */}
-                            {entities?.map((entity) => (
-                                <div
-                                    key={entity.id}
-                                    className="rounded-xl p-4 md:p-6 cursor-pointer hover:shadow-md transition-all min-h-[100px] md:min-h-[120px] relative overflow-hidden group"
-                                    style={{
-                                        backgroundColor: `${entity.color}10`,
-                                        borderLeft: `4px solid ${entity.color}`
-                                    }}
-                                >
-                                    <div
-                                        className="space-y-1 md:space-y-2 h-full"
-                                        onClick={() => navigate(`/crm/entity/${entity.id}`)}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-lg">{getEntityIcon(entity.icon)}</span>
-                                            <h3 className="text-xs md:text-sm font-medium line-clamp-1" style={{ color: entity.color }}>
-                                                {entity.name}
-                                            </h3>
-                                        </div>
-                                        <p className="text-xs text-gray-500 line-clamp-2 hidden sm:block">
-                                            {entity.description || 'Sem descrição'}
-                                        </p>
-                                        <p className="text-xs font-medium" style={{ color: entity.color }}>
-                                            {entity.count || 0} registros
-                                        </p>
-                                    </div>
-
-                                    {/* Botão de configuração */}
-                                    {/* AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado para deals */}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Ações rápidas em mobile */}
-                    {isMobile && (
-                        <div className="grid grid-cols-2 gap-3 pt-4 border-t">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full"
-                                onClick={() => navigate("/crm/dashboard")}
-                            >
-                                📊 Dashboard
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </div>
-            {/* AIDEV-NOTE: EntityTemplates removido - sistema simplificado para deals */}
+  return (
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-[#111827] p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+              Olá! <span className="font-normal text-gray-500 dark:text-gray-400">vamos analisar os dados hoje?</span>
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Visão geral do desempenho e métricas chave.
+            </p>
+          </div>
+          
+          {/* Period Filter Buttons */}
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            {periodButtons.map(({ label, value }) => (
+              <Button
+                key={value}
+                variant={period === value ? 'default' : 'ghost'}
+                size="sm"
+                className={period === value 
+                  ? "bg-[#25335b] text-white shadow-sm" 
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                }
+                onClick={() => setPeriod(value)}
+              >
+                {value === 'custom' && <Calendar className="w-3 h-3 mr-1" />}
+                {label}
+              </Button>
+            ))}
+          </div>
         </div>
-    );
-}
 
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {isLoadingStats ? (
+            <>
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))}
+            </>
+          ) : (
+            <>
+              <MetricCard
+                title="Indicações"
+                value={metrics.indications}
+                trend={metrics.indicationsTrend}
+                icon={Share2}
+                iconColor="text-blue-500"
+                showInfo
+              />
+              <MetricCard
+                title="Oportunidades"
+                value={metrics.opportunities}
+                trend={metrics.opportunitiesTrend}
+                icon={Lightbulb}
+                iconColor="text-yellow-500"
+              />
+              <MetricCard
+                title="Cards Completos"
+                value={metrics.completedCards}
+                trend={metrics.completedCardsTrend}
+                icon={CheckCircle}
+                iconColor="text-green-500"
+              />
+              <MetricCard
+                title="Cards Cancelados"
+                value={metrics.cancelledCards}
+                trend={metrics.cancelledCardsTrend}
+                icon={XCircle}
+                iconColor="text-red-500"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <OpportunityFlowChart 
+            data={flowData} 
+            isLoading={isLoadingFlow}
+          />
+          <SalesOriginChart 
+            data={salesOriginData} 
+            isLoading={isLoadingSales}
+          />
+        </div>
+
+        {/* Recent Activities Table */}
+        <RecentActivitiesTable 
+          activities={activities} 
+          isLoading={isLoadingActivities}
+        />
+      </div>
+    </div>
+  );
+}

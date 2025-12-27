@@ -1530,6 +1530,7 @@ export interface Database {
           movement_history: Json | null;
           parent_card_id: string | null;
           assigned_to: string | null;
+          opportunity_id: string | null;
           position: number;
           created_at: string;
         };
@@ -1544,6 +1545,7 @@ export interface Database {
           movement_history?: Json | null;
           parent_card_id?: string | null;
           assigned_to?: string | null;
+          opportunity_id?: string | null;
           position?: number;
           created_at?: string;
         };
@@ -1558,6 +1560,7 @@ export interface Database {
           movement_history?: Json | null;
           parent_card_id?: string | null;
           assigned_to?: string | null;
+          opportunity_id?: string | null;
           position?: number;
           created_at?: string;
         };
@@ -1650,6 +1653,135 @@ export interface Database {
           can_view?: boolean;
           can_edit_fields?: boolean | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      step_actions: {
+        Row: {
+          id: string;
+          step_id: string;
+          day_offset: number | null;
+          position: number | null;
+          title: string;
+          action_type: "phone_call" | "email" | "linkedin_message" | "whatsapp" | "meeting" | "task";
+          description: string | null;
+          script_template: string | null;
+          checklist_items: string[] | null;
+          is_required: boolean | null;
+          settings: Json | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          step_id: string;
+          day_offset?: number | null;
+          position?: number | null;
+          title: string;
+          action_type: "phone_call" | "email" | "linkedin_message" | "whatsapp" | "meeting" | "task";
+          description?: string | null;
+          script_template?: string | null;
+          checklist_items?: string[] | null;
+          is_required?: boolean | null;
+          settings?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          step_id?: string;
+          day_offset?: number | null;
+          position?: number | null;
+          title?: string;
+          action_type?: "phone_call" | "email" | "linkedin_message" | "whatsapp" | "meeting" | "task";
+          description?: string | null;
+          script_template?: string | null;
+          checklist_items?: string[] | null;
+          is_required?: boolean | null;
+          settings?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      card_step_actions: {
+        Row: {
+          id: string;
+          card_id: string;
+          step_action_id: string;
+          step_id: string;
+          status: "pending" | "in_progress" | "completed" | "skipped";
+          scheduled_date: string | null;
+          completed_at: string | null;
+          completed_by: string | null;
+          notes: string | null;
+          execution_data: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          step_action_id: string;
+          step_id: string;
+          status?: "pending" | "in_progress" | "completed" | "skipped";
+          scheduled_date?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          notes?: string | null;
+          execution_data?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          step_action_id?: string;
+          step_id?: string;
+          status?: "pending" | "in_progress" | "completed" | "skipped";
+          scheduled_date?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          notes?: string | null;
+          execution_data?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      opportunity_automations: {
+        Row: {
+          id: string;
+          client_id: string;
+          is_active: boolean;
+          target_flow_id: string;
+          target_step_id: string;
+          trigger_conditions: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          is_active?: boolean;
+          target_flow_id: string;
+          target_step_id: string;
+          trigger_conditions?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          is_active?: boolean;
+          target_flow_id?: string;
+          target_step_id?: string;
+          trigger_conditions?: Json;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

@@ -3,11 +3,18 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { VisibilitySelector } from "./VisibilitySelector";
 import type { VisibilityConfig } from "./VisibilitySelector";
-import type { NexflowStep } from "@/types/nexflow";
+import type { NexflowStep, StepType } from "@/types/nexflow";
 import type { StepDraft } from "@/hooks/useFlowBuilderState";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Palette } from "lucide-react";
 import { useState, useEffect } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface StepPropertiesContentProps {
   step: NexflowStep;
@@ -24,6 +31,7 @@ export function StepPropertiesContent({
 }: StepPropertiesContentProps) {
   // Usar cor do draft se disponível, senão usar cor do step
   const currentColor = stepDraft?.color ?? step.color;
+  const currentStepType = stepDraft?.stepType ?? step.stepType ?? "standard";
   const [localColor, setLocalColor] = useState(currentColor);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
@@ -69,6 +77,30 @@ export function StepPropertiesContent({
   const handleColorInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newColor = event.target.value;
     handleColorChange(newColor);
+  };
+
+  const handleStepTypeChange = (newStepType: StepType) => {
+    onStepDraftChange({ stepType: newStepType });
+  };
+
+  const getStepTypeLabel = (type: StepType): string => {
+    const labels: Record<StepType, string> = {
+      standard: "Normal",
+      finisher: "Concluídos",
+      fail: "Cancelados",
+      freezing: "Congelado",
+    };
+    return labels[type];
+  };
+
+  const getStepTypeDescription = (type: StepType): string => {
+    const descriptions: Record<StepType, string> = {
+      standard: "Etapa normal que pode utilizar campos e processos",
+      finisher: "Card ao cair nesta etapa terá status como concluído. Não pode ter processos ou campos",
+      fail: "Card ao cair nesta etapa terá status como cancelado. Não pode ter processos ou campos",
+      freezing: "Card será congelado (apenas visualização) e o original seguirá para próxima etapa. Não pode ter processos ou campos",
+    };
+    return descriptions[type];
   };
 
   return (
@@ -152,6 +184,42 @@ export function StepPropertiesContent({
             </Popover>
             <span className="text-sm text-slate-600">{localColor}</span>
           </div>
+        </div>
+
+        <div className="space-y-2 flex flex-wrap">
+          <Label>Tipo de etapa</Label>
+          <Select value={currentStepType} onValueChange={handleStepTypeChange}>
+            <SelectTrigger className="flex-col h-[70px]">
+              <SelectValue placeholder="Selecione o tipo de etapa" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="standard">
+                <div className="flex flex-col">
+                  <span className="font-medium">Normal</span>
+                  <span className="flex flex-wrap text-[10px] text-slate-500">Pode utilizar campos e processos</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="finisher">
+                <div className="flex flex-col">
+                  <span className="font-medium">Concluídos</span>
+                  <span className="flex flex-wrap text-[10px] text-slate-500">Card terá status concluído. Sem campos ou processos</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="fail">
+                <div className="flex flex-col">
+                  <span className="font-medium">Cancelados</span>
+                  <span className="flex flex-wrap text-[10px] text-slate-500">Card terá status cancelado. Sem campos ou processos</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="freezing">
+                <div className="flex flex-col">
+                  <span className="font-medium">Congelado</span>
+                  <span className="flex flex-wrap text-[10px] text-slate-500">Card será congelado e original seguirá para próxima etapa</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-slate-500">{getStepTypeDescription(currentStepType)}</p>
         </div>
       </div>
 
