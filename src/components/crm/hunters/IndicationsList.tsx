@@ -2,8 +2,14 @@ import { useIndications } from "@/hooks/useIndications";
 import { IndicationCard } from "./IndicationCard";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Indication } from "@/types/indications";
 
-export function IndicationsList() {
+interface IndicationsListProps {
+  onIndicationClick?: (indication: Indication) => void;
+  onIndicationCreateCard?: (indication: Indication) => void;
+}
+
+export function IndicationsList({ onIndicationClick, onIndicationCreateCard }: IndicationsListProps) {
   const { indications, isLoading, isError, error } = useIndications();
 
   if (isLoading) {
@@ -46,8 +52,14 @@ export function IndicationsList() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {indications.map((indication) => (
-        <IndicationCard key={indication.id} indication={indication} />
+      {indications.map((indication, index) => (
+        <IndicationCard
+          key={indication.id}
+          indication={indication}
+          index={index}
+          onClick={onIndicationClick ? () => onIndicationClick(indication) : undefined}
+          onCreateCard={onIndicationCreateCard ? () => onIndicationCreateCard(indication) : undefined}
+        />
       ))}
     </div>
   );

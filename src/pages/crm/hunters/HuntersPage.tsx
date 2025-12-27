@@ -2,14 +2,21 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { IndicationsList } from "@/components/crm/hunters/IndicationsList";
+import { CreateCardFromIndicationDialog } from "@/components/crm/hunters/CreateCardFromIndicationDialog";
+import { IndicationDetailsPanel } from "@/components/crm/hunters/IndicationDetailsPanel";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Indication } from "@/types/indications";
 
 export function HuntersPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+  const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
+  const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
+  const [selectedIndication, setSelectedIndication] = useState<string | null>(null);
+  const [indicationForCard, setIndicationForCard] = useState<Indication | null>(null);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -138,7 +145,29 @@ export function HuntersPage() {
         </p>
       </div>
 
-      <IndicationsList />
+      <IndicationsList
+        onIndicationClick={(indication) => {
+          setSelectedIndication(indication.id);
+          setIsDetailsPanelOpen(true);
+        }}
+        onIndicationCreateCard={(indication) => {
+          setIndicationForCard(indication);
+          setIsCreateCardDialogOpen(true);
+        }}
+      />
+
+      {/* Dialogs */}
+      <CreateCardFromIndicationDialog
+        open={isCreateCardDialogOpen}
+        onOpenChange={setIsCreateCardDialogOpen}
+        indication={indicationForCard}
+      />
+
+      <IndicationDetailsPanel
+        open={isDetailsPanelOpen}
+        onOpenChange={setIsDetailsPanelOpen}
+        indicationId={selectedIndication}
+      />
     </div>
   );
 }

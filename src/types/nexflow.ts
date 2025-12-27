@@ -95,6 +95,7 @@ export interface NexflowCard {
   assigneeType?: 'user' | 'team' | 'unassigned';
   agents?: string[];
   opportunityId?: string | null;
+  indicationId?: string | null;
   position: number;
   status?: string | null;
   createdAt: string;
@@ -171,6 +172,20 @@ export interface CardStepAction {
   completedBy: string | null;
   notes: string | null;
   executionData: Record<string, Json | undefined>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Automação para criar card filho quando card entra em etapa
+export interface StepChildCardAutomation {
+  id: string;
+  stepId: string;
+  clientId: string;
+  targetFlowId: string;
+  targetStepId: string;
+  isActive: boolean;
+  copyFieldValues: boolean;
+  copyAssignment: boolean;
   createdAt: string;
   updatedAt: string;
 }

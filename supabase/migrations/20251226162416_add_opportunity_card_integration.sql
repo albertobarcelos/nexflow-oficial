@@ -48,3 +48,4 @@ COMMENT ON TABLE nexflow.opportunity_automations IS 'Configuração de regras de
 COMMENT ON COLUMN nexflow.opportunity_automations.trigger_conditions IS 'Condições adicionais para disparar a automação (ex: tags, origem, etc.) - formato JSONB';
 COMMENT ON COLUMN nexflow.cards.opportunity_id IS 'Referência à oportunidade que originou este card';
 
+

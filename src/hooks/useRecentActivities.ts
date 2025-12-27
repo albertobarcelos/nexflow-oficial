@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -12,9 +14,18 @@ export interface RecentActivity {
   status: 'completed' | 'pending' | 'cancelled';
 }
 
-export function useRecentActivities(limit: number = 10) {
+interface UseRecentActivitiesOptions {
+  teamId?: string | null;
+  userId?: string | null;
+}
+
+export function useRecentActivities(limit: number = 10, options?: UseRecentActivitiesOptions) {
+  const { teamId, userId } = options || {};
+  const queryClient = useQueryClient();
+  const queryKey = ['recent-activities', limit, teamId, userId];
+  
   const { data, isLoading } = useQuery({
-    queryKey: ['recent-activities', limit],
+    queryKey,
     queryFn: async (): Promise<RecentActivity[]> => {
       const clientId = await getCurrentClientId();
       if (!clientId) {
@@ -35,8 +46,8 @@ export function useRecentActivities(limit: number = 10) {
       
       const flowIds = flows.map(f => f.id);
       
-      // Buscar cards recentes
-      const { data: cards } = await client
+      // Buscar cards recentes com filtros
+      let cardsQuery = client
         .from('cards')
         .select(`
           id,
@@ -48,7 +59,17 @@ export function useRecentActivities(limit: number = 10) {
           assigned_to,
           assigned_team_id
         `)
-        .in('flow_id', flowIds)
+        .in('flow_id', flowIds);
+      
+      // Aplicar filtros
+      if (teamId) {
+        cardsQuery = cardsQuery.eq('assigned_team_id', teamId);
+      }
+      if (userId) {
+        cardsQuery = cardsQuery.eq('assigned_to', userId);
+      }
+      
+      const { data: cards } = await cardsQuery
         .order('created_at', { ascending: false })
         .limit(limit);
       
@@ -62,12 +83,12 @@ export function useRecentActivities(limit: number = 10) {
         ? await client
             .schema('public')
             .from('core_client_users')
-            .select('id, first_name, last_name')
+            .select('id, name, surname')
             .in('id', userIds)
         : { data: [] };
       
       const userMap = new Map(
-        users?.map(u => [u.id, `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'Sem nome']) || []
+        users?.map(u => [u.id, `${u.name || ''} ${u.surname || ''}`.trim() || 'Sem nome']) || []
       );
       
       // Buscar informações dos steps para determinar status
@@ -121,8 +142,31 @@ export function useRecentActivities(limit: number = 10) {
         };
       });
     },
-    staleTime: 1000 * 60 * 2, // 2 minutos
+    staleTime: 1000 * 30, // 30 segundos para atualização mais rápida
   });
+  
+  // Subscribe to real-time changes in cards table
+  useEffect(() => {
+    const channel = supabase
+      .channel('recent-activities-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'nexflow',
+          table: 'cards',
+        },
+        () => {
+          // Invalidate and refetch when cards change
+          queryClient.invalidateQueries({ queryKey });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryKey, queryClient]);
   
   return {
     activities: data || [],

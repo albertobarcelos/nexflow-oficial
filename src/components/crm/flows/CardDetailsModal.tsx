@@ -55,6 +55,8 @@ import { useCardTags, useAddCardTag, useRemoveCardTag } from "@/hooks/useCardTag
 import { useFlowTags } from "@/hooks/useFlowTags";
 import { useCardHistory } from "@/hooks/useCardHistory";
 import { OpportunityFloatingWidget } from "./OpportunityFloatingWidget";
+import { IndicationFloatingWidget } from "./IndicationFloatingWidget";
+import { ParentCardWidget } from "./ParentCardWidget";
 import { ProcessesView } from "./ProcessesView";
 import { ProcessDetails } from "./ProcessDetails";
 import { useQuery } from "@tanstack/react-query";
@@ -62,6 +64,7 @@ import { nexflowClient } from "@/lib/supabase";
 import type { CardStepAction } from "@/types/nexflow";
 import { Database, Json } from "@/types/database";
 import { Phone, Mail, Calendar as CalendarIconProcess, CheckSquare, List } from "lucide-react";
+import { useNexflowFlow } from "@/hooks/useNexflowFlows";
 
 export interface CardFormValues {
   title: string;
@@ -90,6 +93,8 @@ interface CardDetailsModalProps {
   }) => Promise<void>;
   subtaskCount: number;
   parentTitle?: string | null;
+  onOpenParentCard?: (card: NexflowCard) => void;
+  currentFlowId?: string; // ID do flow atual para verificar se o card está em outro flow
 }
 
 type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments" | "processes";
@@ -554,6 +559,8 @@ export function CardDetailsModal({
   onUpdateCard,
   subtaskCount,
   parentTitle,
+  onOpenParentCard,
+  currentFlowId,
 }: CardDetailsModalProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isMoving, setIsMoving] = useState(false);
@@ -561,36 +568,61 @@ export function CardDetailsModal({
   const [activeTab, setActiveTab] = useState<"informacoes" | "processos">("informacoes");
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
 
-  // Calcula a etapa atual baseado no card
+  const { data: users = [] } = useUsers();
+  const { data: teams = [] } = useOrganizationTeams();
+  
+  // Se o card está em um flow diferente dos steps passados, buscar os steps do flow do card
+  // Verificar se o step atual do card existe nos steps passados
+  const cardFlowId = card?.flowId;
+  const cardStepId = card?.stepId;
+  const stepExistsInCurrentSteps = cardStepId ? steps.some(s => s.id === cardStepId) : false;
+  const needsDifferentFlow = cardFlowId && !stepExistsInCurrentSteps;
+  
+  const { steps: cardFlowSteps } = useNexflowFlow(needsDifferentFlow ? cardFlowId : undefined);
+  
+  // Usar os steps do flow do card se necessário, senão usar os steps passados como prop
+  const effectiveSteps = needsDifferentFlow && cardFlowSteps.length > 0 ? cardFlowSteps : steps;
+  
+  // Calcula a etapa atual baseado no card usando os steps corretos
   const currentStep = useMemo(() => {
     if (!card) return null;
-    return steps.find((step) => step.id === card.stepId) ?? null;
-  }, [card, steps]);
+    return effectiveSteps.find((step) => step.id === card.stepId) ?? null;
+  }, [card, effectiveSteps]);
 
   const nextStep = useMemo(() => {
     if (!card) return null;
-    const currentIndex = steps.findIndex((step) => step.id === card.stepId);
+    const currentIndex = effectiveSteps.findIndex((step) => step.id === card.stepId);
     if (currentIndex < 0) return null;
-    return steps[currentIndex + 1] ?? null;
-  }, [card, steps]);
+    return effectiveSteps[currentIndex + 1] ?? null;
+  }, [card, effectiveSteps]);
 
   const previousStep = useMemo(() => {
     if (!card) return null;
-    const currentIndex = steps.findIndex((step) => step.id === card.stepId);
+    const currentIndex = effectiveSteps.findIndex((step) => step.id === card.stepId);
     if (currentIndex <= 0) return null; // Primeira etapa ou não encontrada
-    return steps[currentIndex - 1] ?? null;
-  }, [card, steps]);
-
-  const { data: users = [] } = useUsers();
-  const { data: teams = [] } = useOrganizationTeams();
+    return effectiveSteps[currentIndex - 1] ?? null;
+  }, [card, effectiveSteps]);
+  
   // Para cards congelados, buscar histórico do card original (parent_card_id)
   const { data: cardHistory = [] } = useCardHistory(card?.id, card?.parentCardId);
   
-  // Verificar se o card está congelado (tem parent_card_id ou está em etapa freezing)
+  // Verificar se o card está congelado (apenas se estiver em etapa freezing)
+  // Cards filhos (com parentCardId) não são automaticamente congelados
   const isFrozenCard = useMemo(() => {
     if (!card || !currentStep) return false;
-    return card.parentCardId !== null || currentStep.stepType === 'freezing';
+    // Card é congelado apenas se estiver em etapa do tipo freezing
+    return currentStep.stepType === 'freezing';
   }, [card, currentStep]);
+
+  // Verificar se o card está em outro flow (somente leitura)
+  const isReadOnly = useMemo(() => {
+    if (!card || !currentFlowId) return false;
+    // Se o card está em um flow diferente do flow atual, é somente leitura
+    return card.flowId !== currentFlowId;
+  }, [card, currentFlowId]);
+
+  // Combinar isFrozenCard e isReadOnly para desabilitar edições
+  const isDisabled = isFrozenCard || isReadOnly;
 
   // Buscar card_step_actions do card para exibir detalhes
   const { data: cardStepActions = [] } = useQuery({
@@ -1054,7 +1086,7 @@ export function CardDetailsModal({
             <Select
               value={assignedToValue ?? undefined}
               onValueChange={(value) => {
-                if (!isFrozenCard) {
+                if (!isDisabled) {
                   const newValue = value && value.trim() ? value : null;
                   form.setValue("assignedTo", newValue, {
                     shouldDirty: true,
@@ -1062,7 +1094,7 @@ export function CardDetailsModal({
                   });
                 }
               }}
-              disabled={isFrozenCard}
+              disabled={isDisabled}
             >
               <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue placeholder="Selecione um usuário">
@@ -1131,7 +1163,7 @@ export function CardDetailsModal({
             <Select
               value={assignedTeamIdValue ?? undefined}
               onValueChange={(value) => {
-                if (!isFrozenCard) {
+                if (!isDisabled) {
                   const newValue = value && value.trim() ? value : null;
                   form.setValue("assignedTeamId", newValue, {
                     shouldDirty: true,
@@ -1139,7 +1171,7 @@ export function CardDetailsModal({
                   });
                 }
               }}
-              disabled={isFrozenCard}
+              disabled={isDisabled}
             >
               <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue placeholder="Selecione um time">
@@ -1192,11 +1224,11 @@ export function CardDetailsModal({
                   <Checkbox
                     checked={watchChecklist?.[field.id]?.[item] === true}
                     onCheckedChange={(checked) => {
-                      if (!isFrozenCard) {
+                      if (!isDisabled) {
                         handleCheckboxChange(field.id, item, checked === true);
                       }
                     }}
-                    disabled={isFrozenCard}
+                    disabled={isDisabled}
                   />
                   {item}
                 </label>
@@ -1246,12 +1278,12 @@ export function CardDetailsModal({
                   mode="single"
                   selected={parsedValue}
                   onSelect={(date) => {
-                    if (!isFrozenCard) {
+                    if (!isDisabled) {
                       handleDateChange(field.id, date);
                     }
                   }}
                   initialFocus
-                  disabled={isFrozenCard}
+                  disabled={isDisabled}
                 />
               </PopoverContent>
             </Popover>
@@ -1277,7 +1309,7 @@ export function CardDetailsModal({
               placeholder={(field.configuration.placeholder as string) ?? "Digite sua resposta..."}
               className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               {...form.register(`fields.${field.id}`)}
-              disabled={isFrozenCard}
+              disabled={isDisabled}
             />
           </div>
         </div>
@@ -1302,7 +1334,7 @@ export function CardDetailsModal({
               placeholder={(field.configuration.placeholder as string) ?? "000.000.000-00 ou 00.000.000/0000-00"}
               value={formatCnpjCpf((watchFields[field.id] as string) ?? "", cnpjCpfType)}
               onChange={(e) => {
-                if (!isFrozenCard) {
+                if (!isDisabled) {
                   const formatted = formatCnpjCpf(e.target.value, cnpjCpfType);
                   form.setValue(`fields.${field.id}`, formatted, {
                     shouldDirty: true,
@@ -1311,7 +1343,7 @@ export function CardDetailsModal({
                 }
               }}
               onBlur={() => {
-                if (!isFrozenCard) {
+                if (!isDisabled) {
                   const value = (watchFields[field.id] as string) ?? "";
                   if (value && !validateCnpjCpf(value, cnpjCpfType)) {
                     form.setError(`fields.${field.id}`, {
@@ -1324,7 +1356,7 @@ export function CardDetailsModal({
                 }
               }}
               className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isFrozenCard}
+              disabled={isDisabled}
             />
           </div>
           {form.formState.errors.fields?.[field.id] && (
@@ -1629,7 +1661,7 @@ export function CardDetailsModal({
               </Label>
             <Input
               {...form.register("title")}
-              disabled={isFrozenCard}
+              disabled={isDisabled}
               className="w-full max-w-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-600 focus:ring-blue-600 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             />
             </div>
@@ -1647,7 +1679,7 @@ export function CardDetailsModal({
                     </Label>
                     <Input
                       {...form.register("product")}
-                      disabled={isFrozenCard}
+                      disabled={isDisabled}
                       placeholder="Digite o nome do produto"
                       className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -1665,7 +1697,7 @@ export function CardDetailsModal({
                         {...form.register("value", {
                           valueAsNumber: true,
                         })}
-                        disabled={isFrozenCard}
+                        disabled={isDisabled}
                         placeholder="0,00"
                         className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-10 pr-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
                       />
@@ -1760,6 +1792,13 @@ export function CardDetailsModal({
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{card.title}</h1>
                 {/* Widget flutuante de Lead */}
                 <OpportunityFloatingWidget opportunityId={card.opportunityId} />
+                {/* Widget flutuante de Indicação */}
+                <IndicationFloatingWidget indicationId={card.indicationId} />
+                {/* Widget flutuante de Card Pai */}
+                <ParentCardWidget 
+                  parentCardId={card.parentCardId} 
+                  onOpenParentCard={onOpenParentCard}
+                />
               </div>
               {currentStep && (
                 <div className="flex items-center gap-2 mt-2">
@@ -2003,15 +2042,21 @@ export function CardDetailsModal({
           {/* Footer Redesenhado */}
           {activeSection === "fields" && (
             <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4 shrink-0">
-              {/* Mensagem de card congelado */}
+              {/* Mensagem de card congelado ou de outro flow */}
               {isFrozenCard && (
                 <div className="w-full sm:w-auto flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-2.5 rounded-lg text-sm">
                   <Lock className="h-4 w-4" />
                   <span>Este card está congelado e não pode ser editado. Apenas visualização permitida.</span>
                 </div>
               )}
+              {isReadOnly && !isFrozenCard && (
+                <div className="w-full sm:w-auto flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 px-4 py-2.5 rounded-lg text-sm">
+                  <Lock className="h-4 w-4" />
+                  <span>Este card pertence a outro flow e não pode ser editado aqui. Apenas visualização permitida.</span>
+                </div>
+              )}
               
-              {onDelete && !isFrozenCard && (
+              {onDelete && !isDisabled && (
                 <button
                   onClick={handleDelete}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-lg transition-colors shadow-sm text-sm font-medium"
@@ -2023,7 +2068,7 @@ export function CardDetailsModal({
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <button
                   onClick={handleSave}
-                  disabled={isFrozenCard || !isDirty || saveStatus === "saving"}
+                  disabled={isDisabled || !isDirty || saveStatus === "saving"}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4 py-2.5 rounded-lg transition-colors shadow-sm text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saveStatus === "saving" ? (
@@ -2038,7 +2083,7 @@ export function CardDetailsModal({
                     </>
                   )}
                 </button>
-                {previousStep && onUpdateCard && !isFrozenCard && (
+                {previousStep && onUpdateCard && !isDisabled && (
                   <button
                     onClick={handleMoveBack}
                     disabled={isMoving || !previousStep}
@@ -2050,7 +2095,7 @@ export function CardDetailsModal({
                 )}
                 <button
                   onClick={handleMoveNext}
-                  disabled={isFrozenCard || isMoveDisabled || isMoving || !nextStep}
+                  disabled={isDisabled || isMoveDisabled || isMoving || !nextStep}
                   className="w-full sm:w-auto flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white px-5 py-2.5 rounded-lg transition-colors shadow-md shadow-teal-500/20 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   style={
                     !isMoveDisabled && nextStep

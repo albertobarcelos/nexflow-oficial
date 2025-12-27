@@ -17,22 +17,22 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
-import { useCreateCardFromOpportunity } from "@/hooks/useCreateCardFromOpportunity";
+import { useCreateCardFromIndication } from "@/hooks/useCreateCardFromIndication";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { useNexflowSteps } from "@/hooks/useNexflowSteps";
-import { Opportunity } from "@/hooks/useOpportunities";
+import { Indication } from "@/types/indications";
 
-interface CreateCardFromOpportunityDialogProps {
+interface CreateCardFromIndicationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  opportunity: Opportunity | null;
+  indication: Indication | null;
 }
 
-export function CreateCardFromOpportunityDialog({
+export function CreateCardFromIndicationDialog({
   open,
   onOpenChange,
-  opportunity,
-}: CreateCardFromOpportunityDialogProps) {
+  indication,
+}: CreateCardFromIndicationDialogProps) {
   const { flows, isLoading: isLoadingFlows } = useNexflowFlows();
   const [selectedFlowId, setSelectedFlowId] = useState<string>("");
   const [selectedStepId, setSelectedStepId] = useState<string>("");
@@ -43,16 +43,16 @@ export function CreateCardFromOpportunityDialog({
   );
 
   const { mutateAsync: createCard, isPending: isCreating } =
-    useCreateCardFromOpportunity();
+    useCreateCardFromIndication();
 
   const handleCreate = async () => {
-    if (!opportunity || !selectedFlowId || !selectedStepId) {
+    if (!indication || !selectedFlowId || !selectedStepId) {
       return;
     }
 
     try {
       await createCard({
-        opportunityId: opportunity.id,
+        indicationId: indication.id,
         flowId: selectedFlowId,
         stepId: selectedStepId,
         title: cardTitle || undefined,
@@ -81,18 +81,18 @@ export function CreateCardFromOpportunityDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Criar Card a partir de Oportunidade</DialogTitle>
+          <DialogTitle>Criar Card a partir de Indicação</DialogTitle>
           <DialogDescription>
             Selecione o Flow e a Etapa onde o card será criado
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {opportunity && (
+          {indication && (
             <div className="p-3 bg-muted rounded-lg">
-              <p className="text-sm font-medium">Oportunidade:</p>
+              <p className="text-sm font-medium">Indicação:</p>
               <p className="text-sm text-muted-foreground">
-                {opportunity.client_name}
+                {indication.indication_name || "Indicação sem nome"}
               </p>
             </div>
           )}
@@ -103,11 +103,11 @@ export function CreateCardFromOpportunityDialog({
               value={cardTitle}
               onChange={(e) => setCardTitle(e.target.value)}
               placeholder={
-                opportunity?.client_name || "Título do card"
+                indication?.indication_name || "Título do card"
               }
             />
             <p className="text-xs text-muted-foreground">
-              Se deixado em branco, usará o nome da oportunidade
+              Se deixado em branco, usará o nome da indicação
             </p>
           </div>
 
@@ -181,5 +181,4 @@ export function CreateCardFromOpportunityDialog({
     </Dialog>
   );
 }
-
 

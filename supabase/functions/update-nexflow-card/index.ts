@@ -215,7 +215,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Verificar se o card é um card congelado (tem parent_card_id e está em etapa freezing)
+    // Verificar se o card é um card congelado (apenas se estiver em etapa freezing)
+    // Cards filhos (com parent_card_id) não são automaticamente congelados
     // Cards congelados não podem ser editados, apenas visualizados
     const { data: cardStep, error: cardStepError } = await supabase
       .schema('nexflow')
@@ -233,9 +234,9 @@ Deno.serve(async (req: Request) => {
         .eq('id', cardStep.step_id)
         .single();
 
-      // Se o card tem parent_card_id OU está em etapa freezing, é um card congelado
-      const isFrozenCard = cardStep.parent_card_id !== null || 
-                          (!stepDataError && currentStepData?.step_type === 'freezing');
+      // Card é congelado APENAS se estiver em etapa freezing
+      // Cards filhos (com parent_card_id) não são congelados a menos que estejam em freezing
+      const isFrozenCard = !stepDataError && currentStepData?.step_type === 'freezing';
 
       if (isFrozenCard) {
         // Cards congelados não podem ser editados

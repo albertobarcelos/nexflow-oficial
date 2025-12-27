@@ -28,7 +28,8 @@ const mapCardHistoryRow = (row: CardHistoryRow): CardMovementEntry => {
 
 /**
  * Hook para buscar o histórico de movimentação de um card
- * Para cards congelados (com parent_card_id), busca o histórico do card original
+ * Para cards congelados (em etapa freezing), busca o histórico do card original
+ * Cards filhos (com parent_card_id mas não em freezing) mantêm seu próprio histórico
  */
 export function useCardHistory(cardId: string | null | undefined, parentCardId?: string | null) {
   return useQuery({
@@ -44,23 +45,35 @@ export function useCardHistory(cardId: string | null | undefined, parentCardId?:
         return [];
       }
 
-      // Se parentCardId foi fornecido, usar diretamente (card congelado)
-      // Caso contrário, verificar se o card tem parent_card_id no banco
+      // Se parentCardId foi fornecido explicitamente, usar (para cards congelados)
+      // Caso contrário, verificar se o card está em etapa freezing
       let targetCardId = parentCardId;
       
       if (!targetCardId) {
-        // Buscar o card para verificar se tem parent_card_id
+        // Buscar o card e sua etapa para verificar se está em freezing
         const { data: cardData, error: cardError } = await nexflowClient()
           .schema("nexflow")
           .from("cards")
-          .select("parent_card_id")
+          .select("parent_card_id, step_id")
           .eq("id", cardId)
           .eq("client_id", clientId)
           .single();
         
-        if (!cardError && cardData?.parent_card_id) {
-          // Card congelado encontrado, usar parent_card_id
-          targetCardId = cardData.parent_card_id;
+        if (!cardError && cardData) {
+          // Verificar se está em etapa freezing
+          const { data: stepData } = await nexflowClient()
+            .from("steps")
+            .select("step_type")
+            .eq("id", cardData.step_id)
+            .single();
+          
+          // Se está em etapa freezing E tem parent_card_id, é card congelado
+          if (stepData?.step_type === 'freezing' && cardData.parent_card_id) {
+            targetCardId = cardData.parent_card_id;
+          } else {
+            // Card normal ou filho, usar o próprio cardId
+            targetCardId = cardId;
+          }
         } else {
           // Card normal, usar o próprio cardId
           targetCardId = cardId;

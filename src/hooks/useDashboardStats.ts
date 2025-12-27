@@ -1,5 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import { useIndications } from "./useIndications";
 import { useOpportunities } from "./useOpportunities";
 
@@ -64,7 +66,15 @@ function calculateTrend(current: number, previous: number): number {
   return ((current - previous) / previous) * 100;
 }
 
-export function useDashboardStats(period: PeriodFilter = 'today') {
+interface UseDashboardStatsOptions {
+  teamId?: string | null;
+  userId?: string | null;
+}
+
+export function useDashboardStats(period: PeriodFilter = 'today', options?: UseDashboardStatsOptions) {
+  const { teamId, userId } = options || {};
+  const queryClient = useQueryClient();
+  const queryKey = ['dashboard-cards-stats', period, teamId, userId];
   const { indications } = useIndications();
   const { opportunities } = useOpportunities();
   
@@ -72,7 +82,7 @@ export function useDashboardStats(period: PeriodFilter = 'today') {
   const previousPeriodRange = getPreviousPeriodRange(period);
   
   const { data: cardsStats, isLoading: isLoadingCards } = useQuery({
-    queryKey: ['dashboard-cards-stats', period],
+    queryKey,
     queryFn: async () => {
       const clientId = await getCurrentClientId();
       if (!clientId) {
@@ -128,26 +138,40 @@ export function useDashboardStats(period: PeriodFilter = 'today') {
       
       const lastStepIds = Array.from(lastStepIdsByFlow.values()).flat();
       
+      // Função auxiliar para construir query de cards com filtros
+      const buildCardsQuery = (startDate: string, endDate: string) => {
+        let query = client
+          .from('cards')
+          .select('*', { count: 'exact', head: true })
+          .in('flow_id', flowIds)
+          .in('step_id', lastStepIds.length > 0 ? lastStepIds : [''])
+          .gte('created_at', startDate)
+          .lte('created_at', endDate);
+        
+        if (teamId) {
+          query = query.eq('assigned_team_id', teamId);
+        }
+        if (userId) {
+          query = query.eq('assigned_to', userId);
+        }
+        
+        return query;
+      };
+      
       // Cards completos: cards na última etapa de cada flow
-      const { count: completedCount } = await client
-        .from('cards')
-        .select('*', { count: 'exact', head: true })
-        .in('flow_id', flowIds)
-        .in('step_id', lastStepIds.length > 0 ? lastStepIds : [''])
-        .gte('created_at', periodRange.start.toISOString())
-        .lte('created_at', periodRange.end.toISOString());
+      const { count: completedCount } = await buildCardsQuery(
+        periodRange.start.toISOString(),
+        periodRange.end.toISOString()
+      );
       
       // Cards cancelados: por enquanto retornar 0 (precisa de lógica específica)
       const cancelledCount = 0;
       
       // Período anterior para calcular tendência
-      const { count: previousCompletedCount } = await client
-        .from('cards')
-        .select('*', { count: 'exact', head: true })
-        .in('flow_id', flowIds)
-        .in('step_id', lastStepIds.length > 0 ? lastStepIds : [''])
-        .gte('created_at', previousPeriodRange.start.toISOString())
-        .lte('created_at', previousPeriodRange.end.toISOString());
+      const { count: previousCompletedCount } = await buildCardsQuery(
+        previousPeriodRange.start.toISOString(),
+        previousPeriodRange.end.toISOString()
+      );
       
       const previousCancelledCount = 0;
       
@@ -158,8 +182,31 @@ export function useDashboardStats(period: PeriodFilter = 'today') {
         previousCancelled: previousCancelledCount || 0,
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 1000 * 30, // 30 segundos para atualização mais rápida
   });
+  
+  // Subscribe to real-time changes in cards table
+  useEffect(() => {
+    const channel = supabase
+      .channel('dashboard-stats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'nexflow',
+          table: 'cards',
+        },
+        () => {
+          // Invalidate and refetch when cards change
+          queryClient.invalidateQueries({ queryKey });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryKey, queryClient]);
   
   // Calcular tendências para indicações e oportunidades (simplificado)
   // Em produção, isso deveria comparar com período anterior

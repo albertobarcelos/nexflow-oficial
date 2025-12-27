@@ -34,6 +34,7 @@ import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 import { HuntersPage } from "@/pages/crm/hunters/HuntersPage";
 import { OpportunitiesPage } from "@/pages/crm/opportunities/OpportunitiesPage";
+import { OpportunityFormPage } from "@/pages/public/OpportunityForm";
 
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -58,6 +59,10 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <SelectPortal />,
+  },
+  {
+    path: "/form/:slug",
+    element: <OpportunityFormPage />,
   },
   {
     path: "/crm/login",

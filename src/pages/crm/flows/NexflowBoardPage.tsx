@@ -1630,6 +1630,10 @@ export function NexflowBoardPage() {
         }}
         subtaskCount={subtaskCount}
         parentTitle={parentCardTitle}
+        onOpenParentCard={(parentCard) => {
+          setActiveCard(parentCard);
+        }}
+        currentFlowId={id}
       />
     </div>
   );
@@ -1654,8 +1658,9 @@ function SortableCard({
   isCelebrating,
   currentStep,
 }: SortableCardProps) {
-  // Verificar se o card está congelado (tem parentCardId ou está em etapa freezing)
-  const isFrozenCard = card.parentCardId !== null || currentStep?.stepType === 'freezing';
+  // Verificar se o card está congelado (apenas se estiver em etapa freezing)
+  // Cards filhos (com parentCardId) não são automaticamente congelados
+  const isFrozenCard = currentStep?.stepType === 'freezing';
   const {
     attributes,
     listeners,

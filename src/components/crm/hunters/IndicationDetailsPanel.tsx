@@ -13,33 +13,34 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Phone,
-  Building2,
   User,
   Calendar,
   ExternalLink,
   Loader2,
   FileText,
   Clock,
+  CreditCard,
+  Building2,
 } from "lucide-react";
-import { useOpportunityDetails } from "@/hooks/useOpportunityDetails";
+import { useIndicationDetails } from "@/hooks/useIndicationDetails";
 import { useNavigate } from "react-router-dom";
 import { UserAvatar } from "@/components/ui/user-avatar";
 
-interface OpportunityDetailsPanelProps {
+interface IndicationDetailsPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  opportunityId: string | null;
+  indicationId: string | null;
 }
 
-export function OpportunityDetailsPanel({
+export function IndicationDetailsPanel({
   open,
   onOpenChange,
-  opportunityId,
-}: OpportunityDetailsPanelProps) {
-  const { data: details, isLoading } = useOpportunityDetails(opportunityId);
+  indicationId,
+}: IndicationDetailsPanelProps) {
+  const { data: details, isLoading } = useIndicationDetails(indicationId);
   const navigate = useNavigate();
 
-  if (!opportunityId) {
+  if (!indicationId) {
     return null;
   }
 
@@ -53,7 +54,7 @@ export function OpportunityDetailsPanel({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Detalhes da Oportunidade</DialogTitle>
+          <DialogTitle>Detalhes da Indicação</DialogTitle>
           <DialogDescription>
             Informações completas e histórico de interações
           </DialogDescription>
@@ -65,27 +66,29 @@ export function OpportunityDetailsPanel({
           </div>
         ) : !details ? (
           <div className="text-center py-12 text-sm text-muted-foreground">
-            Oportunidade não encontrada
+            Indicação não encontrada
           </div>
         ) : (
           <ScrollArea className="flex-1 pr-4">
             <div className="space-y-6">
-              {/* Header com avatar e nome */}
+              {/* Header com nome */}
               <div className="flex items-start gap-4">
                 <UserAvatar
                   user={{
-                    avatar_type: details.avatar_type || "toy_face",
-                    avatar_seed: details.avatar_seed || "1|1",
-                    name: details.client_name,
+                    avatar_type: "toy_face",
+                    avatar_seed: "1|1",
+                    name: details.indication_name || "Indicação",
                   }}
                   size="lg"
                 />
                 <div className="flex-1">
-                  <h2 className="text-2xl font-bold">{details.client_name}</h2>
-                  {details.main_contact && (
+                  <h2 className="text-2xl font-bold">
+                    {details.indication_name || "Indicação sem nome"}
+                  </h2>
+                  {details.responsible && (
                     <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                       <User className="h-4 w-4" />
-                      <span>{details.main_contact}</span>
+                      <span>Responsável: {details.responsible}</span>
                     </div>
                   )}
                 </div>
@@ -95,38 +98,64 @@ export function OpportunityDetailsPanel({
 
               {/* Informações principais */}
               <div className="grid grid-cols-2 gap-4">
-                {details.company_names && details.company_names.length > 0 && (
+                {details.cnpj_cpf && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
-                      <Building2 className="h-4 w-4" />
-                      Empresas
+                      <CreditCard className="h-4 w-4" />
+                      CNPJ/CPF
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {details.company_names.map((company, idx) => (
-                        <Badge key={idx} variant="secondary">
-                          {company}
-                        </Badge>
-                      ))}
-                    </div>
+                    <p className="text-sm">{details.cnpj_cpf}</p>
                   </div>
                 )}
 
-                {details.phone_numbers && details.phone_numbers.length > 0 && (
+                {details.phone && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Phone className="h-4 w-4" />
-                      Telefones
+                      Telefone
                     </div>
-                    <div className="flex flex-col gap-1">
-                      {details.phone_numbers.map((phone, idx) => (
-                        <span key={idx} className="text-sm font-mono">
-                          {phone}
-                        </span>
-                      ))}
-                    </div>
+                    <p className="text-sm font-mono">{details.phone}</p>
                   </div>
                 )}
               </div>
+
+              {details.description && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <FileText className="h-4 w-4" />
+                      Descrição
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {details.description}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {/* Informações do Hunter */}
+              {details.hunter && (
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <User className="h-4 w-4" />
+                      Indicado por
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm">
+                        {details.hunter.name || details.hunter.email || "Hunter desconhecido"}
+                      </p>
+                      {details.hunter.email && (
+                        <span className="text-xs text-muted-foreground">
+                          ({details.hunter.email})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <Separator />
 
@@ -140,7 +169,7 @@ export function OpportunityDetailsPanel({
                 </div>
                 {details.linkedCards.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Nenhum card vinculado a esta oportunidade
+                    Nenhum card vinculado a esta indicação
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -220,6 +249,27 @@ export function OpportunityDetailsPanel({
                     )}
                   </span>
                 </div>
+                {details.status && (
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant={
+                        details.status === "converted"
+                          ? "default"
+                          : details.status === "rejected"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                    >
+                      {details.status === "pending"
+                        ? "Pendente"
+                        : details.status === "processed"
+                        ? "Processado"
+                        : details.status === "converted"
+                        ? "Convertido"
+                        : "Rejeitado"}
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
           </ScrollArea>
@@ -228,5 +278,4 @@ export function OpportunityDetailsPanel({
     </Dialog>
   );
 }
-
 

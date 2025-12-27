@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Filter, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import { RecentActivity } from "@/hooks/useRecentActivities";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -140,15 +140,12 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
                 <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
                   Status
                 </TableHead>
-                <TableHead className="px-6 py-4 text-right text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
-                  Ações
-                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {activities.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     Nenhuma atividade recente encontrada
                   </TableCell>
                 </TableRow>
@@ -192,15 +189,6 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       {getStatusBadge(activity.status)}
-                    </TableCell>
-                    <TableCell className="px-6 py-4 text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-[#25335b] dark:hover:text-blue-400"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
                     </TableCell>
                   </TableRow>
                 ))

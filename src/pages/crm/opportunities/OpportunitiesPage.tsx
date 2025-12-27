@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { AutoCreateConfigDialog } from "@/components/crm/opportunities/AutoCreateConfigDialog";
 import { CreateCardFromOpportunityDialog } from "@/components/crm/opportunities/CreateCardFromOpportunityDialog";
 import { OpportunityDetailsPanel } from "@/components/crm/opportunities/OpportunityDetailsPanel";
+import { GenerateFormDialog } from "@/components/crm/opportunities/GenerateFormDialog";
 
 export function OpportunitiesPage() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export function OpportunitiesPage() {
   const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
+  const [isGenerateFormDialogOpen, setIsGenerateFormDialogOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<string | null>(null);
   const [opportunityForCard, setOpportunityForCard] = useState<any>(null);
   
@@ -133,6 +135,13 @@ export function OpportunitiesPage() {
         <div className="flex gap-2">
           <Button
             variant="outline"
+            onClick={() => setIsGenerateFormDialogOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Gerar Formulário
+          </Button>
+          <Button
+            variant="outline"
             onClick={() => setIsAutoCreateDialogOpen(true)}
           >
             <Settings className="mr-2 h-4 w-4" />
@@ -190,6 +199,11 @@ export function OpportunitiesPage() {
       )}
 
       {/* Dialogs */}
+      <GenerateFormDialog
+        open={isGenerateFormDialogOpen}
+        onOpenChange={setIsGenerateFormDialogOpen}
+      />
+
       <AutoCreateConfigDialog
         open={isAutoCreateDialogOpen}
         onOpenChange={setIsAutoCreateDialogOpen}

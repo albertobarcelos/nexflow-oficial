@@ -1,12 +1,13 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { VisibilitySelector } from "./VisibilitySelector";
 import type { VisibilityConfig } from "./VisibilitySelector";
 import type { NexflowStep, StepType } from "@/types/nexflow";
 import type { StepDraft } from "@/hooks/useFlowBuilderState";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Palette } from "lucide-react";
+import { Palette, GitBranch } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   Select,
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ChildCardAutomationDialog } from "@/components/crm/flows/ChildCardAutomationDialog";
 
 interface StepPropertiesContentProps {
   step: NexflowStep;
@@ -34,6 +36,7 @@ export function StepPropertiesContent({
   const currentStepType = stepDraft?.stepType ?? step.stepType ?? "standard";
   const [localColor, setLocalColor] = useState(currentColor);
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isAutomationDialogOpen, setIsAutomationDialogOpen] = useState(false);
 
   // Valores padrão para visibilidade (usa draft se disponível, senão usa valores padrão)
   const visibilityConfig: VisibilityConfig = stepDraft ? {
@@ -229,6 +232,30 @@ export function StepPropertiesContent({
       <VisibilitySelector
         value={visibilityConfig}
         onChange={handleVisibilityChange}
+      />
+
+      <Separator />
+
+      {/* Automação de Card Filho */}
+      <div className="space-y-2">
+        <Label>Automação de Card Filho</Label>
+        <p className="text-xs text-slate-500">
+          Configure para criar cards filhos automaticamente quando um card entrar nesta etapa.
+        </p>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setIsAutomationDialogOpen(true)}
+        >
+          <GitBranch className="mr-2 h-4 w-4" />
+          Configurar Automação
+        </Button>
+      </div>
+
+      <ChildCardAutomationDialog
+        open={isAutomationDialogOpen}
+        onOpenChange={setIsAutomationDialogOpen}
+        stepId={step.id}
       />
     </div>
   );

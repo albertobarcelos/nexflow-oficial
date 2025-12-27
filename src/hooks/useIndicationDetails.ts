@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { nexflowClient } from "@/lib/supabase";
-import { Opportunity } from "@/hooks/useOpportunities";
+import { supabase, nexflowClient } from "@/lib/supabase";
+import { Indication } from "@/types/indications";
 import { NexflowCard } from "@/types/nexflow";
 
-export interface OpportunityDetails extends Opportunity {
+export interface IndicationDetails extends Indication {
   linkedCards: NexflowCard[];
   interactionHistory: Array<{
     id: string;
@@ -13,23 +13,23 @@ export interface OpportunityDetails extends Opportunity {
   }>;
 }
 
-export function useOpportunityDetails(opportunityId: string | null | undefined) {
+export function useIndicationDetails(indicationId: string | null | undefined) {
   return useQuery({
-    queryKey: ["opportunity-details", opportunityId],
-    queryFn: async (): Promise<OpportunityDetails | null> => {
-      if (!opportunityId) {
+    queryKey: ["indication-details", indicationId],
+    queryFn: async (): Promise<IndicationDetails | null> => {
+      if (!indicationId) {
         return null;
       }
 
-      // Buscar oportunidade
-      const { data: opportunity, error: oppError } = await nexflowClient()
-        .from("opportunities")
+      // Buscar indicação
+      const { data: indication, error: indError } = await supabase
+        .from("core_indications")
         .select("*")
-        .eq("id", opportunityId)
+        .eq("id", indicationId)
         .single();
 
-      if (oppError || !opportunity) {
-        console.error("Erro ao buscar oportunidade:", oppError);
+      if (indError || !indication) {
+        console.error("Erro ao buscar indicação:", indError);
         return null;
       }
 
@@ -37,7 +37,7 @@ export function useOpportunityDetails(opportunityId: string | null | undefined) 
       const { data: cards, error: cardsError } = await nexflowClient()
         .from("cards")
         .select("*")
-        .eq("opportunity_id", opportunityId)
+        .eq("indication_id", indicationId)
         .order("created_at", { ascending: false });
 
       if (cardsError) {
@@ -74,58 +74,69 @@ export function useOpportunityDetails(opportunityId: string | null | undefined) 
         value: card.value ? Number(card.value) : null,
       }));
 
+      // Buscar informações do hunter
+      let hunter = null;
+      if (indication.hunter_id) {
+        // Usar schema nexhunters para buscar o hunter
+        const { data: hunterData } = await supabase
+          .schema("nexhunters")
+          .from("hunters")
+          .select("*")
+          .eq("id", indication.hunter_id)
+          .single();
+        
+        if (hunterData) {
+          // Buscar informações do usuário relacionado
+          const { data: userData } = await supabase
+            .from("core_client_users")
+            .select("name, email")
+            .eq("id", hunterData.client_users_id)
+            .single();
+          
+          hunter = {
+            id: hunterData.id,
+            name: userData?.name || null,
+            email: userData?.email || null,
+          };
+        }
+      }
+
       // Buscar histórico de interações (pode ser expandido no futuro)
       const interactionHistory: Array<{
         id: string;
         type: string;
         description: string;
         createdAt: string;
-      }> = [];
+      }> = [
+        {
+          id: indication.id,
+          type: "created",
+          description: `Indicação criada${indication.indication_name ? `: ${indication.indication_name}` : ""}`,
+          createdAt: indication.created_at,
+        },
+      ];
 
-      // Adicionar criação da oportunidade ao histórico
-      interactionHistory.push({
-        id: opportunity.id,
-        type: "created",
-        description: "Oportunidade criada",
-        createdAt: opportunity.created_at || new Date().toISOString(),
-      });
-
-      // Adicionar criação de cards ao histórico
+      // Adicionar histórico de criação de cards
       linkedCards.forEach((card) => {
         interactionHistory.push({
-          id: card.id,
+          id: `card-${card.id}`,
           type: "card_created",
-          description: `Card "${card.title}" criado no flow`,
+          description: `Card "${card.title}" criado a partir desta indicação`,
           createdAt: card.createdAt,
         });
       });
 
-      // Ordenar histórico por data
-      interactionHistory.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-
       return {
-        id: opportunity.id,
-        client_id: opportunity.client_id,
-        client_name: (opportunity as any).client_name || (opportunity as any).name || "",
-        main_contact: (opportunity as any).main_contact || "",
-        phone_numbers: (opportunity as any).phone_numbers || [],
-        company_names: (opportunity as any).company_names || [],
-        tax_ids: (opportunity as any).tax_ids || [],
-        related_card_ids: linkedCards.map((c) => c.id),
-        assigned_team_id: (opportunity as any).assigned_team_id || null,
-        avatar_type: (opportunity as any).avatar_type,
-        avatar_seed: (opportunity as any).avatar_seed,
-        created_at: opportunity.created_at || new Date().toISOString(),
-        updated_at: (opportunity as any).updated_at || new Date().toISOString(),
+        ...indication,
+        hunter: hunter,
         linkedCards,
-        interactionHistory,
+        interactionHistory: interactionHistory.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
       };
     },
-    enabled: !!opportunityId,
-    staleTime: 1000 * 60 * 2, // 2 minutos
+    enabled: !!indicationId,
+    staleTime: 1000 * 30, // 30 segundos
   });
 }
-
 

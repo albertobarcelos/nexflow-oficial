@@ -1,23 +1,40 @@
 import { useState } from "react";
 import { Share2, Lightbulb, CheckCircle, XCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useDashboardStats, PeriodFilter } from "@/hooks/useDashboardStats";
 import { useOpportunityFlowData } from "@/hooks/useOpportunityFlowData";
 import { useRecentActivities } from "@/hooks/useRecentActivities";
-import { useSalesOriginData } from "@/hooks/useSalesOriginData";
+import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
+import { useOrganizationUsers } from "@/hooks/useOrganizationUsers";
 import { MetricCard } from "@/components/crm/dashboard/MetricCard";
 import { OpportunityFlowChart } from "@/components/crm/dashboard/OpportunityFlowChart";
-import { SalesOriginChart } from "@/components/crm/dashboard/SalesOriginChart";
 import { RecentActivitiesTable } from "@/components/crm/dashboard/RecentActivitiesTable";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function Home() {
   const [period, setPeriod] = useState<PeriodFilter>('today');
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   
-  const { metrics, isLoading: isLoadingStats } = useDashboardStats(period);
+  const { data: teams = [] } = useOrganizationTeams();
+  const { data: users = [] } = useOrganizationUsers();
+  
+  const { metrics, isLoading: isLoadingStats } = useDashboardStats(period, {
+    teamId: selectedTeamId,
+    userId: selectedUserId,
+  });
   const { data: flowData, isLoading: isLoadingFlow } = useOpportunityFlowData(period);
-  const { activities, isLoading: isLoadingActivities } = useRecentActivities(10);
-  const { data: salesOriginData, isLoading: isLoadingSales } = useSalesOriginData();
+  const { activities, isLoading: isLoadingActivities } = useRecentActivities(10, {
+    teamId: selectedTeamId,
+    userId: selectedUserId,
+  });
 
   const periodButtons: { label: string; value: PeriodFilter }[] = [
     { label: 'Hoje', value: 'today' },
@@ -40,23 +57,66 @@ export function Home() {
             </p>
           </div>
           
-          {/* Period Filter Buttons */}
-          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-            {periodButtons.map(({ label, value }) => (
-              <Button
-                key={value}
-                variant={period === value ? 'default' : 'ghost'}
-                size="sm"
-                className={period === value 
-                  ? "bg-[#25335b] text-white shadow-sm" 
-                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }
-                onClick={() => setPeriod(value)}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Team and User Filters */}
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedTeamId ?? "all"}
+                onValueChange={(value) => setSelectedTeamId(value === "all" ? null : value)}
               >
-                {value === 'custom' && <Calendar className="w-3 h-3 mr-1" />}
-                {label}
-              </Button>
-            ))}
+                <SelectTrigger className="w-[180px] h-9 text-sm bg-white dark:bg-gray-800">
+                  <SelectValue placeholder="Todos os times" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os times</SelectItem>
+                  {teams
+                    .filter((team) => team.is_active)
+                    .map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={selectedUserId ?? "all"}
+                onValueChange={(value) => setSelectedUserId(value === "all" ? null : value)}
+              >
+                <SelectTrigger className="w-[180px] h-9 text-sm bg-white dark:bg-gray-800">
+                  <SelectValue placeholder="Todos os usuários" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os usuários</SelectItem>
+                  {users
+                    .filter((user) => user.is_active)
+                    .map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} {user.surname}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Period Filter Buttons */}
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+              {periodButtons.map(({ label, value }) => (
+                <Button
+                  key={value}
+                  variant={period === value ? 'default' : 'ghost'}
+                  size="sm"
+                  className={period === value 
+                    ? "bg-[#25335b] text-white shadow-sm" 
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }
+                  onClick={() => setPeriod(value)}
+                >
+                  {value === 'custom' && <Calendar className="w-3 h-3 mr-1" />}
+                  {label}
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -104,14 +164,10 @@ export function Home() {
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <OpportunityFlowChart 
             data={flowData} 
             isLoading={isLoadingFlow}
-          />
-          <SalesOriginChart 
-            data={salesOriginData} 
-            isLoading={isLoadingSales}
           />
         </div>
 

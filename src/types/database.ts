@@ -1530,9 +1530,17 @@ export interface Database {
           movement_history: Json | null;
           parent_card_id: string | null;
           assigned_to: string | null;
+          assigned_team_id: string | null;
           opportunity_id: string | null;
+          indication_id: string | null;
           position: number;
+          status: string | null;
+          card_type: "finance" | "onboarding" | null;
+          product: string | null;
+          value: number | null;
+          agents: string[] | null;
           created_at: string;
+          updated_at: string | null;
         };
         Insert: {
           id?: string;
@@ -1545,9 +1553,17 @@ export interface Database {
           movement_history?: Json | null;
           parent_card_id?: string | null;
           assigned_to?: string | null;
+          assigned_team_id?: string | null;
           opportunity_id?: string | null;
+          indication_id?: string | null;
           position?: number;
+          status?: string | null;
+          card_type?: "finance" | "onboarding" | null;
+          product?: string | null;
+          value?: number | null;
+          agents?: string[] | null;
           created_at?: string;
+          updated_at?: string | null;
         };
         Update: {
           id?: string;
@@ -1560,9 +1576,17 @@ export interface Database {
           movement_history?: Json | null;
           parent_card_id?: string | null;
           assigned_to?: string | null;
+          assigned_team_id?: string | null;
           opportunity_id?: string | null;
+          indication_id?: string | null;
           position?: number;
+          status?: string | null;
+          card_type?: "finance" | "onboarding" | null;
+          product?: string | null;
+          value?: number | null;
+          agents?: string[] | null;
           created_at?: string;
+          updated_at?: string | null;
         };
         Relationships: [];
       };
@@ -1780,6 +1804,46 @@ export interface Database {
           target_flow_id?: string;
           target_step_id?: string;
           trigger_conditions?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      step_child_card_automations: {
+        Row: {
+          id: string;
+          step_id: string;
+          client_id: string;
+          target_flow_id: string;
+          target_step_id: string;
+          is_active: boolean;
+          copy_field_values: boolean;
+          copy_assignment: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          step_id: string;
+          client_id: string;
+          target_flow_id: string;
+          target_step_id: string;
+          is_active?: boolean;
+          copy_field_values?: boolean;
+          copy_assignment?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          step_id?: string;
+          client_id?: string;
+          target_flow_id?: string;
+          target_step_id?: string;
+          is_active?: boolean;
+          copy_field_values?: boolean;
+          copy_assignment?: boolean;
           created_at?: string;
           updated_at?: string;
         };
