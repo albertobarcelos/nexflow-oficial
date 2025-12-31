@@ -1463,6 +1463,7 @@ export interface Database {
           title: string;
           color: string | null;
           position: number;
+          step_type: string | null;
           created_at: string;
         };
         Insert: {
@@ -1846,6 +1847,209 @@ export interface Database {
           copy_assignment?: boolean;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          card_id: string | null;
+          message_id: string | null;
+          type: "card_assigned" | "card_mentioned" | "new_card_in_stage" | "message_mention";
+          title: string;
+          message: string;
+          read: boolean;
+          read_at: string | null;
+          metadata: Json;
+          created_at: string;
+          client_id: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          card_id?: string | null;
+          message_id?: string | null;
+          type: "card_assigned" | "card_mentioned" | "new_card_in_stage" | "message_mention";
+          title: string;
+          message: string;
+          read?: boolean;
+          read_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          client_id: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          card_id?: string | null;
+          message_id?: string | null;
+          type?: "card_assigned" | "card_mentioned" | "new_card_in_stage" | "message_mention";
+          title?: string;
+          message?: string;
+          read?: boolean;
+          read_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          client_id?: string;
+        };
+        Relationships: [];
+      };
+
+      user_notification_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          notify_card_assigned: boolean;
+          notify_mentions: boolean;
+          notify_new_cards_in_stages: Json;
+          email_notifications_enabled: boolean;
+          created_at: string;
+          updated_at: string;
+          client_id: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          notify_card_assigned?: boolean;
+          notify_mentions?: boolean;
+          notify_new_cards_in_stages?: Json;
+          email_notifications_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          client_id: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          notify_card_assigned?: boolean;
+          notify_mentions?: boolean;
+          notify_new_cards_in_stages?: Json;
+          email_notifications_enabled?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          client_id?: string;
+        };
+        Relationships: [];
+      };
+
+      card_messages: {
+        Row: {
+          id: string;
+          card_id: string;
+          user_id: string;
+          content: string | null;
+          message_type: "text" | "audio" | "video" | "file";
+          file_url: string | null;
+          file_name: string | null;
+          file_size: number | null;
+          file_type: string | null;
+          mentions: string[];
+          reply_to_id: string | null;
+          created_at: string;
+          updated_at: string;
+          client_id: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          user_id: string;
+          content?: string | null;
+          message_type: "text" | "audio" | "video" | "file";
+          file_url?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
+          file_type?: string | null;
+          mentions?: string[];
+          reply_to_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          client_id: string;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          user_id?: string;
+          content?: string | null;
+          message_type?: "text" | "audio" | "video" | "file";
+          file_url?: string | null;
+          file_name?: string | null;
+          file_size?: number | null;
+          file_type?: string | null;
+          mentions?: string[];
+          reply_to_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          client_id?: string;
+        };
+        Relationships: [];
+      };
+
+      card_message_attachments: {
+        Row: {
+          id: string;
+          message_id: string;
+          file_url: string;
+          file_name: string;
+          file_size: number;
+          file_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          message_id: string;
+          file_url: string;
+          file_name: string;
+          file_size: number;
+          file_type: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          message_id?: string;
+          file_url?: string;
+          file_name?: string;
+          file_size?: number;
+          file_type?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      card_attachments: {
+        Row: {
+          id: string;
+          card_id: string;
+          user_id: string;
+          file_url: string;
+          file_name: string;
+          file_size: number;
+          file_type: string;
+          created_at: string;
+          client_id: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          user_id: string;
+          file_url: string;
+          file_name: string;
+          file_size: number;
+          file_type: string;
+          created_at?: string;
+          client_id: string;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          user_id?: string;
+          file_url?: string;
+          file_name?: string;
+          file_size?: number;
+          file_type?: string;
+          created_at?: string;
+          client_id?: string;
         };
         Relationships: [];
       };

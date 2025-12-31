@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Type, 
-  Paperclip, 
   CheckSquare, 
   User, 
   Calendar, 
@@ -41,14 +40,6 @@ export const FIELD_TYPES: FieldType[] = [
     category: 'basic',
     description: 'Conteúdo que muda baseado em condições',
     color: 'text-purple-600'
-  },
-  {
-    id: 'attachment',
-    label: 'Anexo',
-    icon: Paperclip,
-    category: 'basic',
-    description: 'Upload de arquivos e documentos',
-    color: 'text-gray-600'
   },
   {
     id: 'checkbox',

@@ -12,6 +12,7 @@ import {
   NexflowStep,
   NexflowStepField,
   StepFieldConfiguration,
+  StepType,
 } from "@/types/nexflow";
 
 type FlowRow = Database["nexflow"]["Tables"]["flows"]["Row"];
@@ -47,6 +48,7 @@ const mapStepRow = (row: StepRow): NexflowStep => ({
   position: row.position,
   createdAt: row.created_at,
   isCompletionStep: Boolean(row.is_completion_step),
+  stepType: (row.step_type as StepType) ?? "standard",
   responsibleUserId: row.responsible_user_id ?? null,
   responsibleTeamId: row.responsible_team_id ?? null,
 });

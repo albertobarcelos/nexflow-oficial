@@ -83,3 +83,5 @@ CREATE TRIGGER trigger_auto_create_cards_from_opportunity
 COMMENT ON FUNCTION nexflow.auto_create_cards_from_opportunity() IS 'Cria cards automaticamente quando uma oportunidade é inserida, baseado nas regras de automação ativas';
 
 
+
+

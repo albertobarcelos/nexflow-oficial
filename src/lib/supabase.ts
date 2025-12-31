@@ -135,7 +135,7 @@ export const getCompaniesWithRelations = async () => {
       *,
       city:web_cities(name),
       state:web_states(name, uf),
-      creator:core_client_users(first_name, last_name, email)
+      creator:core_client_users(name, surname, email)
     `)
     .order('created_at', { ascending: false });
 };

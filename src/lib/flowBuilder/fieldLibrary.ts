@@ -80,14 +80,6 @@ export const fieldLibrary: FlowBuilderFieldDefinition[] = [
     }),
   },
   {
-    id: "attachment",
-    label: "Anexo",
-    description: "Permite upload de arquivos.",
-    fieldType: "file",
-    defaultLabel: "Anexo",
-    defaultConfiguration: () => ({}),
-  },
-  {
     id: "assignee",
     label: "Responsável",
     description: "Seleção de usuário responsável.",

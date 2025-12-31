@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,7 +27,6 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
   const [userClientId, setUserClientId] = useState<string | null>(null);
   const [protectedUserIds, setProtectedUserIds] = useState<string[]>([]);
   const [isLoadingProtectedUsers, setIsLoadingProtectedUsers] = useState(false);
-  const hasCleanedProtectedUsers = useRef(false);
 
   // Garantir que os valores sempre sejam válidos
   const safeValue: VisibilityConfig = {
@@ -99,10 +98,9 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
     return allAvailableUsers.filter((user) => !protectedUserIds.includes(user.id));
   }, [allAvailableUsers, protectedUserIds]);
 
-  // Remover usuários protegidos da lista de exclusão atual (apenas uma vez)
+  // Remover usuários protegidos da lista de exclusão atual
   useEffect(() => {
     if (
-      !hasCleanedProtectedUsers.current &&
       protectedUserIds.length > 0 &&
       safeValue.excludedUserIds.length > 0
     ) {
@@ -118,11 +116,9 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
           ...safeValue,
           excludedUserIds: filteredExcluded,
         });
-        hasCleanedProtectedUsers.current = true;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [protectedUserIds]);
+  }, [protectedUserIds, value.excludedUserIds, onChange]);
 
   const handleVisibilityTypeChange = (newType: VisibilityType) => {
     onChange({

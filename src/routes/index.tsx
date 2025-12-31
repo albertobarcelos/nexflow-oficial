@@ -24,11 +24,9 @@ import OpportunityDetails from "@/pages/crm/OpportunityDetails";
 // AIDEV-NOTE: Removido EntitiesSettings - sistema simplificado para focar apenas em deals
 import { GeneralSettings } from "@/components/crm/settings/general/GeneralSettings";
 import { TeamSettings } from "@/components/crm/settings/TeamSettings";
-import { AutomationSettings } from "@/components/crm/settings/AutomationSettings";
-import { CustomizationSettings } from "@/components/crm/settings/CustomizationSettings";
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
+import { ProfileSettings } from "@/components/crm/settings/ProfileSettings";
 import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
-import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
 import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
@@ -146,30 +144,17 @@ export const router = createBrowserRouter([
             element: <GeneralSettings />,
           },
           {
-            path: "team",
-            element: <TeamSettings />,
-          },
-          {
-            path: "automation",
-            element: <AutomationSettings />,
-          },
-          {
-            path: "customization",
-            element: <CustomizationSettings />,
-          },
-          {
             path: "notifications",
             element: <NotificationSettings />,
           },
           {
-            path: "pipeline",
-            element: <PipelineSettings />,
+            path: "team",
+            element: <TeamSettings />,
           },
           {
-            path: "custom-fields",
-            element: <CustomFieldsSettings />,
+            path: "profile",
+            element: <ProfileSettings />,
           },
-          // AIDEV-NOTE: Removido rota de EntitiesSettings - sistema simplificado para focar apenas em deals
         ],
       },
       {

@@ -106,11 +106,11 @@ export function useStepActions(stepId?: string) {
   const createStepActionMutation = useMutation({
     mutationFn: async (input: CreateStepActionInput): Promise<NexflowStepAction> => {
       // Validar se a etapa permite processos (apenas standard)
-      if (stepId) {
+      if (input.stepId) {
         const { data: stepData, error: stepError } = await nexflowClient()
           .from("steps")
           .select("step_type")
-          .eq("id", stepId)
+          .eq("id", input.stepId)
           .single();
 
         if (stepError) {
@@ -121,7 +121,7 @@ export function useStepActions(stepId?: string) {
           throw new Error(`Processos não podem ser adicionados em etapas do tipo "${stepData.step_type}". Apenas etapas do tipo "standard" podem ter processos.`);
         }
       }
-      const { stepId, dayOffset, title, actionType, description, scriptTemplate, checklistItems, isRequired, settings, position } = input;
+      const { dayOffset, title, actionType, description, scriptTemplate, checklistItems, isRequired, settings, position } = input;
 
       // Validações
       if (actionType === "phone_call" || actionType === "linkedin_message" || actionType === "whatsapp") {
@@ -148,7 +148,7 @@ export function useStepActions(stepId?: string) {
       }
 
       const payload: Database["nexflow"]["Tables"]["step_actions"]["Insert"] = {
-        step_id: stepId,
+        step_id: input.stepId,
         day_offset: dayOffset,
         title,
         action_type: actionType,

@@ -49,3 +49,5 @@ COMMENT ON COLUMN nexflow.opportunity_automations.trigger_conditions IS 'Condiç
 COMMENT ON COLUMN nexflow.cards.opportunity_id IS 'Referência à oportunidade que originou este card';
 
 
+
+

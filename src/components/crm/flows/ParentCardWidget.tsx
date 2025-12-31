@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import type { NexflowCard } from "@/types/nexflow";
+import { ParentCardViewModal } from "./ParentCardViewModal";
 
 interface ParentCardWidgetProps {
   parentCardId: string | null | undefined;
@@ -19,6 +20,7 @@ export function ParentCardWidget({
   onOpenParentCard,
 }: ParentCardWidgetProps) {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   const { data: parentCard, isLoading, error: parentCardError } = useQuery({
     queryKey: ["nexflow", "card", parentCardId],
@@ -111,61 +113,83 @@ export function ParentCardWidget({
     }
   };
 
+  const handleBadgeClick = () => {
+    if (parentCard) {
+      setIsViewModalOpen(true);
+    } else if (parentCardError) {
+      toast.error("Não foi possível carregar o card pai");
+    } else if (isLoading) {
+      // Se ainda estiver carregando, abrir popover para mostrar loading
+      setIsPopoverOpen(true);
+    }
+  };
+
   return (
-    <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-      <PopoverTrigger asChild>
-        <Badge
-          variant="outline"
-          className="cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-2 px-3 py-1.5"
-          onClick={() => setIsPopoverOpen(true)}
-        >
-          <GitBranch className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-medium">Card Pai</span>
-        </Badge>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-4" align="start">
-        <div className="space-y-3">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-              Card Pai
-            </h4>
-            {isLoading ? (
-              <Skeleton className="h-4 w-full" />
-            ) : parentCardError ? (
-              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
-                <AlertCircle className="h-4 w-4" />
-                <span>Erro ao carregar card pai</span>
+    <>
+      <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+        <PopoverTrigger asChild>
+          <Badge
+            variant="outline"
+            className="cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-2 px-3 py-1.5"
+            onClick={handleBadgeClick}
+          >
+            <GitBranch className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium">Card Pai</span>
+          </Badge>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-4" align="start">
+          <div className="space-y-3">
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                Card Pai
+              </h4>
+              {isLoading ? (
+                <Skeleton className="h-4 w-full" />
+              ) : parentCardError ? (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>Erro ao carregar card pai</span>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  {parentCard?.title || "Card não encontrado"}
+                </p>
+              )}
+            </div>
+            {parentStep && (
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: parentStep.color }}
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {parentStep.title}
+                </span>
               </div>
-            ) : (
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                {parentCard?.title || "Card não encontrado"}
-              </p>
+            )}
+            {parentCard && onOpenParentCard && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={handleOpenParentCard}
+              >
+                Abrir Card Pai (Edição)
+              </Button>
             )}
           </div>
-          {parentStep && (
-            <div className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: parentStep.color }}
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {parentStep.title}
-              </span>
-            </div>
-          )}
-          {parentCard && onOpenParentCard && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={handleOpenParentCard}
-            >
-              Abrir Card Pai
-            </Button>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+        </PopoverContent>
+      </Popover>
+
+      {/* Modal de visualização somente leitura */}
+      {parentCard && (
+        <ParentCardViewModal
+          card={parentCard}
+          open={isViewModalOpen}
+          onClose={() => setIsViewModalOpen(false)}
+        />
+      )}
+    </>
   );
 }
 

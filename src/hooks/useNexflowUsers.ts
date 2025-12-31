@@ -27,8 +27,8 @@ export function useNexflowUsers() {
         .select(
           `
             id,
-            first_name,
-            last_name,
+            name,
+            surname,
             email,
             role,
             avatar_type,
@@ -40,7 +40,7 @@ export function useNexflowUsers() {
         )
         .eq("client_id", clientId)
         .eq("is_active", true)
-        .order("first_name", { ascending: true });
+        .order("name", { ascending: true });
 
       if (error || !data) {
         console.error("Erro ao carregar usuários para permissões:", error);
@@ -49,8 +49,8 @@ export function useNexflowUsers() {
 
       return data.map((user) => ({
         id: user.id,
-        firstName: user.first_name,
-        lastName: user.last_name,
+        firstName: user.name,
+        lastName: user.surname,
         email: user.email,
         role: user.role,
         avatarType: user.avatar_type,

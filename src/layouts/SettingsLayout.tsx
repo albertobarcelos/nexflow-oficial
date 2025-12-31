@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Settings, Users, Bell, Palette, Database, Workflow, Zap, Sliders } from "lucide-react";
+import { ArrowLeft, Settings, Users, Bell, User } from "lucide-react";
 
 export function SettingsLayout() {
   const navigate = useNavigate();
@@ -76,46 +76,22 @@ export function SettingsLayout() {
       exact: true,
     },
     {
-      title: "Equipe",
-      description: "Gerenciar usuários e permissões",
-      icon: Users,
-      path: "/crm/settings/team",
-    },
-    {
-      title: "Automação",
-      description: "Configurar automações e workflows",
-      icon: Workflow,
-      path: "/crm/settings/automation",
-    },
-    {
-      title: "Personalização",
-      description: "Personalizar aparência e layout",
-      icon: Palette,
-      path: "/crm/settings/customization",
-    },
-    {
       title: "Notificações",
       description: "Configurar alertas e notificações",
       icon: Bell,
       path: "/crm/settings/notifications",
     },
     {
-      title: "Pipeline",
-      description: "Configurar funis e etapas",
-      icon: Zap,
-      path: "/crm/settings/pipeline",
+      title: "Equipe",
+      description: "Visualizar equipes que você faz parte",
+      icon: Users,
+      path: "/crm/settings/team",
     },
     {
-      title: "Campos Personalizados",
-      description: "Criar e gerenciar campos customizados",
-      icon: Sliders,
-      path: "/crm/settings/custom-fields",
-    },
-    {
-      title: "Entidades",
-      description: "Configurar entidades do sistema",
-      icon: Database,
-      path: "/crm/settings/entities",
+      title: "Perfil",
+      description: "Editar avatar, nome e senha",
+      icon: User,
+      path: "/crm/settings/profile",
     },
   ];
 

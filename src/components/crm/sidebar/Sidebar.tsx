@@ -7,7 +7,6 @@ import {
   DollarSign,
   Search,
   Bell,
-  Settings,
   LogOut,
   User,
   LucideProps,
@@ -34,6 +33,7 @@ import { useAccountProfile } from "@/hooks/useAccountProfile";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useHuntersAccess } from "@/hooks/useHuntersAccess";
 import { useOpportunitiesAccess } from "@/hooks/useOpportunitiesAccess";
+import { NotificationBell } from "@/components/crm/notifications/NotificationBell";
 // AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 interface MenuItem {
@@ -176,9 +176,7 @@ export function Sidebar() {
           />
         </div>
 
-        <Button variant="ghost" size="icon" className="text-blue-950 hover:bg-blue-950 hover:text-white">
-          <Bell className="h-5 w-5" />
-        </Button>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -201,10 +199,6 @@ export function Sidebar() {
             <DropdownMenuItem onClick={() => navigate('/crm/account/profile')}>
               <User className="mr-2 h-4 w-4" />
               Meu Perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/crm/settings')}>
-              <Settings className="mr-2 h-4 w-4" />
-              Configurações
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

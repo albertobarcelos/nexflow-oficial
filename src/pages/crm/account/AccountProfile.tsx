@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ProfileSidebar } from "@/components/crm/account/ProfileSidebar";
 import { ClientInfoForm } from "@/components/crm/account/ClientInfoForm";
 import { TeamInfoPanel } from "@/components/crm/account/TeamInfoPanel";
+import { GeneralSettings } from "@/components/crm/settings/general/GeneralSettings";
+import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
 import ReactToyFace from "react-toy-face";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -194,14 +196,12 @@ export default function AccountProfilePage() {
                     )}
                     {activeTab === 'preferences-section' && (
                         <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
-                            <h3 className="text-lg font-semibold mb-2">Preferências</h3>
-                            <p className="text-muted-foreground">Configurações de preferências em breve.</p>
+                            <GeneralSettings />
                         </section>
                     )}
                     {activeTab === 'notifications-section' && (
                         <section className={`bg-white rounded-2xl shadow-md border border-gray-100 p-3 md:p-10 mb-4 md:mb-10 ${tabTransition}`}>
-                            <h3 className="text-lg font-semibold mb-2">Notificações</h3>
-                            <p className="text-muted-foreground">Configurações de notificações em breve.</p>
+                            <NotificationSettings />
                         </section>
                     )}
                 </main>

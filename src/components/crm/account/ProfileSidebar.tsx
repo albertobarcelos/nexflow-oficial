@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { User, Lock, MessageCircle, Settings, Bell, Users } from "lucide-react";
+import { User, Lock, Settings, Bell, Users } from "lucide-react";
 
 interface ProfileSidebarProps {
     onNavigate: (sectionId: string) => void;
@@ -15,18 +15,13 @@ const items = [
     },
     {
         id: 'change-password-section',
-        label: 'Opções de Segurança',
+        label: 'Segurança',
         icon: <Lock className="mr-2" />,
     },
     {
         id: 'team-info-section',
-        label: 'Informações da Equipe',
+        label: 'Time',
         icon: <Users className="mr-2" />,
-    },
-    {
-        id: 'chat-section',
-        label: 'Chat',
-        icon: <MessageCircle className="mr-2" />,
     },
     {
         id: 'preferences-section',

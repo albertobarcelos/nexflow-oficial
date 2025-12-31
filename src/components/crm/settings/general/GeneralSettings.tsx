@@ -12,49 +12,28 @@ export function GeneralSettings() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Preferências do Sistema</CardTitle>
-            <CardDescription>
-              Configure as preferências gerais do sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="notifications">Notificações do Sistema</Label>
-              <Switch id="notifications" defaultChecked />
+      <Card>
+        <CardHeader>
+          <CardTitle>Aparência</CardTitle>
+          <CardDescription>
+            Personalize a aparência do sistema
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="theme">Tema</Label>
+              <p className="text-sm text-muted-foreground">
+                Escolha entre tema claro ou escuro
+              </p>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="email-summary">Resumo por E-mail</Label>
-              <Switch id="email-summary" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="dark-mode">Modo Escuro</Label>
-              <Switch id="dark-mode" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Privacidade</CardTitle>
-            <CardDescription>
-              Configure suas preferências de privacidade
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="analytics">Coleta de Analytics</Label>
-              <Switch id="analytics" defaultChecked />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="2fa">Autenticação em Dois Fatores</Label>
-              <Switch id="2fa" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Switch id="theme" disabled />
+          </div>
+          <p className="text-xs text-muted-foreground italic">
+            A troca de tema será implementada em breve
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 } 

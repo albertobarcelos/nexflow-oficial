@@ -1715,7 +1715,7 @@ function SortableCard({
         // Efeito visual para cards cancelados
         card.status === "canceled" && "bg-red-50/30 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 relative overflow-hidden",
         // Efeito visual para cards congelados
-        isFrozenCard && "bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50 relative overflow-hidden"
+        isFrozenCard && "bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50 ring-2 ring-blue-300 dark:ring-blue-700/50 relative overflow-hidden"
       )}
       onClick={onClick}
     >

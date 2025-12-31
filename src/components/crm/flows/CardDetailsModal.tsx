@@ -59,6 +59,8 @@ import { IndicationFloatingWidget } from "./IndicationFloatingWidget";
 import { ParentCardWidget } from "./ParentCardWidget";
 import { ProcessesView } from "./ProcessesView";
 import { ProcessDetails } from "./ProcessDetails";
+import { CardComments } from "./CardComments";
+import { CardAttachments } from "./CardAttachments";
 import { useQuery } from "@tanstack/react-query";
 import { nexflowClient } from "@/lib/supabase";
 import type { CardStepAction } from "@/types/nexflow";
@@ -1725,23 +1727,13 @@ export function CardDetailsModal({
       case "attachments":
         return (
           <div className="space-y-4">
-            <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-12 text-center">
-              <Paperclip className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Funcionalidade de anexos será implementada em breve.
-              </p>
-            </div>
+            <CardAttachments cardId={card.id} />
           </div>
         );
       case "comments":
         return (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-12 text-center">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Funcionalidade de comentários será implementada em breve.
-              </p>
-            </div>
+          <div className="h-full">
+            <CardComments cardId={card.id} />
           </div>
         );
       case "processes":
@@ -2032,7 +2024,9 @@ export function CardDetailsModal({
             {/* Área de Conteúdo Principal */}
             <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-0">
               <div className={cn(
-                activeSection === "processes" ? "w-full h-full" : "max-w-3xl mx-auto p-8"
+                activeSection === "processes" ? "w-full h-full" : 
+                activeSection === "comments" ? "w-full h-full" :
+                "max-w-3xl mx-auto p-8"
               )}>
                 {renderSectionContent()}
               </div>
