@@ -27,6 +27,7 @@ interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   user?: OrganizationUser & { clientId?: string; teamId?: string };
+  defaultClientId?: string; // Client ID padrão ao criar novo usuário
   onSuccess?: () => void;
 }
 
@@ -46,6 +47,7 @@ export function CreateUserDialog({
   open,
   onOpenChange,
   user,
+  defaultClientId,
   onSuccess,
 }: CreateUserDialogProps) {
   const queryClient = useQueryClient();
@@ -59,7 +61,7 @@ export function CreateUserDialog({
     password: "",
     role: undefined,
     teamId: undefined,
-    clientId: undefined,
+    clientId: defaultClientId || undefined,
   });
 
   // Carregar dados do usuário quando em modo de edição
@@ -75,10 +77,10 @@ export function CreateUserDialog({
         password: "",
         role: undefined,
         teamId: undefined,
-        clientId: undefined,
+        clientId: defaultClientId || undefined,
       });
     }
-  }, [open, isEditMode, user]);
+  }, [open, isEditMode, user, defaultClientId]);
 
   const loadUserData = async () => {
     if (!user) return;

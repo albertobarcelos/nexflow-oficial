@@ -64,7 +64,7 @@ export function ParentCardWidget({
         assignedTeamId: data.assigned_team_id ?? null,
         assigneeType: data.assigned_to ? 'user' : data.assigned_team_id ? 'team' : 'unassigned',
         agents: Array.isArray(data.agents) ? data.agents : [],
-        opportunityId: data.opportunity_id ?? null,
+        contactId: data.contact_id ?? null,
         position: data.position ?? 0,
         status: data.status ?? null,
         createdAt: data.created_at,

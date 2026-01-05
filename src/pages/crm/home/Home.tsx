@@ -9,12 +9,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDashboardStats, PeriodFilter } from "@/hooks/useDashboardStats";
-import { useOpportunityFlowData } from "@/hooks/useOpportunityFlowData";
+import { useContactFlowData } from "@/hooks/useContactFlowData";
 import { useRecentActivities } from "@/hooks/useRecentActivities";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { useOrganizationUsers } from "@/hooks/useOrganizationUsers";
 import { MetricCard } from "@/components/crm/dashboard/MetricCard";
-import { OpportunityFlowChart } from "@/components/crm/dashboard/OpportunityFlowChart";
+import { ContactFlowChart } from "@/components/crm/dashboard/ContactFlowChart";
 import { RecentActivitiesTable } from "@/components/crm/dashboard/RecentActivitiesTable";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -30,7 +30,7 @@ export function Home() {
     teamId: selectedTeamId,
     userId: selectedUserId,
   });
-  const { data: flowData, isLoading: isLoadingFlow } = useOpportunityFlowData(period);
+  const { data: flowData, isLoading: isLoadingFlow } = useContactFlowData(period);
   const { activities, isLoading: isLoadingActivities } = useRecentActivities(10, {
     teamId: selectedTeamId,
     userId: selectedUserId,
@@ -165,7 +165,7 @@ export function Home() {
 
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <OpportunityFlowChart 
+          <ContactFlowChart 
             data={flowData} 
             isLoading={isLoadingFlow}
           />

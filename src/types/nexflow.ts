@@ -94,7 +94,7 @@ export interface NexflowCard {
   assignedTeamId?: string | null;
   assigneeType?: 'user' | 'team' | 'unassigned';
   agents?: string[];
-  opportunityId?: string | null;
+  contactId?: string | null;
   indicationId?: string | null;
   position: number;
   status?: string | null;

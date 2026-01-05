@@ -2,11 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 export interface TeamMember {
-  id: string;
+  id: string; // user_profile_id
+  member_id: string; // ID do core_team_members
   name: string;
   surname: string;
   email: string;
-  role: string;
+  role: string; // Role do membro no time (EC, EV, SDR, EP, etc.)
+  division_percentage: number;
   is_active: boolean;
   avatar_url?: string | null;
   custom_avatar_url?: string | null;
@@ -25,6 +27,9 @@ export function useTeamMembers(teamId: string | null) {
         const { data: members, error } = await (supabase as any)
           .from("core_team_members")
           .select(`
+            id,
+            role,
+            division_percentage,
             user_profile_id,
             core_client_users:user_profile_id (
               id,
@@ -54,10 +59,12 @@ export function useTeamMembers(teamId: string | null) {
 
             return {
               id: user.id,
+              member_id: member.id, // ID do core_team_members
               name: user.name || "",
               surname: user.surname || "",
               email: user.email,
-              role: user.role,
+              role: member.role || "member", // Role do membro no time (default: member)
+              division_percentage: member.division_percentage || 0,
               is_active: user.is_active,
               avatar_url: user.avatar_url,
               custom_avatar_url: user.custom_avatar_url,

@@ -12,7 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LicenseSelect } from "./LicenseSelect";
+import { GlobalLevelsManager } from "./GlobalLevelsManager";
+import { FranchisesManager } from "./FranchisesManager";
+import { CompanyUsersManager } from "./CompanyUsersManager";
+import { CompanyTeamsManager } from "./CompanyTeamsManager";
 import { OrganizationCompany } from "@/hooks/useOrganizationCompanies";
 
 interface CreateCompanyDialogProps {
@@ -337,9 +342,153 @@ export function CreateCompanyDialog({
     }
   };
 
+  const renderFormFields = () => (
+    <>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Nome *</Label>
+          <Input
+            id="name"
+            type="text"
+            value={formData.name}
+            onChange={(e) => handleInputChange("name", e.target.value)}
+            placeholder="Digite o nome"
+            required
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email">E-mail *</Label>
+          <Input
+            id="email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleInputChange("email", e.target.value)}
+            placeholder="Digite o e-mail"
+            required
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="company_name">Razão Social *</Label>
+          <Input
+            id="company_name"
+            type="text"
+            value={formData.company_name}
+            onChange={(e) => handleInputChange("company_name", e.target.value)}
+            placeholder="Digite a razão social"
+            required
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cpf_cnpj">CPF/CNPJ *</Label>
+          <Input
+            id="cpf_cnpj"
+            type="text"
+            value={formData.cpf_cnpj}
+            onChange={(e) => handleInputChange("cpf_cnpj", e.target.value)}
+            placeholder="Digite o CPF/CNPJ"
+            required
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="phone">Telefone</Label>
+          <Input
+            id="phone"
+            type="text"
+            value={formData.phone}
+            onChange={(e) => handleInputChange("phone", e.target.value)}
+            placeholder="Digite o telefone"
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="contact_name">Nome do Contato</Label>
+          <Input
+            id="contact_name"
+            type="text"
+            value={formData.contact_name}
+            onChange={(e) => handleInputChange("contact_name", e.target.value)}
+            placeholder="Digite o nome do contato"
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="address">Endereço</Label>
+        <Input
+          id="address"
+          type="text"
+          value={formData.address}
+          onChange={(e) => handleInputChange("address", e.target.value)}
+          placeholder="Digite o endereço"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="city">Cidade</Label>
+          <Input
+            id="city"
+            type="text"
+            value={formData.city}
+            onChange={(e) => handleInputChange("city", e.target.value)}
+            placeholder="Digite a cidade"
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="state">Estado</Label>
+          <Input
+            id="state"
+            type="text"
+            value={formData.state}
+            onChange={(e) => handleInputChange("state", e.target.value)}
+            placeholder="Digite o estado"
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="postal_code">CEP</Label>
+          <Input
+            id="postal_code"
+            type="text"
+            value={formData.postal_code}
+            onChange={(e) => handleInputChange("postal_code", e.target.value)}
+            placeholder="Digite o CEP"
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="license">Licença</Label>
+        <LicenseSelect
+          value={formData.license_id}
+          onChange={(value) => handleInputChange("license_id", value)}
+        />
+      </div>
+    </>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? "Editar Empresa" : "Criar Nova Empresa"}
@@ -355,167 +504,85 @@ export function CreateCompanyDialog({
         )}
 
         {!isLoadingCompanyData && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome *</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  placeholder="Digite o nome"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+          <>
+            {isEditMode ? (
+              <Tabs defaultValue="info" className="w-full">
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="info">Informações</TabsTrigger>
+                  <TabsTrigger value="units">Unidades</TabsTrigger>
+                  <TabsTrigger value="users">Usuários</TabsTrigger>
+                  <TabsTrigger value="teams">Times</TabsTrigger>
+                  <TabsTrigger value="levels">Níveis</TabsTrigger>
+                </TabsList>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  placeholder="Digite o e-mail"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+                <TabsContent value="info" className="mt-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {renderFormFields()}
+                    <DialogFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => onOpenChange(false)}
+                        disabled={isLoading}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={isLoading || isLoadingCompanyData}>
+                        {isLoading ? "Salvando..." : "Salvar Alterações"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </TabsContent>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="company_name">Razão Social *</Label>
-                <Input
-                  id="company_name"
-                  type="text"
-                  value={formData.company_name}
-                  onChange={(e) => handleInputChange("company_name", e.target.value)}
-                  placeholder="Digite a razão social"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
+                <TabsContent value="units" className="mt-4">
+                  {company && (
+                    <FranchisesManager clientId={company.id} />
+                  )}
+                </TabsContent>
 
-              <div className="space-y-2">
-                <Label htmlFor="cpf_cnpj">CPF/CNPJ *</Label>
-                <Input
-                  id="cpf_cnpj"
-                  type="text"
-                  value={formData.cpf_cnpj}
-                  onChange={(e) => handleInputChange("cpf_cnpj", e.target.value)}
-                  placeholder="Digite o CPF/CNPJ"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+                <TabsContent value="users" className="mt-4">
+                  {company && (
+                    <CompanyUsersManager 
+                      clientId={company.id} 
+                      companyName={company.company_name || company.name}
+                    />
+                  )}
+                </TabsContent>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
-                <Input
-                  id="phone"
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder="Digite o telefone"
-                  disabled={isLoading}
-                />
-              </div>
+                <TabsContent value="teams" className="mt-4">
+                  {company && (
+                    <CompanyTeamsManager 
+                      clientId={company.id} 
+                      companyName={company.company_name || company.name}
+                    />
+                  )}
+                </TabsContent>
 
-              <div className="space-y-2">
-                <Label htmlFor="contact_name">Nome do Contato</Label>
-                <Input
-                  id="contact_name"
-                  type="text"
-                  value={formData.contact_name}
-                  onChange={(e) => handleInputChange("contact_name", e.target.value)}
-                  placeholder="Digite o nome do contato"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
-              <Input
-                id="address"
-                type="text"
-                value={formData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
-                placeholder="Digite o endereço"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="city">Cidade</Label>
-                <Input
-                  id="city"
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange("city", e.target.value)}
-                  placeholder="Digite a cidade"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="state">Estado</Label>
-                <Input
-                  id="state"
-                  type="text"
-                  value={formData.state}
-                  onChange={(e) => handleInputChange("state", e.target.value)}
-                  placeholder="Digite o estado"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="postal_code">CEP</Label>
-                <Input
-                  id="postal_code"
-                  type="text"
-                  value={formData.postal_code}
-                  onChange={(e) => handleInputChange("postal_code", e.target.value)}
-                  placeholder="Digite o CEP"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="license">Licença</Label>
-              <LicenseSelect
-                value={formData.license_id}
-                onChange={(value) => handleInputChange("license_id", value)}
-              />
-            </div>
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isLoading || isLoadingCompanyData}>
-                {isLoading
-                  ? isEditMode
-                    ? "Salvando..."
-                    : "Criando..."
-                  : isEditMode
-                  ? "Salvar Alterações"
-                  : "Criar Empresa"}
-              </Button>
-            </DialogFooter>
-          </form>
+                <TabsContent value="levels" className="mt-4">
+                  {company && (
+                    <GlobalLevelsManager clientId={company.id} />
+                  )}
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {renderFormFields()}
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={isLoading}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={isLoading || isLoadingCompanyData}>
+                    {isLoading ? "Criando..." : "Criar Empresa"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </>
         )}
       </DialogContent>
     </Dialog>

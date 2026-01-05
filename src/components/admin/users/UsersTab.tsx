@@ -132,6 +132,7 @@ export function UsersTab() {
           <TableRow>
             <TableHead>Usuário</TableHead>
             <TableHead>Email</TableHead>
+            <TableHead>Empresa</TableHead>
             <TableHead>Função</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -159,6 +160,11 @@ export function UsersTab() {
                   </div>
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-600">
+                    {user.company_name || "Sem empresa"}
+                  </span>
+                </TableCell>
                 <TableCell>
                   <span className="text-sm text-gray-600">{user.role}</span>
                 </TableCell>

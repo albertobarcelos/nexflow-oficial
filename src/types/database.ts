@@ -209,6 +209,48 @@ export interface Database {
         Relationships: [];
       };
 
+      core_franchises: {
+        Row: {
+          id: string;
+          client_id: string;
+          name: string;
+          code: string | null;
+          description: string | null;
+          is_active: boolean | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          name: string;
+          code?: string | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          name?: string;
+          code?: string | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "core_franchises_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
       core_client_license: {
         Row: {
           id: string;
@@ -671,6 +713,531 @@ export interface Database {
             referencedColumns: ["id"];
           }
         ];
+      };
+
+      web_items: {
+        Row: {
+          id: string;
+          client_id: string;
+          name: string;
+          description: string | null;
+          price: number | null;
+          item_code: string | null;
+          item_type: "product" | "service";
+          billing_type: "one_time" | "recurring";
+          metadata: Json;
+          is_active: boolean | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          name: string;
+          description?: string | null;
+          price?: number | null;
+          item_code?: string | null;
+          item_type: "product" | "service";
+          billing_type: "one_time" | "recurring";
+          metadata?: Json;
+          is_active?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          name?: string;
+          description?: string | null;
+          price?: number | null;
+          item_code?: string | null;
+          item_type?: "product" | "service";
+          billing_type?: "one_time" | "recurring";
+          metadata?: Json;
+          is_active?: boolean | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "web_items_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      core_team_levels: {
+        Row: {
+          id: string;
+          team_id: string;
+          name: string;
+          level_order: number;
+          commission_percentage: number;
+          commission_implantation_percentage: number | null;
+          commission_recurring_percentage: number | null;
+          commission_one_time_percentage: number | null;
+          description: string | null;
+          is_active: boolean | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          name: string;
+          level_order: number;
+          commission_percentage: number;
+          commission_implantation_percentage?: number | null;
+          commission_recurring_percentage?: number | null;
+          commission_one_time_percentage?: number | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          name?: string;
+          level_order?: number;
+          commission_percentage?: number;
+          commission_implantation_percentage?: number | null;
+          commission_recurring_percentage?: number | null;
+          commission_one_time_percentage?: number | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      core_team_member_levels: {
+        Row: {
+          id: string;
+          team_member_id: string;
+          team_level_id: string;
+          effective_from: string;
+          effective_to: string | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_member_id: string;
+          team_level_id: string;
+          effective_from?: string;
+          effective_to?: string | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_member_id?: string;
+          team_level_id?: string;
+          effective_from?: string;
+          effective_to?: string | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      core_team_commissions: {
+        Row: {
+          id: string;
+          team_id: string;
+          item_id: string | null;
+          item_code: string | null;
+          commission_type: "percentage" | "fixed";
+          commission_value: number;
+          distribution_type: "team_based" | "individual" | null;
+          distribution_config: Json;
+          recurring_max_months: number | null;
+          recurring_until_cancellation: boolean | null;
+          description: string | null;
+          is_active: boolean | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          item_id?: string | null;
+          item_code?: string | null;
+          commission_type: "percentage" | "fixed";
+          commission_value: number;
+          distribution_type?: "team_based" | "individual" | null;
+          distribution_config?: Json;
+          recurring_max_months?: number | null;
+          recurring_until_cancellation?: boolean | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          item_id?: string | null;
+          item_code?: string | null;
+          commission_type?: "percentage" | "fixed";
+          commission_value?: number;
+          distribution_type?: "team_based" | "individual" | null;
+          distribution_config?: Json;
+          recurring_max_months?: number | null;
+          recurring_until_cancellation?: boolean | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      core_commission_calculations: {
+        Row: {
+          id: string;
+          card_id: string;
+          card_item_id: string | null;
+          payment_id: string | null;
+          payment_amount: number | null;
+          payment_date: string | null;
+          team_id: string;
+          item_code: string | null;
+          team_commission_type: string;
+          team_commission_value: number;
+          team_commission_amount: number;
+          total_distributed_percentage: number;
+          total_distributed_amount: number;
+          status: "pending" | "approved" | "paid" | "cancelled";
+          approved_by: string | null;
+          approved_at: string | null;
+          paid_at: string | null;
+          notes: string | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          card_item_id?: string | null;
+          payment_id?: string | null;
+          payment_amount?: number | null;
+          payment_date?: string | null;
+          team_id: string;
+          item_code?: string | null;
+          team_commission_type: string;
+          team_commission_value: number;
+          team_commission_amount: number;
+          total_distributed_percentage?: number;
+          total_distributed_amount?: number;
+          status?: "pending" | "approved" | "paid" | "cancelled";
+          approved_by?: string | null;
+          approved_at?: string | null;
+          paid_at?: string | null;
+          notes?: string | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          card_item_id?: string | null;
+          payment_id?: string | null;
+          payment_amount?: number | null;
+          payment_date?: string | null;
+          team_id?: string;
+          item_code?: string | null;
+          team_commission_type?: string;
+          team_commission_value?: number;
+          team_commission_amount?: number;
+          total_distributed_percentage?: number;
+          total_distributed_amount?: number;
+          status?: "pending" | "approved" | "paid" | "cancelled";
+          approved_by?: string | null;
+          approved_at?: string | null;
+          paid_at?: string | null;
+          notes?: string | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      core_commission_distributions: {
+        Row: {
+          id: string;
+          calculation_id: string;
+          user_id: string;
+          level_id: string | null;
+          member_role: "admin" | "leader" | "member" | "ec" | "ev" | "sdr" | "ep" | null;
+          item_type: "implantation" | "recurring" | null;
+          recurring_month_number: number | null;
+          is_recurring_while_active: boolean | null;
+          distribution_percentage: number;
+          distribution_amount: number;
+          status: "pending" | "approved" | "paid" | "cancelled";
+          paid_at: string | null;
+          notes: string | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          calculation_id: string;
+          user_id: string;
+          level_id?: string | null;
+          member_role?: "admin" | "leader" | "member" | "ec" | "ev" | "sdr" | "ep" | null;
+          item_type?: "implantation" | "recurring" | null;
+          recurring_month_number?: number | null;
+          is_recurring_while_active?: boolean | null;
+          distribution_percentage: number;
+          distribution_amount: number;
+          status?: "pending" | "approved" | "paid" | "cancelled";
+          paid_at?: string | null;
+          notes?: string | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          calculation_id?: string;
+          user_id?: string;
+          level_id?: string | null;
+          member_role?: "admin" | "leader" | "member" | "ec" | "ev" | "sdr" | "ep" | null;
+          item_type?: "implantation" | "recurring" | null;
+          recurring_month_number?: number | null;
+          is_recurring_while_active?: boolean | null;
+          distribution_percentage?: number;
+          distribution_amount?: number;
+          status?: "pending" | "approved" | "paid" | "cancelled";
+          paid_at?: string | null;
+          notes?: string | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      web_payments: {
+        Row: {
+          id: string;
+          card_id: string;
+          payment_reference: string | null;
+          payment_date: string;
+          payment_amount: number;
+          payment_method: string | null;
+          payment_status: "pending" | "confirmed" | "cancelled" | "refunded";
+          revalya_payment_id: string | null;
+          revalya_sync_at: string | null;
+          revalya_sync_status: "pending" | "synced" | "error";
+          revalya_metadata: Json;
+          confirmed_at: string | null;
+          confirmed_by: string | null;
+          notes: string | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          payment_reference?: string | null;
+          payment_date: string;
+          payment_amount: number;
+          payment_method?: string | null;
+          payment_status?: "pending" | "confirmed" | "cancelled" | "refunded";
+          revalya_payment_id?: string | null;
+          revalya_sync_at?: string | null;
+          revalya_sync_status?: "pending" | "synced" | "error";
+          revalya_metadata?: Json;
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          notes?: string | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          payment_reference?: string | null;
+          payment_date?: string;
+          payment_amount?: number;
+          payment_method?: string | null;
+          payment_status?: "pending" | "confirmed" | "cancelled" | "refunded";
+          revalya_payment_id?: string | null;
+          revalya_sync_at?: string | null;
+          revalya_sync_status?: "pending" | "synced" | "error";
+          revalya_metadata?: Json;
+          confirmed_at?: string | null;
+          confirmed_by?: string | null;
+          notes?: string | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      revalya_integration_log: {
+        Row: {
+          id: string;
+          sync_type: string;
+          revalya_payment_id: string;
+          card_id: string | null;
+          payment_id: string | null;
+          status: "success" | "error" | "pending";
+          error_message: string | null;
+          revalya_data: Json;
+          client_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          sync_type: string;
+          revalya_payment_id: string;
+          card_id?: string | null;
+          payment_id?: string | null;
+          status: "success" | "error" | "pending";
+          error_message?: string | null;
+          revalya_data?: Json;
+          client_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          sync_type?: string;
+          revalya_payment_id?: string;
+          card_id?: string | null;
+          payment_id?: string | null;
+          status?: "success" | "error" | "pending";
+          error_message?: string | null;
+          revalya_data?: Json;
+          client_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      core_team_role_commissions: {
+        Row: {
+          id: string;
+          team_id: string;
+          role: "admin" | "leader" | "member" | "ec" | "ev" | "sdr" | "ep";
+          recurring_commission_type: "percentage" | "fixed" | "team_percentage";
+          recurring_commission_value: number | null;
+          recurring_duration_months: number | null;
+          recurring_while_active: boolean | null;
+          implantation_commission_type: "percentage" | "fixed" | "team_percentage" | null;
+          implantation_commission_value: number | null;
+          description: string | null;
+          is_active: boolean | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          role: "admin" | "leader" | "member" | "ec" | "ev" | "sdr" | "ep";
+          recurring_commission_type: "percentage" | "fixed" | "team_percentage";
+          recurring_commission_value?: number | null;
+          recurring_duration_months?: number | null;
+          recurring_while_active?: boolean | null;
+          implantation_commission_type?: "percentage" | "fixed" | "team_percentage" | null;
+          implantation_commission_value?: number | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          role?: "admin" | "leader" | "member" | "ec" | "ev" | "sdr" | "ep";
+          recurring_commission_type?: "percentage" | "fixed" | "team_percentage";
+          recurring_commission_value?: number | null;
+          recurring_duration_months?: number | null;
+          recurring_while_active?: boolean | null;
+          implantation_commission_type?: "percentage" | "fixed" | "team_percentage" | null;
+          implantation_commission_value?: number | null;
+          description?: string | null;
+          is_active?: boolean | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      core_team_client_portfolio: {
+        Row: {
+          id: string;
+          team_id: string;
+          card_id: string;
+          client_status: "active" | "canceled" | "suspended";
+          closed_at: string;
+          activated_at: string | null;
+          canceled_at: string | null;
+          total_implantation_value: number | null;
+          monthly_recurring_value: number | null;
+          notes: string | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          card_id: string;
+          client_status?: "active" | "canceled" | "suspended";
+          closed_at: string;
+          activated_at?: string | null;
+          canceled_at?: string | null;
+          total_implantation_value?: number | null;
+          monthly_recurring_value?: number | null;
+          notes?: string | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          card_id?: string;
+          client_status?: "active" | "canceled" | "suspended";
+          closed_at?: string;
+          activated_at?: string | null;
+          canceled_at?: string | null;
+          total_implantation_value?: number | null;
+          monthly_recurring_value?: number | null;
+          notes?: string | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
 
       web_tasks: {
@@ -1532,7 +2099,7 @@ export interface Database {
           parent_card_id: string | null;
           assigned_to: string | null;
           assigned_team_id: string | null;
-          opportunity_id: string | null;
+          contact_id: string | null;
           indication_id: string | null;
           position: number;
           status: string | null;
@@ -1777,7 +2344,7 @@ export interface Database {
         Relationships: [];
       };
 
-      opportunity_automations: {
+      contact_automations: {
         Row: {
           id: string;
           client_id: string;
@@ -2050,6 +2617,107 @@ export interface Database {
           file_type?: string;
           created_at?: string;
           client_id?: string;
+        };
+        Relationships: [];
+      };
+
+      card_items: {
+        Row: {
+          id: string;
+          card_id: string;
+          item_id: string | null;
+          item_code: string | null;
+          item_name: string;
+          quantity: number;
+          unit_price: number;
+          total_price: number;
+          installment_number: number | null;
+          total_installments: number | null;
+          description: string | null;
+          client_id: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          item_id?: string | null;
+          item_code?: string | null;
+          item_name: string;
+          quantity?: number;
+          unit_price: number;
+          total_price?: number;
+          installment_number?: number | null;
+          total_installments?: number | null;
+          description?: string | null;
+          client_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          item_id?: string | null;
+          item_code?: string | null;
+          item_name?: string;
+          quantity?: number;
+          unit_price?: number;
+          total_price?: number;
+          installment_number?: number | null;
+          total_installments?: number | null;
+          description?: string | null;
+          client_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      contacts: {
+        Row: {
+          id: string;
+          client_id: string;
+          client_name: string;
+          main_contact: string;
+          phone_numbers: string[] | null;
+          company_names: string[] | null;
+          tax_ids: string[] | null;
+          related_card_ids: string[] | null;
+          assigned_team_id: string | null;
+          avatar_type: string | null;
+          avatar_seed: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          client_name: string;
+          main_contact: string;
+          phone_numbers?: string[] | null;
+          company_names?: string[] | null;
+          tax_ids?: string[] | null;
+          related_card_ids?: string[] | null;
+          assigned_team_id?: string | null;
+          avatar_type?: string | null;
+          avatar_seed?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          client_name?: string;
+          main_contact?: string;
+          phone_numbers?: string[] | null;
+          company_names?: string[] | null;
+          tax_ids?: string[] | null;
+          related_card_ids?: string[] | null;
+          assigned_team_id?: string | null;
+          avatar_type?: string | null;
+          avatar_seed?: string | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
