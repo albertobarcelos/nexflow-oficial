@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UsersTab } from "@/components/admin/users/UsersTab";
 import { TeamsTab } from "@/components/admin/users/TeamsTab";
 import { CompaniesTab } from "@/components/admin/users/CompaniesTab";
+import { TeamConfigurationPage } from "@/components/admin/users/TeamConfigurationPage";
 
 export default function Users() {
   return (
@@ -14,9 +15,10 @@ export default function Users() {
       </div>
 
       <Tabs defaultValue="users" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-2xl grid-cols-4">
           <TabsTrigger value="users">Usuários</TabsTrigger>
           <TabsTrigger value="teams">Times</TabsTrigger>
+          <TabsTrigger value="configuration">Configuração</TabsTrigger>
           <TabsTrigger value="companies">Empresas</TabsTrigger>
         </TabsList>
 
@@ -26,6 +28,10 @@ export default function Users() {
 
         <TabsContent value="teams" className="mt-6">
           <TeamsTab />
+        </TabsContent>
+
+        <TabsContent value="configuration" className="mt-6">
+          <TeamConfigurationPage />
         </TabsContent>
 
         <TabsContent value="companies" className="mt-6">

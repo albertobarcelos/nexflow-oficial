@@ -8,6 +8,8 @@ export interface OrganizationUser {
   email: string;
   role: string;
   is_active: boolean;
+  client_id?: string | null;
+  company_name?: string | null;
   avatar_url?: string | null;
   custom_avatar_url?: string | null;
   avatar_type?: string | null;
@@ -19,7 +21,7 @@ export function useOrganizationUsers() {
     queryKey: ["organization-users"],
     queryFn: async () => {
       try {
-        // Buscar todos os usuários (admin pode ver todos)
+        // Buscar todos os usuários com JOIN na empresa (admin pode ver todos)
         const { data: users, error } = await supabase
           .from("core_client_users")
           .select(`
@@ -29,10 +31,16 @@ export function useOrganizationUsers() {
             email,
             role,
             is_active,
+            client_id,
             avatar_url,
             custom_avatar_url,
             avatar_type,
-            avatar_seed
+            avatar_seed,
+            core_clients:client_id (
+              id,
+              name,
+              company_name
+            )
           `)
           .order("name");
 
@@ -41,18 +49,23 @@ export function useOrganizationUsers() {
           return [];
         }
 
-        return (users || []).map((user: any) => ({
-          id: user.id,
-          name: user.name || "",
-          surname: user.surname || "",
-          email: user.email,
-          role: user.role,
-          is_active: user.is_active,
-          avatar_url: user.avatar_url,
-          custom_avatar_url: user.custom_avatar_url,
-          avatar_type: user.avatar_type,
-          avatar_seed: user.avatar_seed,
-        }));
+        return (users || []).map((user: any) => {
+          const company = user.core_clients;
+          return {
+            id: user.id,
+            name: user.name || "",
+            surname: user.surname || "",
+            email: user.email,
+            role: user.role,
+            is_active: user.is_active,
+            client_id: user.client_id,
+            company_name: company?.company_name || company?.name || "Sem empresa",
+            avatar_url: user.avatar_url,
+            custom_avatar_url: user.custom_avatar_url,
+            avatar_type: user.avatar_type,
+            avatar_seed: user.avatar_seed,
+          };
+        });
       } catch (error) {
         console.error("Erro ao buscar usuários:", error);
         return [];

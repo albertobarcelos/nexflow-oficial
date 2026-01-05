@@ -11,17 +11,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Power, Plus, Eye } from "lucide-react";
+import { Pencil, Power, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { CreateTeamDialog } from "./CreateTeamDialog";
-import { TeamMembersDrawer } from "./TeamMembersDrawer";
+import { TeamEditDialog } from "./TeamEditDialog";
 
 export function TeamsTab() {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [teamToEdit, setTeamToEdit] = useState<OrganizationTeam | null>(null);
-  const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
   const { data: teams, isLoading, error } = useOrganizationTeams();
 
   const handleEdit = (teamId: string) => {
@@ -31,9 +30,7 @@ export function TeamsTab() {
     }
   };
 
-  const handleViewMembers = (teamId: string) => {
-    setViewingTeamId(teamId);
-  };
+  // Removido handleViewMembers - agora tudo está no TeamEditDialog
 
   const handleToggleStatus = async (team: OrganizationTeam) => {
     try {
@@ -158,18 +155,9 @@ export function TeamsTab() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleViewMembers(team.id)}
-                      className="h-8 w-8 p-0"
-                      title="Ver membros do time"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
                       onClick={() => handleEdit(team.id)}
                       className="h-8 w-8 p-0"
-                      title="Editar time"
+                      title="Editar time (inclui níveis e membros)"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -198,27 +186,16 @@ export function TeamsTab() {
         }}
       />
 
-      <CreateTeamDialog
+      <TeamEditDialog
         open={!!teamToEdit}
         onOpenChange={(open) => {
           if (!open) setTeamToEdit(null);
         }}
-        team={teamToEdit || undefined}
+        team={teamToEdit}
         onSuccess={() => {
           setTeamToEdit(null);
         }}
       />
-
-      {viewingTeamId && (
-        <TeamMembersDrawer
-          open={!!viewingTeamId}
-          onOpenChange={(open) => {
-            if (!open) setViewingTeamId(null);
-          }}
-          teamId={viewingTeamId}
-          teamName={teams?.find((t) => t.id === viewingTeamId)?.name || ""}
-        />
-      )}
     </div>
   );
 }

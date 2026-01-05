@@ -19,6 +19,8 @@ interface CreateTeamDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   team?: OrganizationTeam;
+  defaultClientId?: string; // Client ID padrão ao criar novo time
+  companyName?: string; // Nome da empresa (para exibição quando defaultClientId está definido)
   onSuccess?: () => void;
 }
 
@@ -31,6 +33,8 @@ export function CreateTeamDialog({
   open,
   onOpenChange,
   team,
+  defaultClientId,
+  companyName,
   onSuccess,
 }: CreateTeamDialogProps) {
   const queryClient = useQueryClient();
@@ -39,7 +43,7 @@ export function CreateTeamDialog({
   const [isLoadingTeamData, setIsLoadingTeamData] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     teamName: "",
-    clientId: undefined,
+    clientId: defaultClientId || undefined,
   });
 
   // Carregar dados do time quando em modo de edição
@@ -50,10 +54,17 @@ export function CreateTeamDialog({
       // Limpar formulário quando abrir em modo de criação
       setFormData({
         teamName: "",
-        clientId: undefined,
+        clientId: defaultClientId || undefined,
       });
     }
-  }, [open, isEditMode, team]);
+  }, [open, isEditMode, team, defaultClientId]);
+
+  // Garantir que defaultClientId seja usado quando fornecido
+  useEffect(() => {
+    if (defaultClientId && !isEditMode && !formData.clientId) {
+      setFormData((prev) => ({ ...prev, clientId: defaultClientId }));
+    }
+  }, [defaultClientId, isEditMode]);
 
   const loadTeamData = async () => {
     if (!team) return;
@@ -83,7 +94,7 @@ export function CreateTeamDialog({
       return false;
     }
     // Cliente só é obrigatório em modo de criação
-    if (!isEditMode && !formData.clientId) {
+    if (!isEditMode && !formData.clientId && !defaultClientId) {
       toast.error("O campo Cliente/Empresa é obrigatório");
       return false;
     }
@@ -111,8 +122,9 @@ export function CreateTeamDialog({
           throw error;
         }
 
-        // Invalidar query para atualizar lista de times
+        // Invalidar queries para atualizar lista de times
         queryClient.invalidateQueries({ queryKey: ["organization-teams"] });
+        queryClient.invalidateQueries({ queryKey: ["company-teams"] });
 
         toast.success("Time atualizado com sucesso!");
 
@@ -129,7 +141,7 @@ export function CreateTeamDialog({
         // Modo de criação - chamar edge function de create
         const requestBody = {
           teamName: formData.teamName,
-          clientId: formData.clientId!,
+          clientId: formData.clientId || defaultClientId!,
         };
 
         const { data, error } = await supabase.functions.invoke("create-team", {
@@ -140,8 +152,9 @@ export function CreateTeamDialog({
           throw error;
         }
 
-        // Invalidar query para atualizar lista de times
+        // Invalidar queries para atualizar lista de times
         queryClient.invalidateQueries({ queryKey: ["organization-teams"] });
+        queryClient.invalidateQueries({ queryKey: ["company-teams"] });
 
         toast.success("Time criado com sucesso!");
 
@@ -204,10 +217,20 @@ export function CreateTeamDialog({
             {!isEditMode && (
               <div className="space-y-2">
                 <Label htmlFor="client">Cliente/Empresa *</Label>
-                <ClientSelect
-                  value={formData.clientId}
-                  onChange={(value) => handleInputChange("clientId", value)}
-                />
+                {defaultClientId ? (
+                  <Input
+                    id="client"
+                    type="text"
+                    value={companyName || "Empresa selecionada"}
+                    disabled
+                    className="bg-muted"
+                  />
+                ) : (
+                  <ClientSelect
+                    value={formData.clientId}
+                    onChange={(value) => handleInputChange("clientId", value)}
+                  />
+                )}
               </div>
             )}
 

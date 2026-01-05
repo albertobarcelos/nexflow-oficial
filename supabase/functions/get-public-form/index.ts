@@ -41,7 +41,7 @@ Deno.serve(async (req: Request) => {
 
     // Buscar formulário pelo slug (sem expor o token)
     const { data: form, error: formError } = await supabaseAdmin
-      .from("public_opportunity_forms")
+      .from("public_contact_forms")
       .select("id, title, description, slug, fields_config, settings, is_active")
       .eq("slug", slug)
       .eq("is_active", true)

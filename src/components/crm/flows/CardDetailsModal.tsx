@@ -54,7 +54,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { useCardTags, useAddCardTag, useRemoveCardTag } from "@/hooks/useCardTags";
 import { useFlowTags } from "@/hooks/useFlowTags";
 import { useCardHistory } from "@/hooks/useCardHistory";
-import { OpportunityFloatingWidget } from "./OpportunityFloatingWidget";
+import { ContactFloatingWidget } from "./ContactFloatingWidget";
 import { IndicationFloatingWidget } from "./IndicationFloatingWidget";
 import { ParentCardWidget } from "./ParentCardWidget";
 import { ProcessesView } from "./ProcessesView";
@@ -1783,7 +1783,7 @@ export function CardDetailsModal({
               <div className="flex items-center gap-3 mt-1">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{card.title}</h1>
                 {/* Widget flutuante de Lead */}
-                <OpportunityFloatingWidget opportunityId={card.opportunityId} />
+                <ContactFloatingWidget contactId={card.contactId} />
                 {/* Widget flutuante de Indicação */}
                 <IndicationFloatingWidget indicationId={card.indicationId} />
                 {/* Widget flutuante de Card Pai */}

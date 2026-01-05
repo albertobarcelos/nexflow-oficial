@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase, nexflowClient } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 
-export interface Opportunity {
+export interface Contact {
   id: string;
   client_id: string;
   client_name: string;
@@ -18,6 +18,9 @@ export interface Opportunity {
   updated_at: string;
 }
 
+// Alias para compatibilidade
+export type Opportunity = Contact;
+
 interface UseOpportunitiesOptions {
   enabled?: boolean;
 }
@@ -28,36 +31,36 @@ async function fetchViaRPC(userPermissions: {
   isLeader: boolean;
   teamIds: string[];
   clientId: string | null;
-}): Promise<Opportunity[]> {
+}): Promise<Contact[]> {
   if (!userPermissions.clientId) {
     return [];
   }
 
-  const { data, error } = await supabase.rpc('get_opportunities', {
+  const { data, error } = await supabase.rpc('get_contacts', {
     p_client_id: userPermissions.clientId,
   });
 
   if (error) {
-    console.error('Erro ao buscar oportunidades via RPC:', error);
+    console.error('Erro ao buscar contatos via RPC:', error);
     throw error;
   }
 
-  let opportunities = (data || []) as Opportunity[];
+  let contacts = (data || []) as Contact[];
 
   // Aplicar filtro de times se necessário
   if (!userPermissions.isAdmin && userPermissions.isLeader && userPermissions.teamIds.length > 0) {
-    opportunities = opportunities.filter(opp => 
-      opp.assigned_team_id && userPermissions.teamIds.includes(opp.assigned_team_id)
+    contacts = contacts.filter(contact => 
+      contact.assigned_team_id && userPermissions.teamIds.includes(contact.assigned_team_id)
     );
   }
 
-  return opportunities;
+  return contacts;
 }
 
 /**
- * Hook para buscar oportunidades com filtros de permissão
- * - Administrators veem todas as oportunidades do client_id
- * - Team Leaders veem apenas oportunidades do seu time
+ * Hook para buscar contatos com filtros de permissão
+ * - Administrators veem todos os contatos do client_id
+ * - Team Leaders veem apenas contatos do seu time
  */
 export function useOpportunities(options: UseOpportunitiesOptions = {}) {
   const { enabled = true } = options;
@@ -136,10 +139,10 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
     }
   }, [enabled]);
 
-  // Query para buscar oportunidades
+  // Query para buscar contatos
   const query = useQuery({
-    queryKey: ['opportunities', userPermissions.clientId, userPermissions.isAdmin, userPermissions.teamIds],
-    queryFn: async (): Promise<Opportunity[]> => {
+    queryKey: ['contacts', userPermissions.clientId, userPermissions.isAdmin, userPermissions.teamIds],
+    queryFn: async (): Promise<Contact[]> => {
       if (!userPermissions.clientId) {
         return [];
       }
@@ -148,7 +151,7 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
       try {
         const client = nexflowClient();
         let query = client
-          .from('opportunities')
+          .from('contacts')
           .select('*')
           .eq('client_id', userPermissions.clientId)
           .order('created_at', { ascending: false });
@@ -168,28 +171,21 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
         if (error) {
           // Se der erro de permissão, tentar usar função RPC
           if (error.code === '42501' || error.message?.includes('permission denied')) {
-            console.warn('Erro de permissão ao acessar nexflow.opportunities, usando função RPC como fallback');
+            console.warn('Erro de permissão ao acessar nexflow.contacts, usando função RPC como fallback');
             return await fetchViaRPC(userPermissions);
           }
           throw error;
         }
 
-        return (data || []) as Opportunity[];
+        return (data || []) as Contact[];
       } catch (error: any) {
         // Se der erro de permissão, tentar usar função RPC
         if (error?.code === '42501' || error?.message?.includes('permission denied')) {
-          console.warn('Erro de permissão ao acessar nexflow.opportunities, usando função RPC como fallback');
+          console.warn('Erro de permissão ao acessar nexflow.contacts, usando função RPC como fallback');
           return await fetchViaRPC(userPermissions);
         }
         throw error;
       }
-
-      if (error) {
-        console.error('Erro ao buscar oportunidades:', error);
-        throw error;
-      }
-
-      return (data || []) as Opportunity[];
     },
     enabled: enabled && !isLoadingPermissions && !!userPermissions.clientId && (userPermissions.isAdmin || userPermissions.isLeader),
     staleTime: 1000 * 60 * 5, // Cache por 5 minutos
@@ -198,7 +194,8 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
   return {
     ...query,
     isLoading: query.isLoading || isLoadingPermissions,
-    opportunities: query.data || [],
+    opportunities: query.data || [], // Mantém nome antigo para compatibilidade
+    contacts: query.data || [], // Novo nome
     permissions: userPermissions,
   };
 }

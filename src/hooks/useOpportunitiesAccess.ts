@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 /**
- * Hook para verificar se o usuário tem acesso ao módulo de Oportunidades
+ * Hook para verificar se o usuário tem acesso ao módulo de Contatos
  * Retorna true se:
  * - Usuário é administrator OU é leader de time
  */
@@ -55,7 +55,7 @@ export function useOpportunitiesAccess() {
 
         setHasAccess(hasRoleAccess);
       } catch (error) {
-        console.error('Erro ao verificar acesso às Oportunidades:', error);
+        console.error('Erro ao verificar acesso aos Contatos:', error);
         setHasAccess(false);
       } finally {
         setIsLoading(false);

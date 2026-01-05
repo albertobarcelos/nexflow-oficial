@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from './ProtectedRoute';
 import { SettingsLayout } from "@/layouts/SettingsLayout";
 import AdminLayout from "@/layouts/AdminLayout";
@@ -17,7 +17,7 @@ import { NexflowBoardPage } from "@/pages/crm/flows/NexflowBoardPage";
 import { FlowViewsPage } from "@/pages/crm/flows/FlowViewsPage";
 import { FlowsPage } from "@/pages/crm/flows/FlowsPage";
 import { ProcessBuilderPage } from "@/pages/crm/flows/ProcessBuilderPage";
-import OpportunityDetails from "@/pages/crm/OpportunityDetails";
+import ContactDetails from "@/pages/crm/ContactDetails";
 
 
 
@@ -31,8 +31,13 @@ import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 import { HuntersPage } from "@/pages/crm/hunters/HuntersPage";
-import { OpportunitiesPage } from "@/pages/crm/opportunities/OpportunitiesPage";
-import { OpportunityFormPage } from "@/pages/public/OpportunityForm";
+import { ContactsPage } from "@/pages/crm/contacts/ContactsPage";
+import { ContactFormPage } from "@/pages/public/ContactForm";
+import { CRMConfigurationsLayout } from "@/layouts/CRMConfigurationsLayout";
+import { UsersPage } from "@/pages/crm/configurations/UsersPage";
+import { TeamsPage } from "@/pages/crm/configurations/TeamsPage";
+import { UnitsPage } from "@/pages/crm/configurations/UnitsPage";
+import { ItemsPage } from "@/pages/crm/configurations/ItemsPage";
 
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -60,7 +65,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/form/:slug",
-    element: <OpportunityFormPage />,
+        element: <ContactFormPage />,
   },
   {
     path: "/crm/login",
@@ -119,21 +124,47 @@ export const router = createBrowserRouter([
         element: <FlowViewsPage />,
       },
       {
-        path: "flow/:flowId/opportunities/:id",
-        element: <OpportunityDetails />,
+        path: "flow/:flowId/contacts/:id",
+        element: <ContactDetails />,
       },
       {
         path: "hunters",
         element: <HuntersPage />,
       },
       {
-        path: "opportunities",
-        element: <OpportunitiesPage />,
+        path: "contacts",
+        element: <ContactsPage />,
       },
       // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {
         path: "account/profile",
         element: <AccountProfilePage />,
+      },
+      {
+        path: "configurations",
+        element: <CRMConfigurationsLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/crm/configurations/users" replace />,
+          },
+          {
+            path: "users",
+            element: <UsersPage />,
+          },
+          {
+            path: "teams",
+            element: <TeamsPage />,
+          },
+          {
+            path: "units",
+            element: <UnitsPage />,
+          },
+          {
+            path: "items",
+            element: <ItemsPage />,
+          },
+        ],
       },
       {
         path: "settings",

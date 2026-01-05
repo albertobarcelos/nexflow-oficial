@@ -14,6 +14,7 @@ import {
   Workflow,
   Target,
   Sparkles,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -116,12 +117,12 @@ export function Sidebar() {
     });
   }
 
-  // Adiciona Oportunidades se o usuário tiver acesso
+  // Adiciona Contatos se o usuário tiver acesso
   if (hasOpportunitiesAccess) {
     menuItems.push({
-      title: "Oportunidades",
+      title: "Contatos",
       icon: Sparkles,
-      href: "/crm/opportunities",
+      href: "/crm/contacts",
     });
   }
 
@@ -146,7 +147,7 @@ export function Sidebar() {
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
               location.pathname + location.search === item.href :
-              (item.href === '/crm/flows' || item.href === '/crm/hunters' || item.href === '/crm/opportunities') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
+              (item.href === '/crm/flows' || item.href === '/crm/hunters' || item.href === '/crm/contacts') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
               
             return (
               <Button
@@ -199,6 +200,10 @@ export function Sidebar() {
             <DropdownMenuItem onClick={() => navigate('/crm/account/profile')}>
               <User className="mr-2 h-4 w-4" />
               Meu Perfil
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate('/crm/configurations')}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configurações
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>

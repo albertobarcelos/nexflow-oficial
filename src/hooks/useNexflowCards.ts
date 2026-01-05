@@ -31,7 +31,7 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     assignedTeamId: assignedTeamId,
     assigneeType: assigneeType,
     agents: Array.isArray(row.agents) ? row.agents : undefined,
-    opportunityId: row.opportunity_id ?? null,
+    contactId: row.contact_id ?? null,
     indicationId: row.indication_id ?? null,
     position: row.position ?? 0,
     status: row.status ?? null,
