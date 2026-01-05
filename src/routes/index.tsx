@@ -32,6 +32,7 @@ import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 import { HuntersPage } from "@/pages/crm/hunters/HuntersPage";
 import { ContactsPage } from "@/pages/crm/contacts/ContactsPage";
+import ContactsList from "@/pages/crm/ContactsList";
 import { ContactFormPage } from "@/pages/public/ContactForm";
 import { CRMConfigurationsLayout } from "@/layouts/CRMConfigurationsLayout";
 import { UsersPage } from "@/pages/crm/configurations/UsersPage";
@@ -134,6 +135,10 @@ export const router = createBrowserRouter([
       {
         path: "contacts",
         element: <ContactsPage />,
+      },
+      {
+        path: "contacts/list",
+        element: <ContactsList />,
       },
       // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {

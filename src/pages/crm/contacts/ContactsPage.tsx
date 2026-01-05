@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { ContactCard } from "@/components/crm/contacts/ContactCard";
 import { RocketLoader } from "@/components/ui/rocket-loader";
-import { Loader2, Settings, Plus } from "lucide-react";
+import { Loader2, Settings, Plus, List } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConfigDialog";
@@ -133,6 +133,13 @@ export function ContactsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/crm/contacts/list')}
+          >
+            <List className="mr-2 h-4 w-4" />
+            Visualizar Lista
+          </Button>
           <Button
             variant="outline"
             onClick={() => setIsGenerateFormDialogOpen(true)}
