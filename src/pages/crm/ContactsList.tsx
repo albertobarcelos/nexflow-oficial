@@ -18,8 +18,13 @@ import { Badge } from "@/components/ui/badge";
 export default function ContactsList() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [hasAccess, setHasAccess] = useState(false);
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  // #region agent log - Fix: Use sessionStorage to persist hasAccess across remounts
+  const [hasAccess, setHasAccess] = useState(() => {
+    const stored = sessionStorage.getItem('contacts-list-has-access');
+    return stored === 'true';
+  });
+  // #endregion
+  const [isCheckingAccess, setIsCheckingAccess] = useState(!hasAccess);
 
   const {
     contacts,
@@ -29,6 +34,13 @@ export default function ContactsList() {
   } = useOpportunities({ enabled: hasAccess });
 
   useEffect(() => {
+    // #region agent log - Fix: Skip check if we already have access
+    if (hasAccess) {
+      setIsCheckingAccess(false);
+      return;
+    }
+    // #endregion
+    
     const checkAccess = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -82,6 +94,9 @@ export default function ContactsList() {
         }
 
         setHasAccess(true);
+        // #region agent log - Fix: Persist hasAccess in sessionStorage
+        sessionStorage.setItem('contacts-list-has-access', 'true');
+        // #endregion
       } catch (error) {
         console.error('Erro ao verificar acesso:', error);
         toast({

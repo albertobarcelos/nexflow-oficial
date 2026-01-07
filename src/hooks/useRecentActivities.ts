@@ -143,6 +143,7 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
       });
     },
     staleTime: 1000 * 30, // 30 segundos para atualização mais rápida
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
   
   // Subscribe to real-time changes in cards table

@@ -47,6 +47,8 @@ export function useFlowPermissions(flowId?: string): {
       };
     },
     staleTime: 1000 * 60 * 5, // Cache por 5 minutos
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
     retry: 1,
   });
 

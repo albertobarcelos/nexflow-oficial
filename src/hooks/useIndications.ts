@@ -33,6 +33,8 @@ export function useIndications() {
     },
     staleTime: 1000 * 30, // 30 segundos
     refetchOnMount: true,
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
     retry: 1,
   });
 

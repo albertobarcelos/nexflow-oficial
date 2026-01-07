@@ -72,5 +72,7 @@ export function useUsers() {
         return [];
       }
     },
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
   });
 }

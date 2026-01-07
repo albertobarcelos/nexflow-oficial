@@ -82,6 +82,7 @@ export function Dashboard() {
         };
       }
     },
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
   const { data: recentDeals } = useQuery({
@@ -106,6 +107,7 @@ export function Dashboard() {
         return [];
       }
     },
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
   if (isLoading) {

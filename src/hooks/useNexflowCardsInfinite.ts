@@ -106,6 +106,9 @@ export function useNexflowCardsInfinite(
     enabled: Boolean(flowId),
     maxPages: undefined, // Permitir carregar todas as páginas necessárias
     queryFn: async ({ pageParam = 0 }): Promise<{ cards: NexflowCard[]; nextPage: number | null }> => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:queryFn',message:'useNexflowCardsInfinite queryFn called',data:{flowId,pageParam,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       if (!flowId) {
         return { cards: [], nextPage: null };
       }
@@ -146,6 +149,8 @@ export function useNexflowCardsInfinite(
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 0,
     staleTime: 1000 * 10,
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
   });
 
   // Flatten all pages into a single array

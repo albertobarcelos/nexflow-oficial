@@ -52,12 +52,12 @@ function getDayLabels(period: PeriodFilter): string[] {
 }
 
 export function useContactFlowData(period: PeriodFilter = 'today') {
-  const periodRange = getPeriodRange(period);
   const labels = getDayLabels(period);
   
   const { data, isLoading } = useQuery({
     queryKey: ['contact-flow-data', period],
     queryFn: async (): Promise<ChartDataPoint[]> => {
+      const periodRange = getPeriodRange(period);
       const clientId = await getCurrentClientId();
       if (!clientId) {
         return labels.map(label => ({
@@ -204,15 +204,24 @@ export function useContactFlowData(period: PeriodFilter = 'today') {
       return dataPoints;
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
+    retry: 1, // Limitar tentativas de retry
+    retryDelay: 1000, // Delay entre tentativas
+    onError: (error) => {
+      console.error('Erro ao carregar dados de fluxo de contatos:', error);
+    },
   });
   
+  // Sempre retornar dados válidos, mesmo se a query falhar
+  const defaultData = labels.map(label => ({
+    label,
+    opportunitiesCreated: 0,
+    cardsCompleted: 0,
+  }));
+
   return {
-    data: data || labels.map(label => ({
-      label,
-      opportunitiesCreated: 0,
-      cardsCompleted: 0,
-    })),
-    isLoading,
+    data: data || defaultData,
+    isLoading: isLoading && !data, // Só mostrar loading se não houver dados em cache
   };
 }
 

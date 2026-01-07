@@ -11,14 +11,26 @@ import { Indication } from "@/types/indications";
 export function HuntersPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
+  // #region agent log - Fix: Use sessionStorage to persist hasAccess across remounts
+  const [hasAccess, setHasAccess] = useState(() => {
+    const stored = sessionStorage.getItem('hunters-page-has-access');
+    return stored === 'true';
+  });
+  // #endregion
+  const [loading, setLoading] = useState(!hasAccess);
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
   const [selectedIndication, setSelectedIndication] = useState<string | null>(null);
   const [indicationForCard, setIndicationForCard] = useState<Indication | null>(null);
 
   useEffect(() => {
+    // #region agent log - Fix: Skip check if we already have access
+    if (hasAccess) {
+      setLoading(false);
+      return;
+    }
+    // #endregion
+    
     const checkAccess = async () => {
       try {
         // 1. Verificar autenticação
@@ -105,6 +117,9 @@ export function HuntersPage() {
 
         // Todas as validações passaram
         setHasAccess(true);
+        // #region agent log - Fix: Persist hasAccess in sessionStorage
+        sessionStorage.setItem('hunters-page-has-access', 'true');
+        // #endregion
       } catch (error) {
         console.error('Erro ao verificar acesso:', error);
         toast({

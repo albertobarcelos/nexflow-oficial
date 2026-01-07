@@ -53,11 +53,20 @@ export function useAccountProfile() {
   }, []);
 
   useEffect(() => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAccountProfile.ts:55',message:'useAccountProfile effect started',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     const getSession = async () => {
       setIsLoadingUser(true);
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAccountProfile.ts:58',message:'useAccountProfile getSession called',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAccountProfile.ts:64',message:'useAccountProfile getSession result',data:{hasSession:!!session,hasUser:!!session?.user,userId:session?.user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
@@ -70,6 +79,9 @@ export function useAccountProfile() {
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useAccountProfile.ts:75',message:'useAccountProfile onAuthStateChange',data:{event:_event,hasSession:!!session,hasUser:!!session?.user,userId:session?.user?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         if (session?.user) {
           await fetchUserProfile(session.user);
         } else {

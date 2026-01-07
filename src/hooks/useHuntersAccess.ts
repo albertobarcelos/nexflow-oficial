@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -8,10 +8,44 @@ import { supabase } from "@/lib/supabase";
  * - Cliente tem isHunting = true
  */
 export function useHuntersAccess() {
-  const [hasAccess, setHasAccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // #region Fix: Load access state from sessionStorage
+  const loadAccessFromStorage = (): boolean => {
+    try {
+      const stored = sessionStorage.getItem('useHuntersAccess-has-access');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const storedTimestamp = sessionStorage.getItem('useHuntersAccess-has-access-timestamp');
+        if (storedTimestamp) {
+          const age = Date.now() - parseInt(storedTimestamp, 10);
+          if (age < 60 * 60 * 1000) { // Consider valid for 1 hour
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    return false;
+  };
+  // #endregion
+
+  const [hasAccess, setHasAccess] = useState(loadAccessFromStorage);
+  const [isLoading, setIsLoading] = useState(() => {
+    const stored = loadAccessFromStorage();
+    return !stored;
+  });
+  // #region Fix: Use ref to track if access was already loaded
+  const hasLoadedAccessRef = useRef(loadAccessFromStorage());
+  // #endregion
 
   useEffect(() => {
+    // #region Fix: Skip if we already have valid access
+    if (hasAccess && hasLoadedAccessRef.current) {
+      setIsLoading(false);
+      return;
+    }
+    // #endregion
+
     const checkAccess = async () => {
       try {
         // 1. Verificar autenticação
@@ -73,7 +107,19 @@ export function useHuntersAccess() {
           return;
         }
 
-        setHasAccess(client.isHunting === true);
+        const accessGranted = client.isHunting === true;
+        setHasAccess(accessGranted);
+        // #region Fix: Persist access to sessionStorage
+        try {
+          sessionStorage.setItem('useHuntersAccess-has-access', JSON.stringify(accessGranted));
+          sessionStorage.setItem('useHuntersAccess-has-access-timestamp', Date.now().toString());
+        } catch (e) {
+          // Ignore storage errors
+        }
+        // #endregion
+        // #region Fix: Mark as loaded after successful check
+        hasLoadedAccessRef.current = true;
+        // #endregion
       } catch (error) {
         console.error('Erro ao verificar acesso ao Hunters:', error);
         setHasAccess(false);
@@ -83,7 +129,7 @@ export function useHuntersAccess() {
     };
 
     checkAccess();
-  }, []);
+  }, [hasAccess]);
 
   return { hasAccess, isLoading };
 }

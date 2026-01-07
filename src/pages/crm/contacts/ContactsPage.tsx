@@ -16,8 +16,22 @@ import { GenerateFormDialog } from "@/components/crm/contacts/GenerateFormDialog
 export function ContactsPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [hasAccess, setHasAccess] = useState(false);
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  // #region agent log - Fix: Use sessionStorage to persist hasAccess across remounts
+  const [hasAccess, setHasAccess] = useState(() => {
+    const stored = sessionStorage.getItem('contacts-page-has-access');
+    const hasAccessValue = stored === 'true';
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ContactsPage.tsx:20',message:'hasAccess initial state',data:{stored,hasAccessValue},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    return hasAccessValue;
+  });
+  // #endregion
+  const [isCheckingAccess, setIsCheckingAccess] = useState(!hasAccess);
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ContactsPage.tsx:28',message:'hasAccess state changed',data:{hasAccess},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
+  }, [hasAccess]);
+  // #endregion
   const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
@@ -33,6 +47,13 @@ export function ContactsPage() {
   } = useOpportunities({ enabled: hasAccess });
 
   useEffect(() => {
+    // #region agent log - Fix: Skip check if we already have access
+    if (hasAccess) {
+      setIsCheckingAccess(false);
+      return;
+    }
+    // #endregion
+    
     const checkAccess = async () => {
       try {
         // 1. Verificar autenticação
@@ -91,6 +112,9 @@ export function ContactsPage() {
 
         // Todas as validações passaram
         setHasAccess(true);
+        // #region agent log - Fix: Persist hasAccess in sessionStorage
+        sessionStorage.setItem('contacts-page-has-access', 'true');
+        // #endregion
       } catch (error) {
         console.error('Erro ao verificar acesso:', error);
         toast({

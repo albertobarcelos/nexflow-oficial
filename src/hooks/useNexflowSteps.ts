@@ -70,6 +70,7 @@ export function useNexflowSteps(flowId?: string) {
 
       return data.map(mapStepRow);
     },
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
   const createStepMutation = useMutation<NexflowStep, Error, CreateStepInput>({

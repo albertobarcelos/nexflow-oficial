@@ -94,6 +94,7 @@ export function useFlow() {
     },
     retry: 3,
     retryDelay: 1000,
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
   // Buscar estágios do flow
@@ -126,6 +127,7 @@ export function useFlow() {
     enabled: !!flow?.id && !isFlowError,
     retry: 3,
     retryDelay: 1000,
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
   // Query dos negócios com configurações otimizadas
@@ -140,6 +142,7 @@ export function useFlow() {
     },
     staleTime: 5000,
     cacheTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
   const flow = data?.flow;
   const stages = data?.stages || [];

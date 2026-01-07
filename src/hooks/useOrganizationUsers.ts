@@ -71,6 +71,7 @@ export function useOrganizationUsers() {
         return [];
       }
     },
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 }
 

@@ -104,6 +104,8 @@ export function useNexflowFlows() {
     },
     staleTime: 1000 * 30,
     refetchOnMount: true, // Garante refetch ao montar o componente
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
   });
 
   const createFlowMutation = useMutation({
@@ -273,6 +275,9 @@ export function useNexflowFlow(flowId?: string) {
     queryKey: ["nexflow", "flow", flowId],
     enabled: Boolean(flowId),
     queryFn: async (): Promise<NexflowFlowDetails | null> => {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowFlows.ts:useNexflowFlow:queryFn',message:'useNexflowFlow queryFn called',data:{flowId,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       if (!flowId) {
         return null;
       }
@@ -345,6 +350,8 @@ export function useNexflowFlow(flowId?: string) {
       };
     },
     staleTime: 1000 * 10,
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
   });
 
   return {

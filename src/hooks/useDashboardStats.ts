@@ -183,6 +183,13 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
       };
     },
     staleTime: 1000 * 30, // 30 segundos para atualização mais rápida
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
+    retry: 1, // Limitar tentativas de retry
+    retryDelay: 1000, // Delay entre tentativas
+    onError: (error) => {
+      console.error('Erro ao carregar estatísticas do dashboard:', error);
+    },
   });
   
   // Subscribe to real-time changes in cards table
@@ -232,7 +239,7 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
   
   return {
     metrics,
-    isLoading: isLoadingCards,
+    isLoading: isLoadingCards && !cardsStats, // Só mostrar loading se não houver dados em cache
   };
 }
 
