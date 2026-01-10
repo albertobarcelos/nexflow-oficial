@@ -548,3 +548,4 @@ DROP FUNCTION IF EXISTS nexflow.handle_card_step_change() CASCADE;
 DROP FUNCTION IF EXISTS nexflow.update_opportunity_automations_updated_at() CASCADE;
 DROP FUNCTION IF EXISTS nexflow.update_contact_automations_updated_at() CASCADE;
 
+

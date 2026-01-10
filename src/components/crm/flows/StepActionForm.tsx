@@ -159,7 +159,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
       <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
-            Step Configuration
+            Configuração da Etapa
           </h2>
           {action && (
             <span className="text-xs text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
@@ -175,21 +175,21 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="col-span-1 md:col-span-2">
                   <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    Step Title
+                    Título da Etapa
                   </Label>
                   <Input
                     value={formData.title}
                     onChange={(e) =>
                       setFormData({ ...formData, title: e.target.value })
                     }
-                    placeholder="Enter step title..."
+                    placeholder="Digite o título da etapa..."
                     className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-sm"
                   />
                 </div>
 
                 <div>
                   <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    Scheduled Day
+                    Dia Agendado
                   </Label>
                   <div className="flex items-center gap-2">
                     <Input
@@ -213,7 +213,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
 
                 <div>
                   <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                    Action Type
+                    Tipo de Ação
                   </Label>
                   <Select
                     value={formData.actionType}
@@ -228,12 +228,12 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="phone_call">Phone Call</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="linkedin_message">LinkedIn Message</SelectItem>
+                      <SelectItem value="phone_call">Ligação</SelectItem>
+                      <SelectItem value="email">E-mail</SelectItem>
+                      <SelectItem value="linkedin_message">Mensagem LinkedIn</SelectItem>
                       <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                      <SelectItem value="meeting">Meeting</SelectItem>
-                      <SelectItem value="task">General Task</SelectItem>
+                      <SelectItem value="meeting">Reunião</SelectItem>
+                      <SelectItem value="task">Tarefa Geral</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -241,14 +241,14 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                 {formData.actionType === "email" && (
                   <div className="col-span-1 md:col-span-2">
                     <Label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-                      Email Subject
+                      Assunto do E-mail
                     </Label>
                     <Input
                       value={formData.title}
                       onChange={(e) =>
                         setFormData({ ...formData, title: e.target.value })
                       }
-                      placeholder="Enter email subject..."
+                      placeholder="Digite o assunto do e-mail..."
                       className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5 text-sm"
                     />
                   </div>
@@ -261,24 +261,24 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
               <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[400px]">
                 <div className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 px-4 py-2 flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-slate-500 uppercase tracking-wide mr-2">
-                    Script Template
+                    Modelo de Script
                   </span>
                   <div className="h-4 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
                   <button
                     className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded hover:bg-slate-200 dark:hover:bg-slate-700"
-                    title="Bold"
+                    title="Negrito"
                   >
                     <Bold className="h-4 w-4" />
                   </button>
                   <button
                     className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded hover:bg-slate-200 dark:hover:bg-slate-700"
-                    title="Italic"
+                    title="Itálico"
                   >
                     <Italic className="h-4 w-4" />
                   </button>
                   <button
                     className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded hover:bg-slate-200 dark:hover:bg-slate-700"
-                    title="List"
+                    title="Lista"
                   >
                     <List className="h-4 w-4" />
                   </button>
@@ -292,7 +292,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                     }}
                   >
                     <Code className="h-3 w-3" />
-                    Insert Variable
+                    Inserir Variável
                   </button>
                 </div>
                 <div className="flex-1 p-4">
@@ -305,15 +305,15 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                         scriptTemplate: e.target.value,
                       })
                     }
-                    placeholder="Type your script or guidelines here..."
+                    placeholder="Digite seu script ou diretrizes aqui..."
                     className="w-full h-full resize-none border-none bg-transparent focus:ring-0 text-slate-700 dark:text-slate-300 text-sm leading-relaxed min-h-[300px]"
                   />
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 px-4 py-2 text-xs text-slate-500 flex justify-between">
-                  <span>Markdown supported</span>
+                  <span>Markdown suportado</span>
                   <span>
                     {formData.scriptTemplate.split(/\s+/).filter(Boolean).length}{" "}
-                    words
+                    palavras
                   </span>
                 </div>
               </div>
@@ -325,11 +325,11 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
             {/* Step Options */}
             <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm space-y-4">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-                Step Options
+                Opções da Etapa
               </h3>
               <label className="flex items-center justify-between cursor-pointer group">
                 <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200">
-                  Allow Notes
+                  Permitir Notas
                 </span>
                 <Switch
                   checked={formData.allowNotes}
@@ -341,7 +341,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
               <div className="h-px bg-slate-100 dark:bg-slate-700"></div>
               <label className="flex items-center justify-between cursor-pointer group">
                 <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200">
-                  Required Completion
+                  Conclusão Obrigatória
                 </span>
                 <Switch
                   checked={formData.requiredCompletion}
@@ -380,10 +380,10 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
               });
             }}
           >
-            Discard
+            Descartar
           </Button>
           <Button onClick={handleSave} disabled={isSaving || !formData.title.trim()}>
-            {isSaving ? "Saving..." : "Save Process"}
+            {isSaving ? "Salvando..." : "Salvar Processo"}
           </Button>
         </div>
       </div>

@@ -28,3 +28,4 @@ COMMENT ON COLUMN nexflow.card_attachments.file_size IS 'Tamanho do arquivo em b
 
 
 
+

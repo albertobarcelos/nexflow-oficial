@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { toast } from "sonner"
-import { useLocation } from "@/hooks/useLocation"
+import { useLocation, City } from "@/hooks/useLocation"
 import { useCompanies } from "@/features/companies/hooks/useCompanies"
 import { ChevronDown, ChevronUp, Check } from "lucide-react"
 
@@ -64,11 +64,12 @@ export function CompanyQuickForm({
   onSuccess,
   initialName = ""
 }: CompanyQuickFormProps) {
-  const { states = [], selectedStateId, setSelectedStateId } = useLocation()
+  const { states = [] } = useLocation()
   const { createCompany } = useCompanies()
   const [showAddress, setShowAddress] = React.useState(false)
   const [openState, setOpenState] = React.useState(false)
   const [openCity, setOpenCity] = React.useState(false)
+  const [selectedStateId, setSelectedStateId] = React.useState<string>("")
 
   // Buscar cidades quando o estado for selecionado
   const { data: cities = [] } = useQuery({
@@ -132,7 +133,7 @@ export function CompanyQuickForm({
         bairro: data.address?.bairro || null,
       };
 
-      const company = await createCompany.mutateAsync(companyData);
+      const company = await createCompany(companyData);
       
       // Reset do formulário
       form.reset();

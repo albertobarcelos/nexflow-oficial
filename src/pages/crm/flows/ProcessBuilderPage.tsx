@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Save, Eye, X } from "lucide-react";
+import { ArrowLeft, Eye, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProcessSidebar } from "@/components/crm/flows/ProcessSidebar";
@@ -72,7 +72,7 @@ export function ProcessBuilderPage() {
       const newAction = await createStepAction({
         stepId: selectedStepId,
         dayOffset: 1,
-        title: "New Action",
+        title: "Nova Ação",
         actionType: "task",
         isRequired: true,
       });
@@ -152,14 +152,14 @@ export function ProcessBuilderPage() {
         <header className="bg-white dark:bg-slate-800 px-8 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between z-10">
           <div className="flex-1 max-w-2xl">
             <label className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">
-              Process Name
+              Nome do Processo
             </label>
             <div className="flex items-center gap-2 group">
               <Input
                 value={processName}
                 onChange={(e) => setProcessName(e.target.value)}
                 className="text-xl font-bold text-slate-900 dark:text-white bg-transparent border-0 border-b border-transparent group-hover:border-slate-300 focus:border-primary focus:ring-0 px-0 py-1 w-full transition-colors placeholder-slate-300 dark:placeholder-slate-600"
-                placeholder="Enter process name..."
+                placeholder="Digite o nome do processo..."
               />
               <span className="material-icons-outlined text-slate-400 text-lg opacity-0 group-hover:opacity-100 transition-opacity">
                 edit
@@ -172,21 +172,14 @@ export function ProcessBuilderPage() {
               onClick={handleDiscard}
               className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
             >
-              Discard
+              Descartar
             </Button>
             <Button
               variant="outline"
               className="px-4 py-2 text-sm font-medium text-primary border border-primary/30 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
             >
               <Eye className="w-4 h-4 mr-2" />
-              Preview Flow
-            </Button>
-            <Button
-              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-lg shadow-md shadow-indigo-500/20 transition-colors flex items-center gap-2"
-              onClick={() => navigate(`/crm/flows/${id}/board`)}
-            >
-              <Save className="w-4 h-4" />
-              Save Process
+              Visualizar Fluxo
             </Button>
           </div>
         </header>
@@ -195,7 +188,7 @@ export function ProcessBuilderPage() {
         {steps.length > 1 && (
           <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-8 py-2">
             <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-slate-500">Step:</label>
+              <label className="text-xs font-medium text-slate-500">Etapa:</label>
               <select
                 value={selectedStepId || ""}
                 onChange={(e) => {

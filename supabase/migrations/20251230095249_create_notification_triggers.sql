@@ -225,3 +225,4 @@ COMMENT ON FUNCTION nexflow.notify_new_card_in_stage() IS 'Cria notificações q
 
 
 
+

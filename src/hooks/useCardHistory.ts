@@ -22,6 +22,9 @@ const mapCardHistoryRow = (row: CardHistoryRow): CardMovementEntry => {
     toStepTitle: (details.to_step_title as string) || null,
     userName: (details.user_name as string) || null,
     actionType: row.action_type || 'move',
+    movementDirection: (row.movement_direction as "forward" | "backward" | "same") || "forward",
+    fromStepPosition: (row.from_step_position as number) ?? null,
+    toStepPosition: (row.to_step_position as number) ?? null,
     details: details,
   };
 };
@@ -60,14 +63,15 @@ export function useCardHistory(cardId: string | null | undefined, parentCardId?:
         
         if (!cardError && cardData) {
           // Verificar se está em etapa freezing
+          // Usar type assertion para evitar erro de tipo (tabela steps não está tipada)
           const { data: stepData } = await nexflowClient()
-            .from("steps")
+            .from("steps" as any)
             .select("step_type")
             .eq("id", cardData.step_id)
             .single();
           
           // Se está em etapa freezing E tem parent_card_id, é card congelado
-          if (stepData?.step_type === 'freezing' && cardData.parent_card_id) {
+          if ((stepData as any)?.step_type === 'freezing' && cardData.parent_card_id) {
             targetCardId = cardData.parent_card_id;
           } else {
             // Card normal ou filho, usar o próprio cardId
@@ -82,7 +86,7 @@ export function useCardHistory(cardId: string | null | undefined, parentCardId?:
       // Buscar histórico do card alvo (original para cards congelados, próprio para cards normais)
       const { data, error } = await nexflowClient()
         .from("card_history")
-        .select("id, card_id, client_id, from_step_id, to_step_id, created_by, created_at, action_type, details")
+        .select("id, card_id, client_id, from_step_id, to_step_id, created_by, created_at, action_type, details, movement_direction, from_step_position, to_step_position")
         .eq("card_id", targetCardId)
         .eq("client_id", clientId)
         .order("created_at", { ascending: true });

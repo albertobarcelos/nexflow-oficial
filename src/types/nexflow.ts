@@ -77,6 +77,9 @@ export interface CardMovementEntry {
   toStepTitle?: string | null;
   userName?: string | null;
   actionType?: string;
+  movementDirection?: "forward" | "backward" | "same";
+  fromStepPosition?: number | null;
+  toStepPosition?: number | null;
   details?: Record<string, unknown>;
 }
 

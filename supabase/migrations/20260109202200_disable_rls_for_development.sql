@@ -34,3 +34,4 @@ BEGIN
     RAISE NOTICE 'Total de tabelas com RLS desativado: %', tables_disabled;
 END $$;
 
+

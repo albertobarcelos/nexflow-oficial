@@ -36,7 +36,7 @@ async function fetchViaRPC(userPermissions: {
     return [];
   }
 
-  const { data, error } = await supabase.rpc('get_contacts', {
+  const { data, error } = await (supabase.rpc as any)('get_contacts', {
     p_client_id: userPermissions.clientId,
   });
 
@@ -172,14 +172,14 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
         // Se não for admin, verificar se é leader de algum time
         if (!isAdmin) {
           const { data: teamMembers, error: teamError } = await supabase
-            .from('core_team_members')
+            .from('core_team_members' as any)
             .select('team_id, role')
             .eq('user_profile_id', userId)
             .eq('role', 'leader');
 
           if (!teamError && teamMembers && teamMembers.length > 0) {
             isLeader = true;
-            teamIds.push(...teamMembers.map(tm => tm.team_id));
+            teamIds.push(...(teamMembers as any[]).map((tm: any) => tm.team_id).filter(Boolean));
           }
         }
 
@@ -249,7 +249,7 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
       try {
         const client = nexflowClient();
         let query = client
-          .from('contacts')
+          .from('contacts' as any)
           .select('*')
           .eq('client_id', userPermissions.clientId)
           .order('created_at', { ascending: false });
@@ -275,7 +275,38 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
           throw error;
         }
 
-        return (data || []) as Contact[];
+        // Buscar empresas vinculadas para cada contato
+        const contactsWithCompanies = await Promise.all(
+          (data || []).map(async (contact: any) => {
+            // Buscar empresas vinculadas via contact_companies
+            const { data: contactCompanies } = await client
+              .from('contact_companies' as any)
+              .select(`
+                company:web_companies(
+                  id,
+                  name,
+                  cnpj,
+                  razao_social
+                )
+              `)
+              .eq('contact_id', contact.id)
+              .eq('client_id', userPermissions.clientId);
+
+            // Extrair nomes das empresas de web_companies
+            const companies = (contactCompanies || []).map((cc: any) => {
+              const company = Array.isArray(cc.company) ? cc.company[0] : cc.company;
+              return company?.name || null;
+            }).filter(Boolean) as string[];
+
+            return {
+              ...contact,
+              // Usar empresas vinculadas de web_companies se disponível, senão usar company_names como fallback
+              company_names: companies.length > 0 ? companies : (contact.company_names || []),
+            } as Contact;
+          })
+        );
+
+        return contactsWithCompanies;
       } catch (error: any) {
         // Se der erro de permissão, tentar usar função RPC
         if (error?.code === '42501' || error?.message?.includes('permission denied')) {

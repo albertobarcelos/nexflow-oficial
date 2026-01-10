@@ -147,3 +147,4 @@ END $$;
 
 COMMENT ON SCHEMA public IS 'Schema principal contendo todas as tabelas, funções e triggers do sistema';
 
+

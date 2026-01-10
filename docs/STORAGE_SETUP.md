@@ -87,3 +87,4 @@ Os buckets devem ser criados manualmente no Supabase Dashboard, pois não é pos
 
 
 
+

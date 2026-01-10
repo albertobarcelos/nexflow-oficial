@@ -198,7 +198,7 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
               {process?.stepAction?.title || "Processo sem título"}
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              {getActionTypeLabel(process.stepAction?.action_type ?? null)} & Guidelines
+              {getActionTypeLabel(process.stepAction?.action_type ?? null)} e Diretrizes
             </p>
           </div>
         </div>
@@ -290,12 +290,12 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
           {/* Task Variables */}
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
-              Task Variables
+              Variáveis da Tarefa
             </h3>
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Product Name
+                  Nome do Produto
                 </label>
                 <Input
                   value={taskVariables.product_name || ""}
@@ -305,7 +305,7 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Client Name
+                  Nome do Cliente
                 </label>
                 <Input
                   value={taskVariables.client_name || ""}
@@ -319,21 +319,21 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
           {/* Linked Notes */}
           <div className="mb-8">
             <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
-              Linked Notes
+              Notas Vinculadas
             </h3>
             <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full bg-transparent border-none focus:ring-0 text-sm text-slate-700 dark:text-slate-300 resize-y min-h-[80px]"
-                placeholder="Add notes related to this task..."
+                placeholder="Adicione notas relacionadas a esta tarefa..."
               />
               <div className="flex justify-end mt-2">
                 <button
                   onClick={handleSaveNotes}
                   className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
                 >
-                  Save Note
+                  Salvar Nota
                 </button>
               </div>
             </div>
@@ -342,7 +342,7 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
           {/* To-Do List */}
           <div>
             <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center justify-between">
-              To-Do List
+              Lista de Tarefas
               <button className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                 <Plus className="h-4 w-4" />
               </button>

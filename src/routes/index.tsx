@@ -39,6 +39,8 @@ import { UsersPage } from "@/pages/crm/configurations/UsersPage";
 import { TeamsPage } from "@/pages/crm/configurations/TeamsPage";
 import { UnitsPage } from "@/pages/crm/configurations/UnitsPage";
 import { ItemsPage } from "@/pages/crm/configurations/ItemsPage";
+import { CompanyRelationsPage } from "@/pages/crm/companies/CompanyRelationsPage";
+import { PartnersListPage } from "@/pages/crm/partners/PartnersListPage";
 
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -139,6 +141,14 @@ export const router = createBrowserRouter([
       {
         path: "contacts/list",
         element: <ContactsList />,
+      },
+      {
+        path: "companies/relations",
+        element: <CompanyRelationsPage />,
+      },
+      {
+        path: "partners/list",
+        element: <PartnersListPage />,
       },
       // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {

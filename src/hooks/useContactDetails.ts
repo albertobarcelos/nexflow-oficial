@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { nexflowClient } from "@/lib/supabase";
 import { Contact } from "@/hooks/useOpportunities";
 import { NexflowCard } from "@/types/nexflow";
+import type { Json } from "@/types/database";
 
 export interface ContactDetails extends Contact {
   linkedCards: NexflowCard[];
@@ -10,6 +11,25 @@ export interface ContactDetails extends Contact {
     type: string;
     description: string;
     createdAt: string;
+  }>;
+  indicated_by: string | null;
+  contact_type: "cliente" | "parceiro" | "outro" | null;
+  indicated_by_contact?: {
+    id: string;
+    client_name: string;
+    main_contact: string | null;
+  } | null;
+  companies?: Array<{
+    id: string;
+    company_id: string;
+    role: string | null;
+    is_primary: boolean;
+    company: {
+      id: string;
+      name: string;
+      cnpj: string | null;
+      razao_social: string | null;
+    };
   }>;
 }
 
@@ -23,7 +43,7 @@ export function useContactDetails(contactId: string | null | undefined) {
 
       // Buscar contato
       const { data: contact, error: contactError } = await nexflowClient()
-        .from("contacts")
+        .from("contacts" as any)
         .select("*")
         .eq("id", contactId)
         .single();
@@ -31,6 +51,43 @@ export function useContactDetails(contactId: string | null | undefined) {
       if (contactError || !contact) {
         console.error("Erro ao buscar contato:", contactError);
         return null;
+      }
+
+      // Buscar contato indicador separadamente (auto-referência não funciona com PostgREST)
+      let indicatedByContact = null;
+      if ((contact as any).indicated_by) {
+        const { data: indicatedByData } = await nexflowClient()
+          .from("contacts" as any)
+          .select("id, client_name, main_contact")
+          .eq("id", (contact as any).indicated_by)
+          .single();
+        
+        if (indicatedByData) {
+          indicatedByContact = indicatedByData;
+        }
+      }
+
+      // Buscar empresas vinculadas via contact_companies
+      const { data: contactCompanies, error: companiesError } = await nexflowClient()
+        .from("contact_companies")
+        .select(
+          `
+          id,
+          company_id,
+          role,
+          is_primary,
+          company:web_companies(
+            id,
+            name,
+            cnpj,
+            razao_social
+          )
+        `
+        )
+        .eq("contact_id", contactId);
+
+      if (companiesError) {
+        console.error("Erro ao buscar empresas do contato:", companiesError);
       }
 
       // Buscar cards vinculados
@@ -51,8 +108,8 @@ export function useContactDetails(contactId: string | null | undefined) {
         stepId: card.step_id,
         clientId: card.client_id,
         title: card.title,
-        fieldValues: (card.field_values as Record<string, unknown>) ?? {},
-        checklistProgress: (card.checklist_progress as Record<string, unknown>) ?? {},
+        fieldValues: (card.field_values as Record<string, Json | undefined>) ?? {},
+        checklistProgress: (card.checklist_progress as Record<string, Json | undefined>) ?? {},
         movementHistory: (card.movement_history as Array<{
           id: string;
           fromStepId: string | null;
@@ -83,11 +140,12 @@ export function useContactDetails(contactId: string | null | undefined) {
       }> = [];
 
       // Adicionar criação do contato ao histórico
+      const contactData = contact as any;
       interactionHistory.push({
-        id: contact.id,
+        id: contactData.id,
         type: "created",
         description: "Contato criado",
-        createdAt: contact.created_at || new Date().toISOString(),
+        createdAt: contactData.created_at || new Date().toISOString(),
       });
 
       // Adicionar criação de cards ao histórico
@@ -105,20 +163,32 @@ export function useContactDetails(contactId: string | null | undefined) {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
+      const companies = (contactCompanies || []).map((cc: any) => ({
+        id: cc.id,
+        company_id: cc.company_id,
+        role: cc.role,
+        is_primary: cc.is_primary,
+        company: Array.isArray(cc.company) ? cc.company[0] : cc.company,
+      }));
+
       return {
-        id: contact.id,
-        client_id: contact.client_id,
-        client_name: (contact as any).client_name || (contact as any).name || "",
-        main_contact: (contact as any).main_contact || "",
-        phone_numbers: (contact as any).phone_numbers || [],
-        company_names: (contact as any).company_names || [],
-        tax_ids: (contact as any).tax_ids || [],
+        id: contactData.id,
+        client_id: contactData.client_id,
+        client_name: contactData.client_name || contactData.name || "",
+        main_contact: contactData.main_contact || "",
+        phone_numbers: contactData.phone_numbers || [],
+        company_names: contactData.company_names || [],
+        tax_ids: contactData.tax_ids || [],
         related_card_ids: linkedCards.map((c) => c.id),
-        assigned_team_id: (contact as any).assigned_team_id || null,
-        avatar_type: (contact as any).avatar_type,
-        avatar_seed: (contact as any).avatar_seed,
-        created_at: contact.created_at || new Date().toISOString(),
-        updated_at: (contact as any).updated_at || new Date().toISOString(),
+        assigned_team_id: contactData.assigned_team_id || null,
+        avatar_type: contactData.avatar_type,
+        avatar_seed: contactData.avatar_seed,
+        created_at: contactData.created_at || new Date().toISOString(),
+        updated_at: contactData.updated_at || new Date().toISOString(),
+        indicated_by: contactData.indicated_by || null,
+        contact_type: contactData.contact_type || null,
+        indicated_by_contact: indicatedByContact || null,
+        companies,
         linkedCards,
         interactionHistory,
       };

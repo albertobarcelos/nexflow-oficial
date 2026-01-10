@@ -126,6 +126,20 @@ export function Sidebar() {
     });
   }
 
+  // Adiciona Relações de Empresas
+  menuItems.push({
+    title: "Relações de Empresas",
+    icon: Building2,
+    href: "/crm/companies/relations",
+  });
+
+  // Adiciona Parceiros com Contatos
+  menuItems.push({
+    title: "Parceiros com Contatos",
+    icon: Handshake,
+    href: "/crm/partners/list",
+  });
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();

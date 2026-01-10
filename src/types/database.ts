@@ -1544,6 +1544,7 @@ export interface Database {
           owner_id: string | null;
           client_id: string | null;
           visibility_type: string;
+          flow_identifier: string | null;
         };
         Insert: {
           id?: string;
@@ -1555,6 +1556,7 @@ export interface Database {
           owner_id?: string | null;
           client_id?: string | null;
           visibility_type?: string;
+          flow_identifier?: string | null;
         };
         Update: {
           id?: string;
@@ -1566,6 +1568,7 @@ export interface Database {
           owner_id?: string | null;
           client_id?: string | null;
           visibility_type?: string;
+          flow_identifier?: string | null;
         };
         Relationships: [
           {
@@ -1611,6 +1614,7 @@ export interface Database {
           action_execution_data: Json | null;
           contact_id: string | null;
           indication_id: string | null;
+          indicated_by: string | null;
         };
         Insert: {
           id?: string;
@@ -1637,6 +1641,7 @@ export interface Database {
           action_execution_data?: Json | null;
           contact_id?: string | null;
           indication_id?: string | null;
+          indicated_by?: string | null;
         };
         Update: {
           id?: string;
@@ -1663,6 +1668,7 @@ export interface Database {
           action_execution_data?: Json | null;
           contact_id?: string | null;
           indication_id?: string | null;
+          indicated_by?: string | null;
         };
         Relationships: [
           {
@@ -1719,6 +1725,131 @@ export interface Database {
             columns: ["parent_card_id"];
             isOneToOne: false;
             referencedRelation: "cards";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      step_actions: {
+        Row: {
+          id: string;
+          step_id: string;
+          day_offset: number | null;
+          position: number | null;
+          title: string;
+          action_type: "phone_call" | "email" | "linkedin_message" | "whatsapp" | "meeting" | "task";
+          description: string | null;
+          script_template: string | null;
+          checklist_items: string[] | null;
+          is_required: boolean | null;
+          settings: Json | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          step_id: string;
+          day_offset?: number | null;
+          position?: number | null;
+          title: string;
+          action_type: "phone_call" | "email" | "linkedin_message" | "whatsapp" | "meeting" | "task";
+          description?: string | null;
+          script_template?: string | null;
+          checklist_items?: string[] | null;
+          is_required?: boolean | null;
+          settings?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          step_id?: string;
+          day_offset?: number | null;
+          position?: number | null;
+          title?: string;
+          action_type?: "phone_call" | "email" | "linkedin_message" | "whatsapp" | "meeting" | "task";
+          description?: string | null;
+          script_template?: string | null;
+          checklist_items?: string[] | null;
+          is_required?: boolean | null;
+          settings?: Json | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "step_actions_step_id_fkey";
+            columns: ["step_id"];
+            isOneToOne: false;
+            referencedRelation: "steps";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      card_step_actions: {
+        Row: {
+          id: string;
+          card_id: string;
+          step_action_id: string;
+          step_id: string;
+          status: "pending" | "in_progress" | "completed" | "skipped";
+          scheduled_date: string | null;
+          completed_at: string | null;
+          completed_by: string | null;
+          notes: string | null;
+          execution_data: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          step_action_id: string;
+          step_id: string;
+          status?: "pending" | "in_progress" | "completed" | "skipped";
+          scheduled_date?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          notes?: string | null;
+          execution_data?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          step_action_id?: string;
+          step_id?: string;
+          status?: "pending" | "in_progress" | "completed" | "skipped";
+          scheduled_date?: string | null;
+          completed_at?: string | null;
+          completed_by?: string | null;
+          notes?: string | null;
+          execution_data?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "card_step_actions_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "card_step_actions_step_action_id_fkey";
+            columns: ["step_action_id"];
+            isOneToOne: false;
+            referencedRelation: "step_actions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "card_step_actions_step_id_fkey";
+            columns: ["step_id"];
+            isOneToOne: false;
+            referencedRelation: "steps";
             referencedColumns: ["id"];
           }
         ];
@@ -2170,6 +2301,266 @@ export interface Database {
 
       // AIDEV-NOTE: Sistema modular implementado - usuário pode criar flows personalizados
       // com automações de duplicação configuráveis entre etapas
+
+      // =====================================================
+      // CONTACTS TABLE
+      // =====================================================
+
+      contacts: {
+        Row: {
+          id: string;
+          client_id: string;
+          client_name: string | null;
+          main_contact: string | null;
+          phone_numbers: string[] | null;
+          company_names: string[] | null;
+          tax_ids: string[] | null;
+          assigned_team_id: string | null;
+          avatar_type: string | null;
+          avatar_seed: string | null;
+          created_at: string;
+          updated_at: string;
+          indicated_by: string | null;
+          contact_type: "cliente" | "parceiro" | "outro" | null;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          client_name?: string | null;
+          main_contact?: string | null;
+          phone_numbers?: string[] | null;
+          company_names?: string[] | null;
+          tax_ids?: string[] | null;
+          assigned_team_id?: string | null;
+          avatar_type?: string | null;
+          avatar_seed?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          indicated_by?: string | null;
+          contact_type?: "cliente" | "parceiro" | "outro" | null;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          client_name?: string | null;
+          main_contact?: string | null;
+          phone_numbers?: string[] | null;
+          company_names?: string[] | null;
+          tax_ids?: string[] | null;
+          assigned_team_id?: string | null;
+          avatar_type?: string | null;
+          avatar_seed?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          indicated_by?: string | null;
+          contact_type?: "cliente" | "parceiro" | "outro" | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contacts_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      // =====================================================
+      // CONTACT RELATIONSHIPS (ETAPA C)
+      // =====================================================
+
+      contact_companies: {
+        Row: {
+          id: string;
+          contact_id: string;
+          company_id: string;
+          role: string | null;
+          is_primary: boolean;
+          created_at: string;
+          updated_at: string;
+          client_id: string;
+        };
+        Insert: {
+          id?: string;
+          contact_id: string;
+          company_id: string;
+          role?: string | null;
+          is_primary?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          client_id: string;
+        };
+        Update: {
+          id?: string;
+          contact_id?: string;
+          company_id?: string;
+          role?: string | null;
+          is_primary?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          client_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_companies_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_companies_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "web_companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_companies_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      contact_indications: {
+        Row: {
+          id: string;
+          contact_id: string;
+          indicated_by_contact_id: string;
+          card_id: string | null;
+          commission_amount: number | null;
+          commission_percentage: number | null;
+          indication_date: string;
+          notes: string | null;
+          status: "pending" | "confirmed" | "paid" | "cancelled";
+          created_at: string;
+          updated_at: string;
+          client_id: string;
+        };
+        Insert: {
+          id?: string;
+          contact_id: string;
+          indicated_by_contact_id: string;
+          card_id?: string | null;
+          commission_amount?: number | null;
+          commission_percentage?: number | null;
+          indication_date?: string;
+          notes?: string | null;
+          status?: "pending" | "confirmed" | "paid" | "cancelled";
+          created_at?: string;
+          updated_at?: string;
+          client_id: string;
+        };
+        Update: {
+          id?: string;
+          contact_id?: string;
+          indicated_by_contact_id?: string;
+          card_id?: string | null;
+          commission_amount?: number | null;
+          commission_percentage?: number | null;
+          indication_date?: string;
+          notes?: string | null;
+          status?: "pending" | "confirmed" | "paid" | "cancelled";
+          created_at?: string;
+          updated_at?: string;
+          client_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "contact_indications_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_indications_indicated_by_contact_id_fkey";
+            columns: ["indicated_by_contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_indications_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "contact_indications_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      card_history: {
+        Row: {
+          id: string;
+          card_id: string;
+          client_id: string;
+          from_step_id: string | null;
+          to_step_id: string | null;
+          created_by: string | null;
+          created_at: string;
+          action_type: string | null;
+          details: Json | null;
+          movement_direction: "forward" | "backward" | "same" | null;
+          from_step_position: number | null;
+          to_step_position: number | null;
+        };
+        Insert: {
+          id?: string;
+          card_id: string;
+          client_id: string;
+          from_step_id?: string | null;
+          to_step_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          action_type?: string | null;
+          details?: Json | null;
+          movement_direction?: "forward" | "backward" | "same" | null;
+          from_step_position?: number | null;
+          to_step_position?: number | null;
+        };
+        Update: {
+          id?: string;
+          card_id?: string;
+          client_id?: string;
+          from_step_id?: string | null;
+          to_step_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+          action_type?: string | null;
+          details?: Json | null;
+          movement_direction?: "forward" | "backward" | "same" | null;
+          from_step_position?: number | null;
+          to_step_position?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "card_history_card_id_fkey";
+            columns: ["card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "card_history_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

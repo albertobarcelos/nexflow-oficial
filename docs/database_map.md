@@ -179,6 +179,8 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 - `20251226113130_create_auto_link_step_actions_function.sql`: Função de auto-link
 - `20251226162416_add_opportunity_card_integration.sql`: Integração com oportunidades
 - `20251226162417_create_opportunity_auto_create_trigger.sql`: Trigger de criação automática
+- `20260110_create_automation_functions.sql`: Funções de automação de contatos (parceiros e clientes)
+- `20260110_create_automation_triggers.sql`: Triggers para automação de criação/atualização de cards
 
 ##### Indicações
 - `20250127_add_core_indications_rls_policy.sql`: Política RLS para indicações
@@ -189,6 +191,15 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 
 ##### Franquias
 - `20260105030732_create_franchises_table_fixed.sql`: Sistema de franquias
+
+##### Relacionamentos e Indicações (Janeiro 2025)
+- `20260110_create_contact_companies_relationship.sql`: Tabela de relacionamento N:N entre contatos e empresas
+- `20260110_add_indicated_by_to_contacts.sql`: Adiciona campos indicated_by e contact_type em contacts
+- `20260110_add_indicated_by_to_cards.sql`: Adiciona campo indicated_by em cards
+- `20260110_create_contact_indications.sql`: Tabela de dados detalhados de indicações
+- `20260110_improve_card_history.sql`: Melhora card_history com rastreamento de direção de movimento
+- `20260110_add_flow_identifier.sql`: Adiciona campo flow_identifier em flows para automações
+- `20260110_create_flow_helper_functions.sql`: Funções auxiliares para buscar flows e steps
 
 ##### Outras Migrations
 - `20241220_add_avatar_fields_to_core_client_users.sql`: Campos de avatar
@@ -269,6 +280,8 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 | `card_tags` | public | ❌ | Relacionamento entre cards e tags |
 | `contact_automations` | public | ❌ | Automações de criação de cards |
 | `step_child_card_automations` | public | ❌ | Automações de cards filhos |
+| `contact_companies` | public | ❌ | Relacionamento N:N entre contatos e empresas |
+| `contact_indications` | public | ❌ | Dados detalhados de indicações entre contatos |
 
 #### Módulo de Comissões
 
@@ -988,6 +1001,46 @@ graph LR
 - **Autenticação**: ❌ (público)
 - **Uso**: Processa submissão do formulário público
 
+### 6.3 Automações de Contatos (Database Triggers)
+
+#### 6.3.1 Visão Geral
+
+O sistema implementa automações automáticas via Database Triggers que criam/atualizam cards quando contatos são criados ou modificados, baseado no tipo de contato (`contact_type`).
+
+#### 6.3.2 Funções de Automação
+
+**`handle_partner_contact_automation()`**
+
+- **Tipo**: Trigger Function (PL/pgSQL)
+- **Tabela**: `contacts`
+- **Evento**: INSERT ou UPDATE quando `contact_type = 'parceiro'`
+- **Comportamento**: Busca flow com `flow_identifier = 'parceiros'` e cria/atualiza card no primeiro step. Se card já existe, atualiza; caso contrário, cria novo.
+- **Uso**: Automatiza gestão de parceiros no flow "Parceiros"
+
+**`handle_client_contact_automation()`**
+
+- **Tipo**: Trigger Function (PL/pgSQL)
+- **Tabela**: `contacts`
+- **Evento**: INSERT quando `contact_type = 'cliente'`
+- **Comportamento**: Busca flow com `flow_identifier = 'vendas'` e cria card automaticamente no primeiro step do flow "Vendas"
+- **Uso**: Automatiza criação de oportunidades de venda para novos clientes
+
+#### 6.3.3 Triggers
+
+- **`trigger_handle_partner_contact`**: Dispara em INSERT/UPDATE de contatos tipo "parceiro"
+- **`trigger_handle_client_contact`**: Dispara em INSERT de contatos tipo "cliente"
+
+#### 6.3.4 Pré-requisitos
+
+Para as automações funcionarem:
+1. Flows devem ter `flow_identifier` configurado ('parceiros' ou 'vendas')
+2. Flows devem ter pelo menos um step
+3. Contatos devem ter `contact_type` definido ('parceiro' ou 'cliente')
+
+**Arquivos**:
+- `supabase/migrations/20260110_create_automation_functions.sql`: Funções de automação
+- `supabase/migrations/20260110_create_automation_triggers.sql`: Triggers
+
 ---
 
 ## 7. Arquivos SQL Adicionais
@@ -1110,6 +1163,10 @@ Identificadas via MCP:
 
 ---
 
-**Última Atualização**: Janeiro 2025
-**Versão do Documento**: 1.0
+**Última Atualização**: Janeiro 2025  
+**Versão do Documento**: 1.1  
+**Atualizações Recentes**:
+- Janeiro 2025: Adicionadas automações de contatos (triggers para parceiros e clientes)
+- Janeiro 2025: Adicionadas tabelas `contact_companies` e `contact_indications`
+- Janeiro 2025: Melhorias no `card_history` com rastreamento de direção de movimento
 
