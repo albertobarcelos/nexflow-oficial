@@ -4,7 +4,7 @@ import { nexflowClient } from "@/lib/supabase";
 import { Database } from "@/types/database";
 import { NexflowStepAction, StepActionsByDay, ActionType, StepActionSettings } from "@/types/nexflow";
 
-type StepActionRow = Database["nexflow"]["Tables"]["step_actions"]["Row"];
+type StepActionRow = Database["public"]["Tables"]["step_actions"]["Row"];
 
 const mapStepActionRow = (row: StepActionRow): NexflowStepAction => {
   const settings = (row.settings as StepActionSettings) || {};
@@ -147,7 +147,7 @@ export function useStepActions(stepId?: string) {
         targetPosition = lastPosition + 1;
       }
 
-      const payload: Database["nexflow"]["Tables"]["step_actions"]["Insert"] = {
+      const payload: Database["public"]["Tables"]["step_actions"]["Insert"] = {
         step_id: input.stepId,
         day_offset: dayOffset,
         title,
@@ -228,7 +228,7 @@ export function useStepActions(stepId?: string) {
         }
       }
 
-      const payload: Partial<Database["nexflow"]["Tables"]["step_actions"]["Update"]> = {};
+      const payload: Partial<Database["public"]["Tables"]["step_actions"]["Update"]> = {};
       if (typeof dayOffset !== "undefined") payload.day_offset = dayOffset;
       if (typeof title !== "undefined") payload.title = title;
       if (typeof actionType !== "undefined") payload.action_type = actionType;

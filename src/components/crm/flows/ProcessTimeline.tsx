@@ -7,7 +7,7 @@ import { NexflowCard } from "@/types/nexflow";
 import { CardStepAction } from "@/types/nexflow";
 import { Database } from "@/types/database";
 
-type StepActionRow = Database["nexflow"]["Tables"]["step_actions"]["Row"];
+type StepActionRow = Database["public"]["Tables"]["step_actions"]["Row"];
 
 interface ProcessWithAction extends CardStepAction {
   stepAction: StepActionRow | null;

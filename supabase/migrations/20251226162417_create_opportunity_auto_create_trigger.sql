@@ -85,3 +85,5 @@ COMMENT ON FUNCTION nexflow.auto_create_cards_from_opportunity() IS 'Cria cards 
 
 
 
+
+

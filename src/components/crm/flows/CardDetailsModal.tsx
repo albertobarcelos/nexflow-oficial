@@ -101,7 +101,7 @@ interface CardDetailsModalProps {
 
 type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments" | "processes";
 
-type StepActionRow = Database["nexflow"]["Tables"]["step_actions"]["Row"];
+type StepActionRow = Database["public"]["Tables"]["step_actions"]["Row"];
 
 interface ProcessWithAction extends CardStepAction {
   stepAction: StepActionRow | null;

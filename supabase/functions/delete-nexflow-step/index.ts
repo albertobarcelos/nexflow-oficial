@@ -146,7 +146,6 @@ Deno.serve(async (req: Request) => {
 
     // Verificar se step existe e obter informações
     const { data: step, error: stepError } = await supabase
-      .schema('nexflow')
       .from('steps')
       .select('id, flow_id, title')
       .eq('id', stepId)
@@ -181,7 +180,6 @@ Deno.serve(async (req: Request) => {
 
     // Verificar se o flow pertence ao mesmo client_id do usuário
     const { data: flow, error: flowError } = await supabase
-      .schema('nexflow')
       .from('flows')
       .select('client_id')
       .eq('id', step.flow_id)
@@ -209,7 +207,6 @@ Deno.serve(async (req: Request) => {
 
     // Verificar se há cards na etapa
     const { data: cards, error: cardsError } = await supabase
-      .schema('nexflow')
       .from('cards')
       .select('id')
       .eq('step_id', stepId)
@@ -239,7 +236,6 @@ Deno.serve(async (req: Request) => {
 
     // Verificar se é a última etapa do flow
     const { data: allSteps, error: allStepsError } = await supabase
-      .schema('nexflow')
       .from('steps')
       .select('id')
       .eq('flow_id', step.flow_id);
@@ -268,7 +264,6 @@ Deno.serve(async (req: Request) => {
 
     // Excluir a etapa
     const { error: deleteError } = await supabase
-      .schema('nexflow')
       .from('steps')
       .delete()
       .eq('id', stepId);

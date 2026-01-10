@@ -88,8 +88,8 @@ export function useUpdateFlowVisibility() {
 import { nexflowClient } from "@/lib/supabase";
 import { Database } from "@/types/database";
 
-type FlowTeamAccessRow = Database["nexflow"]["Tables"]["flow_team_access"]["Row"];
-type FlowUserExclusionsRow = Database["nexflow"]["Tables"]["flow_user_exclusions"]["Row"];
+type FlowTeamAccessRow = Database["public"]["Tables"]["flow_team_access"]["Row"];
+type FlowUserExclusionsRow = Database["public"]["Tables"]["flow_user_exclusions"]["Row"];
 
 export interface FlowTeamAccess {
   id: string;

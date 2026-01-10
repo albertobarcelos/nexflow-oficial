@@ -52,9 +52,8 @@ Deno.serve(async (req: Request) => {
     const normalizedTeamIds = Array.isArray(teamIds) ? teamIds : [];
     const normalizedExcludedUserIds = Array.isArray(excludedUserIds) ? excludedUserIds : [];
 
-    // Atualizar tipo de visibilidade da etapa (usando schema nexflow)
+    // Atualizar tipo de visibilidade da etapa
     const { error: updateError } = await supabase
-      .schema("nexflow")
       .from("steps")
       .update({ visibility_type: apiType })
       .eq("id", stepId);
@@ -66,7 +65,6 @@ Deno.serve(async (req: Request) => {
 
     // Remover todos os acessos de times existentes
     const { error: deleteTeamError } = await supabase
-      .schema("nexflow")
       .from("step_team_access")
       .delete()
       .eq("step_id", stepId);
@@ -83,7 +81,6 @@ Deno.serve(async (req: Request) => {
       }));
 
       const { error: teamAccessError } = await supabase
-        .schema("nexflow")
         .from("step_team_access")
         .insert(teamAccessData);
 
@@ -95,7 +92,6 @@ Deno.serve(async (req: Request) => {
 
     // Remover todas as exclusões de usuários existentes
     const { error: deleteExclusionError } = await supabase
-      .schema("nexflow")
       .from("step_user_exclusions")
       .delete()
       .eq("step_id", stepId);
@@ -112,7 +108,6 @@ Deno.serve(async (req: Request) => {
       }));
 
       const { error: userExclusionsError } = await supabase
-        .schema("nexflow")
         .from("step_user_exclusions")
         .insert(userExclusionsData);
 

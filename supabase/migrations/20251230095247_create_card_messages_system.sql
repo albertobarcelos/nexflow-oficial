@@ -77,3 +77,5 @@ COMMENT ON COLUMN nexflow.card_messages.mentions IS 'Array de user_ids mencionad
 COMMENT ON TABLE nexflow.card_message_attachments IS 'Anexos adicionais de mensagens (para múltiplos arquivos por mensagem)';
 
 
+
+

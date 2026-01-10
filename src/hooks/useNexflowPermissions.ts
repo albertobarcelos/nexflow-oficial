@@ -8,9 +8,9 @@ import {
   NexflowStepVisibility,
 } from "@/types/nexflow";
 
-type FlowAccessRow = Database["nexflow"]["Tables"]["flow_access"]["Row"];
+type FlowAccessRow = Database["public"]["Tables"]["flow_access"]["Row"];
 type StepVisibilityRow =
-  Database["nexflow"]["Tables"]["step_visibility"]["Row"];
+  Database["public"]["Tables"]["step_visibility"]["Row"];
 
 const mapAccessRow = (row: FlowAccessRow): NexflowFlowAccess => ({
   id: row.id,

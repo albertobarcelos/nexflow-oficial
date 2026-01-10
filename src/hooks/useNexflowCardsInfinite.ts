@@ -10,7 +10,7 @@ import {
   StepFieldValueMap,
 } from "@/types/nexflow";
 
-type CardRow = Database["nexflow"]["Tables"]["cards"]["Row"];
+type CardRow = Database["public"]["Tables"]["cards"]["Row"];
 
 const mapCardRow = (row: CardRow): NexflowCard => {
   const assignedTo = row.assigned_to ?? null;
@@ -177,7 +177,7 @@ export function useNexflowCardsInfinite(
       // Determinar card_type baseado na category do flow
       const cardType = flow.category === 'finance' ? 'finance' : 'onboarding';
 
-      const payload: Database["nexflow"]["Tables"]["cards"]["Insert"] = {
+      const payload: Database["public"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
         step_id: input.stepId,
         client_id: clientId,

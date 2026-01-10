@@ -194,9 +194,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Criar contato no schema nexflow
+    // Criar contato no schema public
     const { data: contact, error: contactError } = await supabaseAdmin
-      .schema("nexflow")
       .from("contacts")
       .insert({
         client_id: form.client_id,

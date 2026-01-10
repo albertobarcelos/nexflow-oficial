@@ -54,7 +54,6 @@ serve(async (req) => {
 
     // 2. Buscar card e verificar se está completo
     const { data: card, error: cardError } = await supabase
-      .schema("nexflow")
       .from("cards")
       .select("id, client_id, assigned_team_id, status, step_id")
       .eq("id", card_id)
@@ -80,7 +79,6 @@ serve(async (req) => {
 
     // Verificar se está em step finisher
     const { data: step, error: stepError } = await supabase
-      .schema("nexflow")
       .from("steps")
       .select("step_type")
       .eq("id", card.step_id)
@@ -110,7 +108,6 @@ serve(async (req) => {
 
     // 3. Buscar itens do card
     const { data: cardItems, error: itemsError } = await supabase
-      .schema("nexflow")
       .from("card_items")
       .select("*")
       .eq("card_id", card_id);

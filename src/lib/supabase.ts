@@ -28,9 +28,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
 });
 
 /**
- * Helper para acessar o schema `nexflow` com o mesmo client autenticado.
+ * @deprecated Schema nexflow foi migrado para public. Use supabase diretamente.
+ * Helper mantido apenas para compatibilidade temporária.
  */
-export const nexflowClient = () => supabase.schema('nexflow');
+export const nexflowClient = () => supabase;
 
 // Log da inicialização
 logger.info('🔗 Cliente Supabase inicializado', {
@@ -187,8 +188,16 @@ export const getTasksWithRelations = async () => {
  * ATUALIZADO: Usa a nova estrutura RLS
  */
 export async function getCurrentClientId(): Promise<string | null> {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:start',message:'getCurrentClientId chamado',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
+
   const { data: { user } } = await supabase.auth.getUser();
   
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:userCheck',message:'Verificação de usuário',data:{hasUser:!!user,userId:user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
+
   if (!user) {
     logger.warn('getCurrentClientId: Usuário não autenticado.');
     return null;
@@ -199,6 +208,10 @@ export async function getCurrentClientId(): Promise<string | null> {
     .select('client_id')
     .eq('id', user.id)
     .single();
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:queryResult',message:'Query core_client_users resultado',data:{hasData:!!clientUser,hasError:!!error,errorMessage:error?.message,errorCode:error?.code,errorDetails:error?.details,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
 
   if (error) {
     logger.error('Erro ao buscar client_id:', { userId: user.id, error });
@@ -211,6 +224,10 @@ export async function getCurrentClientId(): Promise<string | null> {
     logRLSInstructions();
     return null;
   }
+
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:success',message:'getCurrentClientId sucesso',data:{clientId:clientUser.client_id,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
 
   return clientUser.client_id;
 }

@@ -11,7 +11,7 @@ import { useCardStepActions } from "@/hooks/useCardStepActions";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-type StepActionRow = Database["nexflow"]["Tables"]["step_actions"]["Row"];
+type StepActionRow = Database["public"]["Tables"]["step_actions"]["Row"];
 
 interface ProcessWithAction extends CardStepAction {
   stepAction: StepActionRow | null;

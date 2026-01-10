@@ -51,3 +51,5 @@ COMMENT ON COLUMN nexflow.cards.opportunity_id IS 'Referência à oportunidade q
 
 
 
+
+

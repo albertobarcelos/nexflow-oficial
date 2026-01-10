@@ -110,26 +110,76 @@ export function LoginPage() {
       setLoading(true);
       setErrors({});
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:start',message:'Login iniciado',data:{email,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+
       // Fazer login
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:authResult',message:'Resultado autenticação',data:{hasAuthData:!!authData,hasUser:!!authData?.user,userId:authData?.user?.id,hasError:!!authError,errorMessage:authError?.message,errorCode:authError?.status,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+
       if (authError) throw authError;
 
       // Verificar se o usuário é um colaborador do CRM
-      const { data: collaboratorData, error: collaboratorError } = await supabase
-        .from('core_client_users')
-        .select(`
-          id,
-          client_id,
-          email,
-          role,
-          is_active
-        `)
-        .eq('id', authData.user.id)
-        .single();
+      // Retry logic para contornar erro PGRST002 (cache do schema corrompido)
+      let collaboratorData = null;
+      let collaboratorError = null;
+      const maxRetries = 5; // Aumentado para 5 tentativas
+      let retryCount = 0;
+      
+      while (retryCount < maxRetries && !collaboratorData && (!collaboratorError || collaboratorError?.code === 'PGRST002')) {
+        if (retryCount > 0) {
+          // Aguardar antes de tentar novamente (exponencial backoff - até 5 segundos)
+          const waitTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        
+        const result = await supabase
+          .from('core_client_users')
+          .select(`
+            id,
+            client_id,
+            email,
+            role,
+            is_active
+          `)
+          .eq('id', authData.user.id)
+          .single();
+        
+        collaboratorData = result.data;
+        collaboratorError = result.error;
+        retryCount++;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:collaboratorQuery',message:'Query core_client_users resultado',data:{hasData:!!collaboratorData,hasError:!!collaboratorError,errorMessage:collaboratorError?.message,errorCode:collaboratorError?.code,errorDetails:collaboratorError?.details,userId:authData?.user?.id,retryCount,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
+        // Se ainda for PGRST002 após todas as tentativas, tentar usar RPC como fallback
+        if (retryCount >= maxRetries && collaboratorError?.code === 'PGRST002') {
+          // #region agent log
+          fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:fallbackRPC',message:'Tentando RPC como fallback',data:{userId:authData?.user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+          
+          // Tentar usar uma Edge Function ou RPC como alternativa
+          try {
+            const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_data', { 
+              user_id: authData.user.id 
+            });
+            if (!rpcError && rpcData) {
+              collaboratorData = rpcData;
+              collaboratorError = null;
+            }
+          } catch (e) {
+            // Ignorar erro do fallback
+          }
+        }
+      }
 
       // TEMPORÁRIO: Permitir acesso para barceloshd@gmail.com mesmo sem estar na tabela
       if ((collaboratorError || !collaboratorData) && email !== 'barceloshd@gmail.com') {

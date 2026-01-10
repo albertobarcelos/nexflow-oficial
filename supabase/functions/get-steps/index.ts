@@ -163,7 +163,6 @@ Deno.serve(async (req: Request) => {
     // Verificar se o flow pertence ao mesmo client do usuário
     console.log(`[get-steps] Verificando acesso ao flow ${flowId}`);
     const { data: flowData, error: flowError } = await supabase
-      .schema("nexflow")
       .from("flows")
       .select("client_id")
       .eq("id", flowId)
@@ -203,7 +202,6 @@ Deno.serve(async (req: Request) => {
     // Buscar todas as etapas do flow
     console.log(`[get-steps] Buscando todas as etapas do flow`);
     const { data: allSteps, error: stepsError } = await supabase
-      .schema("nexflow")
       .from("steps")
       .select("*")
       .eq("flow_id", flowId)
@@ -249,7 +247,6 @@ Deno.serve(async (req: Request) => {
       // Se visibility_type = "team": verificar se usuário está em algum time permitido
       if (visibilityType === "team") {
         const { data: teamAccess, error: teamAccessError } = await supabase
-          .schema("nexflow")
           .from("step_team_access")
           .select("team_id")
           .eq("step_id", step.id);
@@ -281,7 +278,6 @@ Deno.serve(async (req: Request) => {
       // Se visibility_type = "user_exclusion": verificar time E verificar se não está excluído
       if (visibilityType === "user_exclusion") {
         const { data: teamAccess, error: teamAccessError } = await supabase
-          .schema("nexflow")
           .from("step_team_access")
           .select("team_id")
           .eq("step_id", step.id);
@@ -299,7 +295,6 @@ Deno.serve(async (req: Request) => {
           console.log(`[get-steps] Step ${step.id}: nenhum time configurado - verificando exclusões`);
           // Verificar se usuário está excluído
           const { data: userExclusions, error: userExclusionsError } = await supabase
-            .schema("nexflow")
             .from("step_user_exclusions")
             .select("user_id")
             .eq("step_id", step.id)
@@ -328,7 +323,6 @@ Deno.serve(async (req: Request) => {
 
         // Verificar se usuário está excluído
         const { data: userExclusions, error: userExclusionsError } = await supabase
-          .schema("nexflow")
           .from("step_user_exclusions")
           .select("user_id")
           .eq("step_id", step.id)

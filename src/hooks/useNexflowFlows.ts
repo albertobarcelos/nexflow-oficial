@@ -15,9 +15,9 @@ import {
   StepType,
 } from "@/types/nexflow";
 
-type FlowRow = Database["nexflow"]["Tables"]["flows"]["Row"];
-type StepRow = Database["nexflow"]["Tables"]["steps"]["Row"];
-type StepFieldRow = Database["nexflow"]["Tables"]["step_fields"]["Row"];
+type FlowRow = Database["public"]["Tables"]["flows"]["Row"];
+type StepRow = Database["public"]["Tables"]["steps"]["Row"];
+type StepFieldRow = Database["public"]["Tables"]["step_fields"]["Row"];
 
 export interface NexflowStepWithFields extends NexflowStep {
   fields: NexflowStepField[];
@@ -135,7 +135,7 @@ export function useNexflowFlows() {
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
-      const payload: Database["nexflow"]["Tables"]["flows"]["Insert"] = {
+      const payload: Database["public"]["Tables"]["flows"]["Insert"] = {
         name,
         category,
         client_id: clientId,

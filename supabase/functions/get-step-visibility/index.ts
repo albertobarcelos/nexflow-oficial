@@ -55,9 +55,8 @@ Deno.serve(async (req: Request) => {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Buscar tipo de visibilidade da etapa (usando schema nexflow)
+    // Buscar tipo de visibilidade da etapa
     const { data: step, error: stepError } = await supabase
-      .schema("nexflow")
       .from("steps")
       .select("visibility_type")
       .eq("id", stepId)
@@ -80,9 +79,8 @@ Deno.serve(async (req: Request) => {
 
     const visibilityType = step.visibility_type || "company";
 
-    // Buscar times com acesso (usando schema nexflow)
+    // Buscar times com acesso
     const { data: teamAccess, error: teamAccessError } = await supabase
-      .schema("nexflow")
       .from("step_team_access")
       .select("team_id")
       .eq("step_id", stepId);
@@ -91,9 +89,8 @@ Deno.serve(async (req: Request) => {
       ? [] 
       : (teamAccess?.map((t) => t.team_id) || []);
 
-    // Buscar usuários excluídos (usando schema nexflow)
+    // Buscar usuários excluídos
     const { data: userExclusions, error: userExclusionsError } = await supabase
-      .schema("nexflow")
       .from("step_user_exclusions")
       .select("user_id")
       .eq("step_id", stepId);

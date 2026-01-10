@@ -9,7 +9,7 @@ import { ProcessTimeline } from "./ProcessTimeline";
 import { ProcessDetails } from "./ProcessDetails";
 import { Loader2 } from "lucide-react";
 
-type StepActionRow = Database["nexflow"]["Tables"]["step_actions"]["Row"];
+type StepActionRow = Database["public"]["Tables"]["step_actions"]["Row"];
 
 interface ProcessesViewProps {
   card: NexflowCard | null;

@@ -26,3 +26,5 @@ COMMENT ON TABLE nexflow.card_attachments IS 'Anexos de arquivos nos cards (até
 COMMENT ON COLUMN nexflow.card_attachments.file_size IS 'Tamanho do arquivo em bytes';
 
 
+
+

@@ -171,7 +171,6 @@ Deno.serve(async (req: Request) => {
 
     // Verificar se card existe e pertence ao mesmo client_id do usuário
     const { data: card, error: cardError } = await supabase
-      .schema('nexflow')
       .from('cards')
       .select('client_id, flow_id, step_id')
       .eq('id', cardId)
@@ -219,7 +218,6 @@ Deno.serve(async (req: Request) => {
     // Cards filhos (com parent_card_id) não são automaticamente congelados
     // Cards congelados não podem ser editados, apenas visualizados
     const { data: cardStep, error: cardStepError } = await supabase
-      .schema('nexflow')
       .from('cards')
       .select('parent_card_id, step_id')
       .eq('id', cardId)
@@ -228,7 +226,6 @@ Deno.serve(async (req: Request) => {
     if (!cardStepError && cardStep) {
       // Verificar se o card está em uma etapa freezing
       const { data: currentStepData, error: stepDataError } = await supabase
-        .schema('nexflow')
         .from('steps')
         .select('step_type')
         .eq('id', cardStep.step_id)
@@ -275,7 +272,6 @@ Deno.serve(async (req: Request) => {
     
     if (stepId) {
       const { data: step, error: stepError } = await supabase
-        .schema('nexflow')
         .from('steps')
         .select('flow_id, step_type, position')
         .eq('id', stepId)
@@ -322,7 +318,6 @@ Deno.serve(async (req: Request) => {
       if (step.step_type === 'freezing' && stepId !== card.step_id) {
         // Verificar se o card já foi congelado antes (tem parent_card_id ou já existe um card congelado apontando para ele)
         const { data: currentCardFull, error: currentCardFullError } = await supabase
-          .schema('nexflow')
           .from('cards')
           .select('parent_card_id')
           .eq('id', cardId)
@@ -342,7 +337,6 @@ Deno.serve(async (req: Request) => {
 
           // Verificar se já existe um card congelado apontando para este card (indicando que já foi congelado)
           const { data: existingFrozenCard, error: frozenCheckError } = await supabase
-            .schema('nexflow')
             .from('cards')
             .select('id')
             .eq('parent_card_id', cardId)
@@ -362,7 +356,6 @@ Deno.serve(async (req: Request) => {
 
         // Buscar próxima etapa
         const { data: nextStep, error: nextStepError } = await supabase
-          .schema('nexflow')
           .from('steps')
           .select('id, position')
           .eq('flow_id', card.flow_id)
@@ -388,7 +381,6 @@ Deno.serve(async (req: Request) => {
         
         // Buscar dados completos do card atual
         const { data: currentCard, error: currentCardError } = await supabase
-          .schema('nexflow')
           .from('cards')
           .select('*')
           .eq('id', cardId)
@@ -407,7 +399,6 @@ Deno.serve(async (req: Request) => {
         // Criar card congelado na etapa freezing (clone que aponta para o original)
         // Este card congelado não pode ser editado e compartilha o histórico do original
         const { data: frozenCard, error: frozenCardError } = await supabase
-          .schema('nexflow')
           .from('cards')
           .insert({
             flow_id: currentCard.flow_id,
@@ -555,7 +546,6 @@ Deno.serve(async (req: Request) => {
           
           if (card.step_id) {
             const { data: fromStep } = await supabase
-              .schema('nexflow')
               .from('steps')
               .select('title, step_type')
               .eq('id', card.step_id)
@@ -566,7 +556,6 @@ Deno.serve(async (req: Request) => {
           
           if (finalStepId) {
             const { data: toStep } = await supabase
-              .schema('nexflow')
               .from('steps')
               .select('title, step_type')
               .eq('id', finalStepId)
@@ -637,7 +626,6 @@ Deno.serve(async (req: Request) => {
           });
           
           const { error: historyError, data: historyData } = await supabase
-            .schema('nexflow')
             .from('card_history')
             .insert(historyPayload)
             .select()
@@ -694,7 +682,6 @@ Deno.serve(async (req: Request) => {
 
     // Atualizar card
     const { data: updatedCard, error: updateError } = await supabase
-      .schema('nexflow')
       .from('cards')
       .update(updatePayload)
       .eq('id', cardId)

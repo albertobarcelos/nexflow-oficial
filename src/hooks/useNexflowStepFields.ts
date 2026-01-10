@@ -8,7 +8,7 @@ import {
   StepFieldType,
 } from "@/types/nexflow";
 
-type StepFieldRow = Database["nexflow"]["Tables"]["step_fields"]["Row"];
+type StepFieldRow = Database["public"]["Tables"]["step_fields"]["Row"];
 
 const mapFieldRow = (row: StepFieldRow): NexflowStepField => ({
   id: row.id,
@@ -84,7 +84,7 @@ export function useNexflowStepFields(stepId?: string) {
         throw new Error("Etapa não informada.");
       }
 
-      const payload: Database["nexflow"]["Tables"]["step_fields"]["Insert"] = {
+      const payload: Database["public"]["Tables"]["step_fields"]["Insert"] = {
         step_id: targetStepId,
         label: input.label,
         slug: input.slug ?? null,

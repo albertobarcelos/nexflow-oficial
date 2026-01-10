@@ -223,3 +223,5 @@ COMMENT ON FUNCTION nexflow.notify_message_mention() IS 'Cria notificações qua
 COMMENT ON FUNCTION nexflow.notify_new_card_in_stage() IS 'Cria notificações quando novos cards são criados em etapas configuradas pelo usuário';
 
 
+
+

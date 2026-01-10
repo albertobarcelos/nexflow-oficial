@@ -14,7 +14,6 @@ export default function ContactDetails() {
     queryKey: ['contact', id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .schema('nexflow')
         .from('contacts')
         .select(`
           *,

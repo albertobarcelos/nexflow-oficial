@@ -107,7 +107,6 @@ Deno.serve(async (req: Request) => {
 
     // Verificar se o card existe e pertence ao cliente
     const { data: card, error: cardError } = await supabaseAdmin
-      .schema('nexflow')
       .from('cards')
       .select('id, client_id, step_id')
       .eq('id', cardId)
@@ -156,7 +155,6 @@ Deno.serve(async (req: Request) => {
 
     // Inserir registro em nexflow.card_attachments (sem join cross-schema)
     const { data: attachment, error: insertError } = await supabaseAdmin
-      .schema('nexflow')
       .from('card_attachments')
       .insert({
         card_id: cardId,
@@ -199,7 +197,6 @@ Deno.serve(async (req: Request) => {
     };
 
     const { error: historyError } = await supabaseAdmin
-      .schema('nexflow')
       .from('card_history')
       .insert({
         card_id: cardId,

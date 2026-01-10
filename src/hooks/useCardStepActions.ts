@@ -4,7 +4,7 @@ import { nexflowClient, supabase } from "@/lib/supabase";
 import { Database } from "@/types/database";
 import { CardStepAction, CardStepActionStatus } from "@/types/nexflow";
 
-type CardStepActionRow = Database["nexflow"]["Tables"]["card_step_actions"]["Row"];
+type CardStepActionRow = Database["public"]["Tables"]["card_step_actions"]["Row"];
 
 const mapCardStepActionRow = (row: CardStepActionRow): CardStepAction => {
   return {
@@ -68,7 +68,7 @@ export function useCardStepActions(cardId?: string) {
 
   const updateCardStepActionMutation = useMutation({
     mutationFn: async ({ id, ...updates }: UpdateCardStepActionInput): Promise<CardStepAction> => {
-      const payload: Partial<Database["nexflow"]["Tables"]["card_step_actions"]["Update"]> = {
+      const payload: Partial<Database["public"]["Tables"]["card_step_actions"]["Update"]> = {
         updated_at: new Date().toISOString(),
       };
 
@@ -160,7 +160,7 @@ export function useCardStepActions(cardId?: string) {
       const { data: userData } = await supabase.auth.getUser();
       const completedBy = userData?.user?.id ?? null;
 
-      const payload: Database["nexflow"]["Tables"]["card_step_actions"]["Update"] = {
+      const payload: Database["public"]["Tables"]["card_step_actions"]["Update"] = {
         status: "completed",
         completed_at: new Date().toISOString(),
         completed_by: completedBy,

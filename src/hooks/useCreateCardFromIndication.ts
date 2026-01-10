@@ -65,7 +65,7 @@ export function useCreateCardFromIndication() {
         "Nova Indicação";
 
       // Criar o card
-      const payload: Database["nexflow"]["Tables"]["cards"]["Insert"] = {
+      const payload: Database["public"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
         step_id: input.stepId,
         client_id: clientId,

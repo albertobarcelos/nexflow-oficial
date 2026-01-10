@@ -73,7 +73,6 @@ serve(async (req) => {
 
     // 2. Verificar se card existe e obter client_id
     const { data: card, error: cardError } = await supabase
-      .schema("nexflow")
       .from("cards")
       .select("id, client_id, assigned_team_id, status")
       .eq("id", cardId)

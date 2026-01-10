@@ -3,7 +3,7 @@ import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
 import { CardMovementEntry } from "@/types/nexflow";
 import { Database } from "@/types/database";
 
-type CardHistoryRow = Database["nexflow"]["Tables"]["card_history"]["Row"];
+type CardHistoryRow = Database["public"]["Tables"]["card_history"]["Row"];
 
 /**
  * Mapeia um registro da tabela card_history para CardMovementEntry
@@ -52,7 +52,6 @@ export function useCardHistory(cardId: string | null | undefined, parentCardId?:
       if (!targetCardId) {
         // Buscar o card e sua etapa para verificar se está em freezing
         const { data: cardData, error: cardError } = await nexflowClient()
-          .schema("nexflow")
           .from("cards")
           .select("parent_card_id, step_id")
           .eq("id", cardId)

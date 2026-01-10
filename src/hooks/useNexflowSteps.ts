@@ -4,7 +4,7 @@ import { nexflowClient, supabase } from "@/lib/supabase";
 import { Database } from "@/types/database";
 import { NexflowStep, StepType } from "@/types/nexflow";
 
-type StepRow = Database["nexflow"]["Tables"]["steps"]["Row"];
+type StepRow = Database["public"]["Tables"]["steps"]["Row"];
 
 const DEFAULT_STEP_COLOR = "#2563eb";
 

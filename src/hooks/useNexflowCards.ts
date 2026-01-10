@@ -10,7 +10,7 @@ import {
 } from "@/types/nexflow";
 import { separateSystemFields, SYSTEM_FIELDS, isSystemField } from "@/lib/flowBuilder/systemFields";
 
-type CardRow = Database["nexflow"]["Tables"]["cards"]["Row"];
+type CardRow = Database["public"]["Tables"]["cards"]["Row"];
 
 const mapCardRow = (row: CardRow): NexflowCard => {
   const assignedTo = row.assigned_to ?? null;
@@ -150,7 +150,7 @@ export function useNexflowCards(flowId?: string) {
       const finalAssignedTo = assignedTo;
       const finalAssignedTeamId = assignedTo ? null : assignedTeamId;
 
-      const payload: Database["nexflow"]["Tables"]["cards"]["Insert"] = {
+      const payload: Database["public"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
         step_id: input.stepId,
         client_id: clientId,
@@ -239,7 +239,6 @@ export function useNexflowCards(flowId?: string) {
             
             if (cardData?.step_id) {
               const { data: stepFields } = await nexflowClient()
-                .schema("nexflow")
                 .from("step_fields")
                 .select("id, slug")
                 .eq("step_id", cardData.step_id);

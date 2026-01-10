@@ -55,7 +55,6 @@ serve(async (req) => {
 
     // Buscar o contato (no schema nexflow)
     const { data: contact, error: contactError } = await supabaseAdmin
-      .schema('nexflow')
       .from('contacts')
       .select('*')
       .eq('id', contact_id)
@@ -74,7 +73,6 @@ serve(async (req) => {
 
     // Buscar regras de automação (no schema nexflow)
     let automationQuery = supabaseAdmin
-      .schema('nexflow')
       .from('contact_automations')
       .select('*')
       .eq('client_id', client_id)
@@ -125,7 +123,6 @@ serve(async (req) => {
 
         // Verificar se flow e step existem e pertencem ao mesmo client_id (no schema nexflow)
         const { data: flowData, error: flowError } = await supabaseAdmin
-          .schema('nexflow')
           .from('flows')
           .select('id, client_id, category')
           .eq('id', automation.target_flow_id)
@@ -144,7 +141,6 @@ serve(async (req) => {
         const cardType = flowData.category === 'finance' ? 'finance' : 'onboarding'
 
         const { data: stepData, error: stepError } = await supabaseAdmin
-          .schema('nexflow')
           .from('steps')
           .select('id, flow_id')
           .eq('id', automation.target_step_id)
@@ -161,7 +157,6 @@ serve(async (req) => {
 
         // Calcular a próxima posição (no schema nexflow)
         const { data: positionData } = await supabaseAdmin
-          .schema('nexflow')
           .from('cards')
           .select('position')
           .eq('step_id', automation.target_step_id)
@@ -176,7 +171,6 @@ serve(async (req) => {
         const cardTitle = (contact as any).name || (contact as any).client_name || 'Novo Contato'
         
         const { data: newCard, error: cardError } = await supabaseAdmin
-          .schema('nexflow')
           .from('cards')
           .insert({
             flow_id: automation.target_flow_id,

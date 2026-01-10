@@ -85,3 +85,5 @@ USING (
 Os buckets devem ser criados manualmente no Supabase Dashboard, pois não é possível criar buckets via migrations SQL.
 
 
+
+

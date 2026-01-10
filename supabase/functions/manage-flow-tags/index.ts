@@ -73,7 +73,6 @@ async function validateFlowAccess(
 ): Promise<{ isValid: boolean; error?: string }> {
   try {
     const { data: flow, error } = await supabase
-      .schema('nexflow')
       .from('flows')
       .select('id, client_id')
       .eq('id', flowId)
@@ -238,7 +237,6 @@ Deno.serve(async (req: Request) => {
       // Buscar tags
       console.log('Buscando tags para flowId:', flowId);
       const { data: tags, error: tagsError } = await supabase
-        .schema('nexflow')
         .from('flow_tags')
         .select('*')
         .eq('flow_id', flowId)
@@ -341,7 +339,6 @@ Deno.serve(async (req: Request) => {
 
       // Verificar se já existe tag com mesmo nome no flow
       const { data: existingTag } = await supabase
-        .schema('nexflow')
         .from('flow_tags')
         .select('id')
         .eq('flow_id', bodyFlowId)
@@ -360,7 +357,6 @@ Deno.serve(async (req: Request) => {
 
       // Criar tag
       const { data: newTag, error: createError } = await supabase
-        .schema('nexflow')
         .from('flow_tags')
         .insert({
           flow_id: bodyFlowId,
@@ -419,7 +415,6 @@ Deno.serve(async (req: Request) => {
 
       // Buscar tag existente
       const { data: existingTag, error: fetchError } = await supabase
-        .schema('nexflow')
         .from('flow_tags')
         .select('flow_id')
         .eq('id', id)
@@ -483,7 +478,6 @@ Deno.serve(async (req: Request) => {
       // Verificar constraint única se nome foi alterado
       if (name !== undefined) {
         const { data: duplicateTag } = await supabase
-          .schema('nexflow')
           .from('flow_tags')
           .select('id')
           .eq('flow_id', existingTag.flow_id)
@@ -504,7 +498,6 @@ Deno.serve(async (req: Request) => {
 
       // Atualizar tag
       const { data: updatedTag, error: updateError } = await supabase
-        .schema('nexflow')
         .from('flow_tags')
         .update(updateData)
         .eq('id', id)
@@ -548,7 +541,6 @@ Deno.serve(async (req: Request) => {
 
       // Buscar tag existente
       const { data: existingTag, error: fetchError } = await supabase
-        .schema('nexflow')
         .from('flow_tags')
         .select('flow_id')
         .eq('id', tagId)
@@ -583,7 +575,6 @@ Deno.serve(async (req: Request) => {
 
       // Verificar se há cards usando esta tag
       const { data: cardTags, error: cardTagsError } = await supabase
-        .schema('nexflow')
         .from('card_tags')
         .select('card_id')
         .eq('tag_id', tagId)
@@ -612,7 +603,6 @@ Deno.serve(async (req: Request) => {
 
       // Deletar tag
       const { error: deleteError } = await supabase
-        .schema('nexflow')
         .from('flow_tags')
         .delete()
         .eq('id', tagId);

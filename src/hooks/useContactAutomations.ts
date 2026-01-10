@@ -3,9 +3,9 @@ import { toast } from "sonner";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
 import { Database } from "@/types/database";
 
-type ContactAutomationRow = Database["nexflow"]["Tables"]["contact_automations"]["Row"];
-type ContactAutomationInsert = Database["nexflow"]["Tables"]["contact_automations"]["Insert"];
-type ContactAutomationUpdate = Database["nexflow"]["Tables"]["contact_automations"]["Update"];
+type ContactAutomationRow = Database["public"]["Tables"]["contact_automations"]["Row"];
+type ContactAutomationInsert = Database["public"]["Tables"]["contact_automations"]["Insert"];
+type ContactAutomationUpdate = Database["public"]["Tables"]["contact_automations"]["Update"];
 
 export interface ContactAutomation {
   id: string;
@@ -74,7 +74,7 @@ export function useContactAutomations() {
         target_flow_id: input.targetFlowId,
         target_step_id: input.targetStepId,
         is_active: input.isActive ?? true,
-        trigger_conditions: (input.triggerConditions ?? {}) as Database["nexflow"]["Tables"]["contact_automations"]["Row"]["trigger_conditions"],
+        trigger_conditions: (input.triggerConditions ?? {}) as Database["public"]["Tables"]["contact_automations"]["Row"]["trigger_conditions"],
       };
 
       const { data, error } = await nexflowClient()
@@ -118,7 +118,7 @@ export function useContactAutomations() {
         payload.target_step_id = input.targetStepId;
       }
       if (input.triggerConditions !== undefined) {
-        payload.trigger_conditions = input.triggerConditions as Database["nexflow"]["Tables"]["contact_automations"]["Row"]["trigger_conditions"];
+        payload.trigger_conditions = input.triggerConditions as Database["public"]["Tables"]["contact_automations"]["Row"]["trigger_conditions"];
       }
 
       const { data, error } = await nexflowClient()

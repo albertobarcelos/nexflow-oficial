@@ -4,9 +4,9 @@ import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
 import { Database } from "@/types/database";
 import { StepChildCardAutomation } from "@/types/nexflow";
 
-type StepChildCardAutomationRow = Database["nexflow"]["Tables"]["step_child_card_automations"]["Row"];
-type StepChildCardAutomationInsert = Database["nexflow"]["Tables"]["step_child_card_automations"]["Insert"];
-type StepChildCardAutomationUpdate = Database["nexflow"]["Tables"]["step_child_card_automations"]["Update"];
+type StepChildCardAutomationRow = Database["public"]["Tables"]["step_child_card_automations"]["Row"];
+type StepChildCardAutomationInsert = Database["public"]["Tables"]["step_child_card_automations"]["Insert"];
+type StepChildCardAutomationUpdate = Database["public"]["Tables"]["step_child_card_automations"]["Update"];
 
 const mapAutomationRow = (row: StepChildCardAutomationRow): StepChildCardAutomation => ({
   id: row.id,
