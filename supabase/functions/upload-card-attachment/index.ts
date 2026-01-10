@@ -3,6 +3,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // @ts-ignore - JSR imports são específicos do Deno runtime e funcionam no Supabase Edge Functions
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// Declaração de tipo para Deno (necessário para TypeScript no editor)
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve(handler: (req: Request) => Promise<Response> | Response): void;
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -153,7 +161,7 @@ Deno.serve(async (req: Request) => {
       .from('card-attachments')
       .getPublicUrl(fileNameStorage);
 
-    // Inserir registro em nexflow.card_attachments (sem join cross-schema)
+    // Inserir registro em card_attachments (schema public)
     const { data: attachment, error: insertError } = await supabaseAdmin
       .from('card_attachments')
       .insert({

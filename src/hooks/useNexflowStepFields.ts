@@ -1,26 +1,55 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient } from "@/lib/supabase";
-import { Database } from "@/types/database";
 import {
   NexflowStepField,
   StepFieldConfiguration,
   StepFieldType,
 } from "@/types/nexflow";
+import { isValidUUID } from "@/lib/utils";
 
-type StepFieldRow = Database["public"]["Tables"]["step_fields"]["Row"];
+// Tipo customizado para a tabela step_fields (migrada do schema nexflow para public)
+// TODO: Atualizar o arquivo database.ts com essa tabela após a migração
+type StepFieldRow = {
+  id: string;
+  step_id: string;
+  label: string;
+  slug: string | null;
+  field_type: string;
+  is_required: boolean | null;
+  position: number | null;
+  configuration: StepFieldConfiguration | null;
+  created_at: string;
+};
 
-const mapFieldRow = (row: StepFieldRow): NexflowStepField => ({
-  id: row.id,
-  stepId: row.step_id,
-  label: row.label,
-  slug: row.slug ?? null,
-  fieldType: row.field_type,
-  isRequired: Boolean(row.is_required),
-  position: row.position ?? 0,
-  configuration: (row.configuration as StepFieldConfiguration) ?? {},
-  createdAt: row.created_at,
-});
+type StepFieldInsert = {
+  step_id: string;
+  label: string;
+  slug?: string | null;
+  field_type: string;
+  is_required?: boolean;
+  position?: number | null;
+  configuration?: StepFieldConfiguration | null;
+};
+
+interface MutationContext {
+  previousFields: NexflowStepField[];
+}
+
+const mapFieldRow = (row: StepFieldRow | Record<string, unknown>): NexflowStepField => {
+  const field = row as StepFieldRow;
+  return {
+    id: field.id,
+    stepId: field.step_id,
+    label: field.label,
+    slug: field.slug ?? null,
+    fieldType: field.field_type as StepFieldType,
+    isRequired: Boolean(field.is_required),
+    position: field.position ?? 0,
+    configuration: (field.configuration as StepFieldConfiguration) ?? {},
+    createdAt: field.created_at,
+  };
+};
 
 export interface CreateStepFieldInput {
   stepId: string;
@@ -52,13 +81,13 @@ export function useNexflowStepFields(stepId?: string) {
 
   const fieldsQuery = useQuery({
     queryKey,
-    enabled: Boolean(stepId),
+    enabled: Boolean(stepId) && isValidUUID(stepId),
     queryFn: async (): Promise<NexflowStepField[]> => {
-      if (!stepId) {
+      if (!stepId || !isValidUUID(stepId)) {
         return [];
       }
 
-      const { data, error } = await nexflowClient()
+      const { data, error } = await (nexflowClient() as any)
         .from("step_fields")
         .select("*")
         .eq("step_id", stepId)
@@ -84,7 +113,7 @@ export function useNexflowStepFields(stepId?: string) {
         throw new Error("Etapa não informada.");
       }
 
-      const payload: Database["public"]["Tables"]["step_fields"]["Insert"] = {
+      const payload: StepFieldInsert = {
         step_id: targetStepId,
         label: input.label,
         slug: input.slug ?? null,
@@ -97,7 +126,7 @@ export function useNexflowStepFields(stepId?: string) {
             1),
       };
 
-      const { data, error } = await nexflowClient()
+      const { data, error } = await (nexflowClient() as any)
         .from("step_fields")
         .insert(payload)
         .select("*")
@@ -135,17 +164,15 @@ export function useNexflowStepFields(stepId?: string) {
       queryClient.setQueryData(queryKey, [...previousFields, optimistField]);
       return { previousFields };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousFields) {
-        queryClient.setQueryData(queryKey, context.previousFields);
+    onError: (error, _variables, context) => {
+      if ((context as MutationContext | undefined)?.previousFields) {
+        queryClient.setQueryData(queryKey, (context as MutationContext).previousFields);
       }
+      toast.error("Erro ao criar campo. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Campo criado com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao criar campo. Tente novamente.");
     },
   });
 
@@ -163,7 +190,7 @@ export function useNexflowStepFields(stepId?: string) {
       if (typeof input.position !== "undefined")
         payload.position = input.position;
 
-      const { error } = await nexflowClient()
+      const { error } = await (nexflowClient() as any)
         .from("step_fields")
         .update(payload)
         .eq("id", input.id);
@@ -210,23 +237,21 @@ export function useNexflowStepFields(stepId?: string) {
 
       return { previousFields };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousFields) {
-        queryClient.setQueryData(queryKey, context.previousFields);
+    onError: (error, _variables, context) => {
+      if ((context as MutationContext | undefined)?.previousFields) {
+        queryClient.setQueryData(queryKey, (context as MutationContext).previousFields);
       }
+      toast.error("Erro ao atualizar campo. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Campo atualizado com sucesso!");
     },
-    onError: () => {
-      toast.error("Erro ao atualizar campo. Tente novamente.");
-    },
   });
 
   const deleteFieldMutation = useMutation({
     mutationFn: async (fieldId: string) => {
-      const { error } = await nexflowClient()
+      const { error } = await (nexflowClient() as any)
         .from("step_fields")
         .delete()
         .eq("id", fieldId);
@@ -245,17 +270,15 @@ export function useNexflowStepFields(stepId?: string) {
       );
       return { previousFields };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousFields) {
-        queryClient.setQueryData(queryKey, context.previousFields);
+    onError: (error, _variables, context) => {
+      if ((context as MutationContext | undefined)?.previousFields) {
+        queryClient.setQueryData(queryKey, (context as MutationContext).previousFields);
       }
+      toast.error("Erro ao remover campo. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Campo removido com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao remover campo. Tente novamente.");
     },
   });
 
@@ -263,7 +286,7 @@ export function useNexflowStepFields(stepId?: string) {
     mutationFn: async ({ items }: ReorderStepFieldsInput) => {
       await Promise.all(
         items.map(({ id, position }) =>
-          nexflowClient().from("step_fields").update({ position }).eq("id", id)
+          (nexflowClient() as any).from("step_fields").update({ position }).eq("id", id)
         )
       );
     },
@@ -278,16 +301,14 @@ export function useNexflowStepFields(stepId?: string) {
       queryClient.setQueryData(queryKey, updated);
       return { previousFields };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousFields) {
-        queryClient.setQueryData(queryKey, context.previousFields);
+    onError: (error, _variables, context) => {
+      if ((context as MutationContext | undefined)?.previousFields) {
+        queryClient.setQueryData(queryKey, (context as MutationContext).previousFields);
       }
+      toast.error("Erro ao reordenar campos. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-    },
-    onError: () => {
-      toast.error("Erro ao reordenar campos. Tente novamente.");
     },
   });
 

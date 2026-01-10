@@ -560,9 +560,10 @@ export function useFlowBuilderState(
       });
 
       // Salvar visibilidade da etapa ativa se houver mudanças
-      if (activeStepId && stepDraft) {
+      if (activeStepId && stepDraft && flowId) {
         await updateStepVisibility.mutateAsync({
           stepId: activeStepId,
+          flowId: flowId,
           visibilityType: stepDraft.visibilityType,
           teamIds: stepDraft.visibleTeamIds,
           excludedUserIds: stepDraft.excludedUserIds,

@@ -1,0 +1,143 @@
+import { Plus, CheckCircle2, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { cn, hexToRgba } from "@/lib/utils";
+import { StepResponsibleSelector } from "@/components/crm/flows/StepResponsibleSelector";
+import { SortableCard } from "./SortableCard";
+import { ColumnDropZone } from "./ColumnDropZone";
+import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
+import type { CardsByStepPaginated, StepCounts } from "../types";
+
+interface KanbanColumnProps {
+  step: NexflowStepWithFields;
+  columnData: CardsByStepPaginated[string] | undefined;
+  totalCards: number;
+  hasMore: boolean;
+  isStartColumn: boolean;
+  flowId?: string;
+  onNewCard: () => void;
+  onCardClick: (card: NexflowCard) => void;
+  draggedCardId: string | null;
+  shakeCardId: string | null;
+  celebratedCardId: string | null;
+  onLoadMore: (stepId: string) => void;
+  isFetchingNextPage: boolean;
+  getColorClasses: (hexColor: string) => { header: string; body: string; border: string };
+}
+
+export function KanbanColumn({
+  step,
+  columnData,
+  totalCards,
+  hasMore,
+  isStartColumn,
+  flowId,
+  onNewCard,
+  onCardClick,
+  draggedCardId,
+  shakeCardId,
+  celebratedCardId,
+  onLoadMore,
+  isFetchingNextPage,
+  getColorClasses,
+}: KanbanColumnProps) {
+  const columnCards = columnData?.cards ?? [];
+  const accentColor = step.color ?? "#2563eb";
+  const colorClasses = getColorClasses(accentColor);
+
+  return (
+    <div className="w-80 shrink-0 flex flex-col h-full">
+      <div
+        className={cn(
+          "rounded-t-2xl p-4 shadow-lg z-10 relative",
+          colorClasses.header
+        )}
+        style={{
+          boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.05)}`,
+        }}
+      >
+        <div className="flex items-center justify-between text-white mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-white/50 rounded-full"></div>
+            <span className="text-xs font-semibold uppercase tracking-wide opacity-90">Etapa</span>
+          </div>
+          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium">
+            {totalCards} {totalCards === 1 ? "card" : "cards"}
+          </span>
+        </div>
+        <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+          {step.title}
+          {step.isCompletionStep && (
+            <CheckCircle2 className="h-4 w-4 opacity-90" />
+          )}
+          {flowId && (
+            <StepResponsibleSelector step={step} flowId={flowId} />
+          )}
+        </h2>
+        {isStartColumn && (
+          <button
+            onClick={onNewCard}
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white text-sm py-2 rounded-lg transition-colors backdrop-blur-sm border border-white/10"
+          >
+            <Plus className="h-4 w-4" />
+            Novo card
+          </button>
+        )}
+      </div>
+      <div
+        className={cn(
+          "flex-1 border-x border-b rounded-b-2xl p-3 overflow-y-auto custom-scrollbar",
+          colorClasses.body,
+          colorClasses.border
+        )}
+      >
+        <ColumnDropZone stepId={step.id}>
+          <SortableContext
+            items={columnCards.map((card) => card.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {columnCards.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
+                Nenhum card aqui
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {columnCards.map((card) => (
+                  <SortableCard
+                    key={card.id}
+                    card={card}
+                    onClick={() => onCardClick(card)}
+                    stepId={step.id}
+                    isActiveDrag={draggedCardId === card.id}
+                    shouldShake={shakeCardId === card.id}
+                    isCelebrating={celebratedCardId === card.id}
+                    currentStep={step}
+                  />
+                ))}
+              </div>
+            )}
+          </SortableContext>
+          {hasMore && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-2 text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              onClick={() => onLoadMore(step.id)}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Carregando...
+                </>
+              ) : (
+                `Carregar mais (${totalCards - columnCards.length} restantes)`
+              )}
+            </Button>
+          )}
+        </ColumnDropZone>
+      </div>
+    </div>
+  );
+}
+

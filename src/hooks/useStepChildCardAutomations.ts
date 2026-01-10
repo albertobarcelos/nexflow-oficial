@@ -1,25 +1,57 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
-import { Database } from "@/types/database";
 import { StepChildCardAutomation } from "@/types/nexflow";
+import { isValidUUID } from "@/lib/utils";
 
-type StepChildCardAutomationRow = Database["public"]["Tables"]["step_child_card_automations"]["Row"];
-type StepChildCardAutomationInsert = Database["public"]["Tables"]["step_child_card_automations"]["Insert"];
-type StepChildCardAutomationUpdate = Database["public"]["Tables"]["step_child_card_automations"]["Update"];
+// Tipos customizados para a tabela step_child_card_automations (migrada do schema nexflow para public)
+// TODO: Atualizar o arquivo database.ts com essa tabela após a migração
+type StepChildCardAutomationRow = {
+  id: string;
+  step_id: string;
+  client_id: string;
+  target_flow_id: string;
+  target_step_id: string;
+  is_active: boolean;
+  copy_field_values: boolean;
+  copy_assignment: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
-const mapAutomationRow = (row: StepChildCardAutomationRow): StepChildCardAutomation => ({
-  id: row.id,
-  stepId: row.step_id,
-  clientId: row.client_id,
-  targetFlowId: row.target_flow_id,
-  targetStepId: row.target_step_id,
-  isActive: row.is_active,
-  copyFieldValues: row.copy_field_values,
-  copyAssignment: row.copy_assignment,
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
+type StepChildCardAutomationInsert = {
+  step_id: string;
+  client_id: string;
+  target_flow_id: string;
+  target_step_id: string;
+  is_active?: boolean;
+  copy_field_values?: boolean;
+  copy_assignment?: boolean;
+};
+
+type StepChildCardAutomationUpdate = {
+  is_active?: boolean;
+  target_flow_id?: string;
+  target_step_id?: string;
+  copy_field_values?: boolean;
+  copy_assignment?: boolean;
+};
+
+const mapAutomationRow = (row: StepChildCardAutomationRow | Record<string, unknown>): StepChildCardAutomation => {
+  const automation = row as StepChildCardAutomationRow;
+  return {
+    id: automation.id,
+    stepId: automation.step_id,
+    clientId: automation.client_id,
+    targetFlowId: automation.target_flow_id,
+    targetStepId: automation.target_step_id,
+    isActive: automation.is_active,
+    copyFieldValues: automation.copy_field_values,
+    copyAssignment: automation.copy_assignment,
+    createdAt: automation.created_at,
+    updatedAt: automation.updated_at,
+  };
+};
 
 export function useStepChildCardAutomations(stepId?: string) {
   const queryClient = useQueryClient();
@@ -33,12 +65,12 @@ export function useStepChildCardAutomations(stepId?: string) {
         return [];
       }
 
-      let query = nexflowClient()
+      let query = (nexflowClient() as any)
         .from("step_child_card_automations")
         .select("*")
         .eq("client_id", clientId);
 
-      if (stepId) {
+      if (stepId && isValidUUID(stepId)) {
         query = query.eq("step_id", stepId);
       }
 
@@ -51,7 +83,7 @@ export function useStepChildCardAutomations(stepId?: string) {
 
       return (data || []).map(mapAutomationRow);
     },
-    enabled: !!stepId || true,
+    enabled: !stepId || isValidUUID(stepId),
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
@@ -79,7 +111,7 @@ export function useStepChildCardAutomations(stepId?: string) {
         copy_assignment: input.copyAssignment ?? false,
       };
 
-      const { data, error } = await nexflowClient()
+      const { data, error } = await (nexflowClient() as any)
         .from("step_child_card_automations")
         .insert(payload)
         .select("*")
@@ -128,7 +160,7 @@ export function useStepChildCardAutomations(stepId?: string) {
         payload.copy_assignment = input.copyAssignment;
       }
 
-      const { data, error } = await nexflowClient()
+      const { data, error } = await (nexflowClient() as any)
         .from("step_child_card_automations")
         .update(payload)
         .eq("id", input.id)
@@ -154,13 +186,13 @@ export function useStepChildCardAutomations(stepId?: string) {
   const deleteAutomationMutation = useMutation({
     mutationFn: async (id: string) => {
       // Buscar a automação antes de deletar para invalidar a query correta
-      const { data: automation } = await nexflowClient()
+      const { data: automation } = await (nexflowClient() as any)
         .from("step_child_card_automations")
         .select("step_id")
         .eq("id", id)
         .single();
 
-      const { error } = await nexflowClient()
+      const { error } = await (nexflowClient() as any)
         .from("step_child_card_automations")
         .delete()
         .eq("id", id);

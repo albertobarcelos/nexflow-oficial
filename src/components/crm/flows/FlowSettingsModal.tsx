@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,9 @@ export function FlowSettingsModal({ flow, open, onOpenChange }: FlowSettingsModa
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Configurações do Flow</DialogTitle>
+          <DialogDescription>
+            Configure as informações gerais e permissões de acesso deste flow
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="general" className="mt-4">

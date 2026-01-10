@@ -333,6 +333,60 @@ export interface Database {
         ];
       };
 
+      core_indications: {
+        Row: {
+          id: string;
+          client_id: string;
+          hunter_id: string;
+          related_card_ids: string[] | null;
+          status: "pending" | "processed" | "converted" | "rejected" | null;
+          created_at: string | null;
+          updated_at: string | null;
+          responsible: string | null;
+          indication_name: string | null;
+          cnpj_cpf: string | null;
+          phone: string | null;
+          description: string | null;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          hunter_id: string;
+          related_card_ids?: string[] | null;
+          status?: "pending" | "processed" | "converted" | "rejected" | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          responsible?: string | null;
+          indication_name?: string | null;
+          cnpj_cpf?: string | null;
+          phone?: string | null;
+          description?: string | null;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          hunter_id?: string;
+          related_card_ids?: string[] | null;
+          status?: "pending" | "processed" | "converted" | "rejected" | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          responsible?: string | null;
+          indication_name?: string | null;
+          cnpj_cpf?: string | null;
+          phone?: string | null;
+          description?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "core_indications_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
       // =====================================================
       // WEB TABLES (Módulo CRM)
       // =====================================================
@@ -1482,30 +1536,36 @@ export interface Database {
       flows: {
         Row: {
           id: string;
-          client_id: string;
           name: string;
           description: string | null;
-          created_by: string;
-          created_at: string;
-          updated_at: string;
+          category: "finance" | "onboarding" | "generic" | null;
+          is_active: boolean | null;
+          created_at: string | null;
+          owner_id: string | null;
+          client_id: string | null;
+          visibility_type: string;
         };
         Insert: {
           id?: string;
-          client_id: string;
           name: string;
           description?: string | null;
-          created_by: string;
-          created_at?: string;
-          updated_at?: string;
+          category?: "finance" | "onboarding" | "generic" | null;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          owner_id?: string | null;
+          client_id?: string | null;
+          visibility_type?: string;
         };
         Update: {
           id?: string;
-          client_id?: string;
           name?: string;
           description?: string | null;
-          created_by?: string;
-          created_at?: string;
-          updated_at?: string;
+          category?: "finance" | "onboarding" | "generic" | null;
+          is_active?: boolean | null;
+          created_at?: string | null;
+          owner_id?: string | null;
+          client_id?: string | null;
+          visibility_type?: string;
         };
         Relationships: [
           {
@@ -1516,10 +1576,149 @@ export interface Database {
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "flows_created_by_fkey";
-            columns: ["created_by"];
+            foreignKeyName: "flows_owner_id_fkey";
+            columns: ["owner_id"];
             isOneToOne: false;
-            referencedRelation: "core_client_users";
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+
+      cards: {
+        Row: {
+          id: string;
+          client_id: string;
+          flow_id: string;
+          step_id: string;
+          title: string;
+          field_values: Json | null;
+          checklist_progress: Json | null;
+          position: number | null;
+          assigned_to: string | null;
+          created_by: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+          parent_card_id: string | null;
+          movement_history: Json | null;
+          status: "canceled" | "completed" | "inprogress" | null;
+          agents: string[] | null;
+          assigned_team_id: string | null;
+          lead: string | null;
+          product: string | null;
+          value: number | null;
+          card_type: "finance" | "onboarding" | null;
+          action_execution_data: Json | null;
+          contact_id: string | null;
+          indication_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          flow_id: string;
+          step_id: string;
+          title: string;
+          field_values?: Json | null;
+          checklist_progress?: Json | null;
+          position?: number | null;
+          assigned_to?: string | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          parent_card_id?: string | null;
+          movement_history?: Json | null;
+          status?: "canceled" | "completed" | "inprogress" | null;
+          agents?: string[] | null;
+          assigned_team_id?: string | null;
+          lead?: string | null;
+          product?: string | null;
+          value?: number | null;
+          card_type?: "finance" | "onboarding" | null;
+          action_execution_data?: Json | null;
+          contact_id?: string | null;
+          indication_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          flow_id?: string;
+          step_id?: string;
+          title?: string;
+          field_values?: Json | null;
+          checklist_progress?: Json | null;
+          position?: number | null;
+          assigned_to?: string | null;
+          created_by?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          parent_card_id?: string | null;
+          movement_history?: Json | null;
+          status?: "canceled" | "completed" | "inprogress" | null;
+          agents?: string[] | null;
+          assigned_team_id?: string | null;
+          lead?: string | null;
+          product?: string | null;
+          value?: number | null;
+          card_type?: "finance" | "onboarding" | null;
+          action_execution_data?: Json | null;
+          contact_id?: string | null;
+          indication_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "cards_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "core_clients";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cards_flow_id_fkey";
+            columns: ["flow_id"];
+            isOneToOne: false;
+            referencedRelation: "flows";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cards_step_id_fkey";
+            columns: ["step_id"];
+            isOneToOne: false;
+            referencedRelation: "steps";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cards_indication_id_fkey";
+            columns: ["indication_id"];
+            isOneToOne: false;
+            referencedRelation: "core_indications";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cards_contact_id_fkey";
+            columns: ["contact_id"];
+            isOneToOne: false;
+            referencedRelation: "contacts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cards_assigned_to_fkey";
+            columns: ["assigned_to"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cards_assigned_team_id_fkey";
+            columns: ["assigned_team_id"];
+            isOneToOne: false;
+            referencedRelation: "core_teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "cards_parent_card_id_fkey";
+            columns: ["parent_card_id"];
+            isOneToOne: false;
+            referencedRelation: "cards";
             referencedColumns: ["id"];
           }
         ];

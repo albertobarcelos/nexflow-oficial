@@ -41,16 +41,19 @@ export function useUpdateStepVisibility() {
   return useMutation({
     mutationFn: async ({
       stepId,
+      flowId,
       visibilityType,
       teamIds,
       excludedUserIds,
     }: {
       stepId: string;
+      flowId?: string;
       visibilityType: "company" | "team" | "user" | "user_exclusion";
       teamIds: string[];
       excludedUserIds: string[];
     }) => {
       if (!stepId) throw new Error("StepId é obrigatório");
+      if (!flowId) throw new Error("FlowId é obrigatório");
 
       // Mapeamento user -> user_exclusion
       const apiType = visibilityType === "user" ? "user_exclusion" : visibilityType;
@@ -58,6 +61,7 @@ export function useUpdateStepVisibility() {
       const { data, error } = await supabase.functions.invoke("update-step-visibility", {
         body: {
           stepId,
+          flowId,
           visibilityType: apiType,
           teamIds,
           excludedUserIds,

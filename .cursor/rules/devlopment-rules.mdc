@@ -1,0 +1,232 @@
+---
+alwaysApply: true
+---
+
+---
+
+```markdown
+# Engineering Guidelines & Best Practices
+
+**Context:** You are an expert Senior React Engineer specializing in the specified tech stack (React 18, Supabase, TanStack Query, Shadcn/UI).
+**Goal:** Maintain a scalable, secure, and clean codebase. All generated code must adhere strictly to these rules.
+
+## 1. Tech Stack Overview
+- **Core:** React 18, TypeScript 5.5, Vite.
+- **UI:** Tailwind CSS, Shadcn/UI (Radix), Framer Motion, Lucide React.
+- **State/Async:** TanStack Query v5 (React Query).
+- **Forms:** React Hook Form + Zod.
+- **Backend:** Supabase (Auth, Postgres, RLS, Edge Functions).
+- **Testing:** Vitest, Testing Library.
+
+---
+
+## 2. Architecture & File Structure
+
+Adhere to a **Feature-Based Architecture**. Do not group files solely by type (e.g., avoid dumping all components in one huge folder).
+
+### Recommended Structure
+```text
+src/
+├── components/          # specific shared atoms (ui/button, ui/input)
+├── hooks/               # global hooks (useAuth, useTheme)
+├── lib/                 # singletons & utilities (supabaseClient, utils.ts)
+├── features/            # Business Logic Modules
+│   ├── opportunities/   # Feature Name
+│   │   ├── components/  # Feature-specific components
+│   │   ├── hooks/       # React Query hooks (useOpportunities.ts)
+│   │   ├── api/         # Pure Supabase API calls
+│   │   └── types/       # Feature-specific types/schemas
+│   └── auth/
+├── pages/               # Route definitions only
+└── services/            # Shared API services
+
+```
+
+---
+
+## 3. Clean Code & TypeScript Rules
+
+### 3.1. Strict Typing
+
+* **NEVER use `any`.** Use `unknown` if absolutely necessary, but prefer strict types.
+* **Supabase Types:** Always leverage the auto-generated Database types.
+
+```typescript
+// ✅ GOOD
+import { type Database } from '@/types/supabase';
+type Profile = Database['public']['Tables']['profiles']['Row'];
+
+// ❌ BAD
+type Profile = any;
+interface Profile { id: string; name: string; } // Don't manually redefine if DB type exists
+
+```
+
+### 3.2. Naming Conventions
+
+* **Booleans:** Start with `is`, `has`, `should` (e.g., `isLoading`, `hasPermission`).
+* **Event Handlers:** `handle[Event]` (e.g., `handleSubmit`, `handleClick`).
+* **Props:** `on[Event]` (e.g., `onSubmit`, `onClick`).
+
+### 3.3. Early Returns
+
+Avoid deep nesting. Use Guard Clauses.
+
+```typescript
+// ✅ GOOD
+if (!user) return null;
+if (!hasAccess) return <AccessDenied />;
+return <Content />;
+
+// ❌ BAD
+if (user) {
+  if (hasAccess) {
+    return <Content />;
+  } else {
+    return <AccessDenied />;
+  }
+}
+
+```
+
+---
+
+## 4. UI & Styling (Tailwind + Shadcn)
+
+### 4.1. Class Merging
+
+ALWAYS use the `cn()` utility (clsx + tailwind-merge) when building components to allow external class overrides.
+
+```tsx
+import { cn } from "@/lib/utils";
+
+export function CustomCard({ className, children }: { className?: string, children: React.ReactNode }) {
+  return (
+    <div className={cn("p-4 border rounded-lg bg-card text-card-foreground", className)}>
+      {children}
+    </div>
+  );
+}
+
+```
+
+### 4.2. Icons
+
+Use `lucide-react` with named imports for tree-shaking.
+
+```tsx
+import { ArrowRight, User } from 'lucide-react';
+
+```
+
+---
+
+## 5. State Management (TanStack Query)
+
+**CRITICAL RULE:** Do NOT use `useEffect` for data fetching. Use `useQuery`.
+
+### 5.1. Data Fetching Pattern
+
+Create custom hooks for all data requirements.
+
+```typescript
+// features/opportunities/hooks/useOpportunities.ts
+export function useOpportunities(filter: string) {
+  return useQuery({
+    queryKey: ['opportunities', filter],
+    queryFn: () => fetchOpportunities(filter),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+}
+
+```
+
+### 5.2. Mutations & Updates
+
+Invalidate queries after mutations instead of manually updating local state (unless for optimistic updates).
+
+```typescript
+const queryClient = useQueryClient();
+const mutation = useMutation({
+  mutationFn: updateStatus,
+  onSuccess: () => {
+    // Refetches the list automatically
+    queryClient.invalidateQueries({ queryKey: ['opportunities'] }); 
+    toast.success("Status updated!");
+  },
+});
+
+```
+
+---
+
+## 6. Forms (React Hook Form + Zod)
+
+Separate the Schema definition from the Component.
+
+```tsx
+// 1. Define Schema
+const formSchema = z.object({
+  email: z.string().email(),
+  count: z.number().min(1),
+});
+
+// 2. Use Hook
+const form = useForm<z.infer<typeof formSchema>>({
+  resolver: zodResolver(formSchema),
+  defaultValues: { email: "", count: 1 }
+});
+
+// 3. Render with Shadcn Form Components
+<Form {...form}>
+  <form onSubmit={form.handleSubmit(onSubmit)}>
+    {/* FormFields... */}
+  </form>
+</Form>
+
+```
+
+---
+
+## 7. Security & Supabase Integration
+
+### 7.1. Row Level Security (RLS)
+
+* **Assumption:** The Frontend is insecure.
+* **Implementation:** Always rely on RLS policies in Postgres to filter data by `tenant_id` or `user_id`. Do not rely solely on client-side `.eq('user_id', id)` filters for security.
+
+### 7.2. Edge Functions
+
+Use Supabase Edge Functions for:
+
+* Webhooks (e.g., Stripe, external integrations).
+* Heavy logic that bypasses RLS (using Service Role Key).
+* Sensitive operations.
+
+### 7.3. Auth Context
+
+Use the provided `useAuth` hook to check authentication status. Do not call `supabase.auth.getUser()` inside render loops.
+
+---
+
+## 8. Refactoring Checklist
+
+Before completing a task, verify:
+
+1. [ ] Are there any explicit `any` types? (Remove them).
+2. [ ] Is `useEffect` being used for fetching data? (Replace with `useQuery`).
+3. [ ] Are components properly split? (Avoid 500+ line files).
+4. [ ] Is the new code covered by RLS policies?
+5. [ ] Are imports cleaned up and unused variables removed?
+6. [ ] Are UI components using Shadcn primitives correctly?
+
+---
+
+## 9. Documentation
+
+* Use TSDoc for complex utility functions.
+* If a specific Edge Function logic is complex, add a comment block explaining the business rule.
+
+```
+
+```

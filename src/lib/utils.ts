@@ -111,3 +111,14 @@ export function validateCNPJ(cnpj: string): boolean {
   
   return digits[12] === dv1 && digits[13] === dv2;
 }
+
+/**
+ * Valida se uma string é um UUID v4 válido.
+ * @param value - String a ser validada
+ * @returns true se for um UUID v4 válido, false caso contrário
+ */
+export function isValidUUID(value?: string | null): boolean {
+  if (!value) return false;
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return UUID_REGEX.test(value);
+}

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+// Re-export from refactored component
+export { FormBuilderModal } from "@/features/nexflow/form-builder/components/FormBuilderModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

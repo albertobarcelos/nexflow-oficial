@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -78,9 +78,14 @@ export function NewStageModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <DialogTitle className="text-lg font-semibold">
-            {isEditMode ? 'Editar fase' : 'Nova fase'}
-          </DialogTitle>
+          <div className="flex-1">
+            <DialogTitle className="text-lg font-semibold">
+              {isEditMode ? 'Editar fase' : 'Nova fase'}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {isEditMode ? 'Edite as informações da fase' : 'Configure uma nova fase para o processo'}
+            </DialogDescription>
+          </div>
           <Button
             variant="ghost"
             size="sm"

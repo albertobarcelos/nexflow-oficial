@@ -54,7 +54,7 @@ export function useCreateCardFromIndication() {
         .eq("step_id", input.stepId)
         .order("position", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const maxPosition = positionData?.position ?? 0;
       const nextPosition = maxPosition + 1000;

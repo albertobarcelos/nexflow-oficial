@@ -1,8 +1,5 @@
-import { useMemo, useState, useCallback, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { AnimatePresence, motion } from "framer-motion";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+// Re-export from refactored component
+export { CardDetailsModal, type CardFormValues } from "@/features/nexflow/card-details/components/CardDetailsModal";
 import {
   CalendarIcon,
   CheckCircle2,

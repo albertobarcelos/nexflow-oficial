@@ -26,7 +26,7 @@ import { GripVertical, Pencil, Trash2, AlignEndHorizontal } from "lucide-react";
 import NewStage, { Stage } from "./NewStage";
 import ChooseBase from "./ChooseBase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserData } from "@/lib/auth";
 import { toast } from "sonner";
@@ -475,8 +475,11 @@ const NewFlowSettings: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Remover base de dados?</DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja remover a base <span className="font-semibold text-blue-600">{confirmBase}</span> deste Flow?
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="py-2">Tem certeza que deseja remover a base <span className="font-semibold text-blue-600">{confirmBase}</span> deste Flow?</div>
+                    <div className="py-2">Esta ação não pode ser desfeita.</div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setConfirmBase(null)}>Cancelar</Button>
                         <Button variant="destructive" onClick={handleConfirmDeleteBase}>Remover</Button>
@@ -487,8 +490,10 @@ const NewFlowSettings: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Remover etapa?</DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja remover esta etapa do Flow? Esta ação não pode ser desfeita.
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="py-2">Tem certeza que deseja remover esta etapa do Flow?</div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setConfirmStageIdx(null)}>Cancelar</Button>
                         <Button variant="destructive" onClick={() => confirmStageIdx !== null && handleDeleteStage(confirmStageIdx)}>Remover</Button>

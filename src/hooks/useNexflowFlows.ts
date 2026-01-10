@@ -12,12 +12,49 @@ import {
   NexflowStep,
   NexflowStepField,
   StepFieldConfiguration,
+  StepFieldType,
   StepType,
 } from "@/types/nexflow";
 
-type FlowRow = Database["public"]["Tables"]["flows"]["Row"];
-type StepRow = Database["public"]["Tables"]["steps"]["Row"];
-type StepFieldRow = Database["public"]["Tables"]["step_fields"]["Row"];
+// Tipos customizados para as tabelas do NexFlow (migradas do schema nexflow para public)
+// TODO: Atualizar o arquivo database.ts com essas tabelas após a migração
+type FlowRow = {
+  id: string;
+  client_id: string;
+  name: string;
+  description: string | null;
+  category: FlowCategory | null;
+  is_active: boolean | null;
+  owner_id: string | null;
+  visibility_type: "company" | "team" | "user" | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type StepRow = {
+  id: string;
+  flow_id: string;
+  title: string;
+  color: string | null;
+  position: number;
+  is_completion_step: boolean | null;
+  step_type: StepType | null;
+  responsible_user_id: string | null;
+  responsible_team_id: string | null;
+  created_at: string;
+};
+
+type StepFieldRow = {
+  id: string;
+  step_id: string;
+  label: string;
+  slug: string | null;
+  field_type: string;
+  is_required: boolean | null;
+  position: number | null;
+  configuration: StepFieldConfiguration | null;
+  created_at: string;
+};
 
 export interface NexflowStepWithFields extends NexflowStep {
   fields: NexflowStepField[];
@@ -28,17 +65,19 @@ export interface NexflowFlowDetails {
   steps: NexflowStepWithFields[];
 }
 
-const mapFlowRow = (row: FlowRow): NexflowFlow => ({
-  id: row.id,
-  name: row.name,
-  description: row.description,
-  category: (row.category ?? "generic") as FlowCategory,
-  isActive: row.is_active ?? true,
-  ownerId: row.owner_id,
-  clientId: row.client_id,
-  createdAt: row.created_at,
-  visibilityType: (row.visibility_type ?? "company") as "company" | "team" | "user",
-});
+const mapFlowRow = (row: FlowRow | Record<string, unknown>): NexflowFlow => {
+  const flow = row as FlowRow;
+  return {
+    id: flow.id,
+    name: flow.name,
+    description: flow.description,
+    category: (flow.category ?? "generic") as FlowCategory,
+    isActive: flow.is_active ?? true,
+    ownerId: flow.owner_id,
+    clientId: flow.client_id,
+    createdAt: flow.created_at,
+  };
+};
 
 const mapStepRow = (row: StepRow): NexflowStep => ({
   id: row.id,
@@ -53,16 +92,19 @@ const mapStepRow = (row: StepRow): NexflowStep => ({
   responsibleTeamId: row.responsible_team_id ?? null,
 });
 
-const mapStepFieldRow = (row: StepFieldRow): NexflowStepField => ({
-  id: row.id,
-  stepId: row.step_id,
-  label: row.label,
-  fieldType: row.field_type,
-  isRequired: Boolean(row.is_required),
-  position: row.position ?? 0,
-  configuration: (row.configuration as StepFieldConfiguration) ?? {},
-  createdAt: row.created_at,
-});
+const mapStepFieldRow = (row: StepFieldRow | Record<string, unknown>): NexflowStepField => {
+  const field = row as StepFieldRow;
+  return {
+    id: field.id,
+    stepId: field.step_id,
+    label: field.label,
+    fieldType: field.field_type as StepFieldType,
+    isRequired: Boolean(field.is_required),
+    position: field.position ?? 0,
+    configuration: (field.configuration as StepFieldConfiguration) ?? {},
+    createdAt: field.created_at,
+  };
+};
 
 interface CreateFlowInput {
   name: string;
@@ -135,7 +177,13 @@ export function useNexflowFlows() {
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
-      const payload: Database["public"]["Tables"]["flows"]["Insert"] = {
+      const payload: {
+        name: string;
+        category: FlowCategory;
+        client_id: string;
+        owner_id: string;
+        description?: string | null;
+      } = {
         name,
         category,
         client_id: clientId,
@@ -146,9 +194,9 @@ export function useNexflowFlows() {
         payload.description = description;
       }
 
-      const { data, error } = await nexflowClient()
+      const { data, error } = await (nexflowClient() as any)
         .from("flows")
-        .insert(payload)
+        .insert(payload as any)
         .select()
         .single();
 
@@ -156,14 +204,14 @@ export function useNexflowFlows() {
         throw error ?? new Error("Falha ao criar flow.");
       }
 
-      const { error: stepError } = await nexflowClient()
+      const { error: stepError } = await (nexflowClient() as any)
         .from("steps")
         .insert({
           flow_id: data.id,
           title: "Formulário Inicial",
           color: "#2563eb",
           position: 0,
-        });
+        } as any);
 
       if (stepError) {
         throw stepError;
@@ -215,9 +263,9 @@ export function useNexflowFlows() {
       if (typeof visibilityType !== "undefined")
         payload.visibility_type = visibilityType;
 
-      const { error } = await nexflowClient()
+      const { error } = await (nexflowClient() as any)
         .from("flows")
-        .update(payload)
+        .update(payload as any)
         .eq("id", id);
 
       if (error) {
@@ -238,7 +286,7 @@ export function useNexflowFlows() {
 
   const deleteFlowMutation = useMutation({
     mutationFn: async (flowId: string) => {
-      const { error } = await nexflowClient()
+      const { error } = await (nexflowClient() as any)
         .from("flows")
         .delete()
         .eq("id", flowId);
@@ -319,7 +367,7 @@ export function useNexflowFlow(flowId?: string) {
 
       // Buscar campos apenas das etapas visíveis
       if (stepIds.length > 0) {
-        const { data: rawFields, error: fieldsError } = await client
+        const { data: rawFields, error: fieldsError } = await (client as any)
           .from("step_fields")
           .select("*")
           .in("step_id", stepIds)

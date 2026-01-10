@@ -1,5 +1,15 @@
+// @ts-ignore - JSR imports são específicos do Deno runtime e funcionam no Supabase Edge Functions
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore - JSR imports são específicos do Deno runtime e funcionam no Supabase Edge Functions
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// Declaração de tipo para Deno (necessário para TypeScript no editor)
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve(handler: (req: Request) => Promise<Response> | Response): void;
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,11 +37,21 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { stepId, visibilityType, teamIds, excludedUserIds } = body;
+    const { stepId, flowId, visibilityType, teamIds, excludedUserIds } = body;
 
     if (!stepId) {
       return new Response(
         JSON.stringify({ error: "stepId é obrigatório" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (!flowId) {
+      return new Response(
+        JSON.stringify({ error: "flowId é obrigatório" }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -44,6 +64,33 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
+
+    // Validar se o step pertence ao flow
+    const { data: step, error: stepError } = await supabase
+      .from("steps")
+      .select("flow_id")
+      .eq("id", stepId)
+      .single();
+
+    if (stepError || !step) {
+      return new Response(
+        JSON.stringify({ error: "Step não encontrado" }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (step.flow_id !== flowId) {
+      return new Response(
+        JSON.stringify({ error: "Step não pertence ao flow especificado" }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
 
     // Mapeamento user -> user_exclusion para o banco
     const apiType = visibilityType === "user" ? "user_exclusion" : visibilityType;

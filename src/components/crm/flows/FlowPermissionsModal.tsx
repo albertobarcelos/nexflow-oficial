@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -14,7 +14,9 @@ import {
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Users, Save, Eye, EyeOff } from 'lucide-react';
-import { useFlowPermissions, PermissionLevel } from '@/hooks/useFlowPermissions';
+import { useFlowPermissions } from '@/hooks/useFlowPermissions';
+
+type PermissionLevel = 'view' | 'edit' | 'admin';
 import { useFlowStages } from '@/hooks/useFlowStages';
 import { useUsers } from '@/hooks/useUsers';
 import { toast } from 'sonner';
@@ -33,14 +35,9 @@ function FlowPermissionsPanel({ flowId, flowName }: FlowPermissionsPanelProps) {
   const { data: users = [], isLoading: isLoadingUsers } = useUsers();
   const { stages, isLoading: isLoadingStages } = useFlowStages(flowId);
   const {
-    accessControl,
-    stepVisibility,
+    permissions,
     isLoading: isLoadingPermissions,
-    saveAccessControl,
-    saveMultipleStepVisibility,
-    isSavingAccess,
-    isSavingVisibility,
-  } = useFlowPermissions(flowId, selectedUserId);
+  } = useFlowPermissions(flowId);
 
   useEffect(() => {
     setSelectedUserId('');
@@ -48,40 +45,16 @@ function FlowPermissionsPanel({ flowId, flowName }: FlowPermissionsPanelProps) {
     setStepVisibilities({});
   }, [flowId]);
 
-  // Carregar permissões quando usuário é selecionado
+  // Inicializar visibilidades quando etapas são carregadas
   useEffect(() => {
-    if (selectedUserId && accessControl) {
-      setSelectedPermissionLevel(accessControl.permission_level);
-    } else if (selectedUserId && !accessControl) {
-      setSelectedPermissionLevel('view');
-    }
-  }, [selectedUserId, accessControl]);
-
-  // Carregar visibilidade de etapas quando usuário é selecionado
-  useEffect(() => {
-    if (selectedUserId && stepVisibility && stages.length > 0) {
-      const visibilities: Record<string, boolean> = {};
-      
-      // Inicializar todas as etapas como visíveis por padrão
-      stages.forEach((stage) => {
-        visibilities[stage.id] = true;
-      });
-
-      // Aplicar visibilidades salvas
-      stepVisibility.forEach((visibility) => {
-        visibilities[visibility.step_id] = visibility.is_visible;
-      });
-
-      setStepVisibilities(visibilities);
-    } else if (selectedUserId && stages.length > 0) {
-      // Se não há visibilidades salvas, todas são visíveis por padrão
+    if (stages.length > 0 && selectedUserId) {
       const visibilities: Record<string, boolean> = {};
       stages.forEach((stage) => {
         visibilities[stage.id] = true;
       });
       setStepVisibilities(visibilities);
     }
-  }, [selectedUserId, stepVisibility, stages]);
+  }, [stages, selectedUserId]);
 
   const handleSaveGlobalPermission = () => {
     if (!selectedUserId) {
@@ -89,10 +62,8 @@ function FlowPermissionsPanel({ flowId, flowName }: FlowPermissionsPanelProps) {
       return;
     }
 
-    saveAccessControl({
-      userId: selectedUserId,
-      permissionLevel: selectedPermissionLevel,
-    });
+    // TODO: Implementar salvamento de permissão global
+    toast.info('Funcionalidade de salvamento de permissão global ainda não implementada');
   };
 
   const handleSaveStepVisibility = () => {
@@ -101,15 +72,8 @@ function FlowPermissionsPanel({ flowId, flowName }: FlowPermissionsPanelProps) {
       return;
     }
 
-    const visibilities = Object.entries(stepVisibilities).map(([stepId, isVisible]) => ({
-      stepId,
-      isVisible,
-    }));
-
-    saveMultipleStepVisibility({
-      userId: selectedUserId,
-      visibilities,
-    });
+    // TODO: Implementar salvamento de visibilidade de etapas
+    toast.info('Funcionalidade de salvamento de visibilidade de etapas ainda não implementada');
   };
 
   const handleStepVisibilityChange = (stepId: string, isVisible: boolean) => {
@@ -165,7 +129,7 @@ function FlowPermissionsPanel({ flowId, flowName }: FlowPermissionsPanelProps) {
                   <SelectContent>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
-                        {user.first_name} {user.last_name} ({user.email})
+                        {user.name} {user.surname} ({user.email})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -214,11 +178,10 @@ function FlowPermissionsPanel({ flowId, flowName }: FlowPermissionsPanelProps) {
                   </div>
                   <Button
                     onClick={handleSaveGlobalPermission}
-                    disabled={isSavingAccess}
                     className="w-full"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    {isSavingAccess ? "Salvando..." : "Salvar Permissão Global"}
+                    Salvar Permissão Global
                   </Button>
                 </CardContent>
               </Card>
@@ -273,12 +236,11 @@ function FlowPermissionsPanel({ flowId, flowName }: FlowPermissionsPanelProps) {
                       </div>
                       <Button
                         onClick={handleSaveStepVisibility}
-                        disabled={isSavingVisibility}
                         className="w-full"
                         variant="outline"
                       >
                         <Save className="w-4 h-4 mr-2" />
-                        {isSavingVisibility ? "Salvando..." : "Salvar Visibilidade de Etapas"}
+                        Salvar Visibilidade de Etapas
                       </Button>
                     </>
                   )}
@@ -310,6 +272,9 @@ export function FlowPermissionsModal({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Permissões do Flow: {flowName}</DialogTitle>
+          <DialogDescription>
+            Configure quem pode visualizar e editar este flow, e defina a visibilidade de cada etapa
+          </DialogDescription>
         </DialogHeader>
         <FlowPermissionsPanel flowId={flowId} flowName={flowName} />
       </DialogContent>

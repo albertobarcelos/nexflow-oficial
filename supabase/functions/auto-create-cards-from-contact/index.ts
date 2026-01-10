@@ -53,7 +53,7 @@ serve(async (req) => {
       )
     }
 
-    // Buscar o contato (no schema nexflow)
+    // Buscar o contato (schema public)
     const { data: contact, error: contactError } = await supabaseAdmin
       .from('contacts')
       .select('*')
@@ -71,7 +71,7 @@ serve(async (req) => {
       )
     }
 
-    // Buscar regras de automação (no schema nexflow)
+    // Buscar regras de automação (schema public)
     let automationQuery = supabaseAdmin
       .from('contact_automations')
       .select('*')
@@ -121,7 +121,7 @@ serve(async (req) => {
           // Por enquanto, vamos apenas verificar se a estrutura existe
         }
 
-        // Verificar se flow e step existem e pertencem ao mesmo client_id (no schema nexflow)
+        // Verificar se flow e step existem e pertencem ao mesmo client_id (schema public)
         const { data: flowData, error: flowError } = await supabaseAdmin
           .from('flows')
           .select('id, client_id, category')
@@ -155,7 +155,7 @@ serve(async (req) => {
           continue
         }
 
-        // Calcular a próxima posição (no schema nexflow)
+        // Calcular a próxima posição (schema public)
         const { data: positionData } = await supabaseAdmin
           .from('cards')
           .select('position')
@@ -167,7 +167,7 @@ serve(async (req) => {
         const maxPosition = positionData?.position ?? 0
         const nextPosition = maxPosition + 1000
 
-        // Criar o card (no schema nexflow)
+        // Criar o card (schema public)
         const cardTitle = (contact as any).name || (contact as any).client_name || 'Novo Contato'
         
         const { data: newCard, error: cardError } = await supabaseAdmin

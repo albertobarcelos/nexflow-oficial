@@ -1,5 +1,15 @@
+// @ts-ignore - JSR imports são específicos do Deno runtime e funcionam no Supabase Edge Functions
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-ignore - JSR imports são específicos do Deno runtime e funcionam no Supabase Edge Functions
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// Declaração de tipo para Deno (necessário para TypeScript no editor)
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve(handler: (req: Request) => Promise<Response> | Response): void;
+};
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

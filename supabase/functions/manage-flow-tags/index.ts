@@ -143,7 +143,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Criar cliente com service role para acessar todas as tabelas (incluindo schema nexflow)
+    // Criar cliente com service role para acessar todas as tabelas (schema public)
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,

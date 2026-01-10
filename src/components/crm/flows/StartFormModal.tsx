@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { CalendarIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -269,7 +269,11 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
             </div>
           )}
           {checklistErrors?.message ? (
-            <p className="text-xs text-red-500">{checklistErrors.message}</p>
+            <p className="text-xs text-red-500">
+              {typeof checklistErrors.message === "string" 
+                ? checklistErrors.message 
+                : String(checklistErrors.message)}
+            </p>
           ) : null}
         </div>
       );
@@ -541,6 +545,11 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{step?.title ?? "Novo card"}</DialogTitle>
+          <DialogDescription>
+            {step
+              ? "Preencha os campos abaixo para criar um novo card nesta etapa"
+              : "Configure a etapa inicial para liberar o formulário de criação"}
+          </DialogDescription>
         </DialogHeader>
 
         {!step ? (
