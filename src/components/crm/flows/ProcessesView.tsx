@@ -123,7 +123,9 @@ export function ProcessesView({ card, steps }: ProcessesViewProps) {
 
   // Combinar card_step_actions com step_actions
   const processesWithActions: ProcessWithAction[] = useMemo(() => {
-    const stepActionsMap = new Map(stepActions.map((sa) => [sa.id, sa]));
+    const stepActionsMap = new Map<string, StepActionRow>(
+      stepActions.map((sa) => [sa.id, sa] as [string, StepActionRow])
+    );
     return cardStepActions.map((csa) => ({
       ...csa,
       stepAction: stepActionsMap.get(csa.stepActionId) || null,

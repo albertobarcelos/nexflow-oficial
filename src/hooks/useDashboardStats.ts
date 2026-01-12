@@ -98,7 +98,7 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
       
       // Buscar cards completos no período atual
       // Cards completos são aqueles em steps de finalização (isCompletionStep = true)
-      const { data: flows } = await client
+      const { data: flows } = await (client as any)
         .from('flows')
         .select('id')
         .eq('client_id', clientId);
@@ -120,7 +120,7 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
       // Cards cancelados = 0 por enquanto (precisa de lógica específica baseada em step_type)
       
       // Buscar última posição de steps por flow (aproximação para cards completos)
-      const { data: allSteps } = await client
+      const { data: allSteps } = await (client as any)
         .from('steps')
         .select('id, flow_id, position')
         .in('flow_id', flowIds);
@@ -128,10 +128,10 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
       // Encontrar steps com maior posição por flow (última etapa)
       const lastStepIdsByFlow = new Map<string, string[]>();
       flowIds.forEach(flowId => {
-        const flowSteps = allSteps?.filter(s => s.flow_id === flowId) || [];
+        const flowSteps = (allSteps?.filter((s: any) => s.flow_id === flowId) || []) as any[];
         if (flowSteps.length > 0) {
-          const maxPosition = Math.max(...flowSteps.map(s => s.position));
-          const lastSteps = flowSteps.filter(s => s.position === maxPosition).map(s => s.id);
+          const maxPosition = Math.max(...flowSteps.map((s: any) => s.position as number));
+          const lastSteps = flowSteps.filter((s: any) => s.position === maxPosition).map((s: any) => s.id as string);
           lastStepIdsByFlow.set(flowId, lastSteps);
         }
       });
@@ -140,7 +140,7 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
       
       // Função auxiliar para construir query de cards com filtros
       const buildCardsQuery = (startDate: string, endDate: string) => {
-        let query = client
+        let query = (client as any)
           .from('cards')
           .select('*', { count: 'exact', head: true })
           .in('flow_id', flowIds)
@@ -183,13 +183,9 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
       };
     },
     staleTime: 1000 * 30, // 30 segundos para atualização mais rápida
-    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
-    // #endregion
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
     retry: 1, // Limitar tentativas de retry
     retryDelay: 1000, // Delay entre tentativas
-    onError: (error) => {
-      console.error('Erro ao carregar estatísticas do dashboard:', error);
-    },
   });
   
   // Subscribe to real-time changes in cards table
@@ -200,7 +196,7 @@ export function useDashboardStats(period: PeriodFilter = 'today', options?: UseD
         'postgres_changes',
         {
           event: '*', // INSERT, UPDATE, DELETE
-          schema: 'nexflow',
+          schema: 'public',
           table: 'cards',
         },
         () => {

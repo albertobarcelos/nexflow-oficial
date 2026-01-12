@@ -35,7 +35,7 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
       const client = nexflowClient();
       
       // Buscar flows do cliente
-      const { data: flows } = await client
+      const { data: flows } = await (client as any)
         .from('flows')
         .select('id')
         .eq('client_id', clientId);
@@ -47,7 +47,7 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
       const flowIds = flows.map(f => f.id);
       
       // Buscar cards recentes com filtros
-      let cardsQuery = client
+      let cardsQuery = (client as any)
         .from('cards')
         .select(`
           id,
@@ -57,7 +57,8 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
           status,
           step_id,
           assigned_to,
-          assigned_team_id
+          assigned_team_id,
+          flow_id
         `)
         .in('flow_id', flowIds);
       
@@ -78,7 +79,7 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
       }
       
       // Buscar informações dos responsáveis
-      const userIds = [...new Set(cards.map(c => c.assigned_to).filter(Boolean))];
+      const userIds = [...new Set(cards.map(c => c.assigned_to).filter(Boolean) as string[])];
       const { data: users } = userIds.length > 0
         ? await client
             .schema('public')
@@ -87,12 +88,12 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
             .in('id', userIds)
         : { data: [] };
       
-      const userMap = new Map(
-        users?.map(u => [u.id, `${u.name || ''} ${u.surname || ''}`.trim() || 'Sem nome']) || []
+      const userMap = new Map<string, string>(
+        (users?.map(u => [u.id, `${u.name || ''} ${u.surname || ''}`.trim() || 'Sem nome'] as [string, string]) || []) as [string, string][]
       );
       
       // Buscar informações dos steps para determinar status
-      const { data: allSteps } = await client
+      const { data: allSteps } = await (client as any)
         .from('steps')
         .select('id, flow_id, position')
         .in('flow_id', flowIds);
@@ -100,11 +101,11 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
       // Encontrar última etapa de cada flow (aproximação para cards completos)
       const lastStepIdsByFlow = new Map<string, Set<string>>();
       flowIds.forEach(flowId => {
-        const flowSteps = allSteps?.filter(s => s.flow_id === flowId) || [];
+        const flowSteps = (allSteps?.filter((s: any) => s.flow_id === flowId) || []) as any[];
         if (flowSteps.length > 0) {
-          const maxPosition = Math.max(...flowSteps.map(s => s.position));
-          const lastSteps = new Set(
-            flowSteps.filter(s => s.position === maxPosition).map(s => s.id)
+          const maxPosition = Math.max(...flowSteps.map((s: any) => s.position as number));
+          const lastSteps = new Set<string>(
+            flowSteps.filter((s: any) => s.position === maxPosition).map((s: any) => s.id as string)
           );
           lastStepIdsByFlow.set(flowId, lastSteps);
         }
@@ -154,7 +155,7 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
         'postgres_changes',
         {
           event: '*', // INSERT, UPDATE, DELETE
-          schema: 'nexflow',
+          schema: 'public',
           table: 'cards',
         },
         () => {

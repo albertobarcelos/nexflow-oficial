@@ -12,13 +12,13 @@ import { logger } from '../config';
 export async function getCurrentClientId(): Promise<string | null> {
   try {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:start',message:'RLS getCurrentClientId chamado',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:start',message:'RLS getCurrentClientId chamado',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
     // #endregion
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:userCheck',message:'RLS verificação de usuário',data:{hasUser:!!user,hasError:!!userError,errorMessage:userError?.message,userId:user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:userCheck',message:'RLS verificação de usuário',data:{hasUser:!!user,hasError:!!userError,errorMessage:userError?.message,userId:user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
     // #endregion
 
     if (userError) {
@@ -39,7 +39,7 @@ export async function getCurrentClientId(): Promise<string | null> {
       .single();
 
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:queryResult',message:'RLS query core_client_users resultado',data:{hasData:!!clientUser,hasError:!!clientError,errorMessage:clientError?.message,errorCode:clientError?.code,errorDetails:clientError?.details,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:queryResult',message:'RLS query core_client_users resultado',data:{hasData:!!clientUser,hasError:!!clientError,errorMessage:clientError?.message,errorCode:clientError?.code,errorDetails:clientError?.details,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
 
     if (clientError) {
@@ -56,7 +56,7 @@ export async function getCurrentClientId(): Promise<string | null> {
     return clientUser.client_id;
   } catch (error) {
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:catch',message:'RLS getCurrentClientId erro',data:{errorMessage:error instanceof Error ? error.message : String(error),timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'rls.ts:getCurrentClientId:catch',message:'RLS getCurrentClientId erro',data:{errorMessage:error instanceof Error ? error.message : String(error),timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
     // #endregion
     logger.error('Erro inesperado ao obter client_id:', error);
     return null;

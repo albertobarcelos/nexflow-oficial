@@ -49,7 +49,7 @@ export function LoginPage() {
     setIsLoading(true);
     try {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:onSubmit:start',message:'Admin login iniciado',data:{email:values.email,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:onSubmit:start',message:'Admin login iniciado',data:{email:values.email,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
 
       // 1. Login no Supabase Auth
@@ -59,7 +59,7 @@ export function LoginPage() {
       });
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:onSubmit:authResult',message:'Admin auth resultado',data:{hasAuthData:!!authData,hasUser:!!authData?.user,userId:authData?.user?.id,hasError:!!authError,errorMessage:authError?.message,errorCode:authError?.status,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:onSubmit:authResult',message:'Admin auth resultado',data:{hasAuthData:!!authData,hasUser:!!authData?.user,userId:authData?.user?.id,hasError:!!authError,errorMessage:authError?.message,errorCode:authError?.status,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
 
       if (authError) {
@@ -89,7 +89,7 @@ export function LoginPage() {
         retryCount++;
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:onSubmit:rpcResult',message:'check_admin_access RPC resultado',data:{hasRpcData:!!rpcData,allowed:rpcData?.allowed,error:rpcData?.error,hasRpcError:!!rpcError,rpcErrorMessage:rpcError?.message,rpcErrorCode:rpcError?.code,userId:authData?.user?.id,retryCount,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:onSubmit:rpcResult',message:'check_admin_access RPC resultado',data:{hasRpcData:!!rpcData,allowed:rpcData?.allowed,error:rpcData?.error,hasRpcError:!!rpcError,rpcErrorMessage:rpcError?.message,rpcErrorCode:rpcError?.code,userId:authData?.user?.id,retryCount,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
         // #endregion
       }
 

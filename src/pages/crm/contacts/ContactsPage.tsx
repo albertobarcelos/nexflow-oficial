@@ -21,7 +21,7 @@ export function ContactsPage() {
     const stored = sessionStorage.getItem('contacts-page-has-access');
     const hasAccessValue = stored === 'true';
     // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ContactsPage.tsx:20',message:'hasAccess initial state',data:{stored,hasAccessValue},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ContactsPage.tsx:20',message:'hasAccess initial state',data:{stored,hasAccessValue},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
     // #endregion
     return hasAccessValue;
   });
@@ -29,7 +29,7 @@ export function ContactsPage() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(!hasAccess);
   // #region agent log
   useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ContactsPage.tsx:28',message:'hasAccess state changed',data:{hasAccess},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
+    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ContactsPage.tsx:28',message:'hasAccess state changed',data:{hasAccess},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
   }, [hasAccess]);
   // #endregion
   const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
@@ -89,7 +89,7 @@ export function ContactsPage() {
 
         // Se não for administrator, verificar se é leader de time
         if (!hasRoleAccess) {
-          const { data: teamMembers, error: teamError } = await supabase
+          const { data: teamMembers, error: teamError } = await (supabase as any)
             .from('core_team_members')
             .select('role')
             .eq('user_profile_id', userId)

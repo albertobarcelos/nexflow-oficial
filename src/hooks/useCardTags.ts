@@ -57,7 +57,9 @@ export function useCardTags(cardId?: string) {
       }
 
       // Criar um mapa de tags por ID para facilitar o join
-      const tagsMap = new Map(flowTagsData.map((tag) => [tag.id, tag]));
+      const tagsMap = new Map<string, typeof flowTagsData[0]>(
+        flowTagsData.map((tag) => [tag.id, tag] as [string, typeof tag])
+      );
 
       // Mapear os dados para o formato CardTag
       return cardTagsData

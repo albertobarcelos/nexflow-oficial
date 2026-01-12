@@ -107,7 +107,7 @@ export function useNexflowCardsInfinite(
     maxPages: undefined, // Permitir carregar todas as páginas necessárias
     queryFn: async ({ pageParam = 0 }): Promise<{ cards: NexflowCard[]; nextPage: number | null }> => {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:queryFn',message:'useNexflowCardsInfinite queryFn called',data:{flowId,pageParam,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:queryFn',message:'useNexflowCardsInfinite queryFn called',data:{flowId,pageParam,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
       if (!flowId) {
         return { cards: [], nextPage: null };
@@ -194,7 +194,7 @@ export function useNexflowCardsInfinite(
         assigned_to: input.assignedTo ?? null,
         assigned_team_id: input.assignedTeamId ?? null,
         agents: input.agents,
-        status: input.status ?? null,
+        status: (input.status as "canceled" | "completed" | "inprogress" | null) ?? null,
         card_type: cardType,
         product: null,
         value: null,

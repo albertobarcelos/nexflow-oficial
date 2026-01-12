@@ -39,8 +39,8 @@ export function useCardMessages(cardId: string | null) {
       const clientId = await getCurrentClientId();
       if (!clientId) throw new Error('Client ID not found');
 
-      // Buscar mensagens do schema nexflow
-      const { data, error } = await nexflowClient()
+      // Buscar mensagens do schema public
+      const { data, error } = await (nexflowClient() as any)
         .from('card_messages')
         .select('*')
         .eq('card_id', cardId)
@@ -50,7 +50,7 @@ export function useCardMessages(cardId: string | null) {
       if (error) throw error;
 
       // Buscar informações dos usuários separadamente para evitar problemas de join cross-schema
-      const userIds = [...new Set((data || []).map((msg: any) => msg.user_id))];
+      const userIds = [...new Set((data || []).map((msg: any) => msg.user_id).filter(Boolean) as string[])];
       let usersMap: Record<string, { id: string; name: string | null; surname: string | null; email: string; avatar_url: string | null }> = {};
 
       if (userIds.length > 0) {
@@ -95,7 +95,7 @@ export function useCardMessages(cardId: string | null) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'nexflow',
+          schema: 'public',
           table: 'card_messages',
           filter: `card_id=eq.${cardId}`,
         },
@@ -158,7 +158,7 @@ export function useSendMessage() {
 
         if (uploadError) {
           // Mensagem mais clara para erro de bucket não encontrado
-          if (uploadError.message?.includes('Bucket not found') || uploadError.statusCode === '404') {
+          if (uploadError.message?.includes('Bucket not found') || uploadError.message?.includes('404')) {
             throw new Error('Bucket "card-messages" não encontrado no Supabase Storage. Por favor, crie o bucket no dashboard do Supabase.');
           }
           throw uploadError;
@@ -197,7 +197,7 @@ export function useSendMessage() {
       }
 
       // Inserir mensagem
-      const { data: insertedData, error } = await nexflowClient()
+      const { data: insertedData, error } = await (nexflowClient() as any)
         .from('card_messages')
         .insert({
           card_id: input.card_id,
@@ -225,7 +225,7 @@ export function useSendMessage() {
         .single();
 
       return {
-        ...insertedData,
+        ...(insertedData as any),
         user: userData ? {
           id: userData.id,
           name: userData.name,
@@ -233,7 +233,7 @@ export function useSendMessage() {
           email: userData.email,
           avatar_url: userData.avatar_url,
         } : undefined,
-        mentions: Array.isArray(insertedData.mentions) ? insertedData.mentions : [],
+        mentions: Array.isArray((insertedData as any).mentions) ? (insertedData as any).mentions : [],
       } as CardMessage;
     },
     onSuccess: (_, variables) => {
@@ -254,7 +254,7 @@ export function useDeleteMessage() {
       if (!user) throw new Error('User not authenticated');
 
       // Buscar mensagem para deletar arquivo se houver
-      const { data: message } = await nexflowClient()
+      const { data: message } = await (nexflowClient() as any)
         .from('card_messages')
         .select('file_url')
         .eq('id', messageId)
@@ -262,15 +262,15 @@ export function useDeleteMessage() {
         .single();
 
       // Deletar arquivo do storage se existir
-      if (message?.file_url) {
-        const filePath = message.file_url.split('/').slice(-3).join('/'); // client_id/card_id/filename
+      if ((message as any)?.file_url) {
+        const filePath = (message as any).file_url.split('/').slice(-3).join('/'); // client_id/card_id/filename
         await supabase.storage
           .from('card-messages')
           .remove([filePath]);
       }
 
       // Deletar mensagem
-      const { error } = await nexflowClient()
+      const { error } = await (nexflowClient() as any)
         .from('card_messages')
         .delete()
         .eq('id', messageId)

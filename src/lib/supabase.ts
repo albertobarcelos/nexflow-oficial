@@ -189,13 +189,13 @@ export const getTasksWithRelations = async () => {
  */
 export async function getCurrentClientId(): Promise<string | null> {
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:start',message:'getCurrentClientId chamado',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:start',message:'getCurrentClientId chamado',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
   // #endregion
 
   const { data: { user } } = await supabase.auth.getUser();
   
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:userCheck',message:'Verificação de usuário',data:{hasUser:!!user,userId:user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:userCheck',message:'Verificação de usuário',data:{hasUser:!!user,userId:user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
   // #endregion
 
   if (!user) {
@@ -210,7 +210,7 @@ export async function getCurrentClientId(): Promise<string | null> {
     .single();
 
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:queryResult',message:'Query core_client_users resultado',data:{hasData:!!clientUser,hasError:!!error,errorMessage:error?.message,errorCode:error?.code,errorDetails:error?.details,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:queryResult',message:'Query core_client_users resultado',data:{hasData:!!clientUser,hasError:!!error,errorMessage:error?.message,errorCode:error?.code,errorDetails:error?.details,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
   // #endregion
 
   if (error) {
@@ -226,7 +226,7 @@ export async function getCurrentClientId(): Promise<string | null> {
   }
 
   // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:success',message:'getCurrentClientId sucesso',data:{clientId:clientUser.client_id,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'supabase.ts:getCurrentClientId:success',message:'getCurrentClientId sucesso',data:{clientId:clientUser.client_id,userId:user.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
   // #endregion
 
   return clientUser.client_id;

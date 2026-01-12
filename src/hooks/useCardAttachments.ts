@@ -18,7 +18,7 @@ export function useCardAttachments(cardId: string | null) {
       const clientId = await getCurrentClientId();
       if (!clientId) throw new Error('Client ID not found');
 
-      // Buscar anexos do schema nexflow
+      // Buscar anexos do schema public
       const { data, error } = await nexflowClient()
         .from('card_attachments')
         .select('*')
@@ -72,7 +72,7 @@ export function useCardAttachments(cardId: string | null) {
         'postgres_changes',
         {
           event: '*',
-          schema: 'nexflow',
+          schema: 'public',
           table: 'card_attachments',
           filter: `card_id=eq.${cardId}`,
         },

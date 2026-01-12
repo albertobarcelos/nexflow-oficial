@@ -1,5 +1,8 @@
-// Re-export from refactored component
-export { CardDetailsModal, type CardFormValues } from "@/features/nexflow/card-details/components/CardDetailsModal";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useForm } from "react-hook-form";
+import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   CalendarIcon,
   CheckCircle2,
@@ -207,7 +210,9 @@ function ProcessesSidebar({
 
   // Combinar card_step_actions com step_actions
   const processesWithActions: ProcessWithAction[] = useMemo(() => {
-    const stepActionsMap = new Map(stepActions.map((sa) => [sa.id, sa]));
+    const stepActionsMap = new Map<string, StepActionRow>(
+      stepActions.map((sa) => [sa.id, sa] as [string, StepActionRow])
+    );
     return cardStepActions.map((csa) => ({
       ...csa,
       stepAction: stepActionsMap.get(csa.stepActionId) || null,
@@ -683,7 +688,9 @@ export function CardDetailsModal({
 
   // Combinar card_step_actions com step_actions
   const processesWithActions: ProcessWithAction[] = useMemo(() => {
-    const stepActionsMap = new Map(stepActions.map((sa) => [sa.id, sa]));
+    const stepActionsMap = new Map<string, StepActionRow>(
+      stepActions.map((sa) => [sa.id, sa] as [string, StepActionRow])
+    );
     return cardStepActions.map((csa) => ({
       ...csa,
       stepAction: stepActionsMap.get(csa.stepActionId) || null,

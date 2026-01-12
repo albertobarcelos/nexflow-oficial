@@ -14,7 +14,8 @@ import { CardAttachments } from "@/components/crm/flows/CardAttachments";
 import { CardComments } from "@/components/crm/flows/CardComments";
 import { ProcessDetails } from "@/components/crm/flows/ProcessDetails";
 import { toast } from "sonner";
-import type { NexflowCard, NexflowStepWithFields, CardStepAction } from "@/types/nexflow";
+import type { NexflowCard, CardStepAction } from "@/types/nexflow";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import type { CardFormValues, ActiveSection, SaveStatus } from "../types";
 import { useQuery } from "@tanstack/react-query";
 import { nexflowClient } from "@/lib/supabase";
@@ -129,7 +130,9 @@ export function CardDetailsModal({
   });
 
   const processesWithActions: ProcessWithAction[] = useMemo(() => {
-    const stepActionsMap = new Map(stepActions.map((sa) => [sa.id, sa]));
+    const stepActionsMap = new Map<string, StepActionRow>(
+      stepActions.map((sa) => [sa.id, sa] as [string, StepActionRow])
+    );
     return cardStepActions.map((csa) => ({
       ...csa,
       stepAction: stepActionsMap.get(csa.stepActionId) || null,
@@ -175,12 +178,18 @@ export function CardDetailsModal({
       const value = card?.fieldValues?.[field.id];
       if (!value) return <p className="text-xs text-gray-400 italic mt-0.5">Não preenchido</p>;
       try {
-        const date = new Date(value);
-        return (
-          <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-            {date.toLocaleDateString("pt-BR")}
-          </p>
-        );
+        // Validar que o valor é string ou número antes de converter
+        if (typeof value === 'string' || typeof value === 'number') {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            return (
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+                {date.toLocaleDateString("pt-BR")}
+              </p>
+            );
+          }
+        }
+        return <p className="text-xs text-gray-400 italic mt-0.5">Data inválida</p>;
       } catch {
         return <p className="text-xs text-gray-400 italic mt-0.5">Data inválida</p>;
       }

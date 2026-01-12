@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { supabase, nexflowClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { getCurrentClientId } from '@/lib/supabase';
 import type { Notification } from '@/types/notifications';
 
@@ -16,7 +16,7 @@ export function useNotifications(limit = 50) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { data, error } = await nexflowClient()
+      const { data, error } = await (supabase as any)
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
@@ -43,8 +43,8 @@ export function useNotifications(limit = 50) {
           'postgres_changes',
           {
             event: 'INSERT',
-            schema: 'nexflow',
-            table: 'notifications',
+          schema: 'public',
+          table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
           () => {
@@ -79,7 +79,7 @@ export function useUnreadNotificationsCount() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return 0;
 
-      const { count, error } = await nexflowClient()
+      const { count, error } = await (supabase as any)
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
@@ -103,7 +103,7 @@ export function useMarkNotificationAsRead() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await nexflowClient()
+      const { error } = await (supabase as any)
         .from('notifications')
         .update({
           read: true,
@@ -132,7 +132,7 @@ export function useMarkAllNotificationsAsRead() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await nexflowClient()
+      const { error } = await (supabase as any)
         .from('notifications')
         .update({
           read: true,

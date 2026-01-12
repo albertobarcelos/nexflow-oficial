@@ -111,7 +111,7 @@ export function LoginPage() {
       setErrors({});
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:start',message:'Login iniciado',data:{email,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:start',message:'Login iniciado',data:{email,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
 
       // Fazer login
@@ -121,7 +121,7 @@ export function LoginPage() {
       });
 
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:authResult',message:'Resultado autenticação',data:{hasAuthData:!!authData,hasUser:!!authData?.user,userId:authData?.user?.id,hasError:!!authError,errorMessage:authError?.message,errorCode:authError?.status,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:authResult',message:'Resultado autenticação',data:{hasAuthData:!!authData,hasUser:!!authData?.user,userId:authData?.user?.id,hasError:!!authError,errorMessage:authError?.message,errorCode:authError?.status,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
 
       if (authError) throw authError;
@@ -157,18 +157,18 @@ export function LoginPage() {
         retryCount++;
         
         // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:collaboratorQuery',message:'Query core_client_users resultado',data:{hasData:!!collaboratorData,hasError:!!collaboratorError,errorMessage:collaboratorError?.message,errorCode:collaboratorError?.code,errorDetails:collaboratorError?.details,userId:authData?.user?.id,retryCount,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:collaboratorQuery',message:'Query core_client_users resultado',data:{hasData:!!collaboratorData,hasError:!!collaboratorError,errorMessage:collaboratorError?.message,errorCode:collaboratorError?.code,errorDetails:collaboratorError?.details,userId:authData?.user?.id,retryCount,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         
         // Se ainda for PGRST002 após todas as tentativas, tentar usar RPC como fallback
         if (retryCount >= maxRetries && collaboratorError?.code === 'PGRST002') {
           // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:fallbackRPC',message:'Tentando RPC como fallback',data:{userId:authData?.user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'LoginPage.tsx:handleLogin:fallbackRPC',message:'Tentando RPC como fallback',data:{userId:authData?.user?.id,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
           // #endregion
           
           // Tentar usar uma Edge Function ou RPC como alternativa
           try {
-            const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_data', { 
+            const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('get_user_data', { 
               user_id: authData.user.id 
             });
             if (!rpcError && rpcData) {
