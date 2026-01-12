@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase, nexflowClient } from "@/lib/supabase";
 import { Indication } from "@/types/indications";
 import { NexflowCard } from "@/types/nexflow";
+import type { Json } from "@/types/database";
 
 export interface IndicationDetails extends Indication {
   linkedCards: NexflowCard[];
@@ -51,8 +52,8 @@ export function useIndicationDetails(indicationId: string | null | undefined) {
         stepId: card.step_id,
         clientId: card.client_id,
         title: card.title,
-        fieldValues: (card.field_values as Record<string, unknown>) ?? {},
-        checklistProgress: (card.checklist_progress as Record<string, unknown>) ?? {},
+        fieldValues: (card.field_values as Record<string, Json | undefined>) ?? ({} as Record<string, Json | undefined>),
+        checklistProgress: (card.checklist_progress as Record<string, Json | undefined>) ?? ({} as Record<string, Json | undefined>),
         movementHistory: (card.movement_history as Array<{
           id: string;
           fromStepId: string | null;
@@ -64,7 +65,6 @@ export function useIndicationDetails(indicationId: string | null | undefined) {
         assignedTo: card.assigned_to,
         assignedTeamId: card.assigned_team_id,
         assigneeType: card.assigned_to ? 'user' : card.assigned_team_id ? 'team' : 'unassigned',
-        opportunityId: card.opportunity_id,
         indicationId: card.indication_id,
         position: card.position,
         status: card.status ?? null,
@@ -78,14 +78,15 @@ export function useIndicationDetails(indicationId: string | null | undefined) {
       let hunter = null;
       if (indication.hunter_id) {
         // Usar schema nexhunters para buscar o hunter
-        const { data: hunterData } = await supabase
-          .schema("nexhunters")
+        // Cast necessário porque o tipo Database só inclui o schema 'public'
+        const { data: hunterData } = await (supabase as any)
+          .schema("nexhunters" as any)
           .from("hunters")
           .select("*")
           .eq("id", indication.hunter_id)
           .single();
         
-        if (hunterData) {
+        if (hunterData && hunterData.client_users_id) {
           // Buscar informações do usuário relacionado
           const { data: userData } = await supabase
             .from("core_client_users")

@@ -5,7 +5,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { KanbanCardPreview } from "./KanbanCardPreview";
 import { CardCelebrationSparkles } from "./CardCelebration";
-import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
+import type { NexflowCard } from "@/types/nexflow";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 
 interface SortableCardProps {
   card: NexflowCard;
@@ -71,11 +72,11 @@ export function SortableCard({
         damping: 20,
       }}
       className={cn(
-        "relative cursor-pointer rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 shadow-sm transition-all group",
+        "relative cursor-pointer rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 p-3 shadow-sm transition-all group",
         isActiveDrag ? "opacity-40" : "opacity-100",
         shouldShake 
           ? "ring-2 ring-red-300 bg-red-50/60" 
-          : "hover:shadow-md hover:-translate-y-0.5",
+          : "hover:shadow-md transition-shadow",
         card.status === "completed" && "bg-green-50/30 dark:bg-green-900/10 border-green-200 dark:border-green-800/50 relative overflow-hidden",
         card.status === "canceled" && "bg-red-50/30 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 relative overflow-hidden",
         isFrozenCard && "bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50 ring-2 ring-blue-300 dark:ring-blue-700/50 relative overflow-hidden"

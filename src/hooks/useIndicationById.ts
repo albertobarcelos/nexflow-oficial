@@ -32,7 +32,7 @@ export function useIndicationById(indicationId: string | null | undefined) {
           .eq("id", indication.hunter_id)
           .single();
 
-        if (hunterData) {
+        if (hunterData && hunterData.client_users_id) {
           // Buscar informações do usuário relacionado
           const { data: userData } = await supabase
             .from("core_client_users")
