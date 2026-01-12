@@ -7,8 +7,8 @@ DECLARE
   v_existing_card_id UUID;
   v_client_id UUID;
 BEGIN
-  -- Só processar se for tipo parceiro
-  IF NEW.contact_type != 'parceiro' THEN
+  -- Só processar se o array contém 'parceiro'
+  IF NEW.contact_type IS NULL OR NOT ('parceiro' = ANY(NEW.contact_type)) THEN
     RETURN NEW;
   END IF;
   
@@ -97,8 +97,8 @@ DECLARE
   v_first_step_id UUID;
   v_client_id UUID;
 BEGIN
-  -- Só processar se for tipo cliente
-  IF NEW.contact_type != 'cliente' THEN
+  -- Só processar se o array contém 'cliente'
+  IF NEW.contact_type IS NULL OR NOT ('cliente' = ANY(NEW.contact_type)) THEN
     RETURN NEW;
   END IF;
   

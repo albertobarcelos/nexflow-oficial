@@ -6,6 +6,7 @@ import { CardDetailsSidebar } from "./CardDetailsSidebar";
 import { CardOverviewTab } from "./CardOverviewTab";
 import { CardHistoryTab } from "./CardHistoryTab";
 import { CardFieldsTab } from "./CardFieldsTab";
+import { CardActivitiesTab } from "./CardActivitiesTab";
 import { CardActions } from "./CardActions";
 import { useCardDetails } from "../hooks/useCardDetails";
 import { useCardForm } from "../hooks/useCardForm";
@@ -326,6 +327,12 @@ export function CardDetailsModal({
         return (
           <div className="h-full">
             <CardComments cardId={card.id} />
+          </div>
+        );
+      case "activities":
+        return (
+          <div className="h-full overflow-y-auto">
+            <CardActivitiesTab card={card} />
           </div>
         );
       case "processes":

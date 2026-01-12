@@ -408,15 +408,16 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                   shouldValidate: true,
                 });
               }}
+              disabled={activeTeams.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um time" />
               </SelectTrigger>
               <SelectContent>
                 {activeTeams.length === 0 ? (
-                  <SelectItem value="" disabled>
+                  <div className="px-2 py-1.5 text-sm text-muted-foreground">
                     Nenhum time disponível
-                  </SelectItem>
+                  </div>
                 ) : (
                   activeTeams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
@@ -450,15 +451,16 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                 shouldValidate: true,
               });
             }}
+            disabled={activeUsers.length === 0}
           >
             <SelectTrigger>
               <SelectValue placeholder="Selecione um usuário" />
             </SelectTrigger>
             <SelectContent>
               {activeUsers.length === 0 ? (
-                <SelectItem value="" disabled>
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
                   Nenhum usuário disponível
-                </SelectItem>
+                </div>
               ) : (
                 activeUsers.map((user) => (
                   <SelectItem key={user.id} value={user.id}>

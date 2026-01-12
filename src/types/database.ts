@@ -2321,7 +2321,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           indicated_by: string | null;
-          contact_type: "cliente" | "parceiro" | "outro" | null;
+          contact_type: ("cliente" | "parceiro" | "outro")[] | null;
         };
         Insert: {
           id?: string;

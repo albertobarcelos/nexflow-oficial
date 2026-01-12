@@ -1,4 +1,5 @@
-import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
+import type { NexflowCard } from "@/types/nexflow";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 
 export interface CardFormValues {
   title: string;
@@ -13,7 +14,7 @@ export interface CardFormValues {
 }
 
 export type SaveStatus = "idle" | "saving" | "saved";
-export type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments" | "processes";
+export type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments" | "processes" | "activities";
 
 export interface CardDetailsModalProps {
   card: NexflowCard | null;

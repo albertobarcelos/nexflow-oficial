@@ -26,7 +26,7 @@ export interface CompanyContact {
   contact: {
     id: string;
     client_name: string;
-    email: string | null;
+    main_contact: string | null;
     phone_numbers: string[] | null;
   };
 }
@@ -74,47 +74,81 @@ export function useCompanyRelations() {
         const companiesWithRelations = await Promise.all(
           companiesData.map(async (company) => {
             // Buscar parceiros vinculados via web_company_partners
-            const { data: partnersData } = await supabase
-              .from("web_company_partners" as any)
-              .select(
-                `
-                id,
-                partner_id,
-                company_id,
-                relationship_type,
-                partner:web_partners(
+            // Tratamento de erro: se a tabela não existir, retornar array vazio
+            let partnersData = null;
+            try {
+              const { data, error } = await supabase
+                .from("web_company_partners" as any)
+                .select(
+                  `
                   id,
-                  name,
-                  email,
-                  whatsapp,
-                  partner_type,
-                  status
+                  partner_id,
+                  company_id,
+                  relationship_type,
+                  partner:web_partners(
+                    id,
+                    name,
+                    email,
+                    whatsapp,
+                    partner_type,
+                    status
+                  )
+                `
                 )
-              `
-              )
-              .eq("company_id", company.id)
-              .eq("client_id", collaborator.client_id);
+                .eq("company_id", company.id)
+                .eq("client_id", collaborator.client_id);
+              
+              if (error) {
+                // Se for erro 404 (tabela não existe) ou PGRST116, ignorar
+                if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('does not exist')) {
+                  console.warn(`[useCompanyRelations] Tabela web_company_partners não encontrada para company ${company.id}. Ignorando.`);
+                  partnersData = [];
+                } else {
+                  console.error("Erro ao buscar parceiros:", error);
+                  partnersData = [];
+                }
+              } else {
+                partnersData = data;
+              }
+            } catch (err: any) {
+              console.warn(`[useCompanyRelations] Erro ao buscar parceiros para company ${company.id}:`, err);
+              partnersData = [];
+            }
 
             // Buscar contatos vinculados via contact_companies
-            const { data: contactsData } = await supabase
-              .from("contact_companies")
-              .select(
-                `
-                id,
-                contact_id,
-                company_id,
-                role,
-                is_primary,
-                contact:contacts(
+            // A tabela contacts não tem coluna 'email', usar 'main_contact' ou remover
+            let contactsData = null;
+            try {
+              const { data, error } = await supabase
+                .from("contact_companies")
+                .select(
+                  `
                   id,
-                  client_name,
-                  email,
-                  phone_numbers
+                  contact_id,
+                  company_id,
+                  role,
+                  is_primary,
+                  contact:contacts(
+                    id,
+                    client_name,
+                    main_contact,
+                    phone_numbers
+                  )
+                `
                 )
-              `
-              )
-              .eq("company_id", company.id)
-              .eq("client_id", collaborator.client_id);
+                .eq("company_id", company.id)
+                .eq("client_id", collaborator.client_id);
+              
+              if (error) {
+                console.error("Erro ao buscar contatos:", error);
+                contactsData = [];
+              } else {
+                contactsData = data;
+              }
+            } catch (err: any) {
+              console.error(`[useCompanyRelations] Erro ao buscar contatos para company ${company.id}:`, err);
+              contactsData = [];
+            }
 
             // Processar parceiros
             const partners: CompanyPartner[] = (partnersData || []).map((item: any) => ({

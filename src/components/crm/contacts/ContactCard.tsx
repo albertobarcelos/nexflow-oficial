@@ -1,18 +1,31 @@
 import { motion } from "framer-motion";
-import { Phone, Building2, User, Calendar, Plus } from "lucide-react";
+import { Phone, Building2, User, Calendar, Plus, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Opportunity } from "@/hooks/useOpportunities";
+import { UnifiedContact } from "@/hooks/useContactsWithIndications";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface ContactCardProps {
-  contact: Contact;
+  contact: UnifiedContact;
   onClick?: () => void;
   onCreateCard?: () => void;
   index?: number;
 }
+
+const typeLabels: Record<"cliente" | "parceiro" | "outro", string> = {
+  cliente: "Cliente",
+  parceiro: "Parceiro",
+  outro: "Outro",
+};
+
+const typeColors: Record<"cliente" | "parceiro" | "outro", string> = {
+  cliente: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
+  parceiro: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
+  outro: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300",
+};
 
 /**
  * Card flutuante para exibir um contato
@@ -58,13 +71,49 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
           size="md"
         />
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-            {contact.client_name}
-          </h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">
+              {contact.client_name}
+            </h3>
+            {/* Badge de Indicação */}
+            {contact.isIndication && (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 text-xs whitespace-nowrap">
+                <Tag className="h-3 w-3 mr-1" />
+                Indicação
+              </Badge>
+            )}
+          </div>
           {contact.main_contact && (
             <div className="flex items-center gap-1.5 mt-1 text-sm text-slate-600 dark:text-slate-400">
               <User className="h-3.5 w-3.5" />
               <span className="truncate">{contact.main_contact}</span>
+            </div>
+          )}
+          {/* Tags de tipo de contato */}
+          {contact.contact_type && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {(() => {
+                // Suporta tanto string quanto array para compatibilidade
+                const types = Array.isArray(contact.contact_type) 
+                  ? contact.contact_type 
+                  : [contact.contact_type];
+                
+                return types.map((type) => {
+                  if (!type || !typeLabels[type as keyof typeof typeLabels]) return null;
+                  return (
+                    <Badge
+                      key={type}
+                      variant="outline"
+                      className={cn(
+                        "text-xs",
+                        typeColors[type as keyof typeof typeColors]
+                      )}
+                    >
+                      {typeLabels[type as keyof typeof typeLabels]}
+                    </Badge>
+                  );
+                });
+              })()}
             </div>
           )}
         </div>

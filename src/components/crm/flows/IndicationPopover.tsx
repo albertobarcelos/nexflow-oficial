@@ -34,7 +34,7 @@ export function IndicationPopover({
 
   const handleViewDetails = () => {
     // Navegar para página de detalhes da indicação
-    navigate(`/crm/hunters`);
+    navigate(`/crm/contacts`);
     onOpenChange(false);
     // TODO: Implementar navegação direta para a indicação quando possível
   };

@@ -16,6 +16,8 @@ export interface Contact {
   avatar_seed?: string;
   created_at: string;
   updated_at: string;
+  contact_type?: ("cliente" | "parceiro" | "outro")[] | null;
+  indicated_by?: string | null;
 }
 
 // Alias para compatibilidade

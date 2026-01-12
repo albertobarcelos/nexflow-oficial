@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { useOpportunities } from "@/hooks/useOpportunities";
+import { useContactsWithIndications } from "@/hooks/useContactsWithIndications";
 import { ContactCard } from "@/components/crm/contacts/ContactCard";
 import { RocketLoader } from "@/components/ui/rocket-loader";
-import { Loader2, Settings, Plus, List } from "lucide-react";
+import { Loader2, Settings, Plus, List, Filter } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConfigDialog";
 import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
 import { ContactDetailsPanel } from "@/components/crm/contacts/ContactDetailsPanel";
 import { GenerateFormDialog } from "@/components/crm/contacts/GenerateFormDialog";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export function ContactsPage() {
   const navigate = useNavigate();
@@ -38,13 +40,18 @@ export function ContactsPage() {
   const [isGenerateFormDialogOpen, setIsGenerateFormDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [contactForCard, setContactForCard] = useState<any>(null);
+  const [filterTypes, setFilterTypes] = useState<("cliente" | "parceiro" | "indicações")[]>([]);
   
   const {
-    opportunities,
+    contacts,
     isLoading,
     isError,
-    permissions,
-  } = useOpportunities({ enabled: hasAccess });
+    contactsCount,
+    indicationsCount,
+  } = useContactsWithIndications({ 
+    enabled: hasAccess,
+    filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
+  });
 
   useEffect(() => {
     // #region agent log - Fix: Skip check if we already have access
@@ -153,7 +160,7 @@ export function ContactsPage() {
         <div className="space-y-2">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Contatos</h1>
           <p className="text-muted-foreground text-sm md:text-base">
-            Visualize e gerencie os contatos de clientes
+            Visualize e gerencie os contatos de clientes e indicações
           </p>
         </div>
         <div className="flex gap-2">
@@ -181,6 +188,47 @@ export function ContactsPage() {
         </div>
       </div>
 
+      {/* Filtros por tipo */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Filter className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm text-muted-foreground">Filtros:</span>
+        {(["cliente", "parceiro", "indicações"] as const).map((type) => {
+          const isActive = filterTypes.includes(type);
+          return (
+            <Button
+              key={type}
+              variant={isActive ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                if (isActive) {
+                  setFilterTypes(filterTypes.filter((t) => t !== type));
+                } else {
+                  setFilterTypes([...filterTypes, type]);
+                }
+              }}
+              className="h-8"
+            >
+              {type === "indicações" ? "Indicações" : type.charAt(0).toUpperCase() + type.slice(1)}
+            </Button>
+          );
+        })}
+        {filterTypes.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setFilterTypes([])}
+            className="h-8 text-xs"
+          >
+            Limpar filtros
+          </Button>
+        )}
+        {(contactsCount > 0 || indicationsCount > 0) && (
+          <span className="text-xs text-muted-foreground ml-auto">
+            {contactsCount} contato(s) • {indicationsCount} indicação(ões)
+          </span>
+        )}
+      </div>
+
       {/* Conteúdo */}
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
@@ -194,11 +242,13 @@ export function ContactsPage() {
             </p>
           </div>
         </div>
-      ) : opportunities.length === 0 ? (
+      ) : contacts.length === 0 ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
             <p className="text-muted-foreground">
-              Nenhum contato encontrado.
+              {filterTypes.length > 0 
+                ? "Nenhum contato encontrado com os filtros selecionados."
+                : "Nenhum contato encontrado."}
             </p>
           </div>
         </div>
@@ -210,14 +260,17 @@ export function ContactsPage() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           <AnimatePresence>
-            {opportunities.map((contact, index) => (
+            {contacts.map((contact, index) => (
               <ContactCard
                 key={contact.id}
                 contact={contact}
                 index={index}
                 onClick={() => {
-                  setSelectedContact(contact.id);
-                  setIsDetailsPanelOpen(true);
+                  // Não abrir detalhes para indicações ainda (pode ser implementado depois)
+                  if (!contact.isIndication) {
+                    setSelectedContact(contact.id);
+                    setIsDetailsPanelOpen(true);
+                  }
                 }}
                 onCreateCard={() => {
                   setContactForCard(contact);

@@ -3,7 +3,7 @@ DROP TRIGGER IF EXISTS trigger_handle_partner_contact ON public.contacts;
 CREATE TRIGGER trigger_handle_partner_contact
 AFTER INSERT OR UPDATE ON public.contacts
 FOR EACH ROW
-WHEN (NEW.contact_type = 'parceiro')
+WHEN ('parceiro' = ANY(NEW.contact_type))
 EXECUTE FUNCTION public.handle_partner_contact_automation();
 
 -- Trigger para automação de clientes
@@ -11,7 +11,7 @@ DROP TRIGGER IF EXISTS trigger_handle_client_contact ON public.contacts;
 CREATE TRIGGER trigger_handle_client_contact
 AFTER INSERT ON public.contacts
 FOR EACH ROW
-WHEN (NEW.contact_type = 'cliente')
+WHEN ('cliente' = ANY(NEW.contact_type))
 EXECUTE FUNCTION public.handle_client_contact_automation();
 
 -- Comentários

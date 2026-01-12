@@ -30,7 +30,6 @@ import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
 import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
-import { HuntersPage } from "@/pages/crm/hunters/HuntersPage";
 import { ContactsPage } from "@/pages/crm/contacts/ContactsPage";
 import ContactsList from "@/pages/crm/ContactsList";
 import { ContactFormPage } from "@/pages/public/ContactForm";
@@ -40,7 +39,6 @@ import { TeamsPage } from "@/pages/crm/configurations/TeamsPage";
 import { UnitsPage } from "@/pages/crm/configurations/UnitsPage";
 import { ItemsPage } from "@/pages/crm/configurations/ItemsPage";
 import { CompanyRelationsPage } from "@/pages/crm/companies/CompanyRelationsPage";
-import { PartnersListPage } from "@/pages/crm/partners/PartnersListPage";
 
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
@@ -131,10 +129,6 @@ export const router = createBrowserRouter([
         element: <ContactDetails />,
       },
       {
-        path: "hunters",
-        element: <HuntersPage />,
-      },
-      {
         path: "contacts",
         element: <ContactsPage />,
       },
@@ -143,12 +137,16 @@ export const router = createBrowserRouter([
         element: <ContactsList />,
       },
       {
-        path: "companies/relations",
-        element: <CompanyRelationsPage />,
+        path: "people",
+        element: <Navigate to="/crm/contacts" replace />,
       },
       {
-        path: "partners/list",
-        element: <PartnersListPage />,
+        path: "companies",
+        element: <Navigate to="/crm/companies/relations" replace />,
+      },
+      {
+        path: "companies/relations",
+        element: <CompanyRelationsPage />,
       },
       // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {

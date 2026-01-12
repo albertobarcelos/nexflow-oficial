@@ -13,13 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Phone,
   Building2,
@@ -59,7 +53,7 @@ export function ContactDetailsPanel({
   const queryClient = useQueryClient();
 
   const updateContactType = useMutation({
-    mutationFn: async (contactType: "cliente" | "parceiro" | "outro") => {
+    mutationFn: async (contactTypes: ("cliente" | "parceiro" | "outro")[] | ("cliente" | "parceiro" | "outro")) => {
       if (!contactId) throw new Error("Contact ID é obrigatório");
 
       const clientId = await getCurrentClientId();
@@ -67,9 +61,15 @@ export function ContactDetailsPanel({
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
+      // Converter array para string único (compatibilidade com banco atual)
+      // Se houver múltiplos tipos, usar o primeiro
+      const contactTypeValue: "cliente" | "parceiro" | "outro" | null = Array.isArray(contactTypes) 
+        ? (contactTypes.length > 0 ? (contactTypes[0] as "cliente" | "parceiro" | "outro") : null)
+        : (contactTypes ? (contactTypes as "cliente" | "parceiro" | "outro") : null);
+
       const { error } = await nexflowClient()
         .from("contacts")
-        .update({ contact_type: contactType })
+        .update({ contact_type: contactTypeValue })
         .eq("id", contactId)
         .eq("client_id", clientId);
 
@@ -77,6 +77,7 @@ export function ContactDetailsPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Tipo de contato atualizado com sucesso!");
     },
     onError: (error: Error) => {
@@ -84,6 +85,18 @@ export function ContactDetailsPanel({
       toast.error(error.message || "Erro ao atualizar tipo de contato");
     },
   });
+
+  const handleTypeToggle = (type: "cliente" | "parceiro" | "outro") => {
+    // Suporta tanto string quanto array para compatibilidade
+    const currentTypes = Array.isArray(details?.contact_type) 
+      ? details.contact_type 
+      : details?.contact_type ? [details.contact_type] : [];
+    
+    const newTypes = currentTypes.includes(type)
+      ? currentTypes.filter((t) => t !== type)
+      : [...currentTypes, type];
+    updateContactType.mutate(newTypes);
+  };
 
   if (!contactId) {
     return null;
@@ -163,25 +176,68 @@ export function ContactDetailsPanel({
 
                 <Separator />
 
-                {/* Tipo de Contato */}
-                <div className="space-y-2">
-                  <Label htmlFor="contact-type">Tipo de Contato</Label>
-                  <Select
-                    value={details.contact_type || "cliente"}
-                    onValueChange={(value: "cliente" | "parceiro" | "outro") =>
-                      updateContactType.mutate(value)
-                    }
-                    disabled={updateContactType.isPending}
-                  >
-                    <SelectTrigger id="contact-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cliente">Cliente</SelectItem>
-                      <SelectItem value="parceiro">Parceiro</SelectItem>
-                      <SelectItem value="outro">Outro</SelectItem>
-                    </SelectContent>
-                  </Select>
+                {/* Tipo de Contato - Seleção Múltipla */}
+                <div className="space-y-3">
+                  <Label>Tipo de Contato</Label>
+                  <div className="space-y-2">
+                    {(["cliente", "parceiro", "outro"] as const).map((type) => {
+                      // Suporta tanto string quanto array para compatibilidade
+                      const contactTypes = Array.isArray(details.contact_type) 
+                        ? details.contact_type 
+                        : details.contact_type ? [details.contact_type] : [];
+                      const isChecked = contactTypes.includes(type);
+                      return (
+                        <div key={type} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`contact-type-${type}`}
+                            checked={isChecked}
+                            onCheckedChange={() => handleTypeToggle(type)}
+                            disabled={updateContactType.isPending}
+                          />
+                          <label
+                            htmlFor={`contact-type-${type}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {type === "cliente"
+                              ? "Cliente"
+                              : type === "parceiro"
+                              ? "Parceiro"
+                              : "Outro"}
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Exibir tipos selecionados como tags */}
+                  {details.contact_type && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {(() => {
+                        // Suporta tanto string quanto array para compatibilidade
+                        const contactTypes = Array.isArray(details.contact_type) 
+                          ? details.contact_type 
+                          : details.contact_type ? [details.contact_type] : [];
+                        return contactTypes.map((type) => (
+                        <Badge
+                          key={type}
+                          variant="secondary"
+                          className={
+                            type === "cliente"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                              : type === "parceiro"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+                          }
+                        >
+                          {type === "cliente"
+                            ? "Cliente"
+                            : type === "parceiro"
+                            ? "Parceiro"
+                            : "Outro"}
+                        </Badge>
+                        ));
+                      })()}
+                    </div>
+                  )}
                 </div>
 
                 {/* Parceiro Indicador */}

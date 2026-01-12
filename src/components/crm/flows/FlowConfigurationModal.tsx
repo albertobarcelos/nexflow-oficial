@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { FormBuilderModal } from './FormBuilderModal';
+import { ActivityTypesTab } from './ActivityTypesTab';
 import { 
   Settings, 
   FormInput, 
@@ -23,6 +24,7 @@ import {
   Users, 
   BarChart, 
   Palette,
+  Calendar,
   Save,
   X,
   Plus,
@@ -46,7 +48,7 @@ interface FlowData {
   id: string;
   name: string;
   description?: string;
-  is_active: boolean;
+  is_active?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -63,10 +65,17 @@ interface FlowStage {
 
 interface FlowAutomation {
   id: string;
+  client_id: string;
   name: string;
   description?: string;
-  trigger_type: string;
   is_active: boolean;
+  source_flow_id: string;
+  source_stage_id: string;
+  target_flow_id: string;
+  target_stage_id: string;
+  automation_type: 'duplicate' | 'move' | 'copy';
+  created_at: string;
+  updated_at: string;
 }
 
 export function FlowConfigurationModal({ 
@@ -116,11 +125,11 @@ export function FlowConfigurationModal({
 
       if (flowError) throw flowError;
 
-      setFlowData(flow);
+      setFlowData(flow as unknown as FlowData);
       setFormData({
         name: flow.name || '',
         description: flow.description || '',
-        is_active: flow.is_active ?? true
+        is_active: (flow as any).is_active ?? true
       });
 
       // Carregar stages
@@ -232,7 +241,7 @@ export function FlowConfigurationModal({
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="general" className="flex items-center gap-1">
                 <Settings className="w-4 h-4" />
                 Geral
@@ -240,6 +249,10 @@ export function FlowConfigurationModal({
               <TabsTrigger value="fields" className="flex items-center gap-1">
                 <FormInput className="w-4 h-4" />
                 Campos
+              </TabsTrigger>
+              <TabsTrigger value="activity-types" className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                Tipos de Atividade
               </TabsTrigger>
               <TabsTrigger value="automations" className="flex items-center gap-1">
                 <Zap className="w-4 h-4" />
@@ -366,6 +379,11 @@ export function FlowConfigurationModal({
               </Card>
             </TabsContent>
 
+            {/* ABA TIPOS DE ATIVIDADE */}
+            <TabsContent value="activity-types" className="space-y-6">
+              <ActivityTypesTab flowId={flowId} />
+            </TabsContent>
+
             {/* ABA AUTOMAÇÕES */}
             <TabsContent value="automations" className="space-y-6">
               <Card>
@@ -393,7 +411,7 @@ export function FlowConfigurationModal({
                             <h4 className="font-medium">{automation.name}</h4>
                             <p className="text-sm text-gray-600">{automation.description}</p>
                             <Badge variant="secondary" className="mt-1">
-                              {automation.trigger_type}
+                              {automation.automation_type}
                             </Badge>
                           </div>
                           <div className="flex items-center space-x-2">

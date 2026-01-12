@@ -1,4 +1,4 @@
-import { Info, History, FileEdit, Paperclip, MessageSquare } from "lucide-react";
+import { Info, History, FileEdit, Paperclip, MessageSquare, Calendar } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ProcessesSidebar } from "./ProcessesSidebar";
@@ -201,6 +201,32 @@ export function CardDetailsSidebar({
                 )}
               />
               <span>Comentários</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab("informacoes");
+                setActiveSection("activities");
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                activeSection === "activities"
+                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
+                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+              )}
+            >
+              {activeSection === "activities" && (
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+              )}
+              <Calendar
+                className={cn(
+                  "h-5 w-5",
+                  activeSection === "activities"
+                    ? "text-blue-600 dark:text-blue-400"
+                    : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
+                )}
+              />
+              <span>Atividades</span>
             </button>
           </nav>
         </TabsContent>

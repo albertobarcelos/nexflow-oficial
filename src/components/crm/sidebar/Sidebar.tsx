@@ -85,15 +85,17 @@ export function Sidebar() {
   const { hasAccess: hasHuntersAccess } = useHuntersAccess();
   const { hasAccess: hasOpportunitiesAccess } = useOpportunitiesAccess();
 
-  // AIDEV-NOTE: Detecta se estamos dentro de um flow OU nas páginas de Empresas/Pessoas
+  // AIDEV-NOTE: Detecta se estamos dentro de um flow
   const isInsideFlow = location.pathname.includes('/flow/') && params.id;
-  const isInCompaniesOrPeople = location.pathname.includes('/companies') || location.pathname.includes('/people');
+  // Verifica se está nas páginas específicas de Empresas ou Pessoas (não em relações)
+  const isInCompaniesPage = location.pathname === '/crm/companies';
+  const isInPeoplePage = location.pathname === '/crm/people';
   
   // AIDEV-NOTE: Menu base sempre visível
   const menuItems = [...baseMenuItems];
   
-  // AIDEV-NOTE: Adiciona Empresas e Pessoas quando dentro de um flow OU nas próprias páginas
-  if (isInsideFlow || isInCompaniesOrPeople) {
+  // AIDEV-NOTE: Adiciona Empresas e Pessoas apenas quando dentro de um flow OU nas páginas específicas
+  if (isInsideFlow || isInCompaniesPage || isInPeoplePage) {
     menuItems.push(
       {
         title: "Empresas",
@@ -108,15 +110,6 @@ export function Sidebar() {
     );
   }
 
-  // Adiciona Hunters se o usuário tiver acesso
-  if (hasHuntersAccess) {
-    menuItems.push({
-      title: "Hunters",
-      icon: Target,
-      href: "/crm/hunters",
-    });
-  }
-
   // Adiciona Contatos se o usuário tiver acesso
   if (hasOpportunitiesAccess) {
     menuItems.push({
@@ -126,18 +119,11 @@ export function Sidebar() {
     });
   }
 
-  // Adiciona Relações de Empresas
+  // Adiciona Empresas (Relações)
   menuItems.push({
-    title: "Relações de Empresas",
+    title: "Empresas",
     icon: Building2,
     href: "/crm/companies/relations",
-  });
-
-  // Adiciona Parceiros com Contatos
-  menuItems.push({
-    title: "Parceiros com Contatos",
-    icon: Handshake,
-    href: "/crm/partners/list",
   });
 
   const handleLogout = async () => {
@@ -161,7 +147,7 @@ export function Sidebar() {
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
               location.pathname + location.search === item.href :
-              (item.href === '/crm/flows' || item.href === '/crm/hunters' || item.href === '/crm/contacts') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
+              (item.href === '/crm/flows' || item.href === '/crm/contacts') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
               
             return (
               <Button

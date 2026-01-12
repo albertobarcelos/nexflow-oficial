@@ -13,7 +13,7 @@ export interface ContactDetails extends Contact {
     createdAt: string;
   }>;
   indicated_by: string | null;
-  contact_type: "cliente" | "parceiro" | "outro" | null;
+  contact_type: ("cliente" | "parceiro" | "outro")[] | null;
   indicated_by_contact?: {
     id: string;
     client_name: string;

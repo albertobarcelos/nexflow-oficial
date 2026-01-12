@@ -103,7 +103,7 @@ export function useMarkNotificationAsRead() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from('notifications')
         .update({
           read: true,
@@ -111,12 +111,31 @@ export function useMarkNotificationAsRead() {
         })
         .eq('id', notificationId)
         .eq('user_id', user.id)
-        .eq('client_id', clientId);
+        .eq('client_id', clientId)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useMarkNotificationAsRead] Erro ao marcar notificação como lida:', {
+          error,
+          notificationId,
+          userId: user.id,
+          clientId,
+        });
+        throw new Error(`Erro ao marcar notificação como lida: ${error.message || 'Erro desconhecido'}`);
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('[useMarkNotificationAsRead] Nenhuma notificação foi atualizada:', {
+          notificationId,
+          userId: user.id,
+          clientId,
+        });
+        throw new Error('Notificação não encontrada ou você não tem permissão para atualizá-la');
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 }
@@ -132,7 +151,7 @@ export function useMarkAllNotificationsAsRead() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const { error } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from('notifications')
         .update({
           read: true,
@@ -140,12 +159,23 @@ export function useMarkAllNotificationsAsRead() {
         })
         .eq('user_id', user.id)
         .eq('client_id', clientId)
-        .eq('read', false);
+        .eq('read', false)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useMarkAllNotificationsAsRead] Erro ao marcar todas as notificações como lidas:', {
+          error,
+          userId: user.id,
+          clientId,
+        });
+        throw new Error(`Erro ao marcar notificações como lidas: ${error.message || 'Erro desconhecido'}`);
+      }
+
+      console.log('[useMarkAllNotificationsAsRead] Notificações marcadas como lidas:', data?.length || 0);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
     },
   });
 }
