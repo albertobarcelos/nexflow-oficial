@@ -1,14 +1,8 @@
 import { useMemo } from "react";
-import { Phone, MessageSquare, Mail, UserX, MoreVertical, CheckSquare, Timer } from "lucide-react";
+import { Phone, MessageSquare, Mail, UserX, CheckSquare, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { TeamAvatar } from "@/components/ui/team-avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useUsers } from "@/hooks/useUsers";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { useCardTags } from "@/hooks/useCardTags";
@@ -120,11 +114,8 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
     return { checked: checkedItems, total: totalItems };
   }, [card.checklistProgress]);
 
-  // Obter primeira tag para cor do badge
+  // Usar primeira tag do card se existir, caso contrário não mostrar badge
   const firstTag = cardTags.length > 0 ? cardTags[0] : null;
-  const badgeColorClass = firstTag 
-    ? '' // Usar estilo inline para cores dinâmicas
-    : getBadgeColorClass(undefined, card.cardType, card.title);
 
   // Obter empresa primária ou primeira empresa
   const primaryCompany = useMemo(() => {
@@ -141,38 +132,22 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
 
   return (
     <div className="flex flex-col space-y-2 text-sm relative">
-      {/* Menu de opções (aparece no hover) */}
-      <div className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer text-base leading-none p-1">
-              <MoreVertical className="h-4 w-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Ver detalhes</DropdownMenuItem>
-            <DropdownMenuItem>Editar</DropdownMenuItem>
-            <DropdownMenuItem>Duplicar</DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-
       {/* Topo: Badge + Avatar */}
       <div className="flex items-center justify-between gap-2">
-        <span 
-          className={cn(
-            "inline-block px-2 py-0.5 rounded text-xs font-semibold truncate max-w-[calc(100%-40px)] border",
-            !firstTag && badgeColorClass
-          )}
-          style={firstTag ? {
-            backgroundColor: `${firstTag.color}15`,
-            color: firstTag.color,
-            borderColor: firstTag.color,
-          } : undefined}
-        >
-          {card.title}
-        </span>
+        {firstTag ? (
+          <span 
+            className="inline-block px-2 py-0.5 rounded text-xs font-semibold truncate max-w-[calc(100%-40px)] border"
+            style={{
+              backgroundColor: `${firstTag.color}15`,
+              color: firstTag.color,
+              borderColor: firstTag.color,
+            }}
+          >
+            {firstTag.name}
+          </span>
+        ) : (
+          <div className="flex-1" />
+        )}
         {assignedUser && (
           <div className={cn("rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0", avatarBgClass)}>
             <UserAvatar

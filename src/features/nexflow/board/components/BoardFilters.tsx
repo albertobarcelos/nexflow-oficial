@@ -1,12 +1,18 @@
+import { Filter } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { User } from "@/types/database";
-import type { Team } from "@/types/entities";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import type { User } from "@/hooks/useUsers";
+import type { OrganizationTeam } from "@/hooks/useOrganizationTeams";
 
 interface BoardFiltersProps {
   filterUserId: string | null;
@@ -14,7 +20,7 @@ interface BoardFiltersProps {
   setFilterUserId: (userId: string | null) => void;
   setFilterTeamId: (teamId: string | null) => void;
   users: User[];
-  teams: Team[];
+  teams: OrganizationTeam[];
 }
 
 export function BoardFilters({
@@ -25,45 +31,75 @@ export function BoardFilters({
   users,
   teams,
 }: BoardFiltersProps) {
+  const hasActiveFilters = filterUserId !== null || filterTeamId !== null;
+
   return (
-    <>
-      <Select
-        value={filterUserId ?? "all"}
-        onValueChange={(value) => setFilterUserId(value === "all" ? null : value)}
-      >
-        <SelectTrigger className="w-[180px] h-9 text-sm">
-          <SelectValue placeholder="Filtrar por usuário" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os usuários</SelectItem>
-          {users
-            .filter((user) => user.is_active)
-            .map((user) => (
-              <SelectItem key={user.id} value={user.id}>
-                {user.name} {user.surname}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
-      <Select
-        value={filterTeamId ?? "all"}
-        onValueChange={(value) => setFilterTeamId(value === "all" ? null : value)}
-      >
-        <SelectTrigger className="w-[180px] h-9 text-sm">
-          <SelectValue placeholder="Filtrar por time" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os times</SelectItem>
-          {teams
-            .filter((team) => team.is_active)
-            .map((team) => (
-              <SelectItem key={team.id} value={team.id}>
-                {team.name}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
-    </>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-9 w-9 rounded-md relative",
+            hasActiveFilters && "bg-slate-100 dark:bg-slate-800"
+          )}
+          aria-label="Filtros"
+        >
+          <Filter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+          {hasActiveFilters && (
+            <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-blue-500 border border-white dark:border-slate-900" />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Filtrar por</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        
+        <div className="px-2 py-1.5">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+            Usuários
+          </div>
+          <DropdownMenuRadioGroup
+            value={filterUserId ?? "all"}
+            onValueChange={(value) => setFilterUserId(value === "all" ? null : value)}
+          >
+            <DropdownMenuRadioItem value="all">
+              Todos os usuários
+            </DropdownMenuRadioItem>
+            {users
+              .filter((user) => user.is_active)
+              .map((user) => (
+                <DropdownMenuRadioItem key={user.id} value={user.id}>
+                  {user.name} {user.surname}
+                </DropdownMenuRadioItem>
+              ))}
+          </DropdownMenuRadioGroup>
+        </div>
+
+        <DropdownMenuSeparator />
+
+        <div className="px-2 py-1.5">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+            Times
+          </div>
+          <DropdownMenuRadioGroup
+            value={filterTeamId ?? "all"}
+            onValueChange={(value) => setFilterTeamId(value === "all" ? null : value)}
+          >
+            <DropdownMenuRadioItem value="all">
+              Todos os times
+            </DropdownMenuRadioItem>
+            {teams
+              .filter((team) => team.is_active)
+              .map((team) => (
+                <DropdownMenuRadioItem key={team.id} value={team.id}>
+                  {team.name}
+                </DropdownMenuRadioItem>
+              ))}
+          </DropdownMenuRadioGroup>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

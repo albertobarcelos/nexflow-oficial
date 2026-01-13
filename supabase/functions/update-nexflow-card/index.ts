@@ -310,6 +310,19 @@ Deno.serve(async (req: Request) => {
           // Sempre definir como 'canceled' quando cai em etapa fail
           autoStatus = 'canceled';
         }
+      } else {
+        // Se o card já está na etapa atual, verificar se precisa corrigir o status
+        // Caso especial: se card está em etapa fail mas status é completed, forçar canceled
+        if (step.step_type === 'fail' && card.status === 'completed') {
+          autoStatus = 'canceled';
+        } else if (step.step_type === 'finisher' && card.status !== 'completed') {
+          autoStatus = 'completed';
+        }
+      }
+      
+      // Garantir que se status é explicitamente passado e a etapa é fail, sempre aplicar canceled
+      if (step.step_type === 'fail' && status === 'canceled') {
+        autoStatus = 'canceled';
       }
 
       // Lógica de freezing: quando card cai em etapa freezing

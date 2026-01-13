@@ -323,9 +323,6 @@ export function useNexflowFlow(flowId?: string) {
     queryKey: ["nexflow", "flow", flowId],
     enabled: Boolean(flowId),
     queryFn: async (): Promise<NexflowFlowDetails | null> => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowFlows.ts:useNexflowFlow:queryFn',message:'useNexflowFlow queryFn called',data:{flowId,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       if (!flowId) {
         return null;
       }

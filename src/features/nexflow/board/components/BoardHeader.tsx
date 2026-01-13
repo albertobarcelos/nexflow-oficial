@@ -4,9 +4,10 @@ import { BoardViewTabs } from "./BoardViewTabs";
 import { CardSearchBar } from "./CardSearchBar";
 import { BoardFilters } from "./BoardFilters";
 import type { ViewMode } from "../types";
-import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
-import type { User } from "@/types/database";
-import type { Team } from "@/types/entities";
+import type { NexflowCard } from "@/types/nexflow";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
+import type { User } from "@/hooks/useUsers";
+import type { OrganizationTeam } from "@/hooks/useOrganizationTeams";
 
 interface BoardHeaderProps {
   viewMode: ViewMode;
@@ -26,7 +27,7 @@ interface BoardHeaderProps {
   setFilterUserId: (userId: string | null) => void;
   setFilterTeamId: (teamId: string | null) => void;
   users: User[];
-  teams: Team[];
+  teams: OrganizationTeam[];
 }
 
 export function BoardHeader({
@@ -50,61 +51,54 @@ export function BoardHeader({
   teams,
 }: BoardHeaderProps) {
   return (
-    <>
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-1">
-            <span className="text-xl font-bold text-slate-800 dark:text-white tracking-tight italic">NEXFLOW</span>
-            <span className="text-xl font-light text-slate-500 dark:text-slate-400">CRM</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <BoardViewTabs viewMode={viewMode} onViewModeChange={onViewModeChange} />
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-          <div className="flex items-center gap-2">
-            <CardSearchBar
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              isSearchingOnServer={isSearchingOnServer}
-              setIsSearchingOnServer={setIsSearchingOnServer}
-              serverSearchResults={serverSearchResults}
-              setServerSearchResults={setServerSearchResults}
-              searchCardsOnServer={searchCardsOnServer}
-              steps={steps}
-            />
-            <BoardFilters
-              filterUserId={filterUserId}
-              filterTeamId={filterTeamId}
-              setFilterUserId={setFilterUserId}
-              setFilterTeamId={setFilterTeamId}
-              users={users}
-              teams={teams}
-            />
-          </div>
-        </div>
-      </header>
-
-      <div className="bg-white dark:bg-slate-900/50 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onGoBack}
-            className="flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar
-          </Button>
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
-          <div>
-            <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">Execução do Flow</div>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-tight">
-              {flowName ?? "Flow"}
-            </h1>
-          </div>
+    <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+      {/* Lado Esquerdo: Breadcrumb e Título */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onGoBack}
+          className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors px-2 h-auto"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Voltar
+        </Button>
+        <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+          EXECUÇÃO DO FLOW
+        </span>
+        <div className="h-4 w-px bg-slate-200 dark:bg-slate-700"></div>
+        <div>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-tight">
+            {flowName ?? "Flow"}
+          </h1>
         </div>
       </div>
-    </>
+
+      {/* Lado Direito: Controles */}
+      <div className="flex items-center gap-3">
+        <BoardViewTabs viewMode={viewMode} onViewModeChange={onViewModeChange} />
+        <div className="flex items-center gap-2">
+          <CardSearchBar
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            isSearchingOnServer={isSearchingOnServer}
+            setIsSearchingOnServer={setIsSearchingOnServer}
+            serverSearchResults={serverSearchResults}
+            setServerSearchResults={setServerSearchResults}
+            searchCardsOnServer={searchCardsOnServer}
+            steps={steps}
+          />
+          <BoardFilters
+            filterUserId={filterUserId}
+            filterTeamId={filterTeamId}
+            setFilterUserId={setFilterUserId}
+            setFilterTeamId={setFilterTeamId}
+            users={users}
+            teams={teams}
+          />
+        </div>
+      </div>
+    </header>
   );
 }
 

@@ -16,7 +16,7 @@ export interface Contact {
   avatar_seed?: string;
   created_at: string;
   updated_at: string;
-  contact_type?: ("cliente" | "parceiro" | "outro")[] | null;
+  contact_type?: ("cliente" | "parceiro")[] | null;
   indicated_by?: string | null;
 }
 
@@ -104,47 +104,29 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
     teamIds: string[];
     clientId: string | null;
   }>(loadPermissionsFromStorage);
-  // #region agent log - Fix: Set loading to false if we have valid permissions from storage
+  // Fix: Set loading to false if we have valid permissions from storage
   const [isLoadingPermissions, setIsLoadingPermissions] = useState(() => {
     const stored = loadPermissionsFromStorage();
     const hasValid = !!(stored.clientId && (stored.isAdmin || stored.isLeader));
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:106',message:'isLoadingPermissions initial state',data:{hasValid,stored},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     return !hasValid;
   });
-  // #endregion
-  // #region agent log - Fix: Use ref to track if permissions were already loaded
+  // Fix: Use ref to track if permissions were already loaded
   const initialStored = loadPermissionsFromStorage();
   const hasLoadedPermissionsRef = useRef(!!(initialStored.clientId && (initialStored.isAdmin || initialStored.isLeader)));
-  // #endregion
 
   // Verificar permissões do usuário
   useEffect(() => {
-    // #region agent log - Fix: Skip if we already have valid permissions and enabled is true
+    // Fix: Skip if we already have valid permissions and enabled is true
     const hasValidPermissions = userPermissions.clientId && (userPermissions.isAdmin || userPermissions.isLeader);
     if (enabled && hasValidPermissions && hasLoadedPermissionsRef.current) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:85',message:'checkPermissions skipped - already loaded',data:{hasValidPermissions,enabled},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       return; // Skip re-checking if we already have valid permissions
     }
-    // #endregion
     
     const checkPermissions = async () => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:92',message:'checkPermissions started',data:{enabled,isLoadingPermissions},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:96',message:'checkPermissions session check',data:{hasSession:!!session,hasUser:!!session?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         
         if (!session) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:100',message:'checkPermissions no session',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           setIsLoadingPermissions(false);
           return;
         }
@@ -159,9 +141,6 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
           .single();
 
         if (userError || !clientUser) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:116',message:'checkPermissions user error',data:{error:userError?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-          // #endregion
           console.error('Erro ao buscar usuário:', userError);
           setIsLoadingPermissions(false);
           return;
@@ -191,25 +170,17 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
           teamIds,
           clientId: clientUser.client_id,
         };
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:148',message:'checkPermissions success',data:{...newPermissions},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         setUserPermissions(newPermissions);
-        // #region agent log - Fix: Persist permissions to sessionStorage
+        // Fix: Persist permissions to sessionStorage
         try {
           sessionStorage.setItem('useOpportunities-permissions', JSON.stringify(newPermissions));
           sessionStorage.setItem('useOpportunities-permissions-timestamp', Date.now().toString());
         } catch (e) {
           // Ignore storage errors
         }
-        // #endregion
-        // #region agent log - Fix: Mark as loaded after successful check
+        // Fix: Mark as loaded after successful check
         hasLoadedPermissionsRef.current = true;
-        // #endregion
       } catch (error) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:155',message:'checkPermissions error',data:{error:(error as Error)?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         console.error('Erro ao verificar permissões:', error);
       } finally {
         setIsLoadingPermissions(false);
@@ -217,32 +188,22 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
     };
 
     if (enabled) {
-      // #region agent log - Fix: Only set loading if we don't have valid permissions
+      // Fix: Only set loading if we don't have valid permissions
       if (!hasValidPermissions) {
         setIsLoadingPermissions(true);
       }
-      // #endregion
       checkPermissions();
     } else {
-      // #region agent log - Fix: Reset loading state when disabled
+      // Fix: Reset loading state when disabled
       setIsLoadingPermissions(false);
-      // #endregion
     }
   }, [enabled, userPermissions.clientId, userPermissions.isAdmin, userPermissions.isLeader]);
 
   // Query para buscar contatos
   const queryEnabled = enabled && !isLoadingPermissions && !!userPermissions.clientId && (userPermissions.isAdmin || userPermissions.isLeader);
-  // #region agent log
-  useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:144',message:'query enabled state',data:{enabled,isLoadingPermissions,hasClientId:!!userPermissions.clientId,isAdmin:userPermissions.isAdmin,isLeader:userPermissions.isLeader,queryEnabled},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  }, [enabled, isLoadingPermissions, userPermissions.clientId, userPermissions.isAdmin, userPermissions.isLeader, queryEnabled]);
-  // #endregion
   const query = useQuery({
     queryKey: ['contacts', userPermissions.clientId, userPermissions.isAdmin, userPermissions.teamIds],
     queryFn: async (): Promise<Contact[]> => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useOpportunities.ts:149',message:'queryFn called',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       if (!userPermissions.clientId) {
         return [];
       }

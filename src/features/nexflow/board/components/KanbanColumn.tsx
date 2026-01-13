@@ -5,7 +5,8 @@ import { cn, hexToRgba } from "@/lib/utils";
 import { StepResponsibleSelector } from "@/components/crm/flows/StepResponsibleSelector";
 import { SortableCard } from "./SortableCard";
 import { ColumnDropZone } from "./ColumnDropZone";
-import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
+import type { NexflowCard } from "@/types/nexflow";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import type { CardsByStepPaginated, StepCounts } from "../types";
 
 interface KanbanColumnProps {
@@ -74,15 +75,6 @@ export function KanbanColumn({
             <StepResponsibleSelector step={step} flowId={flowId} />
           )}
         </h2>
-        {isStartColumn && (
-          <button
-            onClick={onNewCard}
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-white text-sm py-2 rounded-lg transition-colors backdrop-blur-sm border border-white/10"
-          >
-            <Plus className="h-4 w-4" />
-            Novo card
-          </button>
-        )}
       </div>
       <div
         className={cn(
@@ -97,8 +89,19 @@ export function KanbanColumn({
             strategy={verticalListSortingStrategy}
           >
             {columnCards.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-slate-400 text-sm italic">
-                Nenhum card aqui
+              <div className="flex flex-col gap-3">
+                <div className="h-full flex items-center justify-center text-slate-400 text-sm italic min-h-[200px]">
+                  Nenhum card aqui
+                </div>
+                {isStartColumn && (
+                  <button
+                    onClick={onNewCard}
+                    className="w-full flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 text-sm py-3 rounded-lg transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo card
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -114,6 +117,15 @@ export function KanbanColumn({
                     currentStep={step}
                   />
                 ))}
+                {isStartColumn && (
+                  <button
+                    onClick={onNewCard}
+                    className="w-full flex items-center justify-center gap-2 bg-white dark:bg-slate-800 border-2 border-dashed border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 text-sm py-3 rounded-lg transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Novo card
+                  </button>
+                )}
               </div>
             )}
           </SortableContext>

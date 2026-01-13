@@ -53,7 +53,7 @@ export function ContactDetailsPanel({
   const queryClient = useQueryClient();
 
   const updateContactType = useMutation({
-    mutationFn: async (contactTypes: ("cliente" | "parceiro" | "outro")[] | ("cliente" | "parceiro" | "outro")) => {
+    mutationFn: async (contactTypes: ("cliente" | "parceiro")[]) => {
       if (!contactId) throw new Error("Contact ID é obrigatório");
 
       const clientId = await getCurrentClientId();
@@ -61,15 +61,13 @@ export function ContactDetailsPanel({
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
-      // Converter array para string único (compatibilidade com banco atual)
-      // Se houver múltiplos tipos, usar o primeiro
-      const contactTypeValue: "cliente" | "parceiro" | "outro" | null = Array.isArray(contactTypes) 
-        ? (contactTypes.length > 0 ? (contactTypes[0] as "cliente" | "parceiro" | "outro") : null)
-        : (contactTypes ? (contactTypes as "cliente" | "parceiro" | "outro") : null);
+      // Salvar como array (pode ser vazio/null)
+      const contactTypeValue: ("cliente" | "parceiro")[] | null = 
+        contactTypes.length > 0 ? contactTypes : null;
 
       const { error } = await nexflowClient()
         .from("contacts")
-        .update({ contact_type: contactTypeValue })
+        .update({ contact_type: contactTypeValue as ("cliente" | "parceiro")[] | null })
         .eq("id", contactId)
         .eq("client_id", clientId);
 
@@ -86,13 +84,16 @@ export function ContactDetailsPanel({
     },
   });
 
-  const handleTypeToggle = (type: "cliente" | "parceiro" | "outro") => {
+  const handleTypeToggle = (type: "cliente" | "parceiro") => {
     // Suporta tanto string quanto array para compatibilidade
-    const currentTypes = Array.isArray(details?.contact_type) 
-      ? details.contact_type 
-      : details?.contact_type ? [details.contact_type] : [];
+    const currentTypes: ("cliente" | "parceiro")[] = Array.isArray(details?.contact_type) 
+      ? (details.contact_type.filter((t): t is "cliente" | "parceiro" => 
+          t === "cliente" || t === "parceiro")) as ("cliente" | "parceiro")[]
+      : details?.contact_type && (details.contact_type === "cliente" || details.contact_type === "parceiro")
+        ? [details.contact_type as "cliente" | "parceiro"]
+        : [];
     
-    const newTypes = currentTypes.includes(type)
+    const newTypes: ("cliente" | "parceiro")[] = currentTypes.includes(type)
       ? currentTypes.filter((t) => t !== type)
       : [...currentTypes, type];
     updateContactType.mutate(newTypes);
@@ -180,11 +181,14 @@ export function ContactDetailsPanel({
                 <div className="space-y-3">
                   <Label>Tipo de Contato</Label>
                   <div className="space-y-2">
-                    {(["cliente", "parceiro", "outro"] as const).map((type) => {
+                    {(["cliente", "parceiro"] as const).map((type) => {
                       // Suporta tanto string quanto array para compatibilidade
-                      const contactTypes = Array.isArray(details.contact_type) 
-                        ? details.contact_type 
-                        : details.contact_type ? [details.contact_type] : [];
+                      const contactTypes: ("cliente" | "parceiro")[] = Array.isArray(details.contact_type) 
+                        ? (details.contact_type.filter((t): t is "cliente" | "parceiro" => 
+            t === "cliente" || t === "parceiro")) as ("cliente" | "parceiro")[]
+                        : details?.contact_type && (details.contact_type === "cliente" || details.contact_type === "parceiro")
+                          ? [details.contact_type as "cliente" | "parceiro"]
+                          : [];
                       const isChecked = contactTypes.includes(type);
                       return (
                         <div key={type} className="flex items-center space-x-2">
@@ -198,46 +202,38 @@ export function ContactDetailsPanel({
                             htmlFor={`contact-type-${type}`}
                             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                           >
-                            {type === "cliente"
-                              ? "Cliente"
-                              : type === "parceiro"
-                              ? "Parceiro"
-                              : "Outro"}
+                            {type === "cliente" ? "Cliente" : "Parceiro"}
                           </label>
                         </div>
                       );
                     })}
                   </div>
                   {/* Exibir tipos selecionados como tags */}
-                  {details.contact_type && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {(() => {
-                        // Suporta tanto string quanto array para compatibilidade
-                        const contactTypes = Array.isArray(details.contact_type) 
-                          ? details.contact_type 
-                          : details.contact_type ? [details.contact_type] : [];
-                        return contactTypes.map((type) => (
-                        <Badge
-                          key={type}
-                          variant="secondary"
-                          className={
-                            type === "cliente"
-                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                              : type === "parceiro"
-                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
-                          }
-                        >
-                          {type === "cliente"
-                            ? "Cliente"
-                            : type === "parceiro"
-                            ? "Parceiro"
-                            : "Outro"}
-                        </Badge>
-                        ));
-                      })()}
-                    </div>
-                  )}
+                  {details.contact_type && (() => {
+                    const contactTypes: ("cliente" | "parceiro")[] = Array.isArray(details.contact_type) 
+                      ? (details.contact_type.filter((t): t is "cliente" | "parceiro" => 
+                          t === "cliente" || t === "parceiro")) as ("cliente" | "parceiro")[]
+                      : details.contact_type && (details.contact_type === "cliente" || details.contact_type === "parceiro")
+                        ? [details.contact_type as "cliente" | "parceiro"]
+                        : [];
+                    return contactTypes.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {contactTypes.map((type) => (
+                          <Badge
+                            key={type}
+                            variant="secondary"
+                            className={
+                              type === "cliente"
+                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                : "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                            }
+                          >
+                            {type === "cliente" ? "Cliente" : "Parceiro"}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Parceiro Indicador */}

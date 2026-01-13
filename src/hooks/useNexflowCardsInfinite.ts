@@ -106,9 +106,6 @@ export function useNexflowCardsInfinite(
     enabled: Boolean(flowId),
     maxPages: undefined, // Permitir carregar todas as páginas necessárias
     queryFn: async ({ pageParam = 0 }): Promise<{ cards: NexflowCard[]; nextPage: number | null }> => {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/efdc592f-55dd-4e39-a379-f4de78416cde',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useNexflowCardsInfinite.ts:queryFn',message:'useNexflowCardsInfinite queryFn called',data:{flowId,pageParam,timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
       if (!flowId) {
         return { cards: [], nextPage: null };
       }
