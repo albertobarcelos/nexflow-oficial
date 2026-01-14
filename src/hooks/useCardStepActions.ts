@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient, supabase } from "@/lib/supabase";
-import { Database } from "@/types/database";
+import { Database, Json } from "@/types/database";
 import { CardStepAction, CardStepActionStatus } from "@/types/nexflow";
 
 type CardStepActionRow = Database["public"]["Tables"]["card_step_actions"]["Row"];
@@ -17,7 +17,7 @@ const mapCardStepActionRow = (row: CardStepActionRow): CardStepAction => {
     completedAt: row.completed_at,
     completedBy: row.completed_by,
     notes: row.notes,
-    executionData: (row.execution_data as Record<string, unknown>) || {},
+    executionData: (row.execution_data as Record<string, Json | undefined>) || {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -27,14 +27,14 @@ interface UpdateCardStepActionInput {
   id: string;
   status?: CardStepActionStatus;
   notes?: string | null;
-  executionData?: Record<string, unknown>;
+  executionData?: Record<string, Json | undefined>;
   completedBy?: string | null;
 }
 
 interface CompleteCardStepActionInput {
   id: string;
   notes?: string;
-  executionData?: Record<string, unknown>;
+  executionData?: Record<string, Json | undefined>;
 }
 
 export function useCardStepActions(cardId?: string) {
@@ -79,7 +79,7 @@ export function useCardStepActions(cardId?: string) {
           if (updates.completedBy) {
             payload.completed_by = updates.completedBy;
           }
-        } else if (updates.status !== "completed" && updates.status !== "in_progress") {
+        } else if (updates.status !== "in_progress") {
           payload.completed_at = null;
           payload.completed_by = null;
         }
@@ -90,7 +90,7 @@ export function useCardStepActions(cardId?: string) {
       }
 
       if (typeof updates.executionData !== "undefined") {
-        payload.execution_data = updates.executionData;
+        payload.execution_data = updates.executionData as Json;
       }
 
       if (typeof updates.completedBy !== "undefined") {
@@ -125,13 +125,13 @@ export function useCardStepActions(cardId?: string) {
                 completedAt:
                   updates.status === "completed"
                     ? new Date().toISOString()
-                    : updates.status !== "completed" && updates.status !== "in_progress"
+                    : updates.status !== "in_progress"
                       ? null
                       : action.completedAt,
                 completedBy:
                   updates.status === "completed" && updates.completedBy
                     ? updates.completedBy
-                    : updates.status !== "completed" && updates.status !== "in_progress"
+                    : updates.status !== "in_progress"
                       ? null
                       : action.completedBy,
               }
@@ -172,7 +172,7 @@ export function useCardStepActions(cardId?: string) {
       }
 
       if (executionData) {
-        payload.execution_data = executionData;
+        payload.execution_data = executionData as Json;
       }
 
       const { data, error } = await nexflowClient()

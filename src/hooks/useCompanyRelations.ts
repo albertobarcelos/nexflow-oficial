@@ -73,25 +73,25 @@ export function useCompanyRelations() {
         // Para cada empresa, buscar parceiros e contatos vinculados
         const companiesWithRelations = await Promise.all(
           companiesData.map(async (company) => {
-            // Buscar parceiros vinculados via web_company_partners
-            // Tratamento de erro: se a tabela não existir, retornar array vazio
+            // Buscar parceiros vinculados via contact_companies + contacts
+            // TODOS os contatos relacionados via contact_companies são considerados parceiros
             let partnersData = null;
             try {
-              const { data, error } = await supabase
-                .from("web_company_partners" as any)
+              // Buscar todos os relacionamentos contact_companies para esta empresa
+              const { data: allRelations, error } = await supabase
+                .from("contact_companies")
                 .select(
                   `
                   id,
-                  partner_id,
+                  contact_id,
                   company_id,
-                  relationship_type,
-                  partner:web_partners(
+                  role,
+                  contact:contacts(
                     id,
-                    name,
-                    email,
-                    whatsapp,
-                    partner_type,
-                    status
+                    client_name,
+                    main_contact,
+                    phone_numbers,
+                    contact_type
                   )
                 `
                 )
@@ -99,19 +99,14 @@ export function useCompanyRelations() {
                 .eq("client_id", collaborator.client_id);
               
               if (error) {
-                // Se for erro 404 (tabela não existe) ou PGRST116, ignorar
-                if (error.code === 'PGRST116' || error.message?.includes('404') || error.message?.includes('does not exist')) {
-                  console.warn(`[useCompanyRelations] Tabela web_company_partners não encontrada para company ${company.id}. Ignorando.`);
-                  partnersData = [];
-                } else {
-                  console.error("Erro ao buscar parceiros:", error);
-                  partnersData = [];
-                }
+                console.error("Erro ao buscar parceiros:", error);
+                partnersData = [];
               } else {
-                partnersData = data;
+                // Mostrar TODOS os relacionamentos como parceiros (independente de terem a tag)
+                partnersData = allRelations || [];
               }
             } catch (err: any) {
-              console.warn(`[useCompanyRelations] Erro ao buscar parceiros para company ${company.id}:`, err);
+              console.error(`[useCompanyRelations] Erro ao buscar parceiros para company ${company.id}:`, err);
               partnersData = [];
             }
 
@@ -150,14 +145,26 @@ export function useCompanyRelations() {
               contactsData = [];
             }
 
-            // Processar parceiros
-            const partners: CompanyPartner[] = (partnersData || []).map((item: any) => ({
-              id: item.id,
-              partner_id: item.partner_id,
-              company_id: item.company_id,
-              relationship_type: item.relationship_type,
-              partner: Array.isArray(item.partner) ? item.partner[0] : item.partner,
-            })).filter((p: CompanyPartner) => p.partner); // Filtrar parceiros válidos
+            // Processar parceiros - mapear de contact_companies + contacts para CompanyPartner
+            const partners: CompanyPartner[] = (partnersData || []).map((item: any) => {
+              const contact = Array.isArray(item.contact) ? item.contact[0] : item.contact;
+              if (!contact) return null;
+
+              return {
+                id: item.id, // id de contact_companies
+                partner_id: item.contact_id, // contact_id
+                company_id: item.company_id,
+                relationship_type: item.role || '', // role de contact_companies
+                partner: {
+                  id: contact.id,
+                  name: contact.client_name || '',
+                  email: contact.main_contact || '',
+                  whatsapp: (contact.phone_numbers && contact.phone_numbers.length > 0) ? contact.phone_numbers[0] : '',
+                  partner_type: 'parceiro',
+                  status: 'active', // Padrão para parceiros
+                },
+              };
+            }).filter((p: CompanyPartner | null): p is CompanyPartner => p !== null); // Filtrar parceiros válidos
 
             // Processar contatos
             const contacts: CompanyContact[] = (contactsData || []).map((item: any) => ({

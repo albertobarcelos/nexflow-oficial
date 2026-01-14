@@ -12,7 +12,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Building2, Users, Handshake, Search, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface CompanyRelationsTableProps {
-  onCompanyClick?: (companyId: string) => void;
-}
+interface CompanyRelationsTableProps {}
 
-export function CompanyRelationsTable({ onCompanyClick }: CompanyRelationsTableProps) {
-  const navigate = useNavigate();
+export function CompanyRelationsTable() {
   const { companies, isLoading } = useCompanyRelations();
   const [search, setSearch] = useState("");
   const [selectedCompany, setSelectedCompany] = useState<CompanyRelation | null>(null);
@@ -41,15 +37,6 @@ export function CompanyRelationsTable({ onCompanyClick }: CompanyRelationsTableP
   const handleViewDetails = (company: CompanyRelation) => {
     setSelectedCompany(company);
     setIsDetailsDialogOpen(true);
-  };
-
-  const handleCompanyClick = (companyId: string) => {
-    if (onCompanyClick) {
-      onCompanyClick(companyId);
-    } else {
-      // Navegar para página de detalhes da empresa se existir
-      navigate(`/crm/companies/${companyId}`);
-    }
   };
 
   if (isLoading) {
@@ -103,8 +90,6 @@ export function CompanyRelationsTable({ onCompanyClick }: CompanyRelationsTableP
               filteredCompanies.map((company) => (
                 <TableRow
                   key={company.id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleCompanyClick(company.id)}
                 >
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
@@ -139,10 +124,7 @@ export function CompanyRelationsTable({ onCompanyClick }: CompanyRelationsTableP
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewDetails(company);
-                      }}
+                      onClick={() => handleViewDetails(company)}
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Detalhes
@@ -250,9 +232,9 @@ export function CompanyRelationsTable({ onCompanyClick }: CompanyRelationsTableP
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="font-medium">{contact.contact.client_name}</p>
-                            {contact.contact.email && (
+                            {contact.contact.main_contact && (
                               <p className="text-sm text-muted-foreground">
-                                {contact.contact.email}
+                                {contact.contact.main_contact}
                               </p>
                             )}
                             {contact.contact.phone_numbers && contact.contact.phone_numbers.length > 0 && (

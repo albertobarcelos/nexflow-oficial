@@ -80,7 +80,7 @@ Módulo de gestão de processos e cards (migrado do schema `nexflow` para `publi
 - `card_messages`: Mensagens nos cards
 - `card_message_attachments`: Anexos das mensagens
 - `card_attachments`: Anexos dos cards
-- `contacts`: Contatos do módulo NexFlow
+- `contacts`: Contatos do módulo NexFlow (estrutura detalhada na seção 2.3)
 - `flow_team_access`: Controle de acesso de times aos flows
 - `flow_user_exclusions`: Exclusões de usuários dos flows
 - `step_team_access`: Controle de acesso de times aos steps
@@ -194,12 +194,25 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 
 ##### Relacionamentos e Indicações (Janeiro 2025)
 - `20260110_create_contact_companies_relationship.sql`: Tabela de relacionamento N:N entre contatos e empresas
-- `20260110_add_indicated_by_to_contacts.sql`: Adiciona campos indicated_by e contact_type em contacts
+- `20260110_add_indicated_by_to_contacts.sql`: Adiciona campos indicated_by e contact_type em contacts (inicialmente como TEXT)
 - `20260110_add_indicated_by_to_cards.sql`: Adiciona campo indicated_by em cards
 - `20260110_create_contact_indications.sql`: Tabela de dados detalhados de indicações
 - `20260110_improve_card_history.sql`: Melhora card_history com rastreamento de direção de movimento
 - `20260110_add_flow_identifier.sql`: Adiciona campo flow_identifier em flows para automações
 - `20260110_create_flow_helper_functions.sql`: Funções auxiliares para buscar flows e steps
+- `20260116_change_contact_type_to_array.sql`: Converte contact_type de TEXT para TEXT[] para suportar múltiplos tipos
+- `20260117_fix_contact_type_array_and_remove_outro.sql`: Remove valor 'outro' e ajusta validações
+- `20260118_fix_automation_functions_contact_type_array.sql`: Corrige funções de automação para usar sintaxe correta de array
+
+##### Sistema de Histórico e Auditoria (Janeiro 2025)
+- `20260119_refactor_card_history_system.sql`: Refatora `card_history` com suporte a tipos de evento, duração e valores anteriores/novos
+- `20260119_add_last_stage_change_to_cards.sql`: Adiciona `last_stage_change_at` em `cards` para otimização de performance
+- `20260119_create_card_history_triggers.sql`: Cria triggers automáticos para rastreamento de eventos (mudanças de etapa, edições de campos, mudanças de status)
+- `20260119_migrate_existing_card_history.sql`: Migra dados existentes, calcula `duration_seconds` retroativamente e preenche `last_stage_change_at`
+- `20260119_add_card_history_foreign_keys.sql`: Adiciona foreign keys faltantes em `card_history` para joins automáticos
+- `20260119_create_history_sql_functions.sql`: Cria funções SQL `get_card_timeline` e `get_contact_history` para queries otimizadas
+- `20260119_add_activity_history_triggers.sql`: Cria triggers para rastrear criação, atualização e conclusão de atividades (`card_activities`)
+- `20260119_add_process_history_triggers.sql`: Cria triggers para rastrear mudanças de status de processos (`card_step_actions`)
 
 ##### Outras Migrations
 - `20241220_add_avatar_fields_to_core_client_users.sql`: Campos de avatar
@@ -262,14 +275,14 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 | `card_messages` | public | ❌ | Mensagens nos cards |
 | `card_message_attachments` | public | ❌ | Anexos das mensagens |
 | `card_attachments` | public | ❌ | Anexos dos cards |
-| `card_history` | public | ❌ | Histórico de alterações |
+| `card_history` | public | ❌ | Histórico granular de eventos (estrutura detalhada abaixo) |
 | `card_step_actions` | public | ❌ | Ações de cards em steps |
 | `step_actions` | public | ❌ | Ações configuradas para steps |
 | `step_fields` | public | ❌ | Campos customizados dos steps |
 | `step_checklists` | public | ❌ | Checklists dos steps |
 | `notifications` | public | ❌ | Notificações |
 | `user_notification_settings` | public | ❌ | Configurações de notificação |
-| `contacts` | public | ❌ | Contatos do módulo |
+| `contacts` | public | ❌ | Contatos do módulo NexFlow (estrutura completa abaixo) |
 | `flow_team_access` | public | ❌ | Acesso de times aos flows |
 | `flow_user_exclusions` | public | ❌ | Exclusões de usuários dos flows |
 | `step_team_access` | public | ❌ | Acesso de times aos steps |
@@ -282,6 +295,166 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 | `step_child_card_automations` | public | ❌ | Automações de cards filhos |
 | `contact_companies` | public | ❌ | Relacionamento N:N entre contatos e empresas |
 | `contact_indications` | public | ❌ | Dados detalhados de indicações entre contatos |
+
+##### Estrutura Detalhada da Tabela `card_history`
+
+A tabela `card_history` foi refatorada em janeiro de 2025 para suportar rastreamento granular de eventos com cálculo automático de tempo de permanência.
+
+**Colunas:**
+
+| Coluna | Tipo | Nullable | Default | Descrição |
+|--------|------|----------|---------|-----------|
+| `id` | UUID | NO | `gen_random_uuid()` | Chave primária |
+| `card_id` | UUID | NO | - | FK para `cards` |
+| `client_id` | UUID | NO | - | FK para `core_clients` |
+| `event_type` | TEXT | YES | - | Tipo de evento: `stage_change`, `field_update`, `activity`, `status_change`, `freeze`, `unfreeze`, `checklist_completed`, `process_status_change`, `process_completed` |
+| `from_step_id` | UUID | YES | - | FK para `steps` (etapa de origem) |
+| `to_step_id` | UUID | YES | - | FK para `steps` (etapa de destino) |
+| `created_by` | UUID | YES | - | FK para `core_client_users` (usuário que criou o evento) |
+| `created_at` | TIMESTAMPTZ | YES | `now()` | Data/hora do evento |
+| `action_type` | TEXT | NO | `'move'` | Tipo de ação: `move`, `complete`, `cancel` |
+| `details` | JSONB | YES | `'{}'::jsonb` | Detalhes adicionais do evento |
+| `movement_direction` | TEXT | YES | `'forward'` | Direção do movimento: `forward`, `backward`, `same` |
+| `from_step_position` | INTEGER | YES | - | Posição da etapa de origem |
+| `to_step_position` | INTEGER | YES | - | Posição da etapa de destino |
+| `duration_seconds` | INTEGER | YES | - | Tempo em segundos na etapa anterior (calculado automaticamente) |
+| `previous_value` | JSONB | YES | - | Valor anterior (para edições de campos) |
+| `new_value` | JSONB | YES | - | Novo valor (para edições de campos) |
+| `field_id` | UUID | YES | - | FK para `step_fields` (para eventos `field_update`) |
+| `activity_id` | UUID | YES | - | FK para `card_activities` (para eventos `activity`) |
+
+**Índices:**
+
+- `idx_card_history_card_id_event_type` (BTREE em `card_id, event_type`)
+- `idx_card_history_card_created` (BTREE em `card_id, created_at DESC`)
+- `idx_card_history_duration_seconds` (BTREE em `card_id, duration_seconds` WHERE `duration_seconds IS NOT NULL`)
+- `idx_card_history_movement_direction` (BTREE em `movement_direction`)
+
+**Triggers:**
+
+**Triggers em `cards`:**
+- `trigger_track_card_stage_change`: Cria evento `stage_change` quando `step_id` muda
+- `trigger_track_card_field_update`: Cria eventos `field_update` quando `field_values` muda
+- `trigger_track_card_status_change`: Cria evento `status_change` quando `status` muda
+
+**Triggers em `card_history`:**
+- `trigger_calculate_stage_duration`: Calcula `duration_seconds` automaticamente antes de inserir eventos `stage_change`
+
+**Triggers em `card_activities`:**
+- `trigger_track_activity_created`: Cria evento `activity` quando uma atividade é criada
+- `trigger_track_activity_completed`: Cria evento `activity` quando uma atividade é concluída
+- `trigger_track_activity_updated`: Cria evento `activity` quando uma atividade é atualizada (assignee, datas, título)
+
+**Triggers em `card_step_actions`:**
+- `trigger_track_process_status_change`: Cria evento `process_status_change` quando status de um processo muda
+- `trigger_track_process_completed`: Cria evento `process_completed` quando um processo é concluído
+
+**Funções:**
+
+**Funções de Rastreamento:**
+- `calculate_stage_duration()`: Calcula tempo na etapa anterior baseado em `last_stage_change_at` do card
+- `track_card_stage_change()`: Rastreia mudanças de etapa automaticamente
+- `track_card_field_update()`: Rastreia edições de campos automaticamente
+- `track_card_status_change()`: Rastreia mudanças de status automaticamente
+- `track_activity_created()`: Rastreia criação de atividades
+- `track_activity_completed()`: Rastreia conclusão de atividades
+- `track_activity_updated()`: Rastreia atualizações de atividades
+- `track_process_status_change()`: Rastreia mudanças de status de processos
+- `track_process_completed()`: Rastreia conclusão de processos
+
+**Funções SQL para Queries:**
+- `get_card_timeline(p_card_id UUID, p_client_id UUID)`: Retorna timeline completa de eventos de um card com dados relacionados (user, steps, fields, activities, processes). Usa joins explícitos e extrai dados de `details` (JSONB).
+- `get_contact_history(p_contact_id UUID, p_client_id UUID)`: Retorna resumo da jornada dos cards de um contato com etapa atual, tempo na etapa e eventos recentes (incluindo atividades e processos).
+
+**Migrations Relacionadas:**
+
+- `20260119_refactor_card_history_system.sql`: Adiciona novos campos (`event_type`, `duration_seconds`, `previous_value`, `new_value`, `field_id`, `activity_id`)
+- `20260119_add_last_stage_change_to_cards.sql`: Adiciona `last_stage_change_at` em `cards`
+- `20260119_create_card_history_triggers.sql`: Cria triggers e funções de rastreamento para cards
+- `20260119_migrate_existing_card_history.sql`: Migra dados existentes
+- `20260119_add_card_history_foreign_keys.sql`: Adiciona foreign keys para joins automáticos
+- `20260119_create_history_sql_functions.sql`: Cria funções SQL otimizadas para queries
+- `20260119_add_activity_history_triggers.sql`: Cria triggers para rastrear atividades
+- `20260119_add_process_history_triggers.sql`: Cria triggers para rastrear processos
+
+**Documentação Completa:**
+
+Ver `docs/HISTORY_LOGIC.md` para detalhes técnicos sobre cálculo de tempo, triggers e performance.
+
+##### Estrutura Detalhada da Tabela `contacts`
+
+A tabela `contacts` armazena contatos do módulo NexFlow. Um contato pode ter múltiplos tipos (`contact_type` como array) e pode ser indicado por outro contato.
+
+**Colunas:**
+
+| Coluna | Tipo | Nullable | Default | Descrição |
+|--------|------|----------|---------|-----------|
+| `id` | UUID | NO | `gen_random_uuid()` | Chave primária |
+| `client_id` | UUID | NO | - | FK para `core_clients` |
+| `client_name` | TEXT | NO | - | Nome do cliente/empresa |
+| `main_contact` | TEXT | NO | - | Nome do contato principal |
+| `phone_numbers` | TEXT[] | YES | `'{}'::text[]` | Array de números de telefone |
+| `company_names` | TEXT[] | YES | `'{}'::text[]` | Array de nomes de empresas |
+| `tax_ids` | TEXT[] | YES | `'{}'::text[]` | Array de CPFs/CNPJs |
+| `related_card_ids` | UUID[] | YES | `'{}'::uuid[]` | Array de IDs de cards relacionados |
+| `created_at` | TIMESTAMPTZ | YES | `now()` | Data de criação |
+| `updated_at` | TIMESTAMPTZ | YES | `now()` | Data de atualização |
+| `assigned_team_id` | UUID | YES | - | FK para `core_teams` (time responsável) |
+| `avatar_type` | VARCHAR | YES | `'toy_face'` | Tipo de avatar |
+| `avatar_seed` | VARCHAR | YES | `'1|1'` | Seed para geração de avatar |
+| `indicated_by` | UUID | YES | - | FK para `contacts.id` (auto-referência - contato que indicou) |
+| `contact_type` | TEXT[] | YES | - | Array de tipos: `'cliente'`, `'parceiro'` (pode ter múltiplos) |
+
+**Constraints:**
+
+- **PRIMARY KEY**: `id`
+- **FOREIGN KEYS**:
+  - `client_id` → `core_clients(id)`
+  - `assigned_team_id` → `core_teams(id)`
+  - `indicated_by` → `contacts(id)` (auto-referência)
+- **CHECK**: `validate_contact_types(contact_type)` - Valida que todos os valores no array são 'cliente' ou 'parceiro'
+- **UNIQUE**: `(client_id, main_contact)` - Garante unicidade do contato principal por cliente
+
+**Índices:**
+
+- `opportunities_pkey` (PRIMARY KEY em `id`)
+- `idx_opportunities_client_id` (BTREE em `client_id`)
+- `idx_opportunities_main_contact` (BTREE em `main_contact`)
+- `idx_opportunities_assigned_team_id` (BTREE em `assigned_team_id`)
+- `idx_contacts_indicated_by` (BTREE em `indicated_by`)
+- `idx_contacts_contact_type_gin` (GIN em `contact_type`) - Para buscas eficientes em arrays
+- `idx_opportunities_tax_ids` (GIN em `tax_ids`) - Para buscas em arrays de CPF/CNPJ
+- `idx_opportunities_related_cards` (GIN em `related_card_ids`) - Para buscas em arrays de UUIDs
+
+**Relacionamentos:**
+
+- **N:1 com `core_clients`**: Cada contato pertence a um cliente (tenant)
+- **N:1 com `core_teams`**: Cada contato pode ser atribuído a um time
+- **1:N com `contacts`** (via `indicated_by`): Um contato pode indicar vários outros contatos
+- **N:1 com `contacts`** (via `indicated_by`): Um contato pode ser indicado por outro contato
+- **N:N com `web_companies`**: Via tabela `contact_companies` (um contato pode estar vinculado a várias empresas)
+- **1:N com `cards`**: Um contato pode ter vários cards em diferentes flows
+
+**Funções de Automação:**
+
+A tabela possui triggers que disparam automações baseadas no `contact_type`:
+
+- **`handle_partner_contact_automation()`**: Quando `'parceiro' = ANY(contact_type)`, cria ou atualiza card no flow "Parceiros"
+- **`handle_client_contact_automation()`**: Quando `'cliente' = ANY(contact_type)` (apenas em INSERT), cria card no flow "Vendas"
+
+**Notas Importantes:**
+
+1. **`contact_type` é um array**: Permite que um contato seja tanto "cliente" quanto "parceiro" simultaneamente
+2. **Valores permitidos**: Apenas `'cliente'` e `'parceiro'` (o valor `'outro'` foi removido em janeiro de 2025)
+3. **Sintaxe de busca**: Para verificar se um contato tem um tipo específico, use `'tipo' = ANY(contact_type)`
+4. **Automações**: Os triggers verificam se o array contém o tipo específico antes de executar a automação
+
+**Migrations Relacionadas:**
+
+- `20260110_add_indicated_by_to_contacts.sql`: Adiciona `indicated_by` e `contact_type` (inicialmente como TEXT)
+- `20260116_change_contact_type_to_array.sql`: Converte `contact_type` de TEXT para TEXT[]
+- `20260117_fix_contact_type_array_and_remove_outro.sql`: Remove valor 'outro' e ajusta validações
+- `20260118_fix_automation_functions_contact_type_array.sql`: Corrige funções de automação para usar sintaxe de array
 
 #### Módulo de Comissões
 
@@ -693,7 +866,10 @@ Identificados **170+ arquivos** com interações ao banco. Principais hooks por 
 - **`useNexflowSteps`**: Steps dos flows (schema `public`)
 - **`useNexflowStepFields`**: Campos dos steps (schema `public`)
 - **`useCardHistory`**: Histórico de cards (schema `public`)
+- **`useCardTimeline`**: Timeline completa de eventos de um card (usa Edge Function `get-card-timeline`)
+- **`useContactHistory`**: Resumo da jornada dos cards de um contato (usa Edge Function `get-contact-history`)
 - **`useCardStepActions`**: Ações dos cards (schema `public`)
+- **`useCardActivities`**: Atividades dos cards (schema `public`)
 - **`useContactAutomations`**: Automações de contatos (schema `public`)
 - **`useStepChildCardAutomations`**: Automações de cards filhos (schema `public`)
 - **`useCardMessages`**: Mensagens dos cards
@@ -807,9 +983,13 @@ const mutation = useMutation({
 | `get-flows` | `get-flows` | ✅ | ACTIVE | Lista flows com permissões (schema `public`) |
 | `get-steps` | `get-steps` | ✅ | ACTIVE | Lista steps de um flow (schema `public`) |
 | `update-nexflow-card` | `update-nexflow-card` | ✅ | ACTIVE | Atualiza card (v17, schema `public`) |
+| `get-card-timeline` | `get-card-timeline` | ✅ | ACTIVE | Retorna timeline completa de eventos de um card via função SQL |
+| `get-contact-history` | `get-contact-history` | ✅ | ACTIVE | Retorna resumo da jornada dos cards de um contato via função SQL |
 | `delete-nexflow-step` | `delete-nexflow-step` | ❌ | ACTIVE | Deleta step (schema `public`) |
 | `get-step-visibility` | `get-step-visibility` | ✅ | ACTIVE | Busca visibilidade de step (schema `public`) |
 | `update-step-visibility` | `update-step-visibility` | ✅ | ACTIVE | Atualiza visibilidade de step (schema `public`) |
+| `get-card-timeline` | `get-card-timeline` | ✅ | ACTIVE | Retorna timeline completa de eventos de um card via função SQL `get_card_timeline` |
+| `get-contact-history` | `get-contact-history` | ✅ | ACTIVE | Retorna resumo da jornada dos cards de um contato via função SQL `get_contact_history` |
 
 **Arquivos Locais** (todos atualizados para schema `public`):
 - `supabase/functions/get-steps/index.ts`
@@ -817,6 +997,8 @@ const mutation = useMutation({
 - `supabase/functions/delete-nexflow-step/index.ts`
 - `supabase/functions/get-step-visibility/index.ts`
 - `supabase/functions/update-step-visibility/index.ts`
+- `supabase/functions/get-card-timeline/index.ts`
+- `supabase/functions/get-contact-history/index.ts`
 
 #### Visibilidade
 
@@ -1013,33 +1195,38 @@ O sistema implementa automações automáticas via Database Triggers que criam/a
 
 - **Tipo**: Trigger Function (PL/pgSQL)
 - **Tabela**: `contacts`
-- **Evento**: INSERT ou UPDATE quando `contact_type = 'parceiro'`
+- **Evento**: INSERT ou UPDATE quando `'parceiro' = ANY(contact_type)`
 - **Comportamento**: Busca flow com `flow_identifier = 'parceiros'` e cria/atualiza card no primeiro step. Se card já existe, atualiza; caso contrário, cria novo.
 - **Uso**: Automatiza gestão de parceiros no flow "Parceiros"
+- **Sintaxe**: Usa `'parceiro' = ANY(NEW.contact_type)` para verificar se o array contém o tipo (corrigido em janeiro de 2025)
 
 **`handle_client_contact_automation()`**
 
 - **Tipo**: Trigger Function (PL/pgSQL)
 - **Tabela**: `contacts`
-- **Evento**: INSERT quando `contact_type = 'cliente'`
+- **Evento**: INSERT quando `'cliente' = ANY(contact_type)`
 - **Comportamento**: Busca flow com `flow_identifier = 'vendas'` e cria card automaticamente no primeiro step do flow "Vendas"
 - **Uso**: Automatiza criação de oportunidades de venda para novos clientes
+- **Sintaxe**: Usa `'cliente' = ANY(NEW.contact_type)` para verificar se o array contém o tipo (corrigido em janeiro de 2025)
 
 #### 6.3.3 Triggers
 
-- **`trigger_handle_partner_contact`**: Dispara em INSERT/UPDATE de contatos tipo "parceiro"
-- **`trigger_handle_client_contact`**: Dispara em INSERT de contatos tipo "cliente"
+- **`trigger_handle_partner_contact`**: Dispara em INSERT/UPDATE quando `'parceiro' = ANY(NEW.contact_type)`
+- **`trigger_handle_client_contact`**: Dispara em INSERT quando `'cliente' = ANY(NEW.contact_type)`
+
+**Nota**: Os triggers usam a cláusula `WHEN` para verificar se o array `contact_type` contém o tipo específico antes de executar a função.
 
 #### 6.3.4 Pré-requisitos
 
 Para as automações funcionarem:
 1. Flows devem ter `flow_identifier` configurado ('parceiros' ou 'vendas')
 2. Flows devem ter pelo menos um step
-3. Contatos devem ter `contact_type` definido ('parceiro' ou 'cliente')
+3. Contatos devem ter `contact_type` como array contendo 'parceiro' ou 'cliente' (ou ambos)
 
 **Arquivos**:
-- `supabase/migrations/20260110_create_automation_functions.sql`: Funções de automação
+- `supabase/migrations/20260110_create_automation_functions.sql`: Funções de automação (versão inicial)
 - `supabase/migrations/20260110_create_automation_triggers.sql`: Triggers
+- `supabase/migrations/20260118_fix_automation_functions_contact_type_array.sql`: Correção para usar sintaxe de array
 
 ---
 
@@ -1164,8 +1351,21 @@ Identificadas via MCP:
 ---
 
 **Última Atualização**: Janeiro 2025  
-**Versão do Documento**: 1.1  
+**Versão do Documento**: 1.4  
 **Atualizações Recentes**:
+- Janeiro 2025: Refatoração completa do sistema de histórico e auditoria (`card_history`)
+  - Adicionado suporte a tipos de evento (`event_type`): `stage_change`, `field_update`, `activity`, `status_change`, `freeze`, `unfreeze`, `checklist_completed`, `process_status_change`, `process_completed`
+  - Adicionado cálculo automático de `duration_seconds` (tempo na etapa anterior)
+  - Adicionado rastreamento de valores anteriores/novos (`previous_value`, `new_value`)
+  - Adicionado `last_stage_change_at` em `cards` para otimização de performance
+  - Criados triggers automáticos para rastreamento de eventos de cards (mudanças de etapa, edições, status)
+  - Criados triggers para rastrear atividades (`card_activities`): criação, atualização e conclusão
+  - Criados triggers para rastrear processos (`card_step_actions`): mudanças de status e conclusão
+  - Criadas funções SQL `get_card_timeline` e `get_contact_history` para queries otimizadas com joins explícitos
+  - Criadas Edge Functions `get-card-timeline` e `get-contact-history` que chamam as funções SQL via RPC
+  - Migração de dados existentes com cálculo retroativo de duração
+- Janeiro 2025: Adicionada estrutura completa da tabela `contacts` com todas as colunas, índices e relacionamentos
+- Janeiro 2025: Corrigidas funções de automação para usar sintaxe correta de array (`'tipo' = ANY(contact_type)`)
 - Janeiro 2025: Adicionadas automações de contatos (triggers para parceiros e clientes)
 - Janeiro 2025: Adicionadas tabelas `contact_companies` e `contact_indications`
 - Janeiro 2025: Melhorias no `card_history` com rastreamento de direção de movimento

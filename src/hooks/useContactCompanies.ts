@@ -106,11 +106,33 @@ export function useContactCompanies(contactId: string | null) {
         .single();
 
       if (error) throw error;
+
+      // Adicionar 'parceiro' ao contact_type se não tiver
+      const { data: contactData } = await nexflowClient()
+        .from("contacts")
+        .select("contact_type")
+        .eq("id", contactId)
+        .single();
+
+      if (contactData) {
+        const currentTypes = (contactData.contact_type || []) as ("cliente" | "parceiro")[];
+        const hasParceiro = currentTypes.includes('parceiro');
+        
+        if (!hasParceiro) {
+          const updatedTypes: ("cliente" | "parceiro")[] = [...currentTypes, 'parceiro' as const];
+          await nexflowClient()
+            .from("contacts")
+            .update({ contact_type: updatedTypes })
+            .eq("id", contactId);
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
       queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["company-relations"] });
       toast.success("Empresa vinculada com sucesso!");
     },
     onError: (error: Error) => {

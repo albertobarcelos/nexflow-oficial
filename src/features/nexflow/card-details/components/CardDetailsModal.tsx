@@ -302,8 +302,7 @@ export function CardDetailsModal({
         return (
           <CardHistoryTab
             card={card}
-            timelineSteps={timelineSteps}
-            renderTimelineFieldValue={renderTimelineFieldValue}
+            steps={effectiveSteps}
           />
         );
       case "fields":

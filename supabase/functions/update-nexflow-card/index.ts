@@ -541,148 +541,19 @@ Deno.serve(async (req: Request) => {
       });
     }
     
+    // NOTA: O histórico de mudanças de etapa agora é registrado automaticamente
+    // pelo trigger track_card_stage_change() no banco de dados.
+    // Não é mais necessário inserir manualmente aqui.
     if (isStepChanging) {
-      try {
-        // Validar que userId existe
-        if (!userId) {
-          console.error('Erro ao registrar histórico: userId não está disponível', {
-            cardId,
-            fromStepId: card.step_id,
-            toStepId: finalStepId,
-          });
-        } else {
-          // Buscar informações dos steps para adicionar no details
-          let fromStepTitle: string | null = null;
-          let fromStepType: string | null = null;
-          let toStepTitle: string | null = null;
-          let toStepType: string | null = null;
-          
-          if (card.step_id) {
-            const { data: fromStep } = await supabase
-              .from('steps')
-              .select('title, step_type')
-              .eq('id', card.step_id)
-              .single();
-            fromStepTitle = fromStep?.title ?? null;
-            fromStepType = fromStep?.step_type ?? null;
-          }
-          
-          if (finalStepId) {
-            const { data: toStep } = await supabase
-              .from('steps')
-              .select('title, step_type')
-              .eq('id', finalStepId)
-              .single();
-            toStepTitle = toStep?.title ?? null;
-            toStepType = toStep?.step_type ?? null;
-          }
-          
-          // Buscar informações do usuário para adicionar no details
-          let userName: string | null = null;
-          const { data: userData } = await supabase
-            .from('core_client_users')
-            .select('name, surname')
-            .eq('id', userId)
-            .single();
-          
-          if (userData) {
-            userName = `${userData.name || ''} ${userData.surname || ''}`.trim() || null;
-          }
-          
-          // Preparar details com informações adicionais, incluindo tipo de step
-          const historyDetails: Record<string, unknown> = {
-            from_step_title: fromStepTitle,
-            from_step_type: fromStepType,
-            to_step_title: toStepTitle,
-            to_step_type: toStepType,
-            user_name: userName,
-            moved_at: new Date().toISOString(),
-            status_change: autoStatus || null, // Incluir se houve mudança automática de status
-          };
-          
-          // Determinar action_type baseado no tipo de step de destino
-          let actionType = 'move';
-          if (toStepType === 'finisher') {
-            actionType = 'complete';
-          } else if (toStepType === 'fail') {
-            actionType = 'cancel';
-          }
-          
-          // Inserir histórico com validações
-          const historyPayload: Record<string, unknown> = {
-            card_id: cardId,
-            client_id: card.client_id,
-            action_type: actionType,
-            details: historyDetails,
-          };
-          
-          // Adicionar step IDs apenas se existirem
-          if (card.step_id) {
-            historyPayload.from_step_id = card.step_id;
-          }
-          if (finalStepId) {
-            historyPayload.to_step_id = finalStepId;
-          }
-          // Adicionar created_by apenas se userId for válido
-          if (userId) {
-            historyPayload.created_by = userId;
-          }
-          
-          console.log('Tentando registrar histórico:', {
-            cardId,
-            fromStepId: card.step_id,
-            toStepId: finalStepId,
-            actionType,
-            toStepType,
-            userId,
-            payload: historyPayload,
-          });
-          
-          const { error: historyError, data: historyData } = await supabase
-            .from('card_history')
-            .insert(historyPayload)
-            .select()
-            .single();
-
-          if (historyError) {
-            console.error('Erro ao inserir histórico do card:', {
-              error: historyError,
-              message: historyError.message,
-              code: historyError.code,
-              details: historyError.details,
-              payload: historyPayload,
-              cardId,
-              fromStepId: card.step_id,
-              toStepId: finalStepId,
-              toStepType,
-            });
-            // Não falhar a atualização se o histórico falhar, apenas logar o erro
-          } else {
-            console.log('Histórico registrado com sucesso:', {
-              historyId: historyData?.id,
-              cardId,
-              fromStepId: card.step_id,
-              toStepId: finalStepId,
-              fromStepType,
-              toStepType,
-              actionType,
-              userId,
-              userName,
-            });
-          }
-        }
-      } catch (historyErr) {
-        console.error('Exceção ao inserir histórico do card:', {
-          error: historyErr,
-          message: historyErr instanceof Error ? historyErr.message : 'Erro desconhecido',
-          stack: historyErr instanceof Error ? historyErr.stack : undefined,
-          cardId,
-          fromStepId: card.step_id,
-          toStepId: finalStepId,
-        });
-        // Continuar mesmo se houver erro de permissão ou outro erro
-      }
-    } else if (stepId && stepId !== card.step_id) {
+      console.log('Card mudando de etapa - histórico será registrado automaticamente pelo trigger:', {
+        cardId,
+        fromStepId: card.step_id,
+        toStepId: finalStepId,
+        userId,
+      });
+    }
+    
+    if (stepId && stepId !== card.step_id) {
       // Log quando o histórico não deveria ser registrado (para diagnóstico)
       console.warn('Histórico NÃO será registrado (condição não atendida):', {
         stepId,
