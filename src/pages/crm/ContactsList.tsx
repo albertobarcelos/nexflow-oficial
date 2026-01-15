@@ -7,7 +7,7 @@ import { ContactDetailsPanel } from '@/components/crm/contacts/ContactDetailsPan
 import { CreateCardFromContactDialog } from '@/components/crm/contacts/CreateCardFromContactDialog';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid, Loader2, Filter, Tag } from 'lucide-react';
+import { Plus, Grid, Loader2, Filter, Tag, Search } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -26,6 +26,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export default function ContactsList() {
@@ -43,6 +44,7 @@ export default function ContactsList() {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [contactForCard, setContactForCard] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const pageSize = 20;
 
   const {
@@ -56,18 +58,46 @@ export default function ContactsList() {
     filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
   });
 
+  // Filtro de busca
+  const filteredBySearch = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return contacts;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return contacts.filter((contact) => {
+      // Buscar em client_name
+      if (contact.client_name?.toLowerCase().includes(query)) return true;
+      
+      // Buscar em main_contact
+      if (contact.main_contact?.toLowerCase().includes(query)) return true;
+      
+      // Buscar em phone_numbers
+      if (contact.phone_numbers?.some(phone => phone.toLowerCase().includes(query))) return true;
+      
+      // Buscar em company_names
+      if (contact.company_names?.some(company => company.toLowerCase().includes(query))) return true;
+      
+      // Buscar em tax_ids (CNPJ/CPF)
+      if (contact.tax_ids?.some(taxId => taxId.toLowerCase().includes(query))) return true;
+      
+      return false;
+    });
+  }, [contacts, searchQuery]);
+
   // Calcular paginação
-  const totalPages = useMemo(() => Math.ceil(contacts.length / pageSize), [contacts.length, pageSize]);
+  const totalPages = useMemo(() => Math.ceil(filteredBySearch.length / pageSize), [filteredBySearch.length, pageSize]);
   const paginatedContacts = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    return contacts.slice(startIndex, endIndex);
-  }, [contacts, currentPage, pageSize]);
+    return filteredBySearch.slice(startIndex, endIndex);
+  }, [filteredBySearch, currentPage, pageSize]);
 
-  // Resetar página quando filtros mudarem
+  // Resetar página quando filtros ou busca mudarem
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterTypes]);
+  }, [filterTypes, searchQuery]);
 
   useEffect(() => {
     // #region agent log - Fix: Skip check if we already have access
@@ -108,7 +138,7 @@ export default function ContactsList() {
         let hasRoleAccess = clientUser.role === 'administrator';
 
         if (!hasRoleAccess) {
-          const { data: teamMembers, error: teamError } = await supabase
+          const { data: teamMembers, error: teamError } = await (supabase as any)
             .from('core_team_members')
             .select('role')
             .eq('user_profile_id', userId)
@@ -189,6 +219,17 @@ export default function ContactsList() {
         </div>
       </div>
 
+      {/* Campo de busca */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar contatos..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
       {/* Filtros por tipo */}
       <div className="flex items-center gap-2 flex-wrap">
         <Filter className="h-4 w-4 text-muted-foreground" />
@@ -242,11 +283,11 @@ export default function ContactsList() {
             </p>
           </div>
         </div>
-      ) : contacts.length === 0 ? (
+      ) : filteredBySearch.length === 0 ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
             <p className="text-muted-foreground">
-              {filterTypes.length > 0 
+              {filterTypes.length > 0 || searchQuery.trim()
                 ? "Nenhum contato encontrado com os filtros selecionados."
                 : "Nenhum contato encontrado."}
             </p>

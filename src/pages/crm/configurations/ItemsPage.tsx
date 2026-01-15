@@ -41,7 +41,7 @@ export function ItemsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Itens Orçamento</h1>
+        <h1 className="text-2xl font-bold text-foreground">Itens Orçamento</h1>
         <p className="text-muted-foreground">
           Gerencie os produtos e serviços disponíveis para orçamento
         </p>

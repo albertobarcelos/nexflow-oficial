@@ -22,29 +22,29 @@ export function CardPipelineStages({
   const currentIndex = sortedSteps.findIndex((s) => s.id === currentStepId);
 
   return (
-    <div className="w-full overflow-x-auto pb-4">
-      <div className="flex items-center gap-2 min-w-max px-2">
+    <div className="w-full overflow-x-auto overflow-y-visible">
+      <div className="flex items-center gap-1.5 min-w-max py-1">
         {sortedSteps.map((step, index) => {
           const isCurrent = step.id === currentStepId;
           const isPast = currentIndex !== -1 && index < currentIndex;
           const isFuture = currentIndex !== -1 && index > currentIndex;
 
           return (
-            <div key={step.id} className="flex items-center gap-2">
+            <div key={step.id} className="flex items-center gap-1.5">
               {/* Etapa */}
               <div
                 className={cn(
-                  "relative flex flex-col items-center gap-2 min-w-[120px]",
+                  "relative flex flex-col items-center gap-1 min-w-[80px]",
                   "transition-all duration-200"
                 )}
               >
                 {/* Círculo da etapa */}
                 <div
                   className={cn(
-                    "relative h-12 w-12 rounded-full border-2 flex items-center justify-center",
+                    "relative h-8 w-8 rounded-full border-2 flex items-center justify-center",
                     "transition-all duration-200",
                     isCurrent
-                      ? "border-2 scale-110 shadow-lg ring-2 ring-offset-2"
+                      ? "border-2 scale-105 shadow-md ring-1 ring-offset-1"
                       : isPast
                       ? "border-2 opacity-60"
                       : "border-2 opacity-40",
@@ -58,7 +58,7 @@ export function CardPipelineStages({
                   {/* Indicador de posição */}
                   <span
                     className={cn(
-                      "text-xs font-semibold",
+                      "text-[10px] font-semibold",
                       isCurrent || isPast ? "text-white" : "text-gray-400"
                     )}
                   >
@@ -69,7 +69,7 @@ export function CardPipelineStages({
                   {step.stepType && (
                     <div
                       className={cn(
-                        "absolute -top-1 -right-1 h-4 w-4 rounded-full border-2 border-white dark:border-gray-800",
+                        "absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border border-white dark:border-gray-800",
                         step.stepType === "finisher" && "bg-green-500",
                         step.stepType === "fail" && "bg-red-500",
                         step.stepType === "freezing" && "bg-blue-500"
@@ -86,10 +86,10 @@ export function CardPipelineStages({
                 </div>
 
                 {/* Título da etapa */}
-                <div className="text-center max-w-[120px]">
+                <div className="text-center max-w-[80px]">
                   <p
                     className={cn(
-                      "text-xs font-medium truncate",
+                      "text-[10px] font-medium truncate",
                       isCurrent
                         ? "text-foreground font-semibold"
                         : isPast
@@ -107,7 +107,7 @@ export function CardPipelineStages({
               {index < sortedSteps.length - 1 && (
                 <div
                   className={cn(
-                    "h-0.5 w-8 transition-all duration-200",
+                    "h-0.5 w-6 transition-all duration-200",
                     isPast || (isCurrent && index === currentIndex)
                       ? "bg-primary"
                       : "bg-gray-200 dark:bg-gray-700"
@@ -117,22 +117,6 @@ export function CardPipelineStages({
             </div>
           );
         })}
-      </div>
-
-      {/* Legenda */}
-      <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground px-2">
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-primary" />
-          <span>Etapa atual</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-gray-400 opacity-60" />
-          <span>Etapas anteriores</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded-full bg-gray-200 dark:bg-gray-700 opacity-40" />
-          <span>Próximas etapas</span>
-        </div>
       </div>
     </div>
   );

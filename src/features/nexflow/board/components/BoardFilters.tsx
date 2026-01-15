@@ -41,13 +41,13 @@ export function BoardFilters({
           size="icon"
           className={cn(
             "h-9 w-9 rounded-md relative",
-            hasActiveFilters && "bg-slate-100 dark:bg-slate-800"
+            hasActiveFilters && "bg-neutral-100 dark:bg-neutral-800"
           )}
           aria-label="Filtros"
         >
-          <Filter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+          <Filter className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
           {hasActiveFilters && (
-            <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-blue-500 border border-white dark:border-slate-900" />
+            <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-blue-500 border border-white dark:border-neutral-900" />
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -56,7 +56,7 @@ export function BoardFilters({
         <DropdownMenuSeparator />
         
         <div className="px-2 py-1.5">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+          <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
             Usuários
           </div>
           <DropdownMenuRadioGroup
@@ -79,7 +79,7 @@ export function BoardFilters({
         <DropdownMenuSeparator />
 
         <div className="px-2 py-1.5">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+          <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400 mb-2">
             Times
           </div>
           <DropdownMenuRadioGroup

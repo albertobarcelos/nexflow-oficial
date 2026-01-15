@@ -194,19 +194,19 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
             <Icon className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
               {process?.stepAction?.title || "Processo sem título"}
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-neutral-500 dark:text-neutral-400">
               {getActionTypeLabel(process.stepAction?.action_type ?? null)} e Diretrizes
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+          <button className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
             <History className="h-5 w-5" />
           </button>
-          <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+          <button className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
             <HelpCircle className="h-5 w-5" />
           </button>
         </div>
@@ -217,9 +217,9 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8 w-full">
           {/* Card Informativo */}
           {description && (
-            <div className="bg-blue-50 dark:bg-slate-800/50 border border-blue-100 dark:border-slate-700 rounded-lg p-4 mb-6 flex gap-3">
+            <div className="bg-blue-50 dark:bg-neutral-800/50 border border-blue-100 dark:border-neutral-700 rounded-lg p-4 mb-6 flex gap-3">
               <Info className="h-5 w-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-slate-700 dark:text-slate-300">
+              <div className="text-sm text-neutral-700 dark:text-neutral-300">
                 <p className="font-medium mb-1">Objetivo: {description}</p>
               </div>
             </div>
@@ -227,9 +227,9 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* Script Template */}
           {scriptTemplate && (
-            <article className="prose prose-slate dark:prose-invert max-w-none">
+            <article className="prose prose-neutral dark:prose-invert max-w-none">
               <div
-                className="text-base text-slate-800 dark:text-slate-200 whitespace-pre-wrap leading-relaxed"
+                className="text-base text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed"
                 dangerouslySetInnerHTML={{
                   __html: processedScript
                     .split("\n")
@@ -289,28 +289,28 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
         )}>
           {/* Task Variables */}
           <div className="mb-8">
-            <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4">
               Variáveis da Tarefa
             </h3>
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                   Nome do Produto
                 </label>
                 <Input
                   value={taskVariables.product_name || ""}
                   onChange={(e) => handleVariableChange("product_name", e.target.value)}
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
+                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
                   Nome do Cliente
                 </label>
                 <Input
                   value={taskVariables.client_name || ""}
                   onChange={(e) => handleVariableChange("client_name", e.target.value)}
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
+                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
                 />
               </div>
             </div>
@@ -318,14 +318,14 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* Linked Notes */}
           <div className="mb-8">
-            <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4">
               Notas Vinculadas
             </h3>
-            <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="bg-neutral-50 dark:bg-neutral-800/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 text-sm text-slate-700 dark:text-slate-300 resize-y min-h-[80px]"
+                className="w-full bg-transparent border-none focus:ring-0 text-sm text-neutral-700 dark:text-neutral-300 resize-y min-h-[80px]"
                 placeholder="Adicione notas relacionadas a esta tarefa..."
               />
               <div className="flex justify-end mt-2">
@@ -341,15 +341,15 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* To-Do List */}
           <div>
-            <h3 className="text-sm font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4 flex items-center justify-between">
               Lista de Tarefas
-              <button className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              <button className="text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                 <Plus className="h-4 w-4" />
               </button>
             </h3>
             <div className="space-y-3">
               {todoItems.length === 0 ? (
-                <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4">
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
                   Nenhuma tarefa adicionada
                 </p>
               ) : (
@@ -357,16 +357,16 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
                   <div key={index} className="flex items-start">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 dark:bg-slate-700 dark:border-slate-600 h-4 w-4 mt-1"
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 dark:bg-neutral-700 dark:border-neutral-600 h-4 w-4 mt-1"
                       id={`todo-${index}`}
                     />
                     <label
                       htmlFor={`todo-${index}`}
-                      className="ml-2 text-sm text-slate-700 dark:text-slate-300 flex-1"
+                      className="ml-2 text-sm text-neutral-700 dark:text-neutral-300 flex-1"
                     >
                       {item}
                     </label>
-                    <button className="text-slate-400 hover:text-red-500 ml-2">
+                    <button className="text-neutral-400 hover:text-red-500 ml-2">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -397,13 +397,13 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
               </>
             )}
           </Button>
-          <button className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+          <button className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
             <History className="h-5 w-5" />
           </button>
-          <div className="h-6 w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+          <div className="h-6 w-px bg-neutral-300 dark:bg-neutral-600 mx-1"></div>
           <button
             onClick={handleMarkAsFailed}
-            className="text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 text-sm font-medium px-3 py-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            className="text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400 text-sm font-medium px-3 py-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
             Marcar como Falhado
           </button>

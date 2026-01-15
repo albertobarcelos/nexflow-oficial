@@ -259,7 +259,7 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
   const renderSectionFields = (section: FlowOverviewSection) => {
     if (!section.fields || section.fields.length === 0) {
       return (
-        <div className="text-center py-6 text-slate-500 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200">
+        <div className="text-center py-6 text-neutral-500 bg-neutral-50 rounded-lg border-2 border-dashed border-neutral-200">
           <AlertCircle className="w-6 h-6 mx-auto mb-2" />
           <p className="text-sm">Nenhum campo adicionado</p>
           <p className="text-xs">Clique em "Adicionar Campo" para começar</p>
@@ -272,17 +272,17 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
         {section.fields
           .sort((a, b) => a.order - b.order)
           .map((field, index) => (
-            <div key={field.id} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-lg">
+            <div key={field.id} className="flex items-center gap-3 p-3 bg-white border border-neutral-200 rounded-lg">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium text-slate-700">{field.label}</span>
+                  <span className="text-sm font-medium text-neutral-700">{field.label}</span>
                   {field.required && (
                     <Badge variant="destructive" className="text-xs">
                       Obrigatório
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
+                <div className="flex items-center gap-2 text-xs text-neutral-500">
                   <Badge variant="outline" className="text-xs">
                     {FIELD_TYPES[field.type]?.label || field.type}
                   </Badge>
@@ -315,13 +315,13 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
           <Card
             ref={provided.innerRef}
             {...provided.draggableProps}
-            className={`border-slate-200/60 shadow-sm ${snapshot.isDragging ? 'shadow-lg' : ''}`}
+            className={`border-neutral-200/60 shadow-sm ${snapshot.isDragging ? 'shadow-lg' : ''}`}
           >
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div {...provided.dragHandleProps} className="cursor-grab hover:cursor-grabbing">
-                    <GripVertical className="w-4 h-4 text-slate-400" />
+                    <GripVertical className="w-4 h-4 text-neutral-400" />
                   </div>
                   
                   {isEditing ? (
@@ -353,7 +353,7 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
                           }
                           return newSet;
                         })}
-                        className="flex items-center gap-1 hover:text-slate-700"
+                        className="flex items-center gap-1 hover:text-neutral-700"
                       >
                         {isCollapsed ? (
                           <ChevronRight className="w-4 h-4" />
@@ -394,7 +394,7 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
               <CardContent className="space-y-4">
                 {renderSectionFields(section)}
                 
-                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                <div className="flex gap-2 pt-2 border-t border-neutral-100">
                   <Button
                     variant="outline"
                     size="sm"
@@ -431,8 +431,8 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-slate-800">Configurar Layout da Visão Geral</h3>
-          <p className="text-sm text-slate-600">
+          <h3 className="text-lg font-semibold text-neutral-800">Configurar Layout da Visão Geral</h3>
+          <p className="text-sm text-neutral-600">
             Organize os campos e seções que aparecerão na aba "Visão Geral" dos negócios
           </p>
         </div>
@@ -460,7 +460,7 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
 
       {/* Adicionar Nova Seção */}
       {!previewMode && (
-        <Card className="border-slate-200/60 shadow-sm">
+        <Card className="border-neutral-200/60 shadow-sm">
           <CardContent className="p-4">
             <div className="flex gap-2">
               <Input
@@ -490,11 +490,11 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
       {/* Seções em Coluna Única */}
       <div className="space-y-4">
         {state.layout.sections.length === 0 ? (
-          <Card className="border-slate-200/60 shadow-sm">
+          <Card className="border-neutral-200/60 shadow-sm">
             <CardContent className="p-8 text-center">
-              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-              <h3 className="font-semibold text-slate-700 mb-2">Nenhuma seção configurada</h3>
-              <p className="text-sm text-slate-500 mb-4">
+              <AlertCircle className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
+              <h3 className="font-semibold text-neutral-700 mb-2">Nenhuma seção configurada</h3>
+              <p className="text-sm text-neutral-500 mb-4">
                 Adicione seções para organizar os campos da visão geral
               </p>
             </CardContent>
@@ -530,7 +530,7 @@ export function OverviewLayoutConfiguration({ flowId, onSave, onCancel }: Overvi
       </div>
 
       {/* Footer com botões de ação */}
-      <div className="flex items-center justify-between pt-4 border-t border-slate-200">
+      <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
         <div className="flex items-center gap-2">
           {state.isDirty && (
             <Badge variant="secondary" className="text-xs">

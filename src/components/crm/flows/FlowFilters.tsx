@@ -16,7 +16,7 @@ export function FlowFilters({ onFilterChange }: FlowFiltersProps) {
   };
 
   return (
-    <div className="w-[300px] h-full bg-white border-r border-r-slate-100 p-4">
+    <div className="w-[300px] h-full bg-white border-r border-r-neutral-100 p-4">
       <div className="space-y-4">
         <h3 className="font-medium text-gray-900">Filtros</h3>
         

@@ -48,12 +48,12 @@ interface ToolboxProps {
 
 export function Toolbox({ definitions, onAdd }: ToolboxProps) {
   return (
-    <aside className="h-[600px] max-h-[800px] rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col">
-      <div className="p-4 border-b border-slate-200 flex-shrink-0">
-        <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+    <aside className="h-[600px] max-h-[800px] rounded-2xl border border-neutral-200 bg-white shadow-sm flex flex-col">
+      <div className="p-4 border-b border-neutral-200 flex-shrink-0">
+        <p className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
           Tipos de Campo
         </p>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-neutral-400 mt-1">
           Arraste um componente para o formulário
         </p>
       </div>
@@ -99,22 +99,22 @@ function ToolboxItem({ definition, onAdd }: ToolboxItemProps) {
       {...attributes}
       {...listeners}
       onClick={() => onAdd(definition.id)}
-      className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-orange-500 hover:bg-orange-50"
+      className="flex w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3 text-left transition hover:border-orange-500 hover:bg-orange-50"
       type="button"
     >
       <div
         className={cn(
           "flex h-10 w-10 items-center justify-center rounded-lg",
-          iconStyles[definition.id] ?? "bg-slate-100 text-slate-700"
+          iconStyles[definition.id] ?? "bg-neutral-100 text-neutral-700"
         )}
       >
         <Icon className="h-5 w-5" />
       </div>
       <div className="flex-1">
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="text-sm font-semibold text-neutral-900">
           {definition.label}
         </p>
-        <p className="text-xs text-slate-500">{definition.description}</p>
+        <p className="text-xs text-neutral-500">{definition.description}</p>
       </div>
     </button>
   );

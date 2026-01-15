@@ -109,10 +109,10 @@ export function StepPropertiesContent({
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="text-sm font-semibold text-neutral-900">
           Propriedades da etapa
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-neutral-500">
           Configure as propriedades e visibilidade desta etapa.
         </p>
       </div>
@@ -139,29 +139,29 @@ export function StepPropertiesContent({
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-2 h-10 px-3 rounded-lg border-2 border-slate-300 hover:border-slate-400 transition-colors"
+                  className="flex items-center gap-2 h-10 px-3 rounded-lg border-2 border-neutral-300 hover:border-neutral-400 transition-colors"
                   aria-label="Selecionar cor"
                 >
                   <div
-                    className="h-6 w-6 rounded border border-slate-200"
+                    className="h-6 w-6 rounded border border-neutral-200"
                     style={{ backgroundColor: localColor }}
                   />
-                  <Palette className="h-4 w-4 text-slate-600" />
+                  <Palette className="h-4 w-4 text-neutral-600" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-64 p-3" align="start">
                 <div className="space-y-3">
-                  <Label className="text-xs font-semibold text-slate-700">Selecionar cor</Label>
+                  <Label className="text-xs font-semibold text-neutral-700">Selecionar cor</Label>
                   <div className="space-y-2">
                     <Input
                       type="color"
                       value={localColor}
                       onChange={handleColorInputChange}
-                      className="h-10 w-full cursor-pointer border-2 border-slate-200 rounded"
+                      className="h-10 w-full cursor-pointer border-2 border-neutral-200 rounded"
                       aria-label="Selecionar cor"
                     />
                     <div className="flex items-center gap-2">
-                      <Label className="text-xs text-slate-600 whitespace-nowrap">Código:</Label>
+                      <Label className="text-xs text-neutral-600 whitespace-nowrap">Código:</Label>
                       <Input
                         type="text"
                         value={localColor}
@@ -185,7 +185,7 @@ export function StepPropertiesContent({
                 </div>
               </PopoverContent>
             </Popover>
-            <span className="text-sm text-slate-600">{localColor}</span>
+            <span className="text-sm text-neutral-600">{localColor}</span>
           </div>
         </div>
 
@@ -199,30 +199,30 @@ export function StepPropertiesContent({
               <SelectItem value="standard">
                 <div className="flex flex-col">
                   <span className="font-medium">Normal</span>
-                  <span className="flex flex-wrap text-[10px] text-slate-500">Pode utilizar campos e processos</span>
+                  <span className="flex flex-wrap text-[10px] text-neutral-500">Pode utilizar campos e processos</span>
                 </div>
               </SelectItem>
               <SelectItem value="finisher">
                 <div className="flex flex-col">
                   <span className="font-medium">Concluídos</span>
-                  <span className="flex flex-wrap text-[10px] text-slate-500">Card terá status concluído. Sem campos ou processos</span>
+                  <span className="flex flex-wrap text-[10px] text-neutral-500">Card terá status concluído. Sem campos ou processos</span>
                 </div>
               </SelectItem>
               <SelectItem value="fail">
                 <div className="flex flex-col">
                   <span className="font-medium">Cancelados</span>
-                  <span className="flex flex-wrap text-[10px] text-slate-500">Card terá status cancelado. Sem campos ou processos</span>
+                  <span className="flex flex-wrap text-[10px] text-neutral-500">Card terá status cancelado. Sem campos ou processos</span>
                 </div>
               </SelectItem>
               <SelectItem value="freezing">
                 <div className="flex flex-col">
                   <span className="font-medium">Congelado</span>
-                  <span className="flex flex-wrap text-[10px] text-slate-500">Card será congelado e original seguirá para próxima etapa</span>
+                  <span className="flex flex-wrap text-[10px] text-neutral-500">Card será congelado e original seguirá para próxima etapa</span>
                 </div>
               </SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-slate-500">{getStepTypeDescription(currentStepType)}</p>
+          <p className="text-xs text-neutral-500">{getStepTypeDescription(currentStepType)}</p>
         </div>
       </div>
 
@@ -239,7 +239,7 @@ export function StepPropertiesContent({
       {/* Automação de Card Filho */}
       <div className="space-y-2">
         <Label>Automação de Card Filho</Label>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-neutral-500">
           Configure para criar cards filhos automaticamente quando um card entrar nesta etapa.
         </p>
         <Button

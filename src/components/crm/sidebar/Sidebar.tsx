@@ -35,6 +35,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { useHuntersAccess } from "@/hooks/useHuntersAccess";
 import { useOpportunitiesAccess } from "@/hooks/useOpportunitiesAccess";
 import { NotificationBell } from "@/components/crm/notifications/NotificationBell";
+import { Logo } from "@/components/ui/logo";
 // AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 interface MenuItem {
@@ -140,9 +141,9 @@ export function Sidebar() {
   
 
   return (
-    <div className="flex h-14 items-center justify-between px-4 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]" >
+    <div className="flex h-14 items-center justify-between px-4 bg-background border-b border-border shadow-sm" >
       <div className="flex items-center gap-4">
-        <h1 className="text-xl italic text-blue-950"><strong>NEXFLOW</strong>CRM</h1>
+        <Logo />
         <div className="flex items-center gap-3">
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
@@ -154,8 +155,8 @@ export function Sidebar() {
                 key={item.title}
                 variant="ghost"
                 className={cn(
-                  "justify-start gap-2 text-blue-950 hover:bg-blue-950 hover:text-white rounded-full px-3 py-1 text-[13px]",
-                  isActive && "bg-blue-950 text-white"
+                  "justify-start gap-2 text-foreground hover:bg-primary hover:text-primary-foreground rounded-full px-3 py-1 text-[13px]",
+                  isActive && "bg-primary text-primary-foreground"
                 )}
                 onClick={() => item.onClick ? item.onClick(navigate) : navigate(item.href as string)}
               >
@@ -173,7 +174,7 @@ export function Sidebar() {
           <Input
             type="search"
             placeholder="Buscar..."
-            className="w-64 pl-8 text-white placeholder:text-muted-foreground"
+            className="w-64 pl-8 text-foreground placeholder:text-muted-foreground"
           />
         </div>
 

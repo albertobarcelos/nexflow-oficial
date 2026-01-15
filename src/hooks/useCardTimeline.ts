@@ -14,7 +14,15 @@ export type CardTimelineEventType =
   | 'unfreeze' 
   | 'checklist_completed'
   | 'process_status_change'
-  | 'process_completed';
+  | 'process_completed'
+  | 'title_change'
+  | 'checklist_change'
+  | 'assignee_change'
+  | 'product_value_change'
+  | 'parent_change'
+  | 'agents_change'
+  | 'attachment_uploaded'
+  | 'message_created';
 
 export interface CardTimelineEvent {
   id: string;
@@ -26,6 +34,7 @@ export interface CardTimelineEvent {
   new_value: Record<string, unknown> | null;
   from_step_id: string | null;
   to_step_id: string | null;
+  step_id: string | null; // Etapa onde o evento ocorreu (principalmente para field_update)
   field_id: string | null;
   activity_id: string | null;
   action_type: string | null;
@@ -51,6 +60,12 @@ export interface CardTimelineEvent {
     color: string;
     position: number;
   } | null;
+  step?: {
+    id: string;
+    title: string;
+    color: string;
+    position: number;
+  } | null; // Etapa onde o evento ocorreu (para field_update)
   field?: {
     id: string;
     label: string;
@@ -123,6 +138,7 @@ export function useCardTimeline(cardId: string | null | undefined, parentCardId?
         new_value: event.new_value as Record<string, unknown> | null,
         from_step_id: event.from_step_id,
         to_step_id: event.to_step_id,
+        step_id: event.step_id || null,
         field_id: event.field_id,
         activity_id: event.activity_id,
         action_type: event.action_type,
@@ -131,6 +147,7 @@ export function useCardTimeline(cardId: string | null | undefined, parentCardId?
         user: event.user || null,
         from_step: event.from_step || null,
         to_step: event.to_step || null,
+        step: event.step || null,
         field: event.field || null,
         activity: event.activity || null,
         process: event.process || null,

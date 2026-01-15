@@ -35,11 +35,11 @@ export function CRMConfigurationsLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)]">
+    <div className="flex h-[calc(100vh-3.5rem)] bg-background">
       {/* Sidebar */}
-      <aside className="w-64 border-r bg-white flex-shrink-0">
+      <aside className="w-64 border-r border-border bg-card flex-shrink-0">
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Configurações</h2>
+          <h2 className="text-lg font-semibold mb-4 text-foreground">Configurações</h2>
           <nav className="space-y-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -51,7 +51,7 @@ export function CRMConfigurationsLayout() {
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
                     "w-full justify-start gap-2",
-                    isActive && "bg-accent text-accent-foreground"
+                    isActive && "bg-primary text-primary-foreground"
                   )}
                   onClick={() => navigate(item.path)}
                 >
@@ -65,7 +65,7 @@ export function CRMConfigurationsLayout() {
       </aside>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-background">
         <div className="p-6">
           <Outlet />
         </div>

@@ -949,7 +949,7 @@ export function CardDetailsModal({
       const progress = (card.checklistProgress?.[field.id] as Record<string, boolean>) ?? {};
       const items = field.configuration.items ?? [];
       if (!items.length) {
-        return <span className="text-xs text-slate-400">Checklist vazio</span>;
+        return <span className="text-xs text-neutral-400">Checklist vazio</span>;
       }
 
       return (
@@ -959,10 +959,10 @@ export function CardDetailsModal({
               <CheckCircle2
                 className={cn(
                   "h-3 w-3 shrink-0",
-                  progress?.[item] ? "text-emerald-500" : "text-slate-300"
+                  progress?.[item] ? "text-emerald-500" : "text-neutral-300"
                 )}
               />
-              <span className={progress?.[item] ? "text-slate-600" : "text-slate-400"}>
+              <span className={progress?.[item] ? "text-neutral-600" : "text-neutral-400"}>
                 {item}
               </span>
             </li>
@@ -972,14 +972,14 @@ export function CardDetailsModal({
     }
 
     if (!rawValue) {
-      return <span className="text-xs text-slate-400 italic">Não preenchido</span>;
+      return <span className="text-xs text-neutral-400 italic">Não preenchido</span>;
     }
 
     if (field.fieldType === "date" && typeof rawValue === "string") {
       const parsed = new Date(rawValue);
       if (!Number.isNaN(parsed.getTime())) {
         return (
-          <span className="text-xs text-slate-600">
+          <span className="text-xs text-neutral-600">
             {format(parsed, "dd MMM yyyy", { locale: ptBR })}
           </span>
         );
@@ -987,7 +987,7 @@ export function CardDetailsModal({
     }
 
     return (
-      <span className="text-xs text-slate-600">
+      <span className="text-xs text-neutral-600">
         {typeof rawValue === "string" ? rawValue : JSON.stringify(rawValue)}
       </span>
     );

@@ -135,7 +135,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: Hash,
     category: 'basic',
     description: 'Valores numéricos',
-    color: 'text-slate-600'
+    color: 'text-neutral-600'
   },
   {
     id: 'currency',
@@ -167,7 +167,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: Type,
     category: 'basic',
     description: 'Campo de texto simples',
-    color: 'text-slate-600'
+    color: 'text-neutral-600'
   },
   {
     id: 'textarea',
@@ -175,7 +175,7 @@ export const FIELD_TYPES: FieldType[] = [
     icon: AlignLeft,
     category: 'basic',
     description: 'Campo de texto multilinha',
-    color: 'text-slate-600'
+    color: 'text-neutral-600'
   },
   
   // Campos de Conexão

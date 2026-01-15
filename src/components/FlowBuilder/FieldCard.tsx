@@ -38,7 +38,7 @@ export function FieldCard({
       ref={sortable?.setNodeRef}
       style={sortable?.style}
       className={cn(
-        "group relative cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-orange-400 hover:shadow-lg",
+        "group relative cursor-pointer rounded-xl border border-neutral-200 bg-white p-4 shadow-sm transition hover:border-orange-400 hover:shadow-lg",
         isActive && "border-orange-500 shadow-md",
         sortable?.isDragging && "opacity-80 shadow-xl"
       )}
@@ -48,7 +48,7 @@ export function FieldCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">{field.label}</p>
+          <p className="text-sm font-semibold text-neutral-900">{field.label}</p>
           <p className="text-xs text-gray-500 capitalize">
             {field.fieldType.replace("_", " ")}
           </p>
@@ -57,7 +57,7 @@ export function FieldCard({
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-slate-500 hover:text-slate-900"
+            className="h-8 w-8 text-neutral-500 hover:text-neutral-900"
             onClick={(event) => {
               event.stopPropagation();
               onEdit?.();
@@ -68,7 +68,7 @@ export function FieldCard({
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-slate-500 hover:text-slate-900"
+            className="h-8 w-8 text-neutral-500 hover:text-neutral-900"
             onClick={(event) => {
               event.stopPropagation();
               onDuplicate();
@@ -79,7 +79,7 @@ export function FieldCard({
           <Button
             size="icon"
             variant="ghost"
-            className="h-8 w-8 text-slate-500 hover:text-destructive"
+            className="h-8 w-8 text-neutral-500 hover:text-destructive"
             onClick={(event) => {
               event.stopPropagation();
               onDelete();

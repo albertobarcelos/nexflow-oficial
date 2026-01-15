@@ -2,19 +2,15 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Sparkles } from "lucide-react";
 import { useCardTimeline } from "@/hooks/useCardTimeline";
-import { CardPipelineStages } from "./CardPipelineStages";
 import { CardTimelineHorizontal } from "./CardTimelineHorizontal";
 import type { NexflowCard } from "@/types/nexflow";
-import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 
 interface CardHistoryTabProps {
   card: NexflowCard;
-  steps: NexflowStepWithFields[];
 }
 
 export function CardHistoryTab({
   card,
-  steps,
 }: CardHistoryTabProps) {
   const { data: timelineEvents = [], isLoading } = useCardTimeline(card?.id);
 
@@ -45,20 +41,10 @@ export function CardHistoryTab({
 
   return (
     <div className="space-y-6">
-      {/* Pipeline de Estágios */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-foreground">Pipeline de Estágios</h3>
-        <CardPipelineStages
-          steps={steps}
-          currentStepId={card.stepId}
-          card={card}
-        />
-      </div>
-
       {/* Timeline da Jornada */}
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-foreground">Timeline da Jornada</h3>
-        <CardTimelineHorizontal events={timelineEvents} />
+        <CardTimelineHorizontal events={timelineEvents} cardId={card?.id} />
       </div>
     </div>
   );

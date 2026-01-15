@@ -12,13 +12,13 @@ export function ListCardTags({ cardId }: ListCardTagsProps) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-1">
-        <Loader2 className="h-3 w-3 animate-spin text-slate-400" />
+        <Loader2 className="h-3 w-3 animate-spin text-neutral-400" />
       </div>
     );
   }
 
   if (cardTags.length === 0) {
-    return <span className="text-slate-400 text-xs italic">--</span>;
+    return <span className="text-neutral-400 text-xs italic">--</span>;
   }
 
   return (

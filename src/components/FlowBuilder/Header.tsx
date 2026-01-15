@@ -96,26 +96,26 @@ export function FlowBuilderHeader({
 
   return (
     <>
-      <header className="w-full px-8 py-6 flex items-start justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+      <header className="w-full px-8 py-6 flex items-start justify-between border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm">
         <div className="flex items-start gap-6">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="group flex items-center text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-white transition-colors mt-1"
+              className="group flex items-center text-neutral-500 hover:text-primary dark:text-neutral-400 dark:hover:text-white transition-colors mt-1"
             >
               <ArrowLeft className="text-xl mr-1 h-5 w-5" />
               <span className="font-medium text-sm">Voltar</span>
             </button>
           )}
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">
+            <span className="text-[10px] font-bold tracking-widest text-neutral-400 uppercase mb-1">
               Flow Builder
             </span>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white leading-none mb-3">
+            <h1 className="text-3xl font-bold text-neutral-900 dark:text-white leading-none mb-3">
               {flowName}
             </h1>
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold w-fit">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 text-xs font-semibold w-fit">
               {steps.length} etapas
             </div>
           </div>
@@ -128,7 +128,7 @@ export function FlowBuilderHeader({
       <main className="flex-1 w-full max-w-7xl mx-auto px-8 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-4">
-            <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase text-left">
+            <h2 className="text-xs font-bold text-neutral-400 dark:text-neutral-500 tracking-widest uppercase text-left">
               Etapas do Fluxo
             </h2>
           </div>
@@ -175,7 +175,7 @@ export function FlowBuilderHeader({
                     "group relative flex items-center justify-between w-64 p-4 rounded-xl border shadow-sm cursor-pointer hover:shadow-md transition-all",
                     step.id === activeStepId
                       ? "border-orange-500 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-500/50"
-                      : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:border-slate-300 dark:hover:border-slate-600"
+                      : "border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50 hover:border-neutral-300 dark:hover:border-neutral-600"
                   )}
                 >
                   {editingStepId === step.id ? (
@@ -211,7 +211,7 @@ export function FlowBuilderHeader({
                             "font-semibold text-sm",
                             step.id === activeStepId
                               ? "text-orange-700 dark:text-orange-400"
-                              : "text-slate-600 dark:text-slate-300"
+                              : "text-neutral-600 dark:text-neutral-300"
                           )}
                         >
                           {step.title}
@@ -221,7 +221,7 @@ export function FlowBuilderHeader({
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                            className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <MoreVertical className="text-lg h-5 w-5" />
@@ -257,7 +257,7 @@ export function FlowBuilderHeader({
                   )}
                 </div>
                 {index < steps.length - 1 && (
-                  <div className="w-8 h-[2px] bg-slate-300 dark:bg-slate-700 rounded-full flex-shrink-0" />
+                  <div className="w-8 h-[2px] bg-neutral-300 dark:bg-neutral-700 rounded-full flex-shrink-0" />
                 )}
               </div>
             ))}
@@ -268,7 +268,7 @@ export function FlowBuilderHeader({
                 setNewStepColor(nextColor);
                 setIsCreateStepOpen(true);
               }}
-              className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-400 hover:text-primary hover:border-primary cursor-pointer transition-colors flex-shrink-0"
+              className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-dashed border-neutral-300 dark:border-neutral-700 text-neutral-400 hover:text-primary hover:border-primary cursor-pointer transition-colors flex-shrink-0"
             >
               <Plus className="text-lg h-5 w-5" />
             </button>
@@ -300,7 +300,7 @@ export function FlowBuilderHeader({
                     className={cn(
                       "h-8 w-8 rounded-full border-2 transition",
                       newStepColor === color
-                        ? "border-slate-900"
+                        ? "border-neutral-900"
                         : "border-transparent"
                     )}
                     style={{ backgroundColor: color }}

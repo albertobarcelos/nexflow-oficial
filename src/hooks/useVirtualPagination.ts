@@ -32,9 +32,9 @@ export function useVirtualPagination<T>({
   // 🚀 OTIMIZAÇÃO: Removidos console.logs desnecessários em produção
   const isDev = process.env.NODE_ENV === 'development';
   
-  const infiniteQuery = useInfiniteQuery<T[], Error>({
+  const infiniteQuery = useInfiniteQuery({
     queryKey,
-    queryFn: async ({ pageParam = 0 }) => {
+    queryFn: async ({ pageParam = 0 }): Promise<T[]> => {
       if (isDev) console.log(`📥 Carregando página ${pageParam} com limite ${pageSize}`);
       const result = await queryFn({ page: pageParam, limit: pageSize });
       if (isDev) console.log(`✅ Página ${pageParam} carregada:`, result.length, 'itens');

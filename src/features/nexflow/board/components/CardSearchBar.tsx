@@ -123,11 +123,11 @@ export function CardSearchBar({
           className="h-9 w-9 rounded-md"
           aria-label="Abrir pesquisa"
         >
-          <Search className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+          <Search className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
         </Button>
       ) : (
         <div className="relative w-64">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
           <Input
             ref={inputRef}
             type="text"
@@ -149,14 +149,14 @@ export function CardSearchBar({
           />
           {isSearchingOnServer && (
             <div className="absolute right-10 top-1/2 -translate-y-1/2">
-              <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
+              <Loader2 className="h-4 w-4 animate-spin text-neutral-400" />
             </div>
           )}
           {searchQuery && !isSearchingOnServer && (
             <button
               onClick={handleClear}
               onMouseDown={(e) => e.preventDefault()} // Prevenir blur antes do click
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
               aria-label="Limpar pesquisa"
             >
               <X className="h-4 w-4" />

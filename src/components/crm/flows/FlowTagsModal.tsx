@@ -28,7 +28,7 @@ interface FlowTagsModalProps {
 
 // Paleta de cores predefinidas
 const TAG_COLORS = [
-  "#94a3b8", // slate-400 (padrão)
+  "#94a3b8", // neutral-400 (padrão)
   "#ef4444", // red-500
   "#f59e0b", // amber-500
   "#10b981", // emerald-500
@@ -146,7 +146,7 @@ export function FlowTagsModal({ open, onOpenChange, flowId, flowName }: FlowTags
                   {tags.map((tag) => (
                     <div
                       key={tag.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white hover:border-slate-300 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg border border-neutral-200 bg-white hover:border-neutral-300 transition-colors"
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div
@@ -208,8 +208,8 @@ export function FlowTagsModal({ open, onOpenChange, flowId, flowName }: FlowTags
                         className={cn(
                           "h-10 w-10 rounded-full border-2 transition-all",
                           tagColor === color
-                            ? "border-slate-900 scale-110"
-                            : "border-slate-300 hover:border-slate-400"
+                            ? "border-neutral-900 scale-110"
+                            : "border-neutral-300 hover:border-neutral-400"
                         )}
                         style={{ backgroundColor: color }}
                         onClick={() => setTagColor(color)}

@@ -129,7 +129,7 @@ export function ResellerDashboard() {
         </div>
         <Button
           onClick={() => navigate('/reseller/clients/new')}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-primary hover:bg-primary/90"
         >
           <Plus className="w-4 h-4 mr-2" />
           Novo Cliente
@@ -242,7 +242,7 @@ export function ResellerDashboard() {
                 </p>
                 <Button
                   onClick={() => navigate('/reseller/clients/new')}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Adicionar Cliente

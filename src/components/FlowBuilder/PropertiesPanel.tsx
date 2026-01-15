@@ -102,7 +102,7 @@ export function PropertiesPanel({
   }, [activeStep]);
 
   return (
-    <aside className="h-[600px] max-h-[800px] rounded-2xl border border-slate-200 bg-white shadow-sm flex flex-col overflow-hidden">
+    <aside className="h-[600px] max-h-[800px] rounded-2xl border border-neutral-200 bg-white shadow-sm flex flex-col overflow-hidden">
       <ScrollArea className="flex-1 min-h-0 w-full">
         <div className="p-5 pb-6" style={{ minWidth: "100%", display: "flex", flexDirection: "column" }}>
           {selectedField ? (
@@ -162,10 +162,10 @@ function GeneralPropertiesContent({
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="text-sm font-semibold text-neutral-900">
           Configurações gerais
         </p>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-neutral-500">
           Ajuste informações do flow e defina a visibilidade padrão.
         </p>
       </div>
@@ -249,13 +249,13 @@ function FieldPropertiesContent({
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">
+          <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">
             Campo selecionado
           </p>
-          <h2 className="text-xl font-bold text-slate-900">
+          <h2 className="text-xl font-bold text-neutral-900">
             {selectedField.label}
           </h2>
-          <p className="text-xs capitalize text-slate-500">
+          <p className="text-xs capitalize text-neutral-500">
             {selectedField.fieldType.replace("_", " ")}
           </p>
         </div>
@@ -312,12 +312,12 @@ function FieldPropertiesContent({
           />
         </div>
 
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4">
+        <div className="flex items-center justify-between rounded-xl border border-neutral-200 p-4">
           <div>
-            <Label className="text-sm font-semibold text-slate-900">
+            <Label className="text-sm font-semibold text-neutral-900">
               Obrigatório
             </Label>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Impede o avanço caso o campo esteja vazio.
             </p>
           </div>

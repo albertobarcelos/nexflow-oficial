@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useContactsWithIndications } from "@/hooks/useContactsWithIndications";
 import { ContactCard } from "@/components/crm/contacts/ContactCard";
 import { RocketLoader } from "@/components/ui/rocket-loader";
-import { Loader2, Settings, Plus, List, Filter } from "lucide-react";
+import { Loader2, Settings, Plus, List, Filter, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConfigDialog";
 import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
 import { ContactDetailsPanel } from "@/components/crm/contacts/ContactDetailsPanel";
@@ -32,6 +33,7 @@ export function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [contactForCard, setContactForCard] = useState<any>(null);
   const [filterTypes, setFilterTypes] = useState<("cliente" | "parceiro" | "indicações")[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   
   const {
     contacts,
@@ -43,6 +45,34 @@ export function ContactsPage() {
     enabled: hasAccess,
     filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
   });
+
+  // Filtro de busca
+  const filteredBySearch = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return contacts;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    return contacts.filter((contact) => {
+      // Buscar em client_name
+      if (contact.client_name?.toLowerCase().includes(query)) return true;
+      
+      // Buscar em main_contact
+      if (contact.main_contact?.toLowerCase().includes(query)) return true;
+      
+      // Buscar em phone_numbers
+      if (contact.phone_numbers?.some(phone => phone.toLowerCase().includes(query))) return true;
+      
+      // Buscar em company_names
+      if (contact.company_names?.some(company => company.toLowerCase().includes(query))) return true;
+      
+      // Buscar em tax_ids (CNPJ/CPF)
+      if (contact.tax_ids?.some(taxId => taxId.toLowerCase().includes(query))) return true;
+      
+      return false;
+    });
+  }, [contacts, searchQuery]);
 
   useEffect(() => {
     // #region agent log - Fix: Skip check if we already have access
@@ -174,9 +204,20 @@ export function ContactsPage() {
             onClick={() => setIsAutoCreateDialogOpen(true)}
           >
             <Settings className="mr-2 h-4 w-4" />
-            AutoCreate Config
+            Automações
           </Button>
         </div>
+      </div>
+
+      {/* Campo de busca */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar contatos..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {/* Filtros por tipo */}
@@ -233,11 +274,11 @@ export function ContactsPage() {
             </p>
           </div>
         </div>
-      ) : contacts.length === 0 ? (
+      ) : filteredBySearch.length === 0 ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
             <p className="text-muted-foreground">
-              {filterTypes.length > 0 
+              {filterTypes.length > 0 || searchQuery.trim()
                 ? "Nenhum contato encontrado com os filtros selecionados."
                 : "Nenhum contato encontrado."}
             </p>
@@ -251,7 +292,7 @@ export function ContactsPage() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           <AnimatePresence>
-            {contacts.map((contact, index) => (
+            {filteredBySearch.map((contact, index) => (
               <ContactCard
                 key={contact.id}
                 contact={contact}

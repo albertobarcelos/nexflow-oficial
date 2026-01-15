@@ -79,7 +79,7 @@ function SortableActionItem({
       className={`group flex items-center gap-3 p-3 ${
         isActive
           ? "bg-indigo-50 dark:bg-indigo-900/20 border border-primary/30 rounded-lg cursor-pointer shadow-sm relative overflow-hidden"
-          : "hover:bg-slate-50 dark:hover:bg-slate-800/50 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 rounded-lg cursor-pointer transition-all"
+          : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 rounded-lg cursor-pointer transition-all"
       }`}
       onClick={onSelect}
     >
@@ -89,8 +89,8 @@ function SortableActionItem({
       <div
         className={`w-8 h-8 rounded-full ${
           isActive
-            ? "bg-white dark:bg-slate-800 text-primary shadow-sm border border-indigo-100 dark:border-indigo-800"
-            : "bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700"
+            ? "bg-white dark:bg-neutral-800 text-primary shadow-sm border border-indigo-100 dark:border-indigo-800"
+            : "bg-neutral-100 dark:bg-neutral-800 text-neutral-500 border border-neutral-200 dark:border-neutral-700"
         } flex items-center justify-center shrink-0`}
       >
         <span className="material-icons-outlined text-sm">{iconName}</span>
@@ -99,13 +99,13 @@ function SortableActionItem({
         <p
           className={`text-sm font-medium truncate ${
             isActive
-              ? "text-slate-900 dark:text-white"
-              : "text-slate-700 dark:text-slate-300"
+              ? "text-neutral-900 dark:text-white"
+              : "text-neutral-700 dark:text-neutral-300"
           }`}
         >
           {action.title}
         </p>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-neutral-500 dark:text-neutral-400">
           {action.actionType === "phone_call" && "Ligação"}
           {action.actionType === "email" && "Email"}
           {action.actionType === "linkedin_message" && "LinkedIn"}
@@ -115,7 +115,7 @@ function SortableActionItem({
         </p>
       </div>
       <button
-        className={`opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all ${
+        className={`opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-red-500 transition-all ${
           isDragging ? "opacity-0" : ""
         }`}
         onClick={(e) => {
@@ -128,7 +128,7 @@ function SortableActionItem({
       <div
         {...attributes}
         {...listeners}
-        className="text-slate-300 cursor-grab active:cursor-grabbing"
+        className="text-neutral-300 cursor-grab active:cursor-grabbing"
       >
         <GripVertical className="h-4 w-4" />
       </div>
@@ -218,14 +218,14 @@ export function ProcessSidebar({
 
   if (isLoading) {
     return (
-      <aside className="w-80 flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex-shrink-0 z-10">
+      <aside className="w-80 flex flex-col bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 flex-shrink-0 z-10">
         <div className="p-4">
-          <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded animate-pulse mb-4"></div>
+          <div className="h-6 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse mb-4"></div>
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => (
               <div
                 key={i}
-                className="h-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"
+                className="h-16 bg-neutral-200 dark:bg-neutral-700 rounded animate-pulse"
               ></div>
             ))}
           </div>
@@ -235,17 +235,17 @@ export function ProcessSidebar({
   }
 
   return (
-    <aside className="w-80 flex flex-col bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex-shrink-0 z-10 transition-colors duration-300">
-      <div className="px-4 py-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+    <aside className="w-80 flex flex-col bg-white dark:bg-neutral-800 border-r border-neutral-200 dark:border-neutral-700 flex-shrink-0 z-10 transition-colors duration-300">
+      <div className="px-4 py-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
+          <h1 className="text-lg font-semibold text-neutral-900 dark:text-white">
             Process Outline
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400">
             Drag to reorder steps
           </p>
         </div>
-        <button className="text-slate-400 hover:text-primary dark:hover:text-primary transition-colors">
+        <button className="text-neutral-400 hover:text-primary dark:hover:text-primary transition-colors">
           <span className="material-icons-outlined">playlist_add_check</span>
         </button>
       </div>
@@ -258,18 +258,18 @@ export function ProcessSidebar({
           onDragEnd={handleDragEnd}
         >
           {actionsByDay.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+            <div className="text-center py-8 text-neutral-500 dark:text-neutral-400">
               <p className="text-sm">Nenhuma ação criada ainda.</p>
               <p className="text-xs mt-1">Clique em "Add New Step" para começar.</p>
             </div>
           ) : (
             actionsByDay.map((dayGroup) => (
               <div key={dayGroup.dayOffset} className="relative">
-                <div className="sticky top-0 z-10 bg-white dark:bg-slate-800 px-2 py-2 flex items-center gap-2 mb-1">
-                  <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600">
+                <div className="sticky top-0 z-10 bg-white dark:bg-neutral-800 px-2 py-2 flex items-center gap-2 mb-1">
+                  <span className="bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border border-neutral-200 dark:border-neutral-600">
                     Day {dayGroup.dayOffset}
                   </span>
-                  <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+                  <div className="h-px bg-neutral-200 dark:bg-neutral-700 flex-1"></div>
                 </div>
 
                 <SortableContext
@@ -295,14 +295,14 @@ export function ProcessSidebar({
 
         {canAddProcesses ? (
           <button
-            className="w-full py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 hover:border-primary hover:text-primary dark:hover:border-primary transition-colors flex items-center justify-center gap-2 text-sm font-medium mt-4"
+            className="w-full py-3 border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg text-neutral-500 dark:text-neutral-400 hover:border-primary hover:text-primary dark:hover:border-primary transition-colors flex items-center justify-center gap-2 text-sm font-medium mt-4"
             onClick={onCreateAction}
           >
             <Plus className="w-4 h-4" />
             Add New Step
           </button>
         ) : (
-          <div className="w-full py-3 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-slate-400 dark:text-slate-500 flex items-center justify-center gap-2 text-sm font-medium mt-4 cursor-not-allowed">
+          <div className="w-full py-3 border-2 border-dashed border-neutral-200 dark:border-neutral-700 rounded-lg text-neutral-400 dark:text-neutral-500 flex items-center justify-center gap-2 text-sm font-medium mt-4 cursor-not-allowed">
             <Plus className="w-4 h-4" />
             <span>Processos não podem ser adicionados neste tipo de etapa</span>
           </div>

@@ -223,7 +223,7 @@ const EntityPage: React.FC = () => {
     <div className="min-h-screen bg-[#f8faff] ">
       <div className="mx-auto">
         {/* Header - Novo Layout */}
-        <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/60 px-3 py-1.5 md:px-4 md:py-2 flex-shrink-0 shadow-sm relative mb-4">
+        <header className="bg-white/95 backdrop-blur-md border-b border-neutral-200/60 px-3 py-1.5 md:px-4 md:py-2 flex-shrink-0 shadow-sm relative mb-4">
           <div className="flex items-center gap-2">
             {/* Título + ícone + engrenagem */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -233,16 +233,16 @@ const EntityPage: React.FC = () => {
               >
                 {getEntityIcon(entity.icon)}
               </div>
-              <h1 className="text-base md:text-lg font-bold text-slate-800 truncate" style={{ color: entity.color }}>
+              <h1 className="text-base md:text-lg font-bold text-neutral-800 truncate" style={{ color: entity.color }}>
                 {entity.name}
               </h1>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 w-5 p-0 hover:bg-slate-100"
+                className="h-5 w-5 p-0 hover:bg-neutral-100"
                 onClick={() => navigate(`/crm/entity/${entity.id}/settings`)}
               >
-                <Settings className="h-4 w-4 text-slate-600" />
+                <Settings className="h-4 w-4 text-neutral-600" />
               </Button>
             </div>
             {/* Filtros + busca + novo registro */}
@@ -251,7 +251,7 @@ const EntityPage: React.FC = () => {
               <Button
                 variant={filterDate || filterPeriod || filterType ? 'default' : 'outline'}
                 size="sm"
-                className={`h-6 px-1.5 text-xs ${filterDate || filterPeriod || filterType ? 'bg-blue-600' : 'bg-white/60 border-slate-200'}`}
+                className={`h-6 px-1.5 text-xs ${filterDate || filterPeriod || filterType ? 'bg-blue-600' : 'bg-white/60 border-neutral-200'}`}
                 onClick={() => setShowFilterModal(true)}
               >
                 <Filter className="h-3 w-3 mr-1" />
@@ -268,11 +268,11 @@ const EntityPage: React.FC = () => {
               )}
               {/* Busca */}
               <div className="relative w-32 md:w-48">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-neutral-400" />
                 <Input
                   type="search"
                   placeholder="Buscar..."
-                  className="h-6 text-xs pl-6 bg-white/60 border-slate-200 focus:bg-white transition-colors"
+                  className="h-6 text-xs pl-6 bg-white/60 border-neutral-200 focus:bg-white transition-colors"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />

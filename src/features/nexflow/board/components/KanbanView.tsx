@@ -73,7 +73,7 @@ export function KanbanView({
       <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
         {activeDragCard ? (
           <motion.div
-            className="w-72 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl"
+            className="w-72 rounded-2xl border border-neutral-200 bg-white p-4 shadow-2xl"
             initial={{ scale: 1 }}
             animate={{ scale: 1.03 }}
           >

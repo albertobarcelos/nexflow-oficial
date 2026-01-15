@@ -103,7 +103,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50 bg-gradient-to-br from-neutral-50 to-neutral-100">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1">
           <CardTitle className="text-3xl font-bold text-center">

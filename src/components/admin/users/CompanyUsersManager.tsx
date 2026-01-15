@@ -103,15 +103,15 @@ export function CompanyUsersManager({ clientId, companyName }: CompanyUsersManag
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      <span className="text-sm text-gray-600">{user.role}</span>
+                      <span className="text-sm text-muted-foreground">{user.role}</span>
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={user.is_active ? "default" : "secondary"}
                         className={
                           user.is_active
-                            ? "bg-green-100 text-green-800 hover:bg-green-100"
-                            : "bg-gray-100 text-gray-800 hover:bg-gray-100"
+                            ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 hover:bg-green-100 dark:hover:bg-green-900"
+                            : "bg-muted text-muted-foreground hover:bg-muted"
                         }
                       >
                         {user.is_active ? "Ativo" : "Inativo"}

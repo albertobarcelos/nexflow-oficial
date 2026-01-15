@@ -12,6 +12,13 @@ import {
   User,
   Workflow,
   PlayCircle,
+  Tag,
+  ListChecks,
+  DollarSign,
+  GitBranch,
+  Users,
+  Paperclip,
+  MessageSquare,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -20,6 +27,7 @@ import type { CardTimelineEvent } from "@/hooks/useCardTimeline";
 
 interface CardTimelineHorizontalProps {
   events: CardTimelineEvent[];
+  cardId?: string | null;
 }
 
 const getEventIcon = (eventType: CardTimelineEvent["event_type"]) => {
@@ -33,14 +41,28 @@ const getEventIcon = (eventType: CardTimelineEvent["event_type"]) => {
     case "status_change":
       return CheckCircle2;
     case "freeze":
-      return Snowflake;
     case "unfreeze":
       return Snowflake;
     case "checklist_completed":
+    case "checklist_change":
       return FileCheck;
     case "process_status_change":
     case "process_completed":
       return Workflow;
+    case "title_change":
+      return Tag;
+    case "assignee_change":
+      return User;
+    case "product_value_change":
+      return DollarSign;
+    case "parent_change":
+      return GitBranch;
+    case "agents_change":
+      return Users;
+    case "attachment_uploaded":
+      return Paperclip;
+    case "message_created":
+      return MessageSquare;
     default:
       return Clock;
   }
@@ -65,6 +87,30 @@ const getEventColor = (
   if (eventType === "process_status_change" || eventType === "process_completed") {
     return "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20";
   }
+  if (eventType === "title_change") {
+    return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20";
+  }
+  if (eventType === "assignee_change") {
+    return "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/20";
+  }
+  if (eventType === "checklist_change") {
+    return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20";
+  }
+  if (eventType === "product_value_change") {
+    return "text-lime-600 dark:text-lime-400 bg-lime-50 dark:bg-lime-950/20";
+  }
+  if (eventType === "parent_change") {
+    return "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20";
+  }
+  if (eventType === "agents_change") {
+    return "text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/20";
+  }
+  if (eventType === "attachment_uploaded") {
+    return "text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/20";
+  }
+  if (eventType === "message_created") {
+    return "text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/20";
+  }
   return "text-primary bg-primary/10";
 };
 
@@ -87,7 +133,7 @@ const formatDuration = (seconds: number | null): string => {
   }
 };
 
-export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) {
+export function CardTimelineHorizontal({ events, cardId }: CardTimelineHorizontalProps) {
   if (events.length === 0) {
     return (
       <div className="flex items-center justify-center py-12 text-center">
@@ -102,8 +148,14 @@ export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) 
     <div className="w-full overflow-x-auto pb-4">
       <div className="relative flex items-start gap-8 min-w-max py-6 px-4">
         {/* Linha horizontal contínua conectando todas as bolinhas */}
-        <div className="absolute top-8 left-0 right-0 h-0.5 bg-border z-0" 
-          style={{ width: 'calc(100% - 2rem)', left: '1rem' }} 
+        {/* Centralizada verticalmente: bolinhas h-8 (32px), centro em 16px do topo */}
+        {/* Linha h-0.5, posicionada em 16px - 0.25px = 15.75px para centralizar */}
+        <div className="absolute left-0 right-0 h-0.5 bg-border z-0" 
+          style={{ 
+            width: 'calc(100% - 2rem)', 
+            left: '1rem',
+            top: '15.75px' // Centro da linha alinhado com centro das bolinhas (16px)
+          }} 
         />
 
         {events.map((event, index) => {
@@ -121,7 +173,8 @@ export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) 
                 "transition-all duration-200"
               )}
             >
-              {/* Nó do evento (bolinha menor) */}
+              {/* Nó do evento (bolinha menor) - centralizado com a linha */}
+              {/* h-8 = 32px, centro em 16px do topo, alinhado com linha em top-4 (16px) */}
               <div
                 className={cn(
                   "relative h-8 w-8 rounded-full border-2 flex items-center justify-center",
@@ -144,7 +197,8 @@ export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) 
                 className={cn(
                   "rounded-lg p-3 shadow-sm border w-full mt-2",
                   colorClass,
-                  "border-border bg-background"
+                  "border-border bg-background",
+                  "transition-all duration-200"
                 )}
               >
                 {/* Tipo de evento */}
@@ -175,6 +229,14 @@ export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) 
                     {(event.event_type === "process_status_change" || event.event_type === "process_completed") && (
                       <Workflow className="mr-1 h-3 w-3" />
                     )}
+                    {event.event_type === "title_change" && <Tag className="mr-1 h-3 w-3" />}
+                    {event.event_type === "assignee_change" && <User className="mr-1 h-3 w-3" />}
+                    {event.event_type === "checklist_change" && <FileCheck className="mr-1 h-3 w-3" />}
+                    {event.event_type === "product_value_change" && <DollarSign className="mr-1 h-3 w-3" />}
+                    {event.event_type === "parent_change" && <GitBranch className="mr-1 h-3 w-3" />}
+                    {event.event_type === "agents_change" && <Users className="mr-1 h-3 w-3" />}
+                    {event.event_type === "attachment_uploaded" && <Paperclip className="mr-1 h-3 w-3" />}
+                    {event.event_type === "message_created" && <MessageSquare className="mr-1 h-3 w-3" />}
                     {event.event_type === "stage_change"
                       ? isBackward
                         ? "Regresso"
@@ -191,8 +253,24 @@ export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) 
                       ? "Descongelado"
                       : event.event_type === "checklist_completed"
                       ? "Checklist"
+                      : event.event_type === "checklist_change"
+                      ? "Checklist"
                       : event.event_type === "process_status_change" || event.event_type === "process_completed"
                       ? "Processo"
+                      : event.event_type === "title_change"
+                      ? "Título"
+                      : event.event_type === "assignee_change"
+                      ? "Responsável"
+                      : event.event_type === "product_value_change"
+                      ? "Produto/Valor"
+                      : event.event_type === "parent_change"
+                      ? "Card Pai"
+                      : event.event_type === "agents_change"
+                      ? "Agents"
+                      : event.event_type === "attachment_uploaded"
+                      ? "Anexo"
+                      : event.event_type === "message_created"
+                      ? "Comentário"
                       : "Evento"}
                   </Badge>
                   <span className="text-[10px] text-muted-foreground whitespace-nowrap">
@@ -232,13 +310,30 @@ export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) 
                           Tempo na etapa anterior: {formatDuration(event.duration_seconds)}
                         </div>
                       )}
+                      {/* Mostrar quantidade de campos preenchidos na etapa anterior */}
+                      {event.details && 
+                       typeof event.details.fields_filled === 'object' && 
+                       event.details.fields_filled !== null &&
+                       Array.isArray(event.details.fields_filled) &&
+                       event.details.fields_filled.length > 0 && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {event.details.fields_filled.length} campo(s) preenchido(s) na etapa anterior
+                        </div>
+                      )}
                     </>
                   )}
 
                   {event.event_type === "field_update" && event.field && (
-                    <div className="text-xs">
-                      <span className="text-muted-foreground">Campo: </span>
-                      <span className="font-medium">{event.field.label}</span>
+                    <div className="text-xs space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Campo: </span>
+                        <span className="font-medium">{event.field.label}</span>
+                      </div>
+                      {event.step && (
+                        <div className="text-[10px] text-muted-foreground">
+                          Etapa: {event.step.title}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -272,6 +367,30 @@ export function CardTimelineHorizontal({ events }: CardTimelineHorizontalProps) 
                       {event.process.completed_at && (
                         <div className="text-[10px] text-muted-foreground">
                           Concluído em {format(new Date(event.process.completed_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {event.event_type === "attachment_uploaded" && event.details && (
+                    <div className="text-xs">
+                      <span className="text-muted-foreground">Arquivo: </span>
+                      <span className="font-medium">
+                        {event.details.file_name ? String(event.details.file_name) : "—"}
+                      </span>
+                    </div>
+                  )}
+
+                  {event.event_type === "message_created" && event.details && (
+                    <div className="text-xs space-y-1">
+                      {event.details.content_preview && (
+                        <div className="font-medium truncate">
+                          {String(event.details.content_preview)}
+                        </div>
+                      )}
+                      {event.details.has_file && event.details.file_name && (
+                        <div className="text-[10px] text-muted-foreground">
+                          Arquivo: {String(event.details.file_name)}
                         </div>
                       )}
                     </div>

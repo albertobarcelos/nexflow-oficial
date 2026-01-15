@@ -72,7 +72,7 @@ export function SortableCard({
         damping: 20,
       }}
       className={cn(
-        "relative cursor-pointer rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-slate-800 p-3 shadow-sm transition-all group",
+        "relative cursor-pointer rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-neutral-800 p-3 shadow-sm transition-all group",
         isActiveDrag ? "opacity-40" : "opacity-100",
         shouldShake 
           ? "ring-2 ring-red-300 bg-red-50/60" 

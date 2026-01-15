@@ -765,7 +765,7 @@ export function CardComments({ cardId }: CardCommentsProps) {
                 <X className="h-4 w-4 text-red-600 dark:text-red-400" />
               </Button>
             </div>
-            <div className="relative bg-slate-900 rounded-lg overflow-hidden">
+            <div className="relative bg-neutral-900 rounded-lg overflow-hidden">
               <canvas
                 ref={canvasRef}
                 width={400}

@@ -49,17 +49,17 @@ export function Canvas({
     <section
       ref={setNodeRef}
       className={cn(
-        "rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition",
+        "rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm transition",
         "min-h-[620px] my-1.5",
         isOver && "border border-dashed border-orange-400 bg-orange-50/40"
       )}
     >
       <div className="space-y-4">
-        <div className="rounded-xl border border-dashed border-slate-200 p-4">
-          <p className="text-sm font-semibold text-slate-900">
+        <div className="rounded-xl border border-dashed border-neutral-200 p-4">
+          <p className="text-sm font-semibold text-neutral-900">
             Formulário da etapa
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-neutral-500">
             Arraste campos e organize a ordem desejada.
           </p>
         </div>
@@ -75,12 +75,12 @@ export function Canvas({
         )}
 
         {fields.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-slate-50/80 p-10 text-center">
-            <Inbox className="mb-4 h-10 w-10 text-slate-400" />
-            <p className="text-sm font-semibold text-slate-700">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-neutral-200 bg-neutral-50/80 p-10 text-center">
+            <Inbox className="mb-4 h-10 w-10 text-neutral-400" />
+            <p className="text-sm font-semibold text-neutral-700">
               Nenhum campo adicionado ainda
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Utilize a toolbox para arrastar um campo ou crie rapidamente.
             </p>
             <Button

@@ -191,35 +191,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Preparar nome do usuário para o histórico
-    const userName = `${clientUser.name || ''} ${clientUser.surname || ''}`.trim() || clientUser.email || 'Usuário';
-
-    // Registrar no histórico do card
-    const historyDetails = {
-      file_name: file.name,
-      file_size: file.size,
-      file_type: file.type,
-      user_name: userName,
-      uploaded_at: new Date().toISOString(),
-      attachment_id: attachment.id,
-    };
-
-    const { error: historyError } = await supabaseAdmin
-      .from('card_history')
-      .insert({
-        card_id: cardId,
-        client_id: clientId,
-        action_type: 'attachment_uploaded',
-        details: historyDetails,
-        created_by: user.id,
-        from_step_id: card.step_id,
-        to_step_id: card.step_id, // Mesmo step, apenas registro de ação
-      });
-
-    if (historyError) {
-      console.error('Erro ao registrar histórico:', historyError);
-      // Não falhar a requisição se o histórico não for registrado
-    }
+    // NOTA: O histórico é registrado automaticamente pelo trigger
+    // trigger_track_attachment_uploaded em card_attachments
+    // Não é mais necessário inserir manualmente aqui
 
     // Formatar resposta com dados do usuário (já temos clientUser da validação inicial)
     const response = {

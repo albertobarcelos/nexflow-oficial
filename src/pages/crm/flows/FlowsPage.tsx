@@ -61,12 +61,12 @@ export function FlowsPage() {
   }, [isAdministrator, isLeader, isTeamAdmin, currentUserId]);
 
   return (
-    <div className="min-h-screen bg-[#f8faff] p-4 md:p-8">
-      <div className="bg-white rounded-2xl p-4 md:p-8 shadow-sm">
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="bg-card rounded-2xl p-4 md:p-8 shadow-sm border border-border">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold">Flows</h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">Flows</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Gerencie todos os seus flows e pipelines
             </p>
           </div>
@@ -88,8 +88,8 @@ export function FlowsPage() {
         <div className="space-y-6 md:space-y-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-base md:text-lg font-medium">Meus Flows</h2>
-              <Info className="w-4 h-4 text-gray-400" />
+              <h2 className="text-base md:text-lg font-medium text-foreground">Meus Flows</h2>
+              <Info className="w-4 h-4 text-muted-foreground" />
             </div>
 
             {isLoading ? (
@@ -97,7 +97,7 @@ export function FlowsPage() {
                 {[...Array(5)].map((_, i) => (
                   <div
                     key={i}
-                    className="bg-gray-100 rounded-xl p-4 md:p-6 min-h-[100px] md:min-h-[120px] animate-pulse"
+                    className="bg-muted rounded-xl p-4 md:p-6 min-h-[100px] md:min-h-[120px] animate-pulse"
                   />
                 ))}
               </div>
@@ -106,7 +106,7 @@ export function FlowsPage() {
                 {flows?.map((flow: NexflowFlow) => (
                   <div
                     key={flow.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-1 hover:border-orange-400 hover:shadow-lg"
+                    className="rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
                   >
                     <div
                       className="space-y-2 cursor-pointer"
@@ -114,10 +114,10 @@ export function FlowsPage() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="text-xs uppercase tracking-wide text-slate-400">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">
                             {flow.category}
                           </p>
-                          <h3 className="text-sm font-semibold text-slate-900 line-clamp-2">
+                          <h3 className="text-sm font-semibold text-foreground line-clamp-2">
                             {flow.name}
                           </h3>
                         </div>
@@ -138,7 +138,7 @@ export function FlowsPage() {
                           </div>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 line-clamp-2">
+                      <p className="text-xs text-muted-foreground line-clamp-2">
                         {flow.description || "Sem descrição"}
                       </p>
                     </div>
@@ -197,7 +197,7 @@ export function FlowsPage() {
                       ) : (
                         <div></div>
                       )}
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-muted-foreground">
                         Criado em{" "}
                         {new Date(flow.createdAt).toLocaleDateString("pt-BR")}
                       </div>
@@ -206,7 +206,7 @@ export function FlowsPage() {
                 ))}
 
                 {!isLoading && flows?.length === 0 && (
-                  <div className="col-span-full text-center py-8 text-gray-500">
+                  <div className="col-span-full text-center py-8 text-muted-foreground">
                     <p className="text-sm">Nenhum flow criado ainda.</p>
                     <p className="text-xs mt-1">
                       Clique em "Criar Novo Flow" para começar.

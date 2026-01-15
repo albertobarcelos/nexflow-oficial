@@ -41,7 +41,7 @@ export function UnitsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Unidades</h1>
+        <h1 className="text-2xl font-bold text-foreground">Unidades</h1>
         <p className="text-muted-foreground">
           Gerencie as unidades/franquias da sua empresa
         </p>

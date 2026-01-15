@@ -302,7 +302,6 @@ export function CardDetailsModal({
         return (
           <CardHistoryTab
             card={card}
-            steps={effectiveSteps}
           />
         );
       case "fields":
@@ -374,6 +373,7 @@ export function CardDetailsModal({
           <CardDetailsHeader
             card={card}
             currentStep={currentStep}
+            steps={steps}
             onClose={onClose}
             onOpenParentCard={onOpenParentCard}
           />

@@ -67,9 +67,9 @@ export function CustomFieldsEditor({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 shadow-sm">
+    <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
           Custom Fields
         </h3>
         {canEditFields ? (
@@ -80,17 +80,17 @@ export function CustomFieldsEditor({
             <span className="material-icons-outlined text-sm mr-1">add</span> Add
           </button>
         ) : (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-neutral-500">
             Campos não podem ser adicionados neste tipo de etapa
           </p>
         )}
       </div>
 
       {isAdding && (
-        <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="mb-4 p-3 bg-neutral-50 dark:bg-neutral-900 rounded-lg border border-neutral-200 dark:border-neutral-700">
           <div className="space-y-3">
             <div>
-              <Label className="text-xs text-slate-600 dark:text-slate-400">
+              <Label className="text-xs text-neutral-600 dark:text-neutral-400">
                 Field Label
               </Label>
               <Input
@@ -104,7 +104,7 @@ export function CustomFieldsEditor({
               />
             </div>
             <div>
-              <Label className="text-xs text-slate-600 dark:text-slate-400">
+              <Label className="text-xs text-neutral-600 dark:text-neutral-400">
                 Field Type
               </Label>
               <Select
@@ -151,23 +151,23 @@ export function CustomFieldsEditor({
 
       <div className="space-y-3">
         {fields.length === 0 ? (
-          <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-4">
+          <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center py-4">
             No custom fields added yet
           </p>
         ) : (
           fields.map((field) => (
             <div
               key={field.id}
-              className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 group"
+              className="flex items-center gap-2 p-2 bg-neutral-50 dark:bg-neutral-800 rounded border border-neutral-200 dark:border-neutral-700 group"
             >
-              <span className="text-slate-400 text-sm">
+              <span className="text-neutral-400 text-sm">
                 {getFieldIcon(field.fieldType)}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                <p className="text-xs font-medium text-neutral-700 dark:text-neutral-300">
                   {field.label}
                 </p>
-                <p className="text-[10px] text-slate-500">
+                <p className="text-[10px] text-neutral-500">
                   {field.fieldType === "text" && "Text Input"}
                   {field.fieldType === "number" && "Number"}
                   {field.fieldType === "date" && "Date"}
@@ -178,7 +178,7 @@ export function CustomFieldsEditor({
               </div>
               {canEditFields && (
                 <button
-                  className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={() => onRemoveField(field.id)}
                 >
                   <X className="h-4 w-4" />

@@ -17,6 +17,16 @@ O sistema utiliza a tabela `card_history` para armazenar todos os eventos, com s
 - **`freeze`**: Congelamento do card
 - **`unfreeze`**: Descongelamento do card
 - **`checklist_completed`**: Conclusão de checklist
+- **`title_change`**: Alteração de título do card
+- **`checklist_change`**: Alteração de progresso do checklist
+- **`assignee_change`**: Alteração de responsável (usuário ou time)
+- **`product_value_change`**: Alteração de produto ou valor do card
+- **`parent_change`**: Alteração de card pai (vinculação/desvinculação)
+- **`agents_change`**: Alteração de agents do card
+- **`process_status_change`**: Mudança de status de processo vinculado
+- **`process_completed`**: Conclusão de processo vinculado
+- **`attachment_uploaded`**: Upload de arquivo anexado ao card
+- **`message_created`**: Criação de comentário/mensagem no card
 
 ### Campos Principais
 
@@ -28,6 +38,7 @@ O sistema utiliza a tabela `card_history` para armazenar todos os eventos, com s
 - **`client_id`**: UUID do cliente (tenant)
 - **`from_step_id`**: ID da etapa de origem (para eventos `stage_change`)
 - **`to_step_id`**: ID da etapa de destino (para eventos `stage_change`)
+- **`step_id`**: ID da etapa onde o evento ocorreu (principalmente para eventos `field_update`)
 - **`created_by`**: UUID do usuário que criou o evento
 - **`created_at`**: Timestamp de criação
 - **`action_type`**: Tipo de ação (`move`, `complete`, `cancel`)
@@ -36,21 +47,42 @@ O sistema utiliza a tabela `card_history` para armazenar todos os eventos, com s
 - **`to_step_position`**: Posição da etapa de destino
 - **`details`**: JSONB com dados adicionais do evento
 
-**Dados Armazenados em `details` (JSONB):**
-- **`event_type`**: Tipo do evento (`stage_change`, `field_update`, `activity`, `status_change`, `freeze`, `unfreeze`, `checklist_completed`)
-- **`duration_seconds`**: Tempo em segundos que o card permaneceu na etapa anterior
-- **`previous_value`**: Valor anterior (para edições de campos)
-- **`new_value`**: Novo valor (para edições de campos)
+**Colunas Adicionais:**
+- **`event_type`**: Tipo do evento (armazenado diretamente na coluna, não apenas em `details`)
+- **`duration_seconds`**: Tempo em segundos que o card permaneceu na etapa anterior (calculado automaticamente)
+- **`previous_value`**: Valor anterior (JSONB) - armazenado diretamente na coluna
+- **`new_value`**: Novo valor (JSONB) - armazenado diretamente na coluna
 - **`field_id`**: ID do campo alterado (para eventos `field_update`)
-- **`field_label`**: Label do campo (para referência)
-- **`field_slug`**: Slug do campo (para referência)
-- **`field_type`**: Tipo do campo (para referência)
 - **`activity_id`**: ID da atividade (para eventos `activity`)
-- **`activity_title`**: Título da atividade (para referência)
-- **`activity_start_at`**: Data de início da atividade
-- **`activity_end_at`**: Data de fim da atividade
 
-**Nota:** As colunas `event_type`, `field_id`, `activity_id`, `duration_seconds`, `previous_value` e `new_value` são armazenadas no campo `details` (JSONB) para manter compatibilidade com a estrutura existente. As funções SQL `get_card_timeline` e `get_contact_history` extraem esses valores do JSONB quando disponíveis.
+**Dados Armazenados em `details` (JSONB):**
+- **`user_name`**: Nome do usuário que realizou a alteração
+- **`changed_at`**: Timestamp da alteração
+- **`from_step_title`**: Título da etapa de origem (para `stage_change`)
+- **`to_step_title`**: Título da etapa de destino (para `stage_change`)
+- **`field_label`**: Label do campo (para referência em `field_update`)
+- **`field_slug`**: Slug do campo (para referência em `field_update`)
+- **`field_type`**: Tipo do campo (para referência em `field_update`)
+- **`activity_title`**: Título da atividade (para eventos `activity`)
+- **`activity_action`**: Ação da atividade (`created`, `updated`, `completed`)
+- **`process_title`**: Título do processo (para eventos de processos)
+- **`assignee_name`**: Nome do responsável (para `assignee_change`)
+- **`assignee_type`**: Tipo de responsável (`user`, `team`, `unassigned`)
+- **`parent_title`**: Título do card pai (para `parent_change`)
+- **`fields_filled`**: Array de campos preenchidos na etapa anterior (para `stage_change`)
+  - Cada item contém: `field_id`, `field_key`, `field_label`, `value`, `filled_at`
+- **`attachment_id`**: ID do anexo (para `attachment_uploaded`)
+- **`file_name`**: Nome do arquivo (para `attachment_uploaded`)
+- **`file_size`**: Tamanho do arquivo em bytes (para `attachment_uploaded`)
+- **`file_type`**: Tipo MIME do arquivo (para `attachment_uploaded`)
+- **`message_id`**: ID da mensagem (para `message_created`)
+- **`message_type`**: Tipo da mensagem (`text`, `audio`, `video`, `file`)
+- **`content_preview`**: Preview do conteúdo (primeiros 100 caracteres)
+- **`has_file`**: Se a mensagem contém arquivo
+- **`has_mentions`**: Se a mensagem contém menções
+- **`mentions_count`**: Número de menções na mensagem
+
+**Nota:** A partir da refatoração, `event_type`, `previous_value` e `new_value` são armazenados diretamente nas colunas correspondentes, além de serem mantidos em `details` para compatibilidade. As funções SQL `get_card_timeline` e `get_contact_history` utilizam as colunas diretas quando disponíveis.
 
 #### Tabela `cards`
 
@@ -112,12 +144,15 @@ const timeInCurrentStage = Math.floor((now.getTime() - lastChange.getTime()) / 1
 1. Detecta mudança em `step_id`
 2. Busca informações dos steps (título, tipo)
 3. Busca nome do usuário atual (`auth.uid()`)
-4. Determina `action_type` baseado no tipo de step:
+4. Captura snapshot dos campos preenchidos na etapa anterior (`OLD.step_id`)
+5. Determina `action_type` baseado no tipo de step:
    - `finisher` → `complete`
    - `fail` → `cancel`
    - outros → `move`
-5. Cria evento no histórico
-6. Atualiza `last_stage_change_at` no card
+6. Cria evento no histórico com `fields_filled` no `details`
+7. Atualiza `last_stage_change_at` no card
+
+**Nota**: A partir de janeiro de 2025, os eventos `stage_change` incluem um snapshot dos campos preenchidos na etapa anterior no campo `details.fields_filled`, permitindo ver imediatamente quais campos foram preenchidos quando há mudança de etapa.
 
 ### 3. `track_card_field_update()`
 
@@ -130,8 +165,11 @@ const timeInCurrentStage = Math.floor((now.getTime() - lastChange.getTime()) / 1
 2. Compara `OLD.field_values` com `NEW.field_values`
 3. Para cada campo alterado:
    - Busca `field_id` pelo slug
+   - Armazena `step_id` do card (etapa onde o campo foi preenchido)
    - Cria evento com `previous_value` e `new_value`
    - Armazena em JSONB
+
+**Nota**: A partir de janeiro de 2025, os eventos `field_update` incluem `step_id` para associar cada campo preenchido à etapa onde foi preenchido.
 
 ### 4. `track_card_status_change()`
 
@@ -143,6 +181,96 @@ const timeInCurrentStage = Math.floor((now.getTime() - lastChange.getTime()) / 1
 1. Detecta mudança em `status`
 2. Cria evento com status anterior e novo
 3. Armazena em `previous_value` e `new_value`
+
+### 5. `track_card_title_change()`
+
+**Tipo**: Trigger (AFTER UPDATE OF title)
+
+**Responsabilidade**: Cria evento `title_change` quando título do card muda
+
+**Fluxo:**
+1. Detecta mudança em `title`
+2. Cria evento com título anterior e novo
+3. Armazena em `previous_value` e `new_value`
+
+### 6. `track_card_checklist_change()`
+
+**Tipo**: Trigger (AFTER UPDATE OF checklist_progress)
+
+**Responsabilidade**: Cria evento `checklist_change` quando progresso do checklist muda
+
+**Fluxo:**
+1. Detecta mudança em `checklist_progress`
+2. Compara valores antigo e novo
+3. Cria evento com progresso anterior e novo
+
+### 7. `track_card_assignee_change()`
+
+**Tipo**: Trigger (AFTER UPDATE OF assigned_to, assigned_team_id)
+
+**Responsabilidade**: Cria evento `assignee_change` quando responsável muda
+
+**Fluxo:**
+1. Detecta mudança em `assigned_to` ou `assigned_team_id`
+2. Identifica tipo de responsável (user/team/unassigned)
+3. Busca nomes do responsável antigo e novo
+4. Cria evento com informações completas
+
+### 8. `track_card_product_value_change()`
+
+**Tipo**: Trigger (AFTER UPDATE OF product, value)
+
+**Responsabilidade**: Cria evento `product_value_change` quando produto ou valor muda
+
+**Fluxo:**
+1. Detecta mudança em `product` ou `value`
+2. Cria evento apenas com campos que mudaram
+3. Armazena valores anteriores e novos
+
+### 9. `track_card_parent_change()`
+
+**Tipo**: Trigger (AFTER UPDATE OF parent_card_id)
+
+**Responsabilidade**: Cria evento `parent_change` quando card pai muda
+
+**Fluxo:**
+1. Detecta mudança em `parent_card_id`
+2. Busca títulos dos cards pai (antigo e novo)
+3. Cria evento com informações de vinculação
+
+### 10. `track_card_agents_change()`
+
+**Tipo**: Trigger (AFTER UPDATE OF agents)
+
+**Responsabilidade**: Cria evento `agents_change` quando lista de agents muda
+
+**Fluxo:**
+1. Detecta mudança em `agents`
+2. Compara arrays antigo e novo
+3. Cria evento com listas anteriores e novas
+
+### 11. `track_attachment_uploaded()`
+
+**Tipo**: Trigger (AFTER INSERT ON card_attachments)
+
+**Responsabilidade**: Cria evento `attachment_uploaded` quando arquivo é anexado ao card
+
+**Fluxo:**
+1. Detecta inserção em `card_attachments`
+2. Busca informações do card e usuário
+3. Cria evento com detalhes do arquivo (nome, tamanho, tipo)
+
+### 12. `track_message_created()`
+
+**Tipo**: Trigger (AFTER INSERT ON card_messages)
+
+**Responsabilidade**: Cria evento `message_created` quando mensagem/comentário é criado
+
+**Fluxo:**
+1. Detecta inserção em `card_messages`
+2. Busca informações do card e usuário
+3. Cria preview do conteúdo (primeiros 100 caracteres)
+4. Cria evento com detalhes da mensagem (tipo, preview, arquivo se houver, menções)
 
 ## Performance e Otimizações
 
@@ -162,6 +290,28 @@ const timeInCurrentStage = Math.floor((now.getTime() - lastChange.getTime()) / 1
 ## Funções SQL
 
 ### `get_card_timeline(p_card_id UUID, p_client_id UUID)`
+
+**Retorna**: Array JSONB com todos os eventos do card ordenados cronologicamente
+
+**Inclui**:
+- `step_id` para eventos `field_update` (etapa onde o campo foi preenchido)
+- `step` objeto com informações da etapa para eventos `field_update`
+- `fields_filled` em eventos `stage_change` (snapshot dos campos preenchidos na etapa anterior)
+
+### `get_card_stage_summary(p_card_id UUID, p_client_id UUID)`
+
+**Retorna**: Array JSONB agrupado por etapa com resumo do que aconteceu em cada etapa
+
+**Para cada etapa inclui**:
+- Informações da etapa (id, title, color, position)
+- Data de entrada e saída
+- Tempo na etapa (duration_seconds)
+- Lista de campos preenchidos (com valores e timestamps)
+- Lista de atividades realizadas
+- Lista de processos executados
+- Estatísticas (contadores de eventos)
+
+**Uso**: Permite visualizar o histórico agrupado por etapa ao invés de cronologicamente, facilitando ver o que aconteceu em cada etapa.
 
 Função SQL que retorna timeline completa de eventos de um card com dados relacionados.
 

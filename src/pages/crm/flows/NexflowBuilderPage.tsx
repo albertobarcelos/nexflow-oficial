@@ -93,7 +93,7 @@ export function NexflowBuilderPage() {
 
   if (!isCheckingPermissions && !canEdit && id) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen bg-neutral-50 p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Sem permissão para editar</AlertTitle>
@@ -208,7 +208,7 @@ export function NexflowBuilderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       {isLoading ? (
         <Skeleton className="h-36 w-full rounded-2xl" />
       ) : (
@@ -278,7 +278,7 @@ export function NexflowBuilderPage() {
             </div>
           ) : null}
           {activeDrag?.type === "toolbox" && activeDrag.definition ? (
-            <div className="rounded-xl border-2 border-orange-400 bg-white px-4 py-3 shadow-2xl transform rotate-2">
+            <div className="rounded-xl border-2 border-primary bg-card px-4 py-3 shadow-2xl transform rotate-2">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50">
                   {activeDrag.definition.label === "Responsável" ? (

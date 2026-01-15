@@ -24,9 +24,9 @@ export function FlowBuilderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -40,10 +40,10 @@ export function FlowBuilderPage() {
                 <span>Voltar</span>
               </Button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-xl font-semibold text-foreground">
                   {flowId ? 'Editar Flow' : 'Construtor de Flows'}
                 </h1>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted-foreground">
                   {flowId ? 'Modifique etapas e configurações do flow existente' : 'Crie flows personalizados com etapas modulares e automações'}
                 </p>
               </div>

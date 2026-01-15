@@ -515,7 +515,7 @@ export function NexflowBoardPage() {
 
   return (
     <div className={cn(
-      "min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 font-sans flex flex-col transition-colors duration-200",
+      "min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300 font-sans flex flex-col transition-colors duration-200",
       viewMode === "list" ? "h-auto min-h-screen" : "h-screen overflow-hidden"
     )}>
       <BoardHeader
@@ -540,13 +540,13 @@ export function NexflowBoardPage() {
       />
 
       <main className={cn(
-        "flex-1 custom-scrollbar bg-slate-50 dark:bg-slate-950",
+        "flex-1 custom-scrollbar bg-neutral-50 dark:bg-neutral-950",
         viewMode === "list" 
           ? "overflow-y-auto overflow-x-hidden p-6 pb-8" 
           : "overflow-x-auto overflow-y-hidden p-6"
       )}>
         {isLoadingPage ? (
-          <div className="text-center text-slate-500 py-12">Carregando...</div>
+          <div className="text-center text-neutral-500 py-12">Carregando...</div>
         ) : viewMode === "list" ? (
           <ListView
             cards={listViewCards}

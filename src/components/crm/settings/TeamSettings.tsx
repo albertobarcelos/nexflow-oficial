@@ -43,10 +43,24 @@ export function TeamSettings() {
       if (!clientId) return [];
 
       // Buscar times do usuário
-      const { data: teamMembers, error: teamMembersError } = await supabase
-        .from('core_team_members')
+      const result = await (supabase
+        .from('core_team_members' as any)
         .select('team_id, role, core_teams:team_id(id, name, description, client_id)')
-        .eq('user_profile_id', user.id);
+        .eq('user_profile_id', user.id)) as unknown as {
+        data: Array<{
+          team_id: string;
+          role: string;
+          core_teams: {
+            id: string;
+            name: string;
+            description: string | null;
+            client_id: string;
+          } | null;
+        }> | null;
+        error: any;
+      };
+      
+      const { data: teamMembers, error: teamMembersError } = result;
 
       if (teamMembersError || !teamMembers) {
         console.error('Erro ao buscar times:', teamMembersError);
@@ -59,8 +73,8 @@ export function TeamSettings() {
           const team = tm.core_teams;
           if (!team || team.client_id !== clientId) return null;
 
-          const { data: members, error: membersError } = await supabase
-            .from('core_team_members')
+          const membersResult = await (supabase
+            .from('core_team_members' as any)
             .select(`
               user_profile_id,
               role,
@@ -74,7 +88,24 @@ export function TeamSettings() {
                 custom_avatar_url
               )
             `)
-            .eq('team_id', team.id);
+            .eq('team_id', team.id)) as unknown as {
+            data: Array<{
+              user_profile_id: string;
+              role: string;
+              core_client_users: {
+                id: string;
+                name: string | null;
+                surname: string | null;
+                email: string;
+                role: string;
+                avatar_url: string | null;
+                custom_avatar_url: string | null;
+              } | null;
+            }> | null;
+            error: any;
+          };
+          
+          const { data: members, error: membersError } = membersResult;
 
           if (membersError || !members) {
             console.error('Erro ao buscar membros:', membersError);
@@ -122,7 +153,7 @@ export function TeamSettings() {
     return (
       <div className="space-y-4">
         <div>
-          <h2 className="text-2xl font-bold">Equipe</h2>
+          <h2 className="text-2xl font-bold text-foreground">Equipe</h2>
           <p className="text-muted-foreground">
             Visualize os times dos quais você faz parte
           </p>
@@ -141,7 +172,7 @@ export function TeamSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Equipe</h2>
+        <h2 className="text-2xl font-bold text-foreground">Equipe</h2>
         <p className="text-muted-foreground">
           Visualize os times dos quais você faz parte
         </p>

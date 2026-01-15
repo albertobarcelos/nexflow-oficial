@@ -61,7 +61,7 @@ export function AgentsMultiSelect({
             variant="outline"
             className={cn(
               "w-full justify-start text-left font-normal min-h-[2.5rem] h-auto py-2",
-              !value.length && "text-slate-400"
+              !value.length && "text-neutral-400"
             )}
             disabled={disabled}
           >
@@ -78,7 +78,7 @@ export function AgentsMultiSelect({
                       <button
                         type="button"
                         onClick={(e) => handleRemove(user.id, e)}
-                        className="ml-1 hover:bg-slate-300 rounded-full p-0.5"
+                        className="ml-1 hover:bg-neutral-300 rounded-full p-0.5"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -115,7 +115,7 @@ export function AgentsMultiSelect({
                         {user.name} {user.surname}
                       </p>
                       {user.email && (
-                        <p className="text-xs text-slate-500">{user.email}</p>
+                        <p className="text-xs text-neutral-500">{user.email}</p>
                       )}
                     </div>
                     {isSelected && (

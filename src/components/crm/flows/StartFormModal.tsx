@@ -246,17 +246,17 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
       const items = field.configuration.items ?? [];
       const checklistErrors = formState.errors.checklist?.[field.id];
       return (
-        <div className="space-y-2 rounded-xl border border-slate-200 p-4 bg-white">
+        <div className="space-y-2 rounded-xl border border-neutral-200 p-4 bg-white">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-slate-800">{field.label}</p>
+            <p className="text-sm font-semibold text-neutral-800">{field.label}</p>
             {field.isRequired && <span className="text-xs text-red-500">Obrigatório</span>}
           </div>
           {items.length === 0 ? (
-            <p className="text-xs text-slate-500">Sem itens configurados.</p>
+            <p className="text-xs text-neutral-500">Sem itens configurados.</p>
           ) : (
             <div className="space-y-2">
               {items.map((item) => (
-                <label key={item} className="flex items-center gap-2 text-sm text-slate-700">
+                <label key={item} className="flex items-center gap-2 text-sm text-neutral-700">
                   <Checkbox
                     checked={Boolean(checklistWatch?.[field.id]?.[item])}
                     onCheckedChange={(checked) =>
@@ -282,7 +282,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
     if (field.fieldType === "date") {
       return (
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-800">
+          <Label className="text-sm font-semibold text-neutral-800">
             {field.label}
             {field.isRequired && <span className="ml-1 text-red-500">*</span>}
           </Label>
@@ -306,7 +306,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !dateValue && "text-slate-400"
+                        !dateValue && "text-neutral-400"
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
@@ -341,7 +341,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
     if (field.configuration.variant === "long") {
       return (
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-800">
+          <Label className="text-sm font-semibold text-neutral-800">
             {field.label}
             {field.isRequired && <span className="ml-1 text-red-500">*</span>}
           </Label>
@@ -367,7 +367,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
       
       return (
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-800">
+          <Label className="text-sm font-semibold text-neutral-800">
             {field.label}
             {field.isRequired && <span className="ml-1 text-red-500">*</span>}
           </Label>
@@ -396,7 +396,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
         // Campo de seleção de time
         return (
           <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-800">
+            <Label className="text-sm font-semibold text-neutral-800">
               {field.label}
               {field.isRequired && <span className="ml-1 text-red-500">*</span>}
             </Label>
@@ -439,7 +439,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
       // Campo de seleção de usuário
       return (
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-800">
+          <Label className="text-sm font-semibold text-neutral-800">
             {field.label}
             {field.isRequired && <span className="ml-1 text-red-500">*</span>}
           </Label>
@@ -485,7 +485,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
       const fieldValue = watch(`fields.${field.id}` as const);
       return (
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-slate-800">
+          <Label className="text-sm font-semibold text-neutral-800">
             {field.label}
             {field.isRequired && <span className="ml-1 text-red-500">*</span>}
           </Label>
@@ -522,7 +522,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
 
     return (
       <div className="space-y-2">
-        <Label className="text-sm font-semibold text-slate-800">
+        <Label className="text-sm font-semibold text-neutral-800">
           {field.label}
           {field.isRequired && <span className="ml-1 text-red-500">*</span>}
         </Label>
@@ -555,7 +555,7 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
         </DialogHeader>
 
         {!step ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-neutral-500">
             Configure a etapa inicial para liberar o formulário de criação.
           </p>
         ) : (
@@ -565,14 +565,14 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                 <div key={field.id}>
                   {renderField(field)}
                   {field.configuration.helperText ? (
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-neutral-400 mt-1">
                       {field.configuration.helperText as string}
                     </p>
                   ) : null}
                 </div>
               ))
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-neutral-500">
                 Nenhum campo configurado para esta etapa.
               </p>
             )}

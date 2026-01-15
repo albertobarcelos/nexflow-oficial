@@ -307,9 +307,10 @@ A tabela `card_history` foi refatorada em janeiro de 2025 para suportar rastream
 | `id` | UUID | NO | `gen_random_uuid()` | Chave primária |
 | `card_id` | UUID | NO | - | FK para `cards` |
 | `client_id` | UUID | NO | - | FK para `core_clients` |
-| `event_type` | TEXT | YES | - | Tipo de evento: `stage_change`, `field_update`, `activity`, `status_change`, `freeze`, `unfreeze`, `checklist_completed`, `process_status_change`, `process_completed` |
+| `event_type` | TEXT | YES | - | Tipo de evento: `stage_change`, `field_update`, `activity`, `status_change`, `freeze`, `unfreeze`, `checklist_completed`, `process_status_change`, `process_completed`, `title_change`, `checklist_change`, `assignee_change`, `product_value_change`, `parent_change`, `agents_change`, `attachment_uploaded`, `message_created` |
 | `from_step_id` | UUID | YES | - | FK para `steps` (etapa de origem) |
 | `to_step_id` | UUID | YES | - | FK para `steps` (etapa de destino) |
+| `step_id` | UUID | YES | - | FK para `steps` (etapa onde o evento ocorreu, principalmente para `field_update`) |
 | `created_by` | UUID | YES | - | FK para `core_client_users` (usuário que criou o evento) |
 | `created_at` | TIMESTAMPTZ | YES | `now()` | Data/hora do evento |
 | `action_type` | TEXT | NO | `'move'` | Tipo de ação: `move`, `complete`, `cancel` |
@@ -322,6 +323,10 @@ A tabela `card_history` foi refatorada em janeiro de 2025 para suportar rastream
 | `new_value` | JSONB | YES | - | Novo valor (para edições de campos) |
 | `field_id` | UUID | YES | - | FK para `step_fields` (para eventos `field_update`) |
 | `activity_id` | UUID | YES | - | FK para `card_activities` (para eventos `activity`) |
+
+**Índices adicionais:**
+- `idx_card_history_step_id` (BTREE em `step_id`) - Para queries que agrupam eventos por etapa
+- `idx_card_history_card_step_event` (BTREE em `card_id, step_id, event_type`) - Para queries de eventos por etapa
 
 **Índices:**
 

@@ -153,10 +153,10 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
   const isLoading = isLoadingTeams || isLoadingUsers || isLoadingProtectedUsers;
 
   return (
-    <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+    <div className="space-y-4 rounded-xl border border-neutral-200 p-4">
       <div>
-        <p className="text-sm font-semibold text-slate-900">Visibilidade do Flow</p>
-        <p className="text-xs text-slate-500">
+        <p className="text-sm font-semibold text-neutral-900">Visibilidade do Flow</p>
+        <p className="text-xs text-neutral-500">
           Defina quem pode visualizar e interagir com este flow.
         </p>
       </div>
@@ -167,7 +167,7 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
         className="space-y-2"
       >
         <div
-          className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer"
+          className="flex items-start space-x-3 rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50 cursor-pointer"
           onClick={() => handleVisibilityTypeChange("company")}
         >
           <RadioGroupItem value="company" id="visibility-company" className="mt-0.5" />
@@ -175,14 +175,14 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
             <div className="text-sm font-medium">
               Todos os usuários da empresa
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Todos os colaboradores da empresa podem ver este flow.
             </p>
           </div>
         </div>
 
         <div
-          className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer"
+          className="flex items-start space-x-3 rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50 cursor-pointer"
           onClick={() => handleVisibilityTypeChange("team")}
         >
           <RadioGroupItem value="team" id="visibility-team" className="mt-0.5" />
@@ -190,14 +190,14 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
             <div className="text-sm font-medium">
               Por time
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Apenas membros dos times selecionados podem ver.
             </p>
           </div>
         </div>
 
         <div
-          className="flex items-start space-x-3 rounded-lg border border-slate-200 p-3 hover:bg-slate-50 cursor-pointer"
+          className="flex items-start space-x-3 rounded-lg border border-neutral-200 p-3 hover:bg-neutral-50 cursor-pointer"
           onClick={() => handleVisibilityTypeChange("user")}
         >
           <RadioGroupItem value="user" id="visibility-user" className="mt-0.5" />
@@ -205,7 +205,7 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
             <div className="text-sm font-medium">
               Por usuário (com exclusão)
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Selecione times e exclua usuários específicos.
             </p>
           </div>
@@ -214,17 +214,17 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
 
       {/* Team selection for "team" and "user" visibility types */}
       {(safeValue.visibilityType === "team" || safeValue.visibilityType === "user") && (
-        <div className="space-y-2 rounded-lg bg-slate-50 p-3">
-          <Label className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        <div className="space-y-2 rounded-lg bg-neutral-50 p-3">
+          <Label className="text-xs font-medium uppercase tracking-wide text-neutral-500">
             Selecionar Times
           </Label>
           {isLoading ? (
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2 text-xs text-neutral-500">
               <Loader2 className="h-4 w-4 animate-spin" />
               Carregando times...
             </div>
           ) : availableTeams.length === 0 ? (
-            <p className="text-xs text-slate-500">Nenhum time disponível.</p>
+            <p className="text-xs text-neutral-500">Nenhum time disponível.</p>
           ) : (
             <div className="max-h-40 space-y-2 overflow-y-auto">
               {availableTeams.map((team) => (
@@ -239,7 +239,7 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
                     }
                   />
                   <span>{team.name}</span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-neutral-400">
                     ({team.member_count} membros)
                   </span>
                 </label>
@@ -298,11 +298,11 @@ export function VisibilitySelector({ value, onChange }: VisibilitySelectorProps)
       )}
 
       {/* Summary */}
-      <div className="rounded-lg border border-slate-200 bg-white p-3">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+      <div className="rounded-lg border border-neutral-200 bg-white p-3">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
           Resumo
         </p>
-        <p className="mt-1 text-sm text-slate-700">
+        <p className="mt-1 text-sm text-neutral-700">
           {safeValue.visibilityType === "company" && "Visível para todos da empresa"}
           {safeValue.visibilityType === "team" && (
             <>

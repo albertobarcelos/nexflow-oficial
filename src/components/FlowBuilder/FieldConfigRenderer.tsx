@@ -38,12 +38,12 @@ export function FieldConfigRenderer({
 }: FieldConfigRendererProps) {
   if (fieldType === "text") {
     return (
-      <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+      <div className="space-y-4 rounded-xl border border-neutral-200 p-4">
         <div>
-          <p className="text-sm font-semibold text-slate-900">
+          <p className="text-sm font-semibold text-neutral-900">
             Validações de texto
           </p>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-neutral-500">
             Defina limites e validações para evitar erros de preenchimento.
           </p>
         </div>
@@ -133,7 +133,7 @@ export function FieldConfigRenderer({
                 <SelectItem value="cnpj">Apenas CNPJ</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Automático detecta o tipo pela quantidade de dígitos. Selecione um tipo específico para validar apenas CPF ou apenas CNPJ.
             </p>
           </div>
@@ -149,13 +149,13 @@ export function FieldConfigRenderer({
     });
 
     return (
-      <div className="space-y-4 rounded-xl border border-slate-200 p-4">
+      <div className="space-y-4 rounded-xl border border-neutral-200 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="text-sm font-semibold text-neutral-900">
               Itens do checklist
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-neutral-500">
               Organize as opções que precisarão ser marcadas.
             </p>
           </div>
@@ -173,7 +173,7 @@ export function FieldConfigRenderer({
 
         <div className="space-y-3">
           {fields.length === 0 && (
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-neutral-400">
               Nenhuma opção cadastrada. Clique em adicionar para começar.
             </p>
           )}
