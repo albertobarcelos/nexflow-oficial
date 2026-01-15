@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, X, Snowflake } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
@@ -96,33 +95,6 @@ export function SortableCard({
           <div className="absolute inset-0 bg-gradient-to-br from-blue-100/30 via-cyan-100/20 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 pointer-events-none rounded-xl" />
           <div className="absolute inset-0 bg-gradient-to-t from-white/10 via-transparent to-transparent pointer-events-none rounded-xl" />
         </>
-      )}
-      
-      {card.status === "completed" && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 bg-green-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
-            <CheckCircle2 className="h-3 w-3" />
-            <span>Concluído</span>
-          </div>
-        </div>
-      )}
-
-      {card.status === "canceled" && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 bg-red-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
-            <X className="h-3 w-3" />
-            <span>Cancelado</span>
-          </div>
-        </div>
-      )}
-
-      {isFrozenCard && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 bg-blue-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full shadow-sm">
-            <Snowflake className="h-3 w-3" />
-            <span>Congelado</span>
-          </div>
-        </div>
       )}
 
       <KanbanCardPreview card={card} />

@@ -5,8 +5,9 @@ import { ptBR } from "date-fns/locale";
 import { useNexflowFlow } from "@/hooks/useNexflowFlows";
 import { useCardHistory } from "@/hooks/useCardHistory";
 import { isSystemField, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
-import type { NexflowCard, NexflowStepWithFields, CardMovementEntry } from "@/types/nexflow";
-import type { CardFormValues } from "../types";
+import type { NexflowCard, CardMovementEntry } from "@/types/nexflow";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
+import type { CardFormValues, CardProduct } from "../types";
 
 interface UseCardDetailsProps {
   card: NexflowCard | null;
@@ -59,7 +60,7 @@ export function useCardDetails({ card, steps, currentFlowId }: UseCardDetailsPro
 
   const initialValues = useMemo((): CardFormValues => {
     if (!card) {
-      return { title: "", fields: {}, checklist: {}, assignedTo: null, assignedTeamId: null, assigneeType: 'user', agents: [], product: null, value: null };
+      return { title: "", fields: {}, checklist: {}, assignedTo: null, assignedTeamId: null, assigneeType: 'user', agents: [], product: null, value: null, products: [] };
     }
     
     let responsavelFieldId: string | null = null;
@@ -100,8 +101,9 @@ export function useCardDetails({ card, steps, currentFlowId }: UseCardDetailsPro
     const genericFields: Record<string, string> = {};
     let extractedAssignedTo: string | null = card.assignedTo ?? null;
     let extractedAssignedTeamId: string | null = card.assignedTeamId ?? null;
+    let extractedProducts: CardProduct[] | undefined = [];
     
-    Object.entries((card.fieldValues as Record<string, string>) ?? {}).forEach(([key, value]) => {
+    Object.entries((card.fieldValues as Record<string, any>) ?? {}).forEach(([key, value]) => {
       if (isSystemField(key)) {
         if (key === SYSTEM_FIELDS.ASSIGNED_TO && value) {
           extractedAssignedTo = value;
@@ -126,6 +128,16 @@ export function useCardDetails({ card, steps, currentFlowId }: UseCardDetailsPro
         return;
       }
       
+      // Extrair produtos se existirem
+      if (key === 'products' && Array.isArray(value)) {
+        // Normalizar produtos para garantir que têm isModularEnabled
+        extractedProducts = value.map((p: any) => ({
+          ...p,
+          isModularEnabled: p.isModularEnabled ?? (p.modularFields && p.modularFields.length > 0),
+        }));
+        return;
+      }
+      
       genericFields[key] = value;
     });
     
@@ -142,8 +154,16 @@ export function useCardDetails({ card, steps, currentFlowId }: UseCardDetailsPro
       agents: extractedAgents,
       product: card.product ?? null,
       value: card.value ? Number(card.value) : null,
+      products: extractedProducts && extractedProducts.length > 0 ? extractedProducts : undefined,
     };
-  }, [card, currentStep]);
+  }, [
+    card,
+    card?.id,
+    card?.fieldValues ? JSON.stringify(card.fieldValues) : undefined,
+    card?.product,
+    card?.value,
+    currentStep,
+  ]);
 
   const form = useForm<CardFormValues>({
     defaultValues: initialValues,
@@ -151,11 +171,18 @@ export function useCardDetails({ card, steps, currentFlowId }: UseCardDetailsPro
     values: initialValues,
   });
 
+  // Criar uma chave para detectar mudanças em fieldValues
+  const fieldValuesKey = useMemo(() => {
+    if (!card?.fieldValues) return "";
+    return JSON.stringify(card.fieldValues);
+  }, [card?.id, card?.fieldValues]);
+
   useEffect(() => {
     if (card) {
-      form.reset(initialValues);
+      // Usar reset com keepDefaultValues: false para garantir que valores sejam atualizados
+      form.reset(initialValues, { keepDefaultValues: false });
     }
-  }, [card?.id, initialValues, form]);
+  }, [card?.id, fieldValuesKey, initialValues, form]);
 
   const progressPercentage = useMemo(() => {
     if (!currentStep || !steps.length) return 0;

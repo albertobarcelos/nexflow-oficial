@@ -1,4 +1,4 @@
-import { Info, History, FileEdit, Paperclip, MessageSquare, Calendar } from "lucide-react";
+import { Info, History, FileEdit, Paperclip, MessageSquare, Calendar, ShoppingCart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ProcessesSidebar } from "./ProcessesSidebar";
@@ -29,7 +29,9 @@ export function CardDetailsSidebar({
   progressPercentage,
 }: CardDetailsSidebarProps) {
   return (
-    <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
+    <div className="w-80 bg-slate-50/50 dark:bg-slate-900/20 border-r border-slate-100 dark:border-slate-800 flex flex-col shrink-0">
+      {/* Navegação existente */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <Tabs 
         value={activeTab} 
         onValueChange={(value) => {
@@ -70,23 +72,13 @@ export function CardDetailsSidebar({
                 setActiveSection("overview");
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "overview"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
-              {activeSection === "overview" && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-              )}
-              <Info
-                className={cn(
-                  "h-5 w-5",
-                  activeSection === "overview"
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                )}
-              />
+              <Info className="text-xl" />
               <span>Visão Geral</span>
             </button>
 
@@ -96,60 +88,56 @@ export function CardDetailsSidebar({
                 setActiveSection("history");
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "history"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
-              {activeSection === "history" && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-              )}
-              <History
-                className={cn(
-                  "h-5 w-5",
-                  activeSection === "history"
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                )}
-              />
+              <History className="text-xl" />
               <div className="flex flex-col">
                 <span>Histórico</span>
                 {lastHistoryUpdate && (
-                  <span className="text-[10px] text-gray-400 font-normal">
-                    Última atualização: {lastHistoryUpdate}
+                  <span className="text-[10px] font-normal">
+                    {lastHistoryUpdate}
                   </span>
                 )}
               </div>
             </button>
 
-            <div className="relative">
-              {activeSection === "fields" && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
+            <button
+              onClick={() => {
+                setActiveTab("informacoes");
+                setActiveSection("fields");
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
+                activeSection === "fields"
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
+            >
+              <FileEdit className="text-xl" />
+              <span>Campos da Etapa</span>
+            </button>
+
+            {card.cardType === 'finance' && (
               <button
                 onClick={() => {
                   setActiveTab("informacoes");
-                  setActiveSection("fields");
+                  setActiveSection("products");
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium shadow-sm border border-gray-200 dark:border-gray-600 text-left",
-                  activeSection === "fields"
-                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-white"
-                    : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
+                  activeSection === "products"
+                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
+                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                 )}
               >
-                <FileEdit
-                  className={cn(
-                    "h-5 w-5",
-                    activeSection === "fields"
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-gray-400"
-                  )}
-                />
-                <span>Campos da Etapa</span>
+                <ShoppingCart className="text-xl" />
+                <span>Produtos</span>
               </button>
-            </div>
+            )}
 
             <button
               onClick={() => {
@@ -157,23 +145,13 @@ export function CardDetailsSidebar({
                 setActiveSection("attachments");
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "attachments"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
-              {activeSection === "attachments" && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-              )}
-              <Paperclip
-                className={cn(
-                  "h-5 w-5",
-                  activeSection === "attachments"
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                )}
-              />
+              <Paperclip className="text-xl" />
               <span>Anexos</span>
             </button>
 
@@ -183,23 +161,13 @@ export function CardDetailsSidebar({
                 setActiveSection("comments");
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "comments"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
-              {activeSection === "comments" && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-              )}
-              <MessageSquare
-                className={cn(
-                  "h-5 w-5",
-                  activeSection === "comments"
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                )}
-              />
+              <MessageSquare className="text-xl" />
               <span>Comentários</span>
             </button>
 
@@ -209,23 +177,13 @@ export function CardDetailsSidebar({
                 setActiveSection("activities");
               }}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors text-left group relative",
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "activities"
-                  ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-gray-600"
-                  : "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
+                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
               )}
             >
-              {activeSection === "activities" && (
-                <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r" />
-              )}
-              <Calendar
-                className={cn(
-                  "h-5 w-5",
-                  activeSection === "activities"
-                    ? "text-blue-600 dark:text-blue-400"
-                    : "text-gray-400 group-hover:text-blue-600 dark:text-gray-500"
-                )}
-              />
+              <Calendar className="text-xl" />
               <span>Atividades</span>
             </button>
           </nav>
@@ -239,19 +197,22 @@ export function CardDetailsSidebar({
           />
         </TabsContent>
       </Tabs>
+      </div>
 
-      <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="text-xs text-gray-400 dark:text-gray-500 font-medium mb-2 uppercase">
-          Progresso do Fluxo
+      <div className="mt-auto p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+        <div className="flex justify-between items-center mb-1.5">
+          <span className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+            Progresso
+          </span>
+          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+            {Math.round(progressPercentage)}%
+          </span>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
           <div
-            className="bg-blue-600 dark:bg-blue-400 h-2 rounded-full transition-all duration-300"
+            className="h-full bg-indigo-600 dark:bg-indigo-400 rounded-full transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
           />
-        </div>
-        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-          {Math.round(progressPercentage)}%
         </div>
       </div>
     </div>

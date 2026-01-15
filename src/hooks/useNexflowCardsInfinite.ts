@@ -39,6 +39,7 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     cardType: row.card_type ?? 'onboarding',
     product: row.product ?? null,
     value: row.value ? Number(row.value) : null,
+    lead: row.lead ?? null,
   };
 };
 
@@ -287,6 +288,7 @@ export function useNexflowCardsInfinite(
         cardType: data.card.cardType ?? 'onboarding',
         product: data.card.product ?? null,
         value: data.card.value ? Number(data.card.value) : null,
+        lead: data.card.lead ?? null,
       };
 
       return { card: updatedCard, silent: input.silent };

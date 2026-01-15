@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Phone, MessageSquare, Mail, UserX, CheckSquare, Timer } from "lucide-react";
+import { ArrowUp, ArrowDown, User, Package, CheckSquare, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { TeamAvatar } from "@/components/ui/team-avatar";
@@ -9,48 +9,11 @@ import { useCardTags } from "@/hooks/useCardTags";
 import { useCardHistory } from "@/hooks/useCardHistory";
 import { useContactById } from "@/hooks/useContactById";
 import { useContactCompanies } from "@/hooks/useContactCompanies";
+import { useCardChildren } from "@/hooks/useCardChildren";
 import type { NexflowCard } from "@/types/nexflow";
 
 interface KanbanCardPreviewProps {
   card: NexflowCard;
-}
-
-// Função para obter cor do badge baseada na primeira tag ou tipo do card
-function getBadgeColorClass(tagColor?: string, cardType?: string, cardTitle?: string): string {
-  // Cores padrão baseadas no tipo
-  if (cardType === 'finance') {
-    return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200';
-  }
-  // Cores variadas para diferentes tipos
-  const colors = [
-    'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
-    'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200',
-    'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-200',
-    'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-200',
-    'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-200',
-    'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200',
-  ];
-  // Usar hash simples do título para consistência
-  if (cardTitle) {
-    const hash = cardTitle.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return colors[hash % colors.length];
-  }
-  return colors[0];
-}
-
-// Função para obter cor de fundo do avatar
-function getAvatarBgColor(userName?: string): string {
-  const colors = [
-    'bg-orange-100 dark:bg-orange-900/40',
-    'bg-green-100 dark:bg-green-900/40',
-    'bg-purple-100 dark:bg-purple-900/40',
-    'bg-yellow-100 dark:bg-yellow-900/40',
-    'bg-red-100 dark:bg-red-900/40',
-    'bg-gray-100 dark:bg-gray-700',
-  ];
-  if (!userName) return colors[5];
-  const hash = userName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[hash % colors.length];
 }
 
 export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
@@ -60,6 +23,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
   const { data: cardHistory = [] } = useCardHistory(card.id, card.parentCardId);
   const { data: contact } = useContactById(card.contactId);
   const { companies: contactCompanies = [] } = useContactCompanies(card.contactId ?? null);
+  const { data: hasChildren = false } = useCardChildren(card.id);
   
   const assignedUser = card.assignedTo
     ? users.find((user) => user.id === card.assignedTo)
@@ -114,7 +78,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
     return { checked: checkedItems, total: totalItems };
   }, [card.checklistProgress]);
 
-  // Usar primeira tag do card se existir, caso contrário não mostrar badge
+  // Usar primeira tag do card se existir
   const firstTag = cardTags.length > 0 ? cardTags[0] : null;
 
   // Obter empresa primária ou primeira empresa
@@ -127,29 +91,60 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
   const contactName = contact?.client_name || contact?.main_contact || null;
   const companyName = primaryCompany?.name || primaryCompany?.razao_social || null;
 
-  // Cor do avatar
+  // Título do card: usar o título real do card ou contato
+  const cardTitle = contactName || card.title;
+
+  // Nome do usuário responsável
+  const responsibleName = assignedUser 
+    ? `${assignedUser.name}${assignedUser.surname ? ` ${assignedUser.surname}` : ''}`
+    : assignedTeam
+    ? assignedTeam.name
+    : null;
+
+  // Função para obter cor de fundo do avatar
+  const getAvatarBgColor = (userName?: string): string => {
+    const colors = [
+      'bg-orange-100 dark:bg-orange-900/40',
+      'bg-green-100 dark:bg-green-900/40',
+      'bg-purple-100 dark:bg-purple-900/40',
+      'bg-yellow-100 dark:bg-yellow-900/40',
+      'bg-red-100 dark:bg-red-900/40',
+      'bg-gray-100 dark:bg-gray-700',
+    ];
+    if (!userName) return colors[5];
+    const hash = userName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return colors[hash % colors.length];
+  };
+
   const avatarBgClass = getAvatarBgColor(assignedUser?.name);
 
   return (
     <div className="flex flex-col space-y-2 text-sm relative">
-      {/* Topo: Badge + Avatar */}
-      <div className="flex items-center justify-between gap-2">
-        {firstTag ? (
-          <span 
-            className="inline-block px-2 py-0.5 rounded text-xs font-semibold truncate max-w-[calc(100%-40px)] border"
-            style={{
-              backgroundColor: `${firstTag.color}15`,
-              color: firstTag.color,
-              borderColor: firstTag.color,
-            }}
-          >
-            {firstTag.name}
-          </span>
-        ) : (
-          <div className="flex-1" />
-        )}
+      {/* Topo: Título e Avatar do usuário */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 dark:text-white leading-tight truncate">
+            {cardTitle}
+          </h3>
+          {/* Tag abaixo do título com formato arredondado */}
+          {firstTag && (
+            <div className="mt-1">
+              <span 
+                className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold truncate border"
+                style={{
+                  backgroundColor: `${firstTag.color}15`,
+                  color: firstTag.color,
+                  borderColor: firstTag.color,
+                }}
+              >
+                {firstTag.name}
+              </span>
+            </div>
+          )}
+        </div>
+        {/* Avatar do usuário responsável */}
         {assignedUser && (
-          <div className={cn("rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0", avatarBgClass)}>
+          <div className={cn("rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0 relative z-20", avatarBgClass)}>
             <UserAvatar
               user={{
                 name: assignedUser.name,
@@ -165,7 +160,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
           </div>
         )}
         {!assignedUser && assignedTeam && (
-          <div className={cn("rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0", avatarBgClass)}>
+          <div className={cn("rounded-full w-7 h-7 flex items-center justify-center flex-shrink-0 relative z-20", avatarBgClass)}>
             <TeamAvatar
               team={{
                 id: assignedTeam.id,
@@ -178,51 +173,59 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
         )}
       </div>
 
-      {/* Nome do contato e empresa */}
-      <div className="border-t border-gray-100 dark:border-gray-700 -mx-3 px-3 pt-2">
-        <div className="flex justify-between items-end gap-2">
-          <div className="flex-1 min-w-0">
-            {contactName ? (
-              <h3 className="font-semibold text-gray-900 dark:text-white leading-tight truncate">
-                {contactName}
-              </h3>
-            ) : (
-              <h3 className="font-semibold text-gray-900 dark:text-white leading-tight">
-                {card.title}
-              </h3>
-            )}
-            <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5 truncate">
-              {companyName || "Sem empresa"}
-            </p>
-          </div>
-          {card.value !== null && card.value !== undefined && (
-            <p className="font-bold text-gray-900 dark:text-gray-200 leading-tight whitespace-nowrap">
-              {new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-              }).format(card.value)}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Nome do responsável (discreto) */}
+      {responsibleName && (
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight truncate">
+          {responsibleName}
+        </p>
+      )}
 
-      {/* Ícones de ação e métricas */}
-      <div className="border-t border-gray-100 dark:border-gray-700 -mx-3 px-3 pt-2 flex items-center justify-between text-gray-400 dark:text-gray-500">
-        <div className="flex space-x-2">
-          <button className="hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors" title="Telefone">
-            <Phone className="h-4 w-4" />
-          </button>
-          <button className="hover:text-primary cursor-pointer transition-colors" title="Chat">
-            <MessageSquare className="h-4 w-4" />
-          </button>
-          <button className="hover:text-primary cursor-pointer transition-colors" title="E-mail">
-            <Mail className="h-4 w-4" />
-          </button>
-          <button className="hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer transition-colors" title="Remover responsável">
-            <UserX className="h-4 w-4" />
-          </button>
+      {/* Informações adicionais: empresa e valor */}
+      {(companyName || (card.value !== null && card.value !== undefined)) && (
+        <div className="border-t border-gray-100 dark:border-gray-700 -mx-3 px-3 pt-2">
+          <div className="flex justify-between items-center gap-2">
+            {companyName && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight truncate flex-1">
+                {companyName}
+              </p>
+            )}
+            {card.value !== null && card.value !== undefined && (
+              <p className="font-bold text-gray-900 dark:text-gray-200 leading-tight whitespace-nowrap">
+                {new Intl.NumberFormat('pt-BR', {
+                  style: 'currency',
+                  currency: 'BRL',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(card.value)}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Rodapé: Indicadores de relacionamentos e métricas */}
+      <div className="border-t border-gray-100 dark:border-gray-700 -mx-3 px-3 pt-2 flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {card.parentCardId && (
+            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui card pai">
+              <ArrowUp className="h-3.5 w-3.5" />
+            </div>
+          )}
+          {hasChildren && (
+            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui cards filhos">
+              <ArrowDown className="h-3.5 w-3.5" />
+            </div>
+          )}
+          {card.lead && (
+            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui lead">
+              <User className="h-3.5 w-3.5" />
+            </div>
+          )}
+          {card.product && (
+            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui produto">
+              <Package className="h-3.5 w-3.5" />
+            </div>
+          )}
         </div>
         <div className="flex items-center space-x-2 text-xs">
           {checklistProgress && (

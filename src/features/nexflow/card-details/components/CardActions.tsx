@@ -28,78 +28,71 @@ export function CardActions({
   onDelete,
 }: CardActionsProps) {
   return (
-    <div className="flex items-center gap-2 px-6 py-4 border-t border-gray-200 dark:border-gray-700 shrink-0">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={onSave}
-        disabled={saveStatus === "saving" || isDisabled}
-        className="flex items-center gap-2"
-      >
-        {saveStatus === "saving" ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Salvando...
-          </>
-        ) : saveStatus === "saved" ? (
-          <>
-            <Save className="h-4 w-4 text-green-600" />
-            Salvo!
-          </>
-        ) : (
-          <>
-            <Save className="h-4 w-4" />
-            Salvar
-          </>
-        )}
-      </Button>
-
-      {hasPreviousStep && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onMoveBack}
-          disabled={isMoving || isDisabled}
-          className="flex items-center gap-2"
+    <div className="px-8 py-5 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center shrink-0 bg-white dark:bg-slate-900">
+      <div className="flex gap-3">
+        <button
+          onClick={onSave}
+          disabled={saveStatus === "saving" || isDisabled}
+          className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar Etapa
-        </Button>
-      )}
+          {saveStatus === "saving" ? (
+            <>
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Salvando...
+            </>
+          ) : saveStatus === "saved" ? (
+            <>
+              <Save className="h-5 w-5 text-green-600" />
+              Salvo!
+            </>
+          ) : (
+            <>
+              <Save className="h-5 w-5" />
+              Salvar
+            </>
+          )}
+        </button>
+
+        {hasPreviousStep && (
+          <button
+            onClick={onMoveBack}
+            disabled={isMoving || isDisabled}
+            className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Voltar Etapa
+          </button>
+        )}
+      </div>
 
       {hasNextStep && (
-        <Button
-          size="sm"
+        <button
           onClick={onMoveNext}
           disabled={isMoveDisabled || isMoving || isDisabled}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-lg shadow-indigo-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isMoving ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin" />
               Movendo...
             </>
           ) : (
             <>
               Avançar Etapa
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-5 w-5" />
             </>
           )}
-        </Button>
+        </button>
       )}
 
-      <div className="flex-1" />
-
-      <Button
-        variant="destructive"
-        size="sm"
+      <button
         onClick={onDelete}
         disabled={isDisabled}
-        className="flex items-center gap-2"
+        className="px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm flex items-center gap-2 transition-colors shadow-lg shadow-red-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-5 w-5" />
         Deletar
-      </Button>
+      </button>
     </div>
   );
 }

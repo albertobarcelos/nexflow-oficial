@@ -71,33 +71,34 @@ export function ParentCardWidget({
         cardType: data.card_type ?? 'onboarding',
         product: data.product ?? null,
         value: data.value ? Number(data.value) : null,
+        lead: data.lead ?? null,
       } as NexflowCard;
     },
     enabled: !!parentCardId,
     retry: 1,
   });
 
-  const { data: parentStep } = useQuery({
-    queryKey: ["nexflow", "step", parentCard?.step_id],
+  const { data: parentStep } = useQuery<{ id: string; title: string; color: string } | null>({
+    queryKey: ["nexflow", "step", parentCard?.stepId],
     queryFn: async () => {
-      if (!parentCard?.step_id) return null;
+      if (!parentCard?.stepId) return null;
 
       const clientId = await getCurrentClientId();
       if (!clientId) return null;
 
-      const { data, error } = await nexflowClient()
+      const { data, error } = await (nexflowClient() as any)
         .from("steps")
         .select("id, title, color")
-        .eq("id", parentCard.step_id)
+        .eq("id", parentCard.stepId)
         .single();
 
       if (error || !data) {
         return null;
       }
 
-      return data;
+      return data as { id: string; title: string; color: string };
     },
-    enabled: !!parentCard?.step_id,
+    enabled: !!parentCard?.stepId,
   });
 
   if (!parentCardId) {

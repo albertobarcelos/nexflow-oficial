@@ -152,6 +152,8 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 - `20250126_add_step_color.sql`: Adiciona cor aos steps (migrado para schema `public`)
 - `20250129_add_assigned_to_to_nexflow_cards.sql`: Adiciona campo assigned_to (migrado para schema `public`)
 - `20251227112339_add_indication_id_to_cards.sql`: Vincula cards a indicações (migrado para schema `public`)
+- `20260123_create_card_step_values.sql`: Cria tabela para snapshots de valores por etapa
+- `20260123_create_card_step_values_trigger.sql`: Cria triggers para salvar snapshots automaticamente
 - **`20260109201059_migrate_nexflow_to_public.sql`**: **Migration principal** - Move todas as tabelas do schema `nexflow` para `public`
 - **`20260109201126_migrate_nexflow_functions_to_public.sql`**: Recria funções SQL no schema `public`
 - **`20260109201145_migrate_nexflow_triggers_to_public.sql`**: Recria triggers no schema `public`
@@ -276,6 +278,7 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 | `card_message_attachments` | public | ❌ | Anexos das mensagens |
 | `card_attachments` | public | ❌ | Anexos dos cards |
 | `card_history` | public | ❌ | Histórico granular de eventos (estrutura detalhada abaixo) |
+| `card_step_values` | public | ❌ | Snapshots dos valores dos campos por etapa (estrutura detalhada abaixo) |
 | `card_step_actions` | public | ❌ | Ações de cards em steps |
 | `step_actions` | public | ❌ | Ações configuradas para steps |
 | `step_fields` | public | ❌ | Campos customizados dos steps |
@@ -385,6 +388,82 @@ A tabela `card_history` foi refatorada em janeiro de 2025 para suportar rastream
 **Documentação Completa:**
 
 Ver `docs/HISTORY_LOGIC.md` para detalhes técnicos sobre cálculo de tempo, triggers e performance.
+
+##### Estrutura Detalhada da Tabela `card_step_values`
+
+A tabela `card_step_values` armazena snapshots dos valores dos campos (`field_values`) quando um card é salvo em uma etapa, permitindo visualizar histórico de campos preenchidos em etapas anteriores.
+
+**Colunas:**
+
+| Coluna | Tipo | Nullable | Default | Descrição |
+|--------|------|----------|---------|-----------|
+| `id` | UUID | NO | `gen_random_uuid()` | Chave primária |
+| `card_id` | UUID | NO | - | FK para `cards` |
+| `step_id` | UUID | NO | - | FK para `steps` |
+| `field_values` | JSONB | NO | `'{}'::jsonb` | Snapshot dos valores dos campos |
+| `client_id` | UUID | NO | - | FK para `core_clients` |
+| `created_at` | TIMESTAMPTZ | NO | `NOW()` | Data de criação do snapshot |
+| `updated_at` | TIMESTAMPTZ | NO | `NOW()` | Data de última atualização do snapshot |
+
+**Constraints:**
+
+- **PRIMARY KEY**: `id`
+- **FOREIGN KEYS**:
+  - `card_id` → `cards(id) ON DELETE CASCADE`
+  - `step_id` → `steps(id) ON DELETE CASCADE`
+  - `client_id` → `core_clients(id) ON DELETE CASCADE`
+- **UNIQUE**: `(card_id, step_id)` - Garante um snapshot por etapa por card
+
+**Índices:**
+
+- `idx_card_step_values_card_id` (BTREE em `card_id`) - Para queries por card
+- `idx_card_step_values_step_id` (BTREE em `step_id`) - Para queries por etapa
+- `idx_card_step_values_client_id` (BTREE em `client_id`) - Para filtros multi-tenant
+- `idx_card_step_values_card_step` (BTREE em `card_id, step_id`) - Para lookups rápidos
+
+**Triggers:**
+
+**Triggers em `cards`:**
+
+- `trigger_save_step_values_on_stage_change`: Cria snapshot quando `step_id` muda (salva valores da etapa anterior)
+- `trigger_save_step_values_on_field_update`: Cria/atualiza snapshot quando `field_values` é atualizado na mesma etapa
+
+**Triggers em `card_step_values`:**
+
+- `trigger_update_card_step_values_updated_at`: Atualiza `updated_at` automaticamente antes de UPDATE
+
+**Funções:**
+
+- `save_step_values_snapshot()`: Salva snapshot da etapa anterior quando card muda de etapa
+- `save_step_values_on_field_update()`: Salva/atualiza snapshot da etapa atual quando valores são atualizados
+- `update_card_step_values_updated_at()`: Atualiza timestamp de atualização
+
+**RLS Policies:**
+
+- `card_step_values_select_policy`: SELECT baseado em `client_id` (usuários só veem snapshots de cards do mesmo cliente)
+
+**Relacionamentos:**
+
+- **N:1 com `cards`**: Cada snapshot pertence a um card
+- **N:1 com `steps`**: Cada snapshot está associado a uma etapa
+- **N:1 com `core_clients`**: Cada snapshot pertence a um cliente (multi-tenant)
+
+**Comportamento:**
+
+1. **Ao mudar de etapa**: O trigger `trigger_save_step_values_on_stage_change` salva um snapshot da etapa anterior (OLD.step_id) com os valores antigos (OLD.field_values) antes do card mudar para a nova etapa.
+
+2. **Ao salvar valores na mesma etapa**: O trigger `trigger_save_step_values_on_field_update` salva/atualiza um snapshot da etapa atual (NEW.step_id) com os novos valores (NEW.field_values) quando apenas os valores são atualizados sem mudança de etapa.
+
+3. **UPSERT**: Ambos os triggers usam `ON CONFLICT (card_id, step_id) DO UPDATE` para atualizar o snapshot se já existir, garantindo que sempre haja o snapshot mais recente.
+
+**Migrations Relacionadas:**
+
+- `20260123_create_card_step_values.sql`: Cria a tabela, índices, triggers e RLS policies
+- `20260123_create_card_step_values_trigger.sql`: Cria funções e triggers para salvar snapshots automaticamente
+
+**Documentação Completa:**
+
+Ver `docs/FEATURE_STEP_HISTORY.md` para detalhes técnicos sobre uso, formatação e integração com o frontend.
 
 ##### Estrutura Detalhada da Tabela `contacts`
 
@@ -1356,8 +1435,12 @@ Identificadas via MCP:
 ---
 
 **Última Atualização**: Janeiro 2025  
-**Versão do Documento**: 1.4  
+**Versão do Documento**: 1.5  
 **Atualizações Recentes**:
+- Janeiro 2025: Criação da tabela `card_step_values` para snapshots de valores por etapa
+  - Tabela para armazenar histórico de valores dos campos quando card é salvo em uma etapa
+  - Triggers automáticos para salvar snapshots ao mudar de etapa e ao atualizar valores na mesma etapa
+  - Integração com Edge Function `get-card-step-history` para visualização no frontend
 - Janeiro 2025: Refatoração completa do sistema de histórico e auditoria (`card_history`)
   - Adicionado suporte a tipos de evento (`event_type`): `stage_change`, `field_update`, `activity`, `status_change`, `freeze`, `unfreeze`, `checklist_completed`, `process_status_change`, `process_completed`
   - Adicionado cálculo automático de `duration_seconds` (tempo na etapa anterior)

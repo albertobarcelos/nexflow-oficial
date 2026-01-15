@@ -57,6 +57,7 @@ import { useCardHistory } from "@/hooks/useCardHistory";
 import { ContactFloatingWidget } from "./ContactFloatingWidget";
 import { IndicationFloatingWidget } from "./IndicationFloatingWidget";
 import { ParentCardWidget } from "./ParentCardWidget";
+import { StepHistoryCards } from "./StepHistoryCards";
 import { ProcessesView } from "./ProcessesView";
 import { ProcessDetails } from "./ProcessDetails";
 import { CardComments } from "./CardComments";
@@ -1791,8 +1792,8 @@ export function CardDetailsModal({
                 {/* Widget flutuante de Indicação */}
                 <IndicationFloatingWidget indicationId={card.indicationId} />
                 {/* Widget flutuante de Card Pai */}
-                <ParentCardWidget 
-                  parentCardId={card.parentCardId} 
+                <ParentCardWidget
+                  parentCardId={card.parentCardId}
                   onOpenParentCard={onOpenParentCard}
                 />
               </div>
@@ -1820,7 +1821,22 @@ export function CardDetailsModal({
           {/* Layout Principal: Sidebar + Conteúdo */}
           <div className="flex flex-1 overflow-hidden">
             {/* Sidebar de Navegação */}
-            <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
+            <div className="w-[392px] bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
+              {/* Seção de Histórico de Etapas */}
+              <div className="border-b border-gray-200 dark:border-gray-700 overflow-y-auto" style={{ maxHeight: '50%', minHeight: '200px' }}>
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                  <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    Histórico de Etapas
+                  </h3>
+                </div>
+                <StepHistoryCards 
+                  cardId={card?.id} 
+                  currentStepId={card?.stepId} 
+                />
+              </div>
+
+              {/* Navegação existente */}
+              <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <Tabs 
                 value={activeTab} 
                 onValueChange={(value) => {
@@ -2005,6 +2021,7 @@ export function CardDetailsModal({
                   />
                 </TabsContent>
               </Tabs>
+              </div>
 
               {/* Barra de Progresso do Fluxo */}
               <div className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700">

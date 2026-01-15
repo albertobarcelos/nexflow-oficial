@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getCurrentClientId, nexflowClient, supabase } from "@/lib/supabase";
-import { Database } from "@/types/database";
+import { Database, Json } from "@/types/database";
 import {
   CardMovementEntry,
   ChecklistProgressMap,
@@ -39,6 +39,7 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     cardType: row.card_type ?? 'onboarding',
     product: row.product ?? null,
     value: row.value ? Number(row.value) : null,
+    lead: row.lead ?? null,
   };
 };
 
@@ -161,13 +162,13 @@ export function useNexflowCards(flowId?: string) {
             : (cardsQuery.data
                 ?.filter((card) => card.stepId === input.stepId)
                 .reduce((max, card) => Math.max(max, card.position), 0) ?? 0) + 1000,
-        field_values: genericFields, // Apenas campos genéricos, sem campos de sistema
+        field_values: genericFields as Json, // Apenas campos genéricos, sem campos de sistema
         checklist_progress: input.checklistProgress ?? {},
         parent_card_id: input.parentCardId ?? null,
         assigned_to: finalAssignedTo,
         assigned_team_id: finalAssignedTeamId,
         agents: agents,
-        status: input.status ?? null,
+        status: input.status ? (input.status as "canceled" | "completed" | "inprogress") : null,
         card_type: cardType,
         product: null,
         value: null,
@@ -200,14 +201,14 @@ export function useNexflowCards(flowId?: string) {
   const updateCardMutation = useMutation({
     mutationFn: async (input: UpdateCardInput) => {
       // Separar campos de sistema dos campos genéricos se fieldValues for fornecido
-      let genericFieldValues = input.fieldValues;
+      let genericFieldValues: StepFieldValueMap | undefined = input.fieldValues;
       let finalAssignedTo = input.assignedTo;
       let finalAssignedTeamId = input.assignedTeamId;
       let finalAgents = input.agents;
       
       if (typeof input.fieldValues !== "undefined") {
         const { systemFields, genericFields } = separateSystemFields(input.fieldValues);
-        genericFieldValues = genericFields;
+        genericFieldValues = genericFields as StepFieldValueMap;
         
         // Se assigned_to estiver em systemFields mas não foi passado explicitamente, usar do systemFields
         if (typeof input.assignedTo === "undefined" && systemFields[SYSTEM_FIELDS.ASSIGNED_TO]) {
@@ -238,7 +239,7 @@ export function useNexflowCards(flowId?: string) {
               .single();
             
             if (cardData?.step_id) {
-              const { data: stepFields } = await nexflowClient()
+              const { data: stepFields } = await (nexflowClient() as any)
                 .from("step_fields")
                 .select("id, slug")
                 .eq("step_id", cardData.step_id);
@@ -359,6 +360,7 @@ export function useNexflowCards(flowId?: string) {
         cardType: data.card.cardType ?? 'onboarding',
         product: data.card.product ?? null,
         value: data.card.value ? Number(data.card.value) : null,
+        lead: data.card.lead ?? null,
       };
 
       return { card: updatedCard, silent: input.silent };
@@ -412,8 +414,10 @@ export function useNexflowCards(flowId?: string) {
             step_id: stepId,
             position,
           };
-          if (typeof status !== "undefined") {
-            payload.status = status;
+          if (typeof status !== "undefined" && status !== null) {
+            payload.status = status as "canceled" | "completed" | "inprogress";
+          } else if (status === null) {
+            payload.status = null;
           }
           return nexflowClient().from("cards").update(payload).eq("id", id);
         })

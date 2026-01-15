@@ -398,6 +398,12 @@ export function NexflowBoardPage() {
     card: NexflowCard,
     values: CardFormValues
   ) => {
+    // Preparar fieldValues incluindo produtos se existirem
+    const fieldValues: StepFieldValueMap = { ...values.fields };
+    if (values.products && values.products.length > 0) {
+      fieldValues.products = values.products as any;
+    }
+
     const updatePayload: {
       id: string;
       title: string;
@@ -412,7 +418,7 @@ export function NexflowBoardPage() {
     } = {
       id: card.id,
       title: values.title.trim(),
-      fieldValues: values.fields,
+      fieldValues: fieldValues,
       checklistProgress: values.checklist as ChecklistProgressMap,
       silent: true,
     };
@@ -421,28 +427,42 @@ export function NexflowBoardPage() {
     updatePayload.assignedTeamId = values.assignedTeamId ?? null;
     updatePayload.agents = values.agents ?? [];
     
-    if (values.product !== undefined) updatePayload.product = values.product;
-    if (values.value !== undefined) updatePayload.value = values.value;
+    // Manter compatibilidade: product será o primeiro produto, value será a soma total
+    if (values.products && values.products.length > 0) {
+      updatePayload.product = values.products[0].itemId;
+      updatePayload.value = values.products.reduce((sum, p) => sum + (p.totalValue || 0), 0);
+    } else {
+      if (values.product !== undefined) updatePayload.product = values.product;
+      if (values.value !== undefined) updatePayload.value = values.value;
+    }
     
-    await updateCard(updatePayload);
+    const result = await updateCard(updatePayload);
 
-    const assigneeType = values.assignedTo ? 'user' : values.assignedTeamId ? 'team' : 'unassigned';
-    setActiveCard((current) =>
-      current && current.id === card.id
-        ? {
-            ...current,
-            title: values.title.trim(),
-            fieldValues: values.fields,
-            checklistProgress: values.checklist as ChecklistProgressMap,
-            assignedTo: values.assignedTo ?? null,
-            assignedTeamId: values.assignedTeamId ?? null,
-            assigneeType: assigneeType,
-            agents: values.agents ?? [],
-            product: values.product ?? null,
-            value: values.value ?? null,
-          }
-        : current
-    );
+    // Atualizar activeCard com o card retornado do servidor (que inclui produtos em fieldValues)
+    if (result?.card) {
+      setActiveCard((current) =>
+        current && current.id === card.id ? result.card : current
+      );
+    } else {
+      // Fallback: atualizar manualmente se não houver card retornado
+      const assigneeType = values.assignedTo ? 'user' : values.assignedTeamId ? 'team' : 'unassigned';
+      setActiveCard((current) =>
+        current && current.id === card.id
+          ? {
+              ...current,
+              title: values.title.trim(),
+              fieldValues: fieldValues, // Incluir produtos aqui
+              checklistProgress: values.checklist as ChecklistProgressMap,
+              assignedTo: values.assignedTo ?? null,
+              assignedTeamId: values.assignedTeamId ?? null,
+              assigneeType: assigneeType,
+              agents: values.agents ?? [],
+              product: values.product ?? null,
+              value: values.value ?? null,
+            }
+          : current
+      );
+    }
   };
 
   const handleMoveCardForward = async (card: NexflowCard, values: CardFormValues) => {
@@ -558,6 +578,8 @@ export function NexflowBoardPage() {
             pageSize={LIST_PAGE_SIZE}
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
+            filterUserId={filterUserId}
+            filterTeamId={filterTeamId}
             onCardClick={setActiveCard}
             onPageChange={setListPage}
             onLoadAll={handleLoadAllCards}

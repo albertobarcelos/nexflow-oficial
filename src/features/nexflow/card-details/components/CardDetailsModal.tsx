@@ -6,6 +6,7 @@ import { CardDetailsSidebar } from "./CardDetailsSidebar";
 import { CardOverviewTab } from "./CardOverviewTab";
 import { CardHistoryTab } from "./CardHistoryTab";
 import { CardFieldsTab } from "./CardFieldsTab";
+import { CardProductsTab } from "./CardProductsTab";
 import { CardActivitiesTab } from "./CardActivitiesTab";
 import { CardActions } from "./CardActions";
 import { useCardDetails } from "../hooks/useCardDetails";
@@ -216,7 +217,8 @@ export function CardDetailsModal({
       };
       await onSave(card, formValues);
       setSaveStatus("saved");
-      form.reset(formValues);
+      // Não resetar o form aqui - deixar que o useCardDetails atualize quando o card mudar
+      // O form será atualizado automaticamente quando o card prop for atualizado
       setTimeout(() => {
         setSaveStatus((current) => (current === "saved" ? "idle" : current));
       }, 2000);
@@ -313,6 +315,14 @@ export function CardDetailsModal({
             isDisabled={isDisabled}
             onCheckboxChange={handleCheckboxChange}
             onDateChange={handleDateChange}
+          />
+        );
+      case "products":
+        return (
+          <CardProductsTab
+            card={card}
+            form={form}
+            isDisabled={isDisabled}
           />
         );
       case "attachments":

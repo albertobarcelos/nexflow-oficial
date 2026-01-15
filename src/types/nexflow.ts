@@ -106,6 +106,7 @@ export interface NexflowCard {
   cardType?: 'finance' | 'onboarding';
   product?: string | null;
   value?: number | null;
+  lead?: string | null;
 }
 
 export interface NexflowFlowAccess {

@@ -20,7 +20,7 @@ O sistema utiliza a tabela `card_history` para armazenar todos os eventos, com s
 - **`title_change`**: Alteração de título do card
 - **`checklist_change`**: Alteração de progresso do checklist
 - **`assignee_change`**: Alteração de responsável (usuário ou time)
-- **`product_value_change`**: Alteração de produto ou valor do card
+- **`product_value_change`**: Alteração de produto ou valor do card (inclui mudanças em `field_values.products` com estrutura completa de produtos e modulagens)
 - **`parent_change`**: Alteração de card pai (vinculação/desvinculação)
 - **`agents_change`**: Alteração de agents do card
 - **`process_status_change`**: Mudança de status de processo vinculado
@@ -81,6 +81,7 @@ O sistema utiliza a tabela `card_history` para armazenar todos os eventos, com s
 - **`has_file`**: Se a mensagem contém arquivo
 - **`has_mentions`**: Se a mensagem contém menções
 - **`mentions_count`**: Número de menções na mensagem
+- **`products_count`**: Número de produtos (para `product_value_change` quando rastreia `field_values.products`)
 
 **Nota:** A partir da refatoração, `event_type`, `previous_value` e `new_value` são armazenados diretamente nas colunas correspondentes, além de serem mantidos em `details` para compatibilidade. As funções SQL `get_card_timeline` e `get_contact_history` utilizam as colunas diretas quando disponíveis.
 
@@ -226,6 +227,21 @@ const timeInCurrentStage = Math.floor((now.getTime() - lastChange.getTime()) / 1
 1. Detecta mudança em `product` ou `value`
 2. Cria evento apenas com campos que mudaram
 3. Armazena valores anteriores e novos
+
+### 8.1. `track_card_products_change()`
+
+**Tipo**: Trigger (AFTER UPDATE OF field_values)
+
+**Responsabilidade**: Cria evento `product_value_change` quando estrutura de produtos em `field_values.products` muda
+
+**Fluxo:**
+1. Detecta mudança em `field_values->>'products'` (JSONB)
+2. Compara arrays de produtos antigo e novo
+3. Cria evento com estrutura completa de produtos anterior e nova
+4. Armazena em `previous_value.products` e `new_value.products`
+5. Inclui contagem de produtos no `details.products_count`
+
+**Nota**: Este trigger rastreia a estrutura completa de produtos (incluindo modulagens) armazenada em `field_values.products`, permitindo rastrear adição/remoção de produtos, modificação de valores e adição/remoção de campos de modulagem.
 
 ### 9. `track_card_parent_change()`
 

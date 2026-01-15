@@ -85,12 +85,14 @@ export function ListView({
                     <th className="px-3 py-2 min-w-[120px] max-w-[180px]">Etapa</th>
                     <th className="px-3 py-2 min-w-[150px] max-w-[200px]">Tags</th>
                     <th className="px-3 py-2 min-w-[150px] max-w-[200px]">Responsável</th>
+                    <th className="px-3 py-2 min-w-[100px] max-w-[120px]">Status</th>
                     <th className="px-3 py-2 min-w-[100px] max-w-[120px] whitespace-nowrap">Atualizado</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedCards.map((card) => {
                     const step = steps.find((item) => item.id === card.stepId);
+                    const isFrozenCard = step?.stepType === 'freezing';
                     const assignedUser = card.assignedTo
                       ? users.find((user) => user.id === card.assignedTo)
                       : null;
@@ -157,6 +159,28 @@ export function ListView({
                                 </span>
                               </div>
                             ) : (
+                              <span className="text-xs text-neutral-400 italic">--</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            {card.status === "completed" && (
+                              <span className="bg-green-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white dark:border-gray-800">
+                                Concluído
+                              </span>
+                            )}
+                            {card.status === "canceled" && (
+                              <span className="bg-red-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white dark:border-gray-800">
+                                Cancelado
+                              </span>
+                            )}
+                            {isFrozenCard && (
+                              <span className="bg-blue-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white dark:border-gray-800">
+                                Congelado
+                              </span>
+                            )}
+                            {!card.status && !isFrozenCard && (
                               <span className="text-xs text-neutral-400 italic">--</span>
                             )}
                           </div>

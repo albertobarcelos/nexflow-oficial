@@ -72,6 +72,7 @@ export function useIndicationDetails(indicationId: string | null | undefined) {
         cardType: card.card_type ?? 'onboarding',
         product: card.product ?? null,
         value: card.value ? Number(card.value) : null,
+        lead: card.lead ?? null,
       }));
 
       // Buscar informações do hunter

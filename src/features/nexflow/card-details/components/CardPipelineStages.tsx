@@ -23,96 +23,50 @@ export function CardPipelineStages({
 
   return (
     <div className="w-full overflow-x-auto overflow-y-visible">
-      <div className="flex items-center gap-1.5 min-w-max py-1">
+      <div className="flex items-center gap-8 min-w-max">
         {sortedSteps.map((step, index) => {
           const isCurrent = step.id === currentStepId;
           const isPast = currentIndex !== -1 && index < currentIndex;
-          const isFuture = currentIndex !== -1 && index > currentIndex;
 
           return (
-            <div key={step.id} className="flex items-center gap-1.5">
+            <div key={step.id} className="flex items-center">
               {/* Etapa */}
-              <div
-                className={cn(
-                  "relative flex flex-col items-center gap-1 min-w-[80px]",
-                  "transition-all duration-200"
-                )}
-              >
+              <div className="flex flex-col items-center relative">
                 {/* Círculo da etapa */}
                 <div
                   className={cn(
-                    "relative h-8 w-8 rounded-full border-2 flex items-center justify-center",
-                    "transition-all duration-200",
+                    "relative flex items-center justify-center h-8 w-8 rounded-full font-bold text-xs overflow-visible",
+                    "ring-4 ring-white dark:ring-slate-900",
                     isCurrent
-                      ? "border-2 scale-105 shadow-md ring-1 ring-offset-1"
+                      ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-none"
                       : isPast
-                      ? "border-2 opacity-60"
-                      : "border-2 opacity-40",
-                    isCurrent && "ring-primary"
+                      ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                      : "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
                   )}
-                  style={{
-                    backgroundColor: isCurrent || isPast ? step.color || "#94a3b8" : "#e5e7eb",
-                    borderColor: step.color || "#94a3b8",
-                  }}
                 >
-                  {/* Indicador de posição */}
-                  <span
-                    className={cn(
-                      "text-[10px] font-semibold",
-                      isCurrent || isPast ? "text-white" : "text-gray-400"
-                    )}
-                  >
-                    {step.position}
-                  </span>
-                  
-                  {/* Badge de tipo de etapa */}
-                  {step.stepType && (
-                    <div
-                      className={cn(
-                        "absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full border border-white dark:border-gray-800",
-                        step.stepType === "finisher" && "bg-green-500",
-                        step.stepType === "fail" && "bg-red-500",
-                        step.stepType === "freezing" && "bg-blue-500"
-                      )}
-                      title={
-                        step.stepType === "finisher"
-                          ? "Etapa final"
-                          : step.stepType === "fail"
-                          ? "Etapa de falha"
-                          : "Etapa de congelamento"
-                      }
-                    />
+                  {step.position}
+                  {/* Badge indicador para etapa atual */}
+                  {isCurrent && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white dark:bg-slate-900 rounded-full border-2 border-emerald-500 z-10" />
                   )}
                 </div>
 
                 {/* Título da etapa */}
-                <div className="text-center max-w-[80px]">
-                  <p
-                    className={cn(
-                      "text-[10px] font-medium truncate",
-                      isCurrent
-                        ? "text-foreground font-semibold"
-                        : isPast
-                        ? "text-muted-foreground"
-                        : "text-muted-foreground/60"
-                    )}
-                    title={step.title}
-                  >
-                    {step.title}
-                  </p>
-                </div>
+                <span
+                  className={cn(
+                    "text-[10px] mt-1",
+                    isCurrent
+                      ? "text-slate-800 dark:text-slate-200 font-bold"
+                      : "text-slate-400 dark:text-slate-500 font-medium"
+                  )}
+                >
+                  {step.title.length > 15 ? `${step.title.substring(0, 15)}...` : step.title}
+                </span>
               </div>
 
               {/* Conector entre etapas */}
               {index < sortedSteps.length - 1 && (
-                <div
-                  className={cn(
-                    "h-0.5 w-6 transition-all duration-200",
-                    isPast || (isCurrent && index === currentIndex)
-                      ? "bg-primary"
-                      : "bg-gray-200 dark:bg-gray-700"
-                  )}
-                />
+                <div className="h-0.5 w-8 bg-slate-200 dark:bg-slate-700 -mt-5" />
               )}
             </div>
           );
