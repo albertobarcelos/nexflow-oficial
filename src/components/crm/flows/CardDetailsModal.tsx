@@ -1737,7 +1737,7 @@ export function CardDetailsModal({
         );
       case "comments":
         return (
-          <div className="h-full">
+          <div className="h-full w-full">
             <CardComments cardId={card.id} />
           </div>
         );
@@ -2043,7 +2043,7 @@ export function CardDetailsModal({
             </div>
 
             {/* Área de Conteúdo Principal */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-0">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-0 flex justify-center items-center flex-wrap w-full h-full">
               <div className={cn(
                 activeSection === "processes" ? "w-full h-full" : 
                 activeSection === "comments" ? "w-full h-full" :

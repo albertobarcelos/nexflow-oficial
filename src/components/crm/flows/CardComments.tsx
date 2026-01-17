@@ -9,9 +9,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   Send, 
-  Paperclip, 
   Mic, 
-  Video, 
   File as FileIcon, 
   Trash2,
   Download,
@@ -140,16 +138,16 @@ export function CardComments({ cardId }: CardCommentsProps) {
     isPaused,
     recordingTime,
     mediaRecorder
-  } = useAudioRecorder({
-    audioTrackConstraints: {
+  } = useAudioRecorder(
+    {
       noiseSuppression: true,
       echoCancellation: true,
-    },
-    onNotAllowedOrFound: (err) => {
+    } as MediaTrackConstraints,
+    (err) => {
       console.error('Erro ao acessar microfone:', err);
       toast.error('Erro ao acessar o microfone. Verifique as permissões.');
     }
-  });
+  );
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -227,8 +225,16 @@ export function CardComments({ cardId }: CardCommentsProps) {
       // Usar getByteTimeDomainData para waveform (linha que se move)
       currentAnalyser.getByteTimeDomainData(dataArray);
       
-      // Limpar canvas com fundo escuro
-      currentCtx.fillStyle = 'rgb(15, 23, 42)';
+      // Limpar canvas com fundo escuro usando cores do tema
+      // hsl(0, 0%, 4%) é o background dark do projeto
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches || 
+                     document.documentElement.classList.contains('dark');
+      
+      if (isDark) {
+        currentCtx.fillStyle = 'rgb(2, 6, 23)'; // slate-950 equivalente
+      } else {
+        currentCtx.fillStyle = 'rgb(15, 23, 42)'; // slate-900
+      }
       currentCtx.fillRect(0, 0, currentCanvas.width, currentCanvas.height);
       
       const dpr = window.devicePixelRatio || 1;
@@ -236,9 +242,31 @@ export function CardComments({ cardId }: CardCommentsProps) {
       const visualWidth = currentCanvas.width / dpr;
       const centerY = visualHeight / 2;
       
-      // Desenhar linha da waveform
-      currentCtx.lineWidth = 2;
-      currentCtx.strokeStyle = 'rgb(59, 130, 246)'; // Azul simples
+      // Desenhar linha de referência central sutil
+      currentCtx.strokeStyle = isDark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(71, 85, 105, 0.3)';
+      currentCtx.lineWidth = 1;
+      currentCtx.setLineDash([5, 5]);
+      currentCtx.beginPath();
+      currentCtx.moveTo(0, centerY);
+      currentCtx.lineTo(visualWidth, centerY);
+      currentCtx.stroke();
+      currentCtx.setLineDash([]);
+      
+      // Criar gradiente para a waveform
+      const gradient = currentCtx.createLinearGradient(0, 0, visualWidth, 0);
+      const primaryColor = isDark ? 'rgb(129, 140, 248)' : 'rgb(99, 102, 241)'; // indigo-400/500
+      const accentColor = isDark ? 'rgb(165, 180, 252)' : 'rgb(129, 140, 248)'; // indigo-300/400
+      gradient.addColorStop(0, primaryColor);
+      gradient.addColorStop(0.5, accentColor);
+      gradient.addColorStop(1, primaryColor);
+      
+      // Desenhar linha da waveform com cor primary do projeto e gradiente
+      currentCtx.lineWidth = 2.5;
+      currentCtx.strokeStyle = gradient;
+      currentCtx.shadowBlur = 10;
+      currentCtx.shadowColor = isDark ? 'rgba(129, 140, 248, 0.6)' : 'rgba(99, 102, 241, 0.5)';
+      currentCtx.lineCap = 'round';
+      currentCtx.lineJoin = 'round';
       currentCtx.beginPath();
       
       const sliceWidth = visualWidth / bufferLength;
@@ -247,7 +275,7 @@ export function CardComments({ cardId }: CardCommentsProps) {
       for (let i = 0; i < bufferLength; i++) {
         // Converter valor de 0-255 para -1 a 1 (128 é o centro)
         const v = (dataArray[i] - 128) / 128.0;
-        const y = v * centerY;
+        const y = v * centerY * 0.8; // Reduzir amplitude para visual mais suave
         
         if (i === 0) {
           currentCtx.moveTo(x, centerY + y);
@@ -259,6 +287,11 @@ export function CardComments({ cardId }: CardCommentsProps) {
       }
       
       currentCtx.stroke();
+      
+      // Reset shadow e line properties
+      currentCtx.shadowBlur = 0;
+      currentCtx.lineCap = 'butt';
+      currentCtx.lineJoin = 'miter';
     };
     
     draw();
@@ -544,51 +577,9 @@ export function CardComments({ cardId }: CardCommentsProps) {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Barra de ações com botões em grid */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 px-4 py-2.5">
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileSelect}
-            accept="*/*"
-          />
-          <input
-            ref={videoInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileSelect}
-            accept="video/*"
-          />
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 justify-start gap-2"
-            onClick={() => fileInputRef.current?.click()}
-            title="Anexar arquivo"
-          >
-            <Paperclip className="h-4 w-4" />
-            <span className="text-xs">Anexar</span>
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 justify-start gap-2"
-            onClick={() => videoInputRef.current?.click()}
-            title="Enviar vídeo"
-          >
-            <Video className="h-4 w-4" />
-            <span className="text-xs">Vídeo</span>
-          </Button>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-full overflow-hidden w-full justify-center items-center">
       {/* Área de scroll para comentários */}
-      <div className="flex-1 min-h-0 overflow-hidden px-4 py-3">
+      <div className="flex-1 min-h-0 overflow-hidden px-4 py-4 w-full">
         <ScrollArea className="h-full" ref={scrollAreaRef}>
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
@@ -765,7 +756,7 @@ export function CardComments({ cardId }: CardCommentsProps) {
                 <X className="h-4 w-4 text-red-600 dark:text-red-400" />
               </Button>
             </div>
-            <div className="relative bg-neutral-900 rounded-lg overflow-hidden">
+            <div className="relative bg-slate-900 dark:bg-slate-950 rounded-lg overflow-hidden border border-slate-800 dark:border-slate-800 shadow-lg">
               <canvas
                 ref={canvasRef}
                 width={400}
@@ -789,8 +780,8 @@ export function CardComments({ cardId }: CardCommentsProps) {
           </div>
         ) : (
           /* Modo normal: campo de texto e botões */
-          <div className="flex gap-2 items-end">
-            <div className="flex-[0.7]">
+          <div className="flex gap-2 items-end justify-center max-w-4xl mx-auto w-full">
+            <div className="flex-1 max-w-2xl">
               <MentionInput
                 value={message}
                 onChange={setMessage}

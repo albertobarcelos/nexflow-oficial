@@ -15,11 +15,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Plus,
   Save,
   ArrowLeft,
+  ArrowRight,
   Loader2,
   MoreVertical,
   Pencil,
@@ -47,6 +49,7 @@ interface FlowBuilderHeaderProps {
   onCreateStep: (payload: { title: string; color: string }) => Promise<void>;
   onRenameStep: (stepId: string, title: string) => void;
   onDeleteStep: (stepId: string) => void;
+  onReorderSteps: (orderedIds: string[]) => Promise<void>;
   onSave: () => void;
   isSaving: boolean;
   pendingMutations: number;
@@ -63,6 +66,7 @@ export function FlowBuilderHeader({
   onCreateStep,
   onRenameStep,
   onDeleteStep,
+  onReorderSteps,
   onSave,
   isSaving,
   pendingMutations,
@@ -81,6 +85,12 @@ export function FlowBuilderHeader({
     [steps.length]
   );
 
+  // Ordenar etapas por position antes de renderizar
+  const sortedSteps = useMemo(
+    () => [...steps].sort((a, b) => a.position - b.position),
+    [steps]
+  );
+
   const startEditing = (step: NexflowStep) => {
     setEditingStepId(step.id);
     setStepDraft(step.title);
@@ -92,6 +102,34 @@ export function FlowBuilderHeader({
     }
     onRenameStep(stepId, stepDraft.trim());
     setEditingStepId(null);
+  };
+
+  const handleMoveStepForward = async (stepId: string) => {
+    const currentIndex = sortedSteps.findIndex((s) => s.id === stepId);
+    if (currentIndex === -1 || currentIndex === sortedSteps.length - 1) {
+      return;
+    }
+
+    const newOrder = [...sortedSteps];
+    const [movedStep] = newOrder.splice(currentIndex, 1);
+    newOrder.splice(currentIndex + 1, 0, movedStep);
+
+    const orderedIds = newOrder.map((step) => step.id);
+    await onReorderSteps(orderedIds);
+  };
+
+  const handleMoveStepBackward = async (stepId: string) => {
+    const currentIndex = sortedSteps.findIndex((s) => s.id === stepId);
+    if (currentIndex === -1 || currentIndex === 0) {
+      return;
+    }
+
+    const newOrder = [...sortedSteps];
+    const [movedStep] = newOrder.splice(currentIndex, 1);
+    newOrder.splice(currentIndex - 1, 0, movedStep);
+
+    const orderedIds = newOrder.map((step) => step.id);
+    await onReorderSteps(orderedIds);
   };
 
   return (
@@ -168,7 +206,7 @@ export function FlowBuilderHeader({
 
         <div className="relative">
           <div className="flex flex-nowrap items-center gap-4 overflow-x-auto overflow-y-hidden pb-4 -mx-2 px-2" style={{ scrollbarWidth: 'thin' }}>
-            {steps.map((step, index) => (
+            {sortedSteps.map((step, index) => (
               <div key={step.id} className="flex items-center gap-4 flex-shrink-0">
                 <div
                   className={cn(
@@ -251,12 +289,35 @@ export function FlowBuilderHeader({
                             <Trash className="h-4 w-4" />
                             Excluir
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleMoveStepForward(step.id)}
+                            disabled={index === sortedSteps.length - 1}
+                            className={cn(
+                              "flex items-center gap-2",
+                              index === sortedSteps.length - 1 && "opacity-60"
+                            )}
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                            Avançar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleMoveStepBackward(step.id)}
+                            disabled={index === 0}
+                            className={cn(
+                              "flex items-center gap-2",
+                              index === 0 && "opacity-60"
+                            )}
+                          >
+                            <ArrowLeft className="h-4 w-4" />
+                            Retroceder
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </>
                   )}
                 </div>
-                {index < steps.length - 1 && (
+                {index < sortedSteps.length - 1 && (
                   <div className="w-8 h-[2px] bg-neutral-300 dark:bg-neutral-700 rounded-full flex-shrink-0" />
                 )}
               </div>

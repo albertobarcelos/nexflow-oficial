@@ -22,8 +22,8 @@ export function CardPipelineStages({
   const currentIndex = sortedSteps.findIndex((s) => s.id === currentStepId);
 
   return (
-    <div className="w-full overflow-x-auto overflow-y-visible">
-      <div className="flex items-center gap-8 min-w-max">
+    <div className="flex w-full overflow-x-auto overflow-y-visible">
+      <div className="flex items-center gap-8 min-w-max pt-3 pb-3">
         {sortedSteps.map((step, index) => {
           const isCurrent = step.id === currentStepId;
           const isPast = currentIndex !== -1 && index < currentIndex;

@@ -7,7 +7,7 @@ import type { VisibilityConfig } from "./VisibilitySelector";
 import type { NexflowStep, StepType } from "@/types/nexflow";
 import type { StepDraft } from "@/hooks/useFlowBuilderState";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { Palette, GitBranch } from "lucide-react";
+import { Palette, GitBranch, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   Select,
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChildCardAutomationDialog } from "@/components/crm/flows/ChildCardAutomationDialog";
+import { cn } from "@/lib/utils";
 
 interface StepPropertiesContentProps {
   step: NexflowStep;
@@ -189,40 +190,50 @@ export function StepPropertiesContent({
           </div>
         </div>
 
-        <div className="space-y-2 flex flex-wrap">
-          <Label>Tipo de etapa</Label>
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-foreground">Tipo de etapa</Label>
           <Select value={currentStepType} onValueChange={handleStepTypeChange}>
-            <SelectTrigger className="flex-col h-[70px]">
+            <SelectTrigger className={cn(
+              "h-auto min-h-[80px] py-3 items-start justify-between",
+              "[&>span]:line-clamp-none [&>span]:flex [&>span]:flex-col [&>span]:items-start [&>span]:gap-1 [&>span]:w-full [&>span]:text-left [&>span]:flex-1"
+            )}>
               <SelectValue placeholder="Selecione o tipo de etapa" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="standard">
-                <div className="flex flex-col">
-                  <span className="font-medium">Normal</span>
-                  <span className="flex flex-wrap text-[10px] text-neutral-500">Pode utilizar campos e processos</span>
+            <SelectContent className="min-w-[var(--radix-select-trigger-width)]">
+              <SelectItem value="standard" className="py-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-foreground">Normal</span>
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    Pode utilizar campos e processos
+                  </span>
                 </div>
               </SelectItem>
-              <SelectItem value="finisher">
-                <div className="flex flex-col">
-                  <span className="font-medium">Concluídos</span>
-                  <span className="flex flex-wrap text-[10px] text-neutral-500">Card terá status concluído. Sem campos ou processos</span>
+              <SelectItem value="finisher" className="py-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-foreground">Concluídos</span>
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    Card terá status concluído. Sem campos ou processos
+                  </span>
                 </div>
               </SelectItem>
-              <SelectItem value="fail">
-                <div className="flex flex-col">
-                  <span className="font-medium">Cancelados</span>
-                  <span className="flex flex-wrap text-[10px] text-neutral-500">Card terá status cancelado. Sem campos ou processos</span>
+              <SelectItem value="fail" className="py-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-foreground">Cancelados</span>
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    Card terá status cancelado. Sem campos ou processos
+                  </span>
                 </div>
               </SelectItem>
-              <SelectItem value="freezing">
-                <div className="flex flex-col">
-                  <span className="font-medium">Congelado</span>
-                  <span className="flex flex-wrap text-[10px] text-neutral-500">Card será congelado e original seguirá para próxima etapa</span>
+              <SelectItem value="freezing" className="py-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold text-foreground">Congelado</span>
+                  <span className="text-xs text-muted-foreground leading-relaxed">
+                    Card será congelado e original seguirá para próxima etapa
+                  </span>
                 </div>
               </SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-neutral-500">{getStepTypeDescription(currentStepType)}</p>
         </div>
       </div>
 

@@ -1,5 +1,14 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// @ts-expect-error - JSR modules are resolved at runtime by Deno
 import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// Declaração de tipo para Deno (necessário para TypeScript no editor)
+declare const Deno: {
+  env: {
+    get(key: string): string | undefined;
+  };
+  serve(handler: (req: Request) => Response | Promise<Response>): void;
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,7 +124,7 @@ Deno.serve(async (req: Request) => {
 
     // Buscar formulário pelo slug
     const { data: form, error: formError } = await supabaseAdmin
-      .from("public_contact_forms")
+      .from("public_opportunity_forms")
       .select("*")
       .eq("slug", slug)
       .eq("is_active", true)

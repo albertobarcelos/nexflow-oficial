@@ -52,6 +52,7 @@ export function NexflowBuilderPage() {
     createStep,
     renameStep,
     deleteStep,
+    reorderSteps,
     fields,
     selectedFieldId,
     selectedField,
@@ -221,6 +222,7 @@ export function NexflowBuilderPage() {
           onCreateStep={createStep}
           onRenameStep={renameStep}
           onDeleteStep={deleteStep}
+          onReorderSteps={reorderSteps}
           onSave={saveAll}
           isSaving={isSaving}
           canSave={hasPendingChanges}
