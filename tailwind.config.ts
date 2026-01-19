@@ -20,7 +20,9 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+				sans: ['Poppins', 'ui-sans-serif', 'system-ui', 'sans-serif'], // Títulos (Headings)
+				body: ['Open Sans', 'Roboto', 'ui-sans-serif', 'system-ui', 'sans-serif'], // Corpo do Texto (Body)
+				display: ['Orbitron', 'Rajdhani', 'Exo 2', 'ui-sans-serif', 'system-ui', 'sans-serif'], // Destaques (Highlights)
 			},
 			colors: {
 				border: "hsl(var(--border))",
@@ -66,10 +68,18 @@ export default {
 					border: "hsl(var(--sidebar-border))",
 					ring: "hsl(var(--sidebar-ring))",
 				},
-				// Cores customizadas NEXPANEL
-				"nex-dark-blue": "#1a2c5b",
-				"nex-orange": "#ff8c00",
-				"nex-bg": "#f8f9fa",
+				// NEXSYN Brand Colors
+				nexsyn: {
+					night: "hsl(var(--nexsyn-night))",
+					pumpkin: "hsl(var(--nexsyn-pumpkin))",
+					"anti-flash-white": "hsl(var(--nexsyn-anti-flash-white))",
+					"rich-black": "hsl(var(--nexsyn-rich-black))",
+					"celtic-blue": "hsl(var(--nexsyn-celtic-blue))",
+					"oxford-blue": "hsl(var(--nexsyn-oxford-blue))",
+					"sandy-brown": "hsl(var(--nexsyn-sandy-brown))",
+					mindaro: "hsl(var(--nexsyn-mindaro))",
+					pear: "hsl(var(--nexsyn-pear))",
+				},
 			},
 			borderRadius: {
 				lg: "var(--radius)",

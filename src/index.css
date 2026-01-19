@@ -4,89 +4,107 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 4%;
+    /* NEXSYN Brand Colors - Light Theme */
+    --background: 180 20% 95%; /* Anti-flash White #F1F5F5 */
+    --foreground: 210 94% 7%; /* Rich Black #011123 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 4%;
+    --card: 180 20% 98%; /* Slightly lighter than background */
+    --card-foreground: 210 94% 7%; /* Rich Black #011123 */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
+    --popover: 180 20% 98%;
+    --popover-foreground: 210 94% 7%;
 
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 25 100% 50%; /* Pumpkin #FF6F00 */
+    --primary-foreground: 0 0% 100%; /* White for contrast */
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 4%;
+    --secondary: 210 70% 45%; /* Celtic Blue #246BC2 */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 64%;
+    --muted: 180 15% 92%;
+    --muted-foreground: 210 30% 35%;
 
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 4%;
+    --accent: 25 100% 70%; /* Sandy Brown #FFA865 */
+    --accent-foreground: 210 94% 7%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 239 84% 67%;
+    --border: 180 10% 85%;
+    --input: 180 10% 85%;
+    --ring: 25 100% 50%; /* Pumpkin #FF6F00 */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 100%;
-
-    --sidebar-foreground: 0 0% 4%;
-
-    --sidebar-primary: 239 84% 67%;
-
+    --sidebar-background: 180 20% 98%;
+    --sidebar-foreground: 210 94% 7%;
+    --sidebar-primary: 25 100% 50%; /* Pumpkin #FF6F00 */
     --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 180 15% 92%;
+    --sidebar-accent-foreground: 210 94% 7%;
+    --sidebar-border: 180 10% 85%;
+    --sidebar-ring: 25 100% 50%;
 
-    --sidebar-accent: 0 0% 96%;
-
-    --sidebar-accent-foreground: 0 0% 4%;
-
-    --sidebar-border: 0 0% 90%;
-
-    --sidebar-ring: 239 84% 67%;
+    /* NEXSYN Custom Color Variables */
+    --nexsyn-night: 240 8% 7%; /* Night #100F13 */
+    --nexsyn-pumpkin: 25 100% 50%; /* Pumpkin #FF6F00 */
+    --nexsyn-anti-flash-white: 180 20% 95%; /* Anti-flash White #F1F5F5 */
+    --nexsyn-rich-black: 210 94% 7%; /* Rich Black #011123 */
+    --nexsyn-celtic-blue: 210 70% 45%; /* Celtic Blue #246BC2 */
+    --nexsyn-oxford-blue: 210 100% 14%; /* Oxford Blue #002147 */
+    --nexsyn-sandy-brown: 25 100% 70%; /* Sandy Brown #FFA865 */
+    --nexsyn-mindaro: 66 60% 73%; /* Mindaro #DDE78B */
+    --nexsyn-pear: 66 70% 49%; /* Pear #C9D921 */
   }
 
   .dark {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 100%;
+    /* NEXSYN Brand Colors - Dark Theme */
+    --background: 240 8% 7%; /* Night #100F13 */
+    --foreground: 180 20% 95%; /* Anti-flash White #F1F5F5 */
 
-    --card: 0 0% 4%;
-    --card-foreground: 0 0% 100%;
+    --card: 210 94% 7%; /* Rich Black #011123 */
+    --card-foreground: 180 20% 95%; /* Anti-flash White #F1F5F5 */
 
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 210 94% 7%;
+    --popover-foreground: 180 20% 95%;
 
-    --primary: 239 84% 67%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 25 100% 50%; /* Pumpkin #FF6F00 */
+    --primary-foreground: 0 0% 100%; /* White for contrast */
 
-    --secondary: 0 0% 15%;
+    --secondary: 210 70% 45%; /* Celtic Blue #246BC2 */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 64%;
+    --muted: 240 8% 12%;
+    --muted-foreground: 180 20% 75%;
 
-    --accent: 0 0% 15%;
+    --accent: 25 100% 60%; /* Slightly lighter Pumpkin for dark theme */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62.8% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 239 84% 67%;
-    --sidebar-background: 0 0% 4%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 239 84% 67%;
+    --border: 240 8% 15%;
+    --input: 240 8% 15%;
+    --ring: 25 100% 50%; /* Pumpkin #FF6F00 */
+
+    --sidebar-background: 210 94% 7%; /* Rich Black #011123 */
+    --sidebar-foreground: 180 20% 95%; /* Anti-flash White #F1F5F5 */
+    --sidebar-primary: 25 100% 50%; /* Pumpkin #FF6F00 */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 0 0% 20%;
-    --sidebar-ring: 239 84% 67%;
+    --sidebar-accent: 240 8% 12%;
+    --sidebar-accent-foreground: 180 20% 95%;
+    --sidebar-border: 240 8% 15%;
+    --sidebar-ring: 25 100% 50%;
+
+    /* NEXSYN Custom Color Variables (same in dark theme) */
+    --nexsyn-night: 240 8% 7%; /* Night #100F13 */
+    --nexsyn-pumpkin: 25 100% 50%; /* Pumpkin #FF6F00 */
+    --nexsyn-anti-flash-white: 180 20% 95%; /* Anti-flash White #F1F5F5 */
+    --nexsyn-rich-black: 210 94% 7%; /* Rich Black #011123 */
+    --nexsyn-celtic-blue: 210 70% 45%; /* Celtic Blue #246BC2 */
+    --nexsyn-oxford-blue: 210 100% 14%; /* Oxford Blue #002147 */
+    --nexsyn-sandy-brown: 25 100% 70%; /* Sandy Brown #FFA865 */
+    --nexsyn-mindaro: 66 60% 73%; /* Mindaro #DDE78B */
+    --nexsyn-pear: 66 70% 49%; /* Pear #C9D921 */
   }
 
   * {
