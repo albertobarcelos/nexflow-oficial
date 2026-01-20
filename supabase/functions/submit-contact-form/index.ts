@@ -165,6 +165,72 @@ Deno.serve(async (req: Request) => {
     // Sanitizar dados
     const sanitizedData = sanitizeInput(formData);
 
+    // Função auxiliar para validar CPF/CNPJ
+    function validateCpfCnpj(value: string): boolean {
+      const cleaned = value.replace(/\D/g, "");
+      if (cleaned.length === 11) {
+        // Validar CPF
+        if (/^(\d)\1{10}$/.test(cleaned)) return false;
+        let sum = 0;
+        for (let i = 1; i <= 9; i++) {
+          sum += parseInt(cleaned.substring(i - 1, i)) * (11 - i);
+        }
+        let remainder = (sum * 10) % 11;
+        if (remainder === 10 || remainder === 11) remainder = 0;
+        if (remainder !== parseInt(cleaned.substring(9, 10))) return false;
+        sum = 0;
+        for (let i = 1; i <= 10; i++) {
+          sum += parseInt(cleaned.substring(i - 1, i)) * (12 - i);
+        }
+        remainder = (sum * 10) % 11;
+        if (remainder === 10 || remainder === 11) remainder = 0;
+        return remainder === parseInt(cleaned.substring(10, 11));
+      } else if (cleaned.length === 14) {
+        // Validar CNPJ
+        if (/^(\d)\1{13}$/.test(cleaned)) return false;
+        let length = 12;
+        let numbers = cleaned.substring(0, length);
+        const digits = cleaned.substring(length);
+        let sum = 0;
+        let pos = length - 7;
+        for (let i = length; i >= 1; i--) {
+          sum += parseInt(numbers.charAt(length - i)) * pos--;
+          if (pos < 2) pos = 9;
+        }
+        let result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+        if (result !== parseInt(digits.charAt(0))) return false;
+        length = 13;
+        numbers = cleaned.substring(0, length);
+        sum = 0;
+        pos = length - 7;
+        for (let i = length; i >= 1; i--) {
+          sum += parseInt(numbers.charAt(length - i)) * pos--;
+          if (pos < 2) pos = 9;
+        }
+        result = sum % 11 < 2 ? 0 : 11 - (sum % 11);
+        return result === parseInt(digits.charAt(1));
+      }
+      return false;
+    }
+
+    // Validar CPF/CNPJ se presente
+    for (const field of form.fields_config) {
+      if (field.type === "cpf_cnpj" && sanitizedData[field.name]) {
+        const isValid = validateCpfCnpj(sanitizedData[field.name]);
+        if (!isValid) {
+          return new Response(
+            JSON.stringify({
+              error: `CPF/CNPJ inválido no campo ${field.label}`,
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+      }
+    }
+
     // Extrair campos padrão da oportunidade
     const clientName = sanitizedData.client_name || sanitizedData.name || "";
     const mainContact = sanitizedData.main_contact || sanitizedData.contact || "";
@@ -190,6 +256,23 @@ Deno.serve(async (req: Request) => {
       ? [sanitizedData.cnpj || sanitizedData.cpf]
       : [];
 
+    // Extrair campos especiais
+    let companyId: string | null = null;
+    let partnerId: string | null = null;
+    let userId: string | null = null;
+
+    for (const field of form.fields_config) {
+      if (field.type === "company_toggle" && sanitizedData[field.name]) {
+        companyId = sanitizedData[field.name];
+      }
+      if (field.type === "partner_select" && sanitizedData[field.name]) {
+        partnerId = sanitizedData[field.name];
+      }
+      if (field.type === "user_select" && sanitizedData[field.name]) {
+        userId = sanitizedData[field.name];
+      }
+    }
+
     // Validar campos obrigatórios padrão
     if (!clientName || !mainContact) {
       return new Response(
@@ -213,6 +296,7 @@ Deno.serve(async (req: Request) => {
         phone_numbers: phoneNumbers.length > 0 ? phoneNumbers : null,
         company_names: companyNames.length > 0 ? companyNames : null,
         tax_ids: taxIds.length > 0 ? taxIds : null,
+        indicated_by: partnerId || null,
       })
       .select()
       .single();
@@ -230,12 +314,32 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Vincular empresa se selecionada
+    if (companyId) {
+      const { error: companyError } = await supabaseAdmin
+        .from("contact_companies")
+        .insert({
+          contact_id: contact.id,
+          company_id: companyId,
+          client_id: form.client_id,
+          role: null,
+        });
+
+      if (companyError) {
+        console.error("Erro ao vincular empresa:", companyError);
+        // Não falhar o processo, apenas logar o erro
+      }
+    }
+
     // Retornar sucesso
     return new Response(
       JSON.stringify({
         success: true,
         message: form.settings?.successMessage || "Formulário enviado com sucesso!",
         contactId: contact.id,
+        companyId: companyId || null,
+        partnerId: partnerId || null,
+        userId: userId || null,
       }),
       {
         status: 200,

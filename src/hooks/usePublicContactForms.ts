@@ -21,7 +21,7 @@ export interface PublicContactForm {
 
 export interface FormFieldConfig {
   id: string;
-  type: "text" | "email" | "tel" | "textarea" | "select" | "number";
+  type: "text" | "email" | "tel" | "textarea" | "select" | "number" | "checkbox" | "cpf_cnpj" | "company_toggle" | "partner_select" | "user_select";
   label: string;
   name: string;
   placeholder?: string;
@@ -31,7 +31,21 @@ export interface FormFieldConfig {
     maxLength?: number;
     pattern?: string;
   };
-  options?: { label: string; value: string }[];
+  options?: { label: string; value: string }[]; // Para select
+  // Configurações específicas por tipo
+  companyToggle?: {
+    enabled: boolean;
+    allowCreate: boolean;
+    required: boolean;
+  };
+  partnerSelect?: {
+    allowCreate: boolean;
+  };
+  userSelect?: {
+    teamId?: string; // Filtrar usuários por time
+    teamName?: string; // Nome do time para exibição
+  };
+  defaultValue?: string | boolean; // Para checkbox e outros campos
 }
 
 export interface FormSettings {
@@ -58,14 +72,14 @@ export function usePublicContactForms() {
         throw new Error("Cliente não identificado");
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("public_opportunity_forms")
         .select("*")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as PublicContactForm[];
+      return (data || []) as PublicContactForm[];
     },
   });
 
@@ -95,7 +109,7 @@ export function usePublicContactForms() {
       // Gerar token secreto único
       const token = uuidv4();
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("public_opportunity_forms")
         .insert({
           client_id: clientId,
@@ -111,7 +125,7 @@ export function usePublicContactForms() {
         .single();
 
       if (error) throw error;
-      return data as PublicContactForm;
+      return data as unknown as PublicContactForm;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["public-contact-forms"] });
@@ -124,7 +138,7 @@ export function usePublicContactForms() {
 
   const updateForm = useMutation({
     mutationFn: async ({ id, ...updates }: Partial<PublicContactForm> & { id: string }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("public_opportunity_forms")
         .update(updates)
         .eq("id", id)
@@ -132,7 +146,7 @@ export function usePublicContactForms() {
         .single();
 
       if (error) throw error;
-      return data as PublicContactForm;
+      return data as unknown as PublicContactForm;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["public-contact-forms"] });
@@ -145,7 +159,7 @@ export function usePublicContactForms() {
 
   const deleteForm = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("public_opportunity_forms")
         .delete()
         .eq("id", id);
@@ -163,7 +177,7 @@ export function usePublicContactForms() {
 
   const toggleActive = useMutation({
     mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("public_opportunity_forms")
         .update({ is_active })
         .eq("id", id)
@@ -171,7 +185,7 @@ export function usePublicContactForms() {
         .single();
 
       if (error) throw error;
-      return data as PublicContactForm;
+      return data as unknown as PublicContactForm;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["public-contact-forms"] });

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CpfCnpjInput } from "@/components/ui/cpf-cnpj-input";
 import {
   Select,
   SelectContent,
@@ -11,9 +13,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { appConfig } from "@/lib/config";
 import { FormFieldConfig } from "@/hooks/usePublicContactForms";
+import { useCompanies } from "@/features/companies/hooks/useCompanies";
+import { usePartners } from "@/hooks/usePartners";
+import { useUsersByTeam } from "@/hooks/useUsersByTeam";
+import { validateCnpjCpf } from "@/lib/utils/cnpjCpf";
+import { CompanySelect } from "@/components/ui/company-select";
+
+// Componente separado para user_select para permitir uso de hook
+function UserSelectField({ field, value, error, onChange }: { field: FormFieldConfig; value: string; error?: string; onChange: (value: string) => void }) {
+  const { data: users = [] } = useUsersByTeam(field.userSelect?.teamId || null);
+  const selectedUser = users.find((u) => u.id === value);
+  
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={field.name}>
+        {field.label}
+        {field.required && <span className="text-destructive ml-1">*</span>}
+      </Label>
+      {field.userSelect?.teamName && (
+        <p className="text-xs text-muted-foreground">
+          Time: {field.userSelect.teamName}
+        </p>
+      )}
+      <Select
+        value={value}
+        onValueChange={onChange}
+        required={field.required}
+      >
+        <SelectTrigger className={error ? "border-destructive" : ""}>
+          <SelectValue placeholder={field.placeholder || "Selecione um usuário..."} />
+        </SelectTrigger>
+        <SelectContent>
+          {users.map((user) => (
+            <SelectItem key={user.id} value={user.id}>
+              {user.name} {user.surname} ({user.email})
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
 
 interface FormConfig {
   id: string;
@@ -36,6 +87,12 @@ export function ContactFormPage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [companyFieldName, setCompanyFieldName] = useState<string | null>(null);
+
+  const { companies = [] } = useCompanies();
+  const { data: partners = [] } = usePartners();
 
   useEffect(() => {
     if (!slug) {
@@ -60,7 +117,13 @@ export function ContactFormPage() {
         // Inicializar formData com valores vazios
         const initialData: Record<string, any> = {};
         data.fields_config.forEach((field: FormFieldConfig) => {
-          initialData[field.name] = field.type === "select" ? "" : "";
+          if (field.type === "checkbox") {
+            initialData[field.name] = field.defaultValue === true || false;
+          } else if (field.type === "select") {
+            initialData[field.name] = "";
+          } else {
+            initialData[field.name] = "";
+          }
         });
         setFormData(initialData);
       } catch (error) {
@@ -93,6 +156,19 @@ export function ContactFormPage() {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
           errors[field.name] = "Email inválido";
+        }
+      }
+
+      if (value && field.type === "cpf_cnpj") {
+        const isValid = validateCnpjCpf(value);
+        if (!isValid) {
+          errors[field.name] = "CPF/CNPJ inválido";
+        }
+      }
+
+      if (field.type === "company_toggle" && field.companyToggle?.required) {
+        if (!formData[field.name] || !selectedCompanyId) {
+          errors[field.name] = "Seleção de empresa é obrigatória";
         }
       }
 
@@ -176,10 +252,120 @@ export function ContactFormPage() {
   };
 
   const renderField = (field: FormFieldConfig) => {
-    const value = formData[field.name] || "";
+    const value = formData[field.name] || (field.type === "checkbox" ? false : "");
     const error = formErrors[field.name];
 
     switch (field.type) {
+      case "checkbox":
+        return (
+          <div key={field.id} className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id={field.name}
+                checked={value === true}
+                onCheckedChange={(checked) =>
+                  handleFieldChange(field.name, checked === true)
+                }
+                required={field.required}
+              />
+              <Label
+                htmlFor={field.name}
+                className="text-sm font-normal cursor-pointer"
+              >
+                {field.label}
+                {field.required && <span className="text-destructive ml-1">*</span>}
+              </Label>
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        );
+
+      case "cpf_cnpj":
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label htmlFor={field.name}>
+              {field.label}
+              {field.required && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <CpfCnpjInput
+              id={field.name}
+              value={value}
+              onChange={(val) => handleFieldChange(field.name, val)}
+              placeholder={field.placeholder}
+              required={field.required}
+              showValidationIcon={true}
+            />
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        );
+
+      case "company_toggle":
+        const companyValue = formData[field.name] || selectedCompanyId;
+        const selectedCompany = companies.find((c) => c.id === companyValue);
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label>
+              {field.label}
+              {field.companyToggle?.required && (
+                <span className="text-destructive ml-1">*</span>
+              )}
+            </Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setCompanyFieldName(field.name);
+                  setCompanyModalOpen(true);
+                }}
+                className="flex-1"
+              >
+                {selectedCompany
+                  ? selectedCompany.name
+                  : "Selecionar ou criar empresa"}
+              </Button>
+            </div>
+            {selectedCompany && (
+              <p className="text-sm text-muted-foreground">
+                Empresa selecionada: {selectedCompany.name}
+              </p>
+            )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        );
+
+      case "partner_select":
+        const partnerValue = formData[field.name] || "";
+        const selectedPartner = partners.find((p) => p.id === partnerValue);
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label htmlFor={field.name}>
+              {field.label}
+              {field.required && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <Select
+              value={partnerValue}
+              onValueChange={(val) => handleFieldChange(field.name, val)}
+              required={field.required}
+            >
+              <SelectTrigger className={error ? "border-destructive" : ""}>
+                <SelectValue placeholder={field.placeholder || "Selecione um parceiro..."} />
+              </SelectTrigger>
+              <SelectContent>
+                {partners.map((partner) => (
+                  <SelectItem key={partner.id} value={partner.id}>
+                    {partner.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        );
+
+      case "user_select":
+        return <UserSelectField key={field.id} field={field} value={formData[field.name] || ""} error={error} onChange={(val) => handleFieldChange(field.name, val)} />;
+
       case "textarea":
         return (
           <div key={field.id} className="space-y-2">
@@ -320,6 +506,30 @@ export function ContactFormPage() {
               {isSubmitting ? "Enviando..." : "Enviar"}
             </Button>
           </form>
+
+          {/* Modal de Seleção de Empresa */}
+          <Dialog open={companyModalOpen} onOpenChange={setCompanyModalOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Selecionar Empresa</DialogTitle>
+                <DialogDescription>
+                  Selecione uma empresa existente ou crie uma nova
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <CompanySelect
+                  value={selectedCompanyId || undefined}
+                  onChange={(value) => {
+                    setSelectedCompanyId(value);
+                    if (companyFieldName) {
+                      handleFieldChange(companyFieldName, value);
+                    }
+                    setCompanyModalOpen(false);
+                  }}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

@@ -26,10 +26,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Trash2, Plus, Loader2 } from "lucide-react";
-import { useContactAutomations } from "@/hooks/useContactAutomations";
+import { useContactAutomations, type AutomationType } from "@/hooks/useContactAutomations";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { useNexflowSteps } from "@/hooks/useNexflowSteps";
 import { toast } from "sonner";
+import { SimpleAutomationForm } from "./automation-forms/SimpleAutomationForm";
+import { FieldConditionalAutomationForm } from "./automation-forms/FieldConditionalAutomationForm";
+import { ContactTypeAutomationForm } from "./automation-forms/ContactTypeAutomationForm";
+
+// Componente para exibir nome da etapa
+function StepNameCell({ stepId, flowId }: { stepId: string; flowId: string }) {
+  const { steps } = useNexflowSteps(flowId);
+  const step = steps.find((s) => s.id === stepId);
+  return <span>{step?.title || stepId.slice(0, 8) + "..."}</span>;
+}
 
 interface AutoCreateConfigDialogProps {
   open: boolean;
@@ -52,28 +62,135 @@ export function AutoCreateConfigDialog({
 
   const { flows, isLoading: isLoadingFlows } = useNexflowFlows();
 
+  // Estados para tipo de automação
+  const [automationType, setAutomationType] = useState<AutomationType>("simple");
+
+  // Estados para automação simples
   const [selectedFlowId, setSelectedFlowId] = useState<string>("");
   const [selectedStepId, setSelectedStepId] = useState<string>("");
+
+  // Estados para automação condicional por campo
+  const [fieldName, setFieldName] = useState<string>("");
+  const [conditionValue, setConditionValue] = useState<string>("");
+  const [trueFlowId, setTrueFlowId] = useState<string>("");
+  const [trueStepId, setTrueStepId] = useState<string>("");
+  const [falseFlowId, setFalseFlowId] = useState<string>("");
+  const [falseStepId, setFalseStepId] = useState<string>("");
+
+  // Estados para automação por tipo de contato
+  const [contactType, setContactType] = useState<"parceiro" | "cliente" | "">("");
+  const [contactTypeFlowId, setContactTypeFlowId] = useState<string>("");
+  const [contactTypeStepId, setContactTypeStepId] = useState<string>("");
+
   const [isAdding, setIsAdding] = useState(false);
 
-  // Buscar steps do flow selecionado
-  const { steps, isLoading: isLoadingSteps } = useNexflowSteps(selectedFlowId || undefined);
+  const getAutomationTypeLabel = (type: AutomationType): string => {
+    switch (type) {
+      case "simple":
+        return "Simples";
+      case "field_conditional":
+        return "Por Campo";
+      case "contact_type":
+        return "Por Tipo";
+      default:
+        return type;
+    }
+  };
+
+  const resetForm = () => {
+    setAutomationType("simple");
+    setSelectedFlowId("");
+    setSelectedStepId("");
+    setFieldName("");
+    setConditionValue("");
+    setTrueFlowId("");
+    setTrueStepId("");
+    setFalseFlowId("");
+    setFalseStepId("");
+    setContactType("");
+    setContactTypeFlowId("");
+    setContactTypeStepId("");
+  };
+
+  const validateForm = (): boolean => {
+    switch (automationType) {
+      case "simple":
+        if (!selectedFlowId || !selectedStepId) {
+          toast.error("Selecione um Flow e uma Etapa");
+          return false;
+        }
+        return true;
+
+      case "field_conditional":
+        if (!fieldName || !conditionValue || !trueFlowId || !trueStepId) {
+          toast.error("Preencha todos os campos obrigatórios");
+          return false;
+        }
+        return true;
+
+      case "contact_type":
+        if (!contactType || !contactTypeFlowId || !contactTypeStepId) {
+          toast.error("Selecione o tipo de contato, Flow e Etapa");
+          return false;
+        }
+        return true;
+
+      default:
+        return false;
+    }
+  };
 
   const handleAddAutomation = async () => {
-    if (!selectedFlowId || !selectedStepId) {
-      toast.error("Selecione um Flow e uma Etapa");
+    if (!validateForm()) {
       return;
     }
 
     setIsAdding(true);
     try {
+      let triggerConditions = {};
+      let targetFlowId = "";
+      let targetStepId = "";
+
+      switch (automationType) {
+        case "simple":
+          targetFlowId = selectedFlowId;
+          targetStepId = selectedStepId;
+          break;
+
+        case "field_conditional":
+          targetFlowId = trueFlowId;
+          targetStepId = trueStepId;
+          triggerConditions = {
+            type: "field_conditional",
+            fieldName,
+            conditionValue,
+            trueFlowId,
+            trueStepId,
+            ...(falseFlowId && falseStepId
+              ? { falseFlowId, falseStepId }
+              : {}),
+          };
+          break;
+
+        case "contact_type":
+          targetFlowId = contactTypeFlowId;
+          targetStepId = contactTypeStepId;
+          triggerConditions = {
+            type: "contact_type",
+            contactType,
+          };
+          break;
+      }
+
       await createAutomation({
-        targetFlowId: selectedFlowId,
-        targetStepId: selectedStepId,
+        automationType,
+        targetFlowId,
+        targetStepId,
         isActive: true,
+        triggerConditions,
       });
-      setSelectedFlowId("");
-      setSelectedStepId("");
+
+      resetForm();
     } catch (error) {
       // Error já é tratado no hook
     } finally {
@@ -111,6 +228,69 @@ export function AutoCreateConfigDialog({
     }
   };
 
+  const renderAutomationForm = () => {
+    switch (automationType) {
+      case "simple":
+        return (
+          <SimpleAutomationForm
+            selectedFlowId={selectedFlowId}
+            selectedStepId={selectedStepId}
+            onFlowChange={setSelectedFlowId}
+            onStepChange={setSelectedStepId}
+            isLoadingFlows={isLoadingFlows}
+          />
+        );
+
+      case "field_conditional":
+        return (
+          <FieldConditionalAutomationForm
+            fieldName={fieldName}
+            conditionValue={conditionValue}
+            trueFlowId={trueFlowId}
+            trueStepId={trueStepId}
+            falseFlowId={falseFlowId}
+            falseStepId={falseStepId}
+            onFieldNameChange={setFieldName}
+            onConditionValueChange={setConditionValue}
+            onTrueFlowChange={setTrueFlowId}
+            onTrueStepChange={setTrueStepId}
+            onFalseFlowChange={setFalseFlowId}
+            onFalseStepChange={setFalseStepId}
+            isLoadingFlows={isLoadingFlows}
+          />
+        );
+
+      case "contact_type":
+        return (
+          <ContactTypeAutomationForm
+            contactType={contactType}
+            selectedFlowId={contactTypeFlowId}
+            selectedStepId={contactTypeStepId}
+            onContactTypeChange={(type) => setContactType(type)}
+            onFlowChange={setContactTypeFlowId}
+            onStepChange={setContactTypeStepId}
+            isLoadingFlows={isLoadingFlows}
+          />
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  const isFormValid = () => {
+    switch (automationType) {
+      case "simple":
+        return selectedFlowId && selectedStepId;
+      case "field_conditional":
+        return fieldName && conditionValue && trueFlowId && trueStepId;
+      case "contact_type":
+        return contactType && contactTypeFlowId && contactTypeStepId;
+      default:
+        return false;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
@@ -126,51 +306,37 @@ export function AutoCreateConfigDialog({
           {/* Formulário para adicionar nova regra */}
           <div className="border rounded-lg p-4 space-y-4">
             <h3 className="font-semibold text-sm">Adicionar Nova Regra</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Flow</Label>
-                <Select
-                  value={selectedFlowId}
-                  onValueChange={setSelectedFlowId}
-                  disabled={isLoadingFlows}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um Flow" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {flows.map((flow) => (
-                      <SelectItem key={flow.id} value={flow.id}>
-                        {flow.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Etapa</Label>
-                <Select
-                  value={selectedStepId}
-                  onValueChange={setSelectedStepId}
-                  disabled={!selectedFlowId || isLoadingSteps || steps.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma Etapa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {steps.map((step) => (
-                      <SelectItem key={step.id} value={step.id}>
-                        {step.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            
+            <div className="space-y-2">
+              <Label>Tipo de Automação</Label>
+              <Select
+                value={automationType}
+                onValueChange={(value) => {
+                  const newType = value as AutomationType;
+                  resetForm();
+                  setAutomationType(newType);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="simple">Simples (sempre cria)</SelectItem>
+                  <SelectItem value="field_conditional">
+                    Por Campo (condicional)
+                  </SelectItem>
+                  <SelectItem value="contact_type">
+                    Por Tipo (parceiro/cliente)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {renderAutomationForm()}
 
             <Button
               onClick={handleAddAutomation}
-              disabled={!selectedFlowId || !selectedStepId || isAdding}
+              disabled={!isFormValid() || isAdding}
               className="w-full"
             >
               {isAdding ? (
@@ -203,8 +369,10 @@ export function AutoCreateConfigDialog({
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Flow</TableHead>
                       <TableHead>Etapa</TableHead>
+                      <TableHead>Condição</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
@@ -214,17 +382,36 @@ export function AutoCreateConfigDialog({
                       const flow = flows.find(
                         (f) => f.id === automation.targetFlowId
                       );
-                      // Para exibir o nome da etapa, precisaríamos buscar os steps
-                      // Por enquanto, vamos apenas mostrar o ID
-                      const stepName = `Etapa ${automation.targetStepId.slice(0, 8)}...`;
+
+                      // Determinar descrição da condição
+                      let conditionDescription = "-";
+                      if (automation.automationType === "field_conditional") {
+                        const conditions = automation.triggerConditions as any;
+                        if (conditions?.fieldName && conditions?.conditionValue) {
+                          conditionDescription = `${conditions.fieldName} = ${conditions.conditionValue}`;
+                        }
+                      } else if (automation.automationType === "contact_type") {
+                        const conditions = automation.triggerConditions as any;
+                        if (conditions?.contactType) {
+                          conditionDescription = `Tipo: ${conditions.contactType}`;
+                        }
+                      }
 
                       return (
                         <TableRow key={automation.id}>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {getAutomationTypeLabel(automation.automationType)}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="font-medium">
                             {flow?.name || "Flow não encontrado"}
                           </TableCell>
                           <TableCell>
-                            {stepName}
+                            <StepNameCell stepId={automation.targetStepId} flowId={automation.targetFlowId} />
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {conditionDescription}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -271,4 +458,3 @@ export function AutoCreateConfigDialog({
     </Dialog>
   );
 }
-

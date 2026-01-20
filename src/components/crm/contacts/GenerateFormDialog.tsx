@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
@@ -27,8 +28,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Trash2, Plus, Copy, ExternalLink, Loader2, Settings2 } from "lucide-react";
 import { usePublicContactForms, FormFieldConfig } from "@/hooks/usePublicContactForms";
+import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
+import { usePartners } from "@/hooks/usePartners";
+import { getCurrentClientId } from "@/lib/supabase";
 import { toast } from "sonner";
 import { appConfig } from "@/lib/config";
 
@@ -82,6 +86,10 @@ export function GenerateFormDialog({
   const [fields, setFields] = useState<FormFieldConfig[]>(defaultFields);
   const [isCreating, setIsCreating] = useState(false);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [configFieldId, setConfigFieldId] = useState<string | null>(null);
+  
+  const { data: teams = [] } = useOrganizationTeams();
+  const { partners = [] } = usePartners();
 
   useEffect(() => {
     if (!open) {
@@ -103,6 +111,54 @@ export function GenerateFormDialog({
     };
     setFields([...fields, newField]);
     setEditingFieldId(newField.id);
+  };
+
+  const handleFieldTypeChange = (id: string, newType: FormFieldConfig["type"]) => {
+    const field = fields.find((f) => f.id === id);
+    if (!field) return;
+
+    const updates: Partial<FormFieldConfig> = { type: newType };
+
+    // Limpar configurações específicas quando mudar de tipo
+    if (newType !== "select") {
+      updates.options = undefined;
+    }
+    if (newType !== "company_toggle") {
+      updates.companyToggle = undefined;
+    }
+    if (newType !== "partner_select") {
+      updates.partnerSelect = undefined;
+    }
+    if (newType !== "user_select") {
+      updates.userSelect = undefined;
+    }
+
+    // Se mudou para um tipo que precisa de configuração, abrir modal
+    if (["select", "company_toggle", "partner_select", "user_select"].includes(newType)) {
+      handleUpdateField(id, updates);
+      setConfigFieldId(id);
+    } else {
+      handleUpdateField(id, updates);
+    }
+  };
+
+  const handleAddSelectOption = (fieldId: string, option: { label: string; value: string }) => {
+    const field = fields.find((f) => f.id === fieldId);
+    if (!field) return;
+
+    const currentOptions = field.options || [];
+    handleUpdateField(fieldId, {
+      options: [...currentOptions, option],
+    });
+  };
+
+  const handleRemoveSelectOption = (fieldId: string, optionValue: string) => {
+    const field = fields.find((f) => f.id === fieldId);
+    if (!field || !field.options) return;
+
+    handleUpdateField(fieldId, {
+      options: field.options.filter((opt) => opt.value !== optionValue),
+    });
   };
 
   const handleUpdateField = (id: string, updates: Partial<FormFieldConfig>) => {
@@ -335,24 +391,40 @@ export function GenerateFormDialog({
                           />
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={field.type}
-                            onValueChange={(value: FormFieldConfig["type"]) =>
-                              handleUpdateField(field.id, { type: value })
-                            }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="text">Texto</SelectItem>
-                              <SelectItem value="email">Email</SelectItem>
-                              <SelectItem value="tel">Telefone</SelectItem>
-                              <SelectItem value="textarea">Área de Texto</SelectItem>
-                              <SelectItem value="number">Número</SelectItem>
-                              <SelectItem value="select">Seleção</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={field.type}
+                              onValueChange={(value: FormFieldConfig["type"]) =>
+                                handleFieldTypeChange(field.id, value)
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="text">Texto</SelectItem>
+                                <SelectItem value="email">Email</SelectItem>
+                                <SelectItem value="tel">Telefone</SelectItem>
+                                <SelectItem value="textarea">Área de Texto</SelectItem>
+                                <SelectItem value="number">Número</SelectItem>
+                                <SelectItem value="checkbox">Checkbox</SelectItem>
+                                <SelectItem value="select">Seleção</SelectItem>
+                                <SelectItem value="cpf_cnpj">CPF/CNPJ</SelectItem>
+                                <SelectItem value="company_toggle">Toggle Empresa</SelectItem>
+                                <SelectItem value="partner_select">Selecionar Parceiro</SelectItem>
+                                <SelectItem value="user_select">Selecionar Usuário</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {["select", "company_toggle", "partner_select", "user_select"].includes(field.type) && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setConfigFieldId(field.id)}
+                              >
+                                <Settings2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Switch
@@ -389,6 +461,186 @@ export function GenerateFormDialog({
             </div>
           </div>
         </div>
+
+        {/* Modal de Configuração de Campo */}
+        {configFieldId && (() => {
+          const field = fields.find((f) => f.id === configFieldId);
+          if (!field) return null;
+
+          return (
+            <Dialog open={!!configFieldId} onOpenChange={(open) => !open && setConfigFieldId(null)}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Configurar Campo: {field.label}</DialogTitle>
+                  <DialogDescription>
+                    Configure as opções específicas para este tipo de campo
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4 py-4">
+                  {/* Configuração para Select */}
+                  {field.type === "select" && (
+                    <div className="space-y-4">
+                      <Label>Opções de Seleção</Label>
+                      <div className="space-y-2 border rounded-lg p-4">
+                        {(field.options || []).map((option, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <Input
+                              value={option.label}
+                              onChange={(e) => {
+                                const newOptions = [...(field.options || [])];
+                                newOptions[index] = { ...option, label: e.target.value };
+                                handleUpdateField(field.id, { options: newOptions });
+                              }}
+                              placeholder="Label da opção"
+                              className="flex-1"
+                            />
+                            <Input
+                              value={option.value}
+                              onChange={(e) => {
+                                const newOptions = [...(field.options || [])];
+                                newOptions[index] = { ...option, value: e.target.value };
+                                handleUpdateField(field.id, { options: newOptions });
+                              }}
+                              placeholder="Valor"
+                              className="flex-1"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveSelectOption(field.id, option.value)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleAddSelectOption(field.id, { label: "", value: "" })
+                          }
+                          className="w-full"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Adicionar Opção
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Configuração para Company Toggle */}
+                  {field.type === "company_toggle" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label>Permitir criar nova empresa</Label>
+                        <Switch
+                          checked={field.companyToggle?.allowCreate ?? false}
+                          onCheckedChange={(checked) =>
+                            handleUpdateField(field.id, {
+                              companyToggle: {
+                                enabled: true,
+                                allowCreate: checked,
+                                required: field.companyToggle?.required ?? false,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label>Empresa obrigatória</Label>
+                        <Switch
+                          checked={field.companyToggle?.required ?? false}
+                          onCheckedChange={(checked) =>
+                            handleUpdateField(field.id, {
+                              companyToggle: {
+                                enabled: true,
+                                allowCreate: field.companyToggle?.allowCreate ?? false,
+                                required: checked,
+                              },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Configuração para Partner Select */}
+                  {field.type === "partner_select" && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label>Permitir criar novo parceiro</Label>
+                        <Switch
+                          checked={field.partnerSelect?.allowCreate ?? false}
+                          onCheckedChange={(checked) =>
+                            handleUpdateField(field.id, {
+                              partnerSelect: { allowCreate: checked },
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Configuração para User Select */}
+                  {field.type === "user_select" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Filtrar por Time (opcional)</Label>
+                        <Select
+                          value={field.userSelect?.teamId || undefined}
+                          onValueChange={(teamId) => {
+                            if (teamId === "all") {
+                              handleUpdateField(field.id, {
+                                userSelect: {
+                                  teamId: undefined,
+                                  teamName: undefined,
+                                },
+                              });
+                            } else {
+                              const selectedTeam = teams.find((t) => t.id === teamId);
+                              handleUpdateField(field.id, {
+                                userSelect: {
+                                  teamId: teamId || undefined,
+                                  teamName: selectedTeam?.name || undefined,
+                                },
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione um time (opcional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos os usuários</SelectItem>
+                            {teams
+                              .filter((t) => t.is_active)
+                              .map((team) => (
+                                <SelectItem key={team.id} value={team.id}>
+                                  {team.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                        {field.userSelect?.teamName && (
+                          <p className="text-sm text-muted-foreground">
+                            Apenas usuários do time "{field.userSelect.teamName}" estarão disponíveis
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button variant="outline" onClick={() => setConfigFieldId(null)}>
+                      Fechar
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
       </DialogContent>
     </Dialog>
   );

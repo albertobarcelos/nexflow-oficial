@@ -1,13 +1,16 @@
 import { Plus, CheckCircle2, Loader2 } from "lucide-react";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { cn, hexToRgba } from "@/lib/utils";
+import { formatCurrency } from "@/lib/format";
 import { StepResponsibleSelector } from "@/components/crm/flows/StepResponsibleSelector";
 import { SortableCard } from "./SortableCard";
 import { ColumnDropZone } from "./ColumnDropZone";
 import type { NexflowCard } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import type { CardsByStepPaginated, StepCounts } from "../types";
+import type { CardProduct } from "@/features/nexflow/card-details/types";
 
 interface KanbanColumnProps {
   step: NexflowStepWithFields;
@@ -46,6 +49,30 @@ export function KanbanColumn({
   const accentColor = step.color ?? "#2563eb";
   const colorClasses = getColorClasses(accentColor);
 
+  // Calcular o valor total dos produtos da etapa
+  const totalProductsValue = useMemo(() => {
+    let total = 0;
+    
+    for (const card of columnCards) {
+      const fieldValues = card.fieldValues as Record<string, unknown> | undefined;
+      
+      // Verificar se há produtos no formato novo (array de CardProduct)
+      if (fieldValues?.products && Array.isArray(fieldValues.products)) {
+        const products = fieldValues.products as CardProduct[];
+        const cardTotal = products.reduce((sum, product) => {
+          return sum + (product.totalValue || 0);
+        }, 0);
+        total += cardTotal;
+      } 
+      // Fallback: usar card.value se existir (formato antigo)
+      else if (card.value && typeof card.value === 'number') {
+        total += card.value;
+      }
+    }
+    
+    return total;
+  }, [columnCards]);
+
   return (
     <div className="w-80 shrink-0 flex flex-col h-full">
       <div
@@ -75,6 +102,11 @@ export function KanbanColumn({
             <StepResponsibleSelector step={step} flowId={flowId} />
           )}
         </h2>
+        {totalProductsValue > 0 && (
+          <div className="text-sm font-semibold text-white/90">
+            {formatCurrency(totalProductsValue)}
+          </div>
+        )}
       </div>
       <div
         className={cn(
