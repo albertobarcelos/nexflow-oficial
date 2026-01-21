@@ -130,24 +130,7 @@ export function useFlow() {
     refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
-  // Query dos negócios com configurações otimizadas
-  // AIDEV-NOTE: Simplificação - Unificar queries de flow, stages e deals em uma única RPC para reduzir chamadas ao Supabase e melhorar performance.
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["flow-data", id],
-    queryFn: async () => {
-      const collaborator = await getCurrentUserData();
-      const { data, error } = await supabase.rpc("get_flow_data", { p_flow_id: id || "default", p_client_id: collaborator.client_id });
-      if (error) throw error;
-      return data; // { flow, stages, deals }
-    },
-    staleTime: 5000,
-    cacheTime: 15 * 60 * 1000,
-    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
-  });
-  const flow = data?.flow;
-  const stages = data?.stages || [];
-  const deals = data?.deals || [];
-  // Remover queries separadas antigas
+  // Query dos negócios
   const { data: deals = [], isLoading: isDealsLoading, isError: isDealsError } = useQuery({
     queryKey: ["flow-deals", flow?.id],
     queryFn: async () => {
@@ -185,7 +168,7 @@ export function useFlow() {
     },
     enabled: !!flow?.id,
     staleTime: 2000, // Dados permanecem fresh por 2 segundos
-    cacheTime: 10 * 60 * 1000, // Cache por 10 minutos
+    gcTime: 10 * 60 * 1000, // Cache por 10 minutos (anteriormente cacheTime)
     refetchOnWindowFocus: false, // Evita refetch ao focar a janela
     refetchOnMount: false, // Evita refetch ao montar o componente
     refetchOnReconnect: false // Evita refetch ao reconectar
@@ -206,10 +189,10 @@ export function useFlow() {
       if (error) throw error;
 
       await createHistory({
-        deal_id: dealId,
-        action: "move",
+        dealId: dealId,
+        type: "move",
         description: `Negócio movido para nova etapa`,
-        metadata: { stage_id: stageId, position: newPosition }
+        details: { stage_id: stageId, position: newPosition }
       });
     },
     onMutate: async ({ dealId, stageId, newPosition }) => {
@@ -284,14 +267,32 @@ export function useFlow() {
 
       const nextPosition = (stageDeals?.[0]?.position ?? 0) + 10000;
 
+      // Buscar people_id do parceiro se houver partner_id
+      let personId = data.person_id;
+      let entityType: "company" | "person" | "partner" | null = data.person_id ? "person" : data.company_id ? "company" : null;
+      
+      if (data.partner_id) {
+        const { data: partner } = await supabase
+          .from("app_partners" as any)
+          .select("people_id")
+          .eq("id", data.partner_id)
+          .single();
+        
+        const partnerData = partner as any;
+        if (partnerData?.people_id) {
+          personId = partnerData.people_id;
+          entityType = "partner";
+        }
+      }
+
       // Criar o negócio
       const { data: deal, error: dealError } = await supabase
         .from('web_deals')
         .insert({
           title: data.title,
           company_id: data.company_id,
-          person_id: data.person_id,
-          partner_id: data.partner_id,
+          person_id: personId,
+          entity_type: entityType,
           value: data.value,
           stage_id: firstStage.id,
           client_id: collaborator.client_id,
@@ -307,7 +308,7 @@ export function useFlow() {
       // Se houver tags, criar as relações
       if (data.tags && data.tags.length > 0) {
         const { error: tagsError } = await supabase
-          .from('web_deal_tags')
+          .from('deal_tags' as any)
           .insert(
             data.tags.map(tagId => ({
               deal_id: deal.id,
@@ -325,7 +326,9 @@ export function useFlow() {
       toast.error(error.message || "Erro ao criar negócio. Tente novamente.");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["flow-deals", flow?.id]);
+      queryClient.invalidateQueries({
+        queryKey: ["flow-deals", flow?.id]
+      });
       toast.success("Negócio criado com sucesso!");
     },
   });
@@ -341,18 +344,33 @@ export function useFlow() {
     }) => {
       // Buscar informações do parceiro se houver
       let partnerName = "nenhum";
+      let personId: string | null = null;
+      
       if (partnerId) {
         const { data: partner } = await supabase
-          .from("web_partners")
-          .select("name")
+          .from("app_partners" as any)
+          .select(`
+            people_id,
+            people:web_people(
+              name
+            )
+          `)
           .eq("id", partnerId)
           .single();
-        partnerName = partner?.name || "desconhecido";
+        
+        partnerName = (partner as any)?.people?.name || "desconhecido";
+        personId = (partner as any)?.people_id || null;
       }
+
+      // Atualizar deal usando person_id e entity_type
+      const updateData: { person_id: string | null; entity_type: "partner" | null } = {
+        person_id: personId,
+        entity_type: partnerId ? "partner" : null,
+      };
 
       const { error } = await supabase
         .from("web_deals")
-        .update({ partner_id: partnerId })
+        .update(updateData)
         .eq("id", dealId);
 
       if (error) throw error;
@@ -372,7 +390,9 @@ export function useFlow() {
       toast.error("Erro ao atualizar parceiro. Tente novamente.");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["flow-deals", flow?.id]);
+      queryClient.invalidateQueries({
+        queryKey: ["flow-deals", flow?.id]
+      });
       toast.success("Parceiro atualizado com sucesso!");
     }
   });
@@ -452,7 +472,7 @@ export function useFlow() {
     mutationFn: async ({ dealId, tag }: { dealId: string; tag: string }) => {
       // Primeiro, buscar as tags atuais
       const { data: currentDeal } = await supabase
-        .from('deals')
+        .from('web_deals')
         .select('tags')
         .eq('id', dealId)
         .single();
@@ -461,7 +481,7 @@ export function useFlow() {
       const newTags = [...new Set([...currentTags, tag])];
 
       const { error } = await supabase
-        .from('deals')
+        .from('web_deals')
         .update({ tags: newTags })
         .eq('id', dealId);
 
@@ -494,7 +514,7 @@ export function useFlow() {
     mutationFn: async ({ dealId, tag }: { dealId: string; tag: string }) => {
       // Primeiro, buscar as tags atuais
       const { data: currentDeal } = await supabase
-        .from('deals')
+        .from('web_deals')
         .select('tags')
         .eq('id', dealId)
         .single();
@@ -503,7 +523,7 @@ export function useFlow() {
       const newTags = currentTags.filter((t: string) => t !== tag);
 
       const { error } = await supabase
-        .from('deals')
+        .from('web_deals')
         .update({ tags: newTags })
         .eq('id', dealId);
 
@@ -541,23 +561,39 @@ export function useFlow() {
       assignedTo?: string;
     }) => {
       const { data: deal } = await supabase
-        .from("deals")
+        .from("web_deals")
         .select("client_id")
         .eq("id", data.dealId)
         .single();
 
       if (!deal) throw new Error("Deal not found");
 
+      // Obter usuário atual para created_by
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      // Buscar um tipo de tarefa padrão ou usar um valor padrão
+      const { data: defaultTaskType } = await supabase
+        .from("task_types" as any)
+        .select("id")
+        .limit(1)
+        .single();
+
+      const taskTypeData = defaultTaskType as any;
+      const typeId = taskTypeData?.id || "00000000-0000-0000-0000-000000000000"; // UUID padrão se não houver tipo
+
       const { data: task, error } = await supabase
-        .from("tasks")
-        .insert([{
+        .from("web_tasks")
+        .insert({
           title: data.title,
           description: data.description,
           due_date: data.dueDate,
           deal_id: data.dealId,
           assigned_to: data.assignedTo,
-          client_id: deal.client_id
-        }])
+          client_id: deal.client_id,
+          created_by: user.id,
+          type_id: typeId
+        })
         .select()
         .single();
 
@@ -577,8 +613,12 @@ export function useFlow() {
       return task;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries(["deal-tasks", variables.dealId]);
-      queryClient.invalidateQueries(["deal-history", variables.dealId]);
+      queryClient.invalidateQueries({
+        queryKey: ["deal-tasks", variables.dealId]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["deal-history", variables.dealId]
+      });
     }
   });
 
@@ -586,7 +626,7 @@ export function useFlow() {
   const completeTask = useMutation({
     mutationFn: async (taskId: string) => {
       const { data: task, error: taskError } = await supabase
-        .from("tasks")
+        .from("web_tasks")
         .update({ completed: true })
         .eq("id", taskId)
         .select()
@@ -607,8 +647,12 @@ export function useFlow() {
       return task;
     },
     onSuccess: (task) => {
-      queryClient.invalidateQueries(["deal-tasks", task.deal_id]);
-      queryClient.invalidateQueries(["deal-history", task.deal_id]);
+      queryClient.invalidateQueries({
+        queryKey: ["deal-tasks", task.deal_id]
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["deal-history", task.deal_id]
+      });
     }
   });
 

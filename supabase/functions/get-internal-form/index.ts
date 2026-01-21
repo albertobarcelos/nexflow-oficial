@@ -19,10 +19,72 @@ const corsHeaders = {
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { 
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+      },
+    });
   }
 
   try {
+    // Verificar autenticação JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Token de autenticação não fornecido" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+
+    // Criar cliente Supabase para validar JWT
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Validar token e obter usuário
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Token de autenticação inválido ou expirado" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Obter client_id do usuário
+    const { data: clientUser, error: clientUserError } = await supabaseClient
+      .from("core_client_users")
+      .select("client_id")
+      .eq("id", user.id)
+      .eq("is_active", true)
+      .single();
+
+    if (clientUserError || !clientUser) {
+      return new Response(
+        JSON.stringify({ error: "Usuário não possui acesso válido" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const url = new URL(req.url);
     const slug = url.searchParams.get("slug");
 
@@ -48,19 +110,19 @@ Deno.serve(async (req: Request) => {
       }
     );
 
-    // Buscar formulário público pelo slug (sem expor o token)
-    // Apenas retornar formulários públicos (form_type = 'public' ou NULL para compatibilidade)
+    // Buscar formulário interno pelo slug
     const { data: form, error: formError } = await supabaseAdmin
       .from("public_opportunity_forms")
-      .select("id, title, description, slug, fields_config, settings, is_active, form_type, requires_auth")
+      .select("id, title, description, slug, fields_config, settings, is_active, form_type, requires_auth, client_id")
       .eq("slug", slug)
       .eq("is_active", true)
-      .or("form_type.is.null,form_type.eq.public")
+      .eq("form_type", "internal")
+      .eq("requires_auth", true)
       .single();
 
     if (formError || !form) {
       return new Response(
-        JSON.stringify({ error: "Formulário público não encontrado ou inativo" }),
+        JSON.stringify({ error: "Formulário interno não encontrado ou inativo" }),
         {
           status: 404,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -68,10 +130,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Garantir que não retornamos formulários internos por engano
-    if (form.form_type === "internal") {
+    // Verificar se o usuário pertence ao mesmo client_id do formulário
+    if (form.client_id !== clientUser.client_id) {
       return new Response(
-        JSON.stringify({ error: "Este formulário requer autenticação. Use a rota de formulários internos." }),
+        JSON.stringify({ error: "Acesso negado: formulário não pertence ao seu cliente" }),
         {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -88,8 +150,8 @@ Deno.serve(async (req: Request) => {
         slug: form.slug,
         fields_config: form.fields_config,
         settings: form.settings,
-        form_type: form.form_type || "public",
-        requires_auth: form.requires_auth ?? (form.form_type === "internal"),
+        form_type: form.form_type,
+        requires_auth: form.requires_auth,
       }),
       {
         status: 200,
@@ -109,4 +171,3 @@ Deno.serve(async (req: Request) => {
     );
   }
 });
-

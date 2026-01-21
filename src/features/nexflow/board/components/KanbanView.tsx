@@ -15,6 +15,7 @@ interface KanbanViewProps {
   activeDragCard: NexflowCard | null;
   shakeCardId: string | null;
   celebratedCardId: string | null;
+  confettiCardId: string | null;
   onNewCard: () => void;
   onCardClick: (card: NexflowCard) => void;
   onLoadMore: (stepId: string) => void;
@@ -32,6 +33,7 @@ export function KanbanView({
   activeDragCard,
   shakeCardId,
   celebratedCardId,
+  confettiCardId,
   onNewCard,
   onCardClick,
   onLoadMore,
@@ -61,6 +63,7 @@ export function KanbanView({
               draggedCardId={draggedCardId}
               shakeCardId={shakeCardId}
               celebratedCardId={celebratedCardId}
+              confettiCardId={confettiCardId}
               onLoadMore={onLoadMore}
               isFetchingNextPage={isFetchingNextPage}
               getColorClasses={getColorClasses}

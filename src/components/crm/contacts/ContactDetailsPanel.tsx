@@ -110,8 +110,8 @@ export function ContactDetailsPanel({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Detalhes do Contato</DialogTitle>
           <DialogDescription>
             Informações completas, empresas vinculadas e histórico
@@ -119,16 +119,16 @@ export function ContactDetailsPanel({
         </DialogHeader>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12 px-6">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : !details ? (
-          <div className="text-center py-12 text-sm text-muted-foreground">
+          <div className="text-center py-12 text-sm text-muted-foreground px-6">
             Contato não encontrado
           </div>
         ) : (
-          <Tabs defaultValue="informacoes" className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue="informacoes" className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <TabsList className="grid w-full grid-cols-3 mx-6 mb-0">
               <TabsTrigger value="informacoes" className="flex items-center gap-2">
                 <Info className="h-4 w-4" />
                 Informações
@@ -143,8 +143,10 @@ export function ContactDetailsPanel({
               </TabsTrigger>
             </TabsList>
 
-            <ScrollArea className="flex-1 pr-4 mt-4">
-              <TabsContent value="informacoes" className="space-y-6 mt-0">
+            <div className="flex-1 min-h-0 overflow-hidden px-6 pb-6">
+              <ScrollArea className="h-full">
+                <div className="pr-4">
+                <TabsContent value="informacoes" className="space-y-6 mt-4">
                 {/* Header com avatar e nome */}
                 <div className="flex items-start gap-4">
                   <UserAvatar
@@ -262,19 +264,16 @@ export function ContactDetailsPanel({
                     </div>
                   )}
 
-                  {details.companies && details.companies.length > 0 && (
+                  {details.company_names && details.company_names.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm font-medium">
                         <Building2 className="h-4 w-4" />
                         Empresas Vinculadas
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {details.companies.map((company, idx) => (
+                        {details.company_names.map((companyName, idx) => (
                           <Badge key={idx} variant="secondary">
-                            {company.company?.name || "Empresa"}
-                            {company.is_primary && (
-                              <span className="ml-1 text-xs">(Principal)</span>
-                            )}
+                            {companyName}
                           </Badge>
                         ))}
                       </div>
@@ -333,16 +332,18 @@ export function ContactDetailsPanel({
                     </span>
                   </div>
                 </div>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="empresas" className="mt-0">
-                <ContactCompaniesTab contactId={contactId} />
-              </TabsContent>
+                <TabsContent value="empresas" className="mt-4">
+                  <ContactCompaniesTab contactId={contactId} />
+                </TabsContent>
 
-              <TabsContent value="historico" className="mt-0">
-                <ContactTimeline contactId={contactId} />
-              </TabsContent>
-            </ScrollArea>
+                <TabsContent value="historico" className="mt-4">
+                  <ContactTimeline contactId={contactId} />
+                </TabsContent>
+                </div>
+              </ScrollArea>
+            </div>
           </Tabs>
         )}
       </DialogContent>

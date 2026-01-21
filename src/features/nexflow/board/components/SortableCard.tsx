@@ -4,6 +4,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { KanbanCardPreview } from "./KanbanCardPreview";
 import { CardCelebrationSparkles } from "./CardCelebration";
+import Confetti from "react-confetti-boom";
+import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import type { NexflowCard } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 
@@ -14,6 +17,7 @@ interface SortableCardProps {
   isActiveDrag: boolean;
   shouldShake: boolean;
   isCelebrating: boolean;
+  showConfetti?: boolean;
   currentStep?: NexflowStepWithFields | null;
 }
 
@@ -24,9 +28,13 @@ export function SortableCard({
   isActiveDrag,
   shouldShake,
   isCelebrating,
+  showConfetti = false,
   currentStep,
 }: SortableCardProps) {
   const isFrozenCard = currentStep?.stepType === 'freezing';
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [confettiPosition, setConfettiPosition] = useState<{ x: number; y: number } | null>(null);
+  
   const {
     attributes,
     listeners,
@@ -35,6 +43,23 @@ export function SortableCard({
     transition,
     isDragging,
   } = useSortable({ id: card.id, data: { stepId } });
+
+  // Combinar refs
+  const combinedRef = (node: HTMLDivElement | null) => {
+    setNodeRef(node);
+    cardRef.current = node;
+  };
+
+  useEffect(() => {
+    if (showConfetti && cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      const x = (rect.left + rect.width / 2) / window.innerWidth;
+      const y = (rect.top + rect.height / 2) / window.innerHeight;
+      setConfettiPosition({ x, y });
+    } else {
+      setConfettiPosition(null);
+    }
+  }, [showConfetti]);
 
   const appliedStyle = {
     transition,
@@ -52,8 +77,25 @@ export function SortableCard({
   };
 
   return (
-    <motion.div
-      ref={setNodeRef}
+    <>
+      {showConfetti && confettiPosition && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 pointer-events-none z-[9999]" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+          <Confetti
+            mode="boom"
+            particleCount={200}
+            effectCount={2}
+            colors={['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#FF1493', '#00CED1', '#FF6347', '#32CD32']}
+            effectInterval={100}
+            x={confettiPosition.x}
+            y={confettiPosition.y}
+            shapeSize={10}
+            launchSpeed={2}
+          />
+        </div>,
+        document.body
+      )}
+      <motion.div
+        ref={combinedRef}
       style={
         {
           ...(appliedStyle as React.CSSProperties),
@@ -103,6 +145,7 @@ export function SortableCard({
         {isCelebrating ? <CardCelebrationSparkles /> : null}
       </AnimatePresence>
     </motion.div>
+    </>
   );
 }
 

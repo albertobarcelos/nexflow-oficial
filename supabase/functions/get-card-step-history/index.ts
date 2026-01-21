@@ -201,6 +201,7 @@ Deno.serve(async (req: Request) => {
         // Mapear valores dos campos com informações dos step_fields
         const fields: any[] = [];
         const fieldValues = (stepValue.field_values as Record<string, unknown>) || {};
+        const fieldValuesKeys = Object.keys(fieldValues);
 
         // Tipo para informação do campo
         interface FieldInfo {
@@ -213,9 +214,42 @@ Deno.serve(async (req: Request) => {
           id: string;
         }
 
+        // Se não encontrou campos suficientes na etapa, buscar em todo o flow
+        let allStepFields = stepFields || [];
+        if (allStepFields.length === 0 || fieldValuesKeys.length > allStepFields.length) {
+          // Buscar o flow_id da etapa
+          const { data: stepData } = await supabaseAdmin
+            .from('steps')
+            .select('flow_id')
+            .eq('id', stepValue.step_id)
+            .single();
+          
+          if (stepData?.flow_id) {
+            // Buscar todos os step_ids do flow
+            const { data: flowSteps } = await supabaseAdmin
+              .from('steps')
+              .select('id')
+              .eq('flow_id', stepData.flow_id);
+            
+            if (flowSteps && flowSteps.length > 0) {
+              const stepIds = flowSteps.map((s: any) => s.id);
+              
+              // Buscar todos os campos do flow
+              const { data: flowFields } = await supabaseAdmin
+                .from('step_fields')
+                .select('id, label, field_type, slug, step_id')
+                .in('step_id', stepIds);
+              
+              if (flowFields && flowFields.length > 0) {
+                allStepFields = flowFields;
+              }
+            }
+          }
+        }
+
         // Criar mapa de field_id -> step_field para lookup rápido
         const fieldMap = new Map<string, FieldInfo>(
-          (stepFields || []).map((sf: any) => [
+          allStepFields.map((sf: any) => [
             sf.id,
             { label: sf.label, field_type: sf.field_type, slug: sf.slug } as FieldInfo,
           ])
@@ -223,7 +257,7 @@ Deno.serve(async (req: Request) => {
 
         // Também criar mapa por slug para campos que usam slug como chave
         const fieldMapBySlug = new Map<string, FieldInfoWithId>(
-          (stepFields || []).map((sf: any) => [
+          allStepFields.map((sf: any) => [
             sf.slug,
             { id: sf.id, label: sf.label, field_type: sf.field_type, slug: sf.slug } as FieldInfoWithId,
           ])
@@ -246,21 +280,20 @@ Deno.serve(async (req: Request) => {
             }
           }
 
-          // Se encontrou o campo, adicionar à lista
-          if (fieldInfo) {
+          // Se encontrou o campo com label válido, adicionar à lista
+          if (fieldInfo && fieldInfo.label) {
             fields.push({
               field_id: key,
-              label: fieldInfo.label || key,
+              label: fieldInfo.label,
               value: value,
               field_type: fieldInfo.field_type || 'text',
               slug: fieldInfo.slug,
             });
           } else {
-            // Campo não encontrado em step_fields, mas ainda assim incluir
-            // (pode ser campo removido ou sistema)
+            // Campo não encontrado em step_fields - usar "Campo" em vez do ID
             fields.push({
               field_id: key,
-              label: key,
+              label: 'Campo',
               value: value,
               field_type: 'text',
               slug: null,

@@ -64,6 +64,8 @@ export function useCardStepHistory(
       return response.data;
     },
     enabled: !!cardId,
-    staleTime: 1000 * 60 * 5, // 5 minutos
+    staleTime: 1000 * 30, // 30 segundos - dados frescos mas sem refetches excessivos
+    refetchOnMount: true, // Sempre buscar dados frescos ao montar o componente
+    refetchOnWindowFocus: true, // Atualizar quando o usuário voltar para a aba
   });
 }

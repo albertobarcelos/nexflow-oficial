@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Clock, ArrowRight, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Clock, ArrowRight, FileText, CheckCircle2, XCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useContactHistory } from "@/hooks/useContactHistory";
@@ -30,6 +32,19 @@ const formatDuration = (seconds: number): string => {
 
 export function ContactHistoryVertical({ contactId }: ContactHistoryVerticalProps) {
   const { data: cardSummaries = [], isLoading } = useContactHistory(contactId);
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  const toggleCardExpansion = (cardId: string) => {
+    setExpandedCards((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(cardId)) {
+        newSet.delete(cardId);
+      } else {
+        newSet.add(cardId);
+      }
+      return newSet;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -133,56 +148,76 @@ export function ContactHistoryVertical({ contactId }: ContactHistoryVerticalProp
               </div>
 
               {summary.events.length > 0 ? (
-                <div className="space-y-2 pl-2 border-l-2 border-border">
-                  {summary.events.slice(0, 3).map((event) => (
-                    <div
-                      key={event.id}
-                      className="text-xs space-y-1 py-1"
-                    >
-                      <div className="flex items-center gap-2">
-                        {event.event_type === "stage_change" && (
-                          <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
-                        )}
-                        {event.event_type === "field_update" && (
-                          <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
-                        )}
-                        {event.event_type === "activity" && (
-                          <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
-                        )}
-                        <span className="text-muted-foreground">
-                          {event.event_type === "stage_change"
-                            ? "Mudança de etapa"
-                            : event.event_type === "field_update"
-                            ? "Campo atualizado"
-                            : event.event_type === "activity"
-                            ? "Atividade"
-                            : "Evento"}
-                        </span>
-                        <span className="text-muted-foreground/60">
-                          {formatDistanceToNow(new Date(event.created_at), {
-                            addSuffix: true,
-                            locale: ptBR,
-                          })}
-                        </span>
+                <div className="space-y-2">
+                  <div className="space-y-2 pl-2 border-l-2 border-border">
+                    {(expandedCards.has(summary.card_id)
+                      ? summary.events
+                      : summary.events.slice(0, 3)
+                    ).map((event) => (
+                      <div
+                        key={event.id}
+                        className="text-xs space-y-1 py-1"
+                      >
+                        <div className="flex items-center gap-2">
+                          {event.event_type === "stage_change" && (
+                            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                          )}
+                          {event.event_type === "field_update" && (
+                            <FileText className="h-3 w-3 text-muted-foreground shrink-0" />
+                          )}
+                          {event.event_type === "activity" && (
+                            <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+                          )}
+                          <span className="text-muted-foreground">
+                            {event.event_type === "stage_change"
+                              ? "Mudança de etapa"
+                              : event.event_type === "field_update"
+                              ? "Campo atualizado"
+                              : event.event_type === "activity"
+                              ? "Atividade"
+                              : "Evento"}
+                          </span>
+                          <span className="text-muted-foreground/60">
+                            {formatDistanceToNow(new Date(event.created_at), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
+                          </span>
+                        </div>
+                        {event.event_type === "stage_change" &&
+                          event.from_step &&
+                          event.to_step && (
+                            <div className="pl-5 text-muted-foreground/80">
+                              {event.from_step.title} → {event.to_step.title}
+                              {event.duration_seconds && (
+                                <span className="ml-2 text-muted-foreground/60">
+                                  ({formatDuration(event.duration_seconds)})
+                                </span>
+                              )}
+                            </div>
+                          )}
                       </div>
-                      {event.event_type === "stage_change" &&
-                        event.from_step &&
-                        event.to_step && (
-                          <div className="pl-5 text-muted-foreground/80">
-                            {event.from_step.title} → {event.to_step.title}
-                            {event.duration_seconds && (
-                              <span className="ml-2 text-muted-foreground/60">
-                                ({formatDuration(event.duration_seconds)})
-                              </span>
-                            )}
-                          </div>
-                        )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                   {summary.events.length > 3 && (
-                    <div className="text-xs text-muted-foreground/60 pl-5 pt-1">
-                      +{summary.events.length - 3} evento{summary.events.length - 3 !== 1 ? "s" : ""} anterior{summary.events.length - 3 !== 1 ? "es" : ""}
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleCardExpansion(summary.card_id)}
+                      className="w-full text-xs h-8 text-muted-foreground hover:text-foreground"
+                    >
+                      {expandedCards.has(summary.card_id) ? (
+                        <>
+                          <ChevronUp className="mr-1 h-3 w-3" />
+                          Ver menos
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="mr-1 h-3 w-3" />
+                          Ver mais ({summary.events.length - 3} evento{summary.events.length - 3 !== 1 ? "s" : ""} anterior{summary.events.length - 3 !== 1 ? "es" : ""})
+                        </>
+                      )}
+                    </Button>
                   )}
                 </div>
               ) : (

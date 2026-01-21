@@ -2,39 +2,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
 import { toast } from "sonner";
 
-export interface ContactCompany {
-  id: string;
-  contact_id: string;
-  company_id: string;
-  role: string | null;
-  is_primary: boolean;
-  created_at: string;
-  updated_at: string;
-  client_id: string;
-  company?: {
-    id: string;
-    name: string;
-    cnpj: string | null;
-    razao_social: string | null;
-  };
-}
-
-export interface ContactCompanyInput {
-  company_id: string;
-  role?: string | null;
-  is_primary?: boolean;
-}
-
 /**
- * Hook para gerenciar relacionamento N:N entre contacts e web_companies
+ * Hook para gerenciar array company_names na tabela contacts
+ * A partir de agora, empresas são armazenadas apenas como nomes no array company_names
  */
 export function useContactCompanies(contactId: string | null) {
   const queryClient = useQueryClient();
 
-  // Query para buscar empresas vinculadas ao contato
-  const { data: companies = [], isLoading } = useQuery({
+  // Query para buscar nomes de empresas do contato
+  const { data: companyNames = [], isLoading } = useQuery({
     queryKey: ["contact-companies", contactId],
-    queryFn: async (): Promise<ContactCompany[]> => {
+    queryFn: async (): Promise<string[]> => {
       if (!contactId) return [];
 
       const clientId = await getCurrentClientId();
@@ -44,39 +22,27 @@ export function useContactCompanies(contactId: string | null) {
       }
 
       const { data, error } = await nexflowClient()
-        .from("contact_companies")
-        .select(
-          `
-          *,
-          company:web_companies(
-            id,
-            name,
-            cnpj,
-            razao_social
-          )
-        `
-        )
-        .eq("contact_id", contactId)
+        .from("contacts" as any)
+        .select("company_names")
+        .eq("id", contactId)
         .eq("client_id", clientId)
-        .order("created_at", { ascending: false });
+        .single();
 
       if (error) {
         console.error("Erro ao buscar empresas do contato:", error);
         return [];
       }
 
-      return (data || []).map((item: any) => ({
-        ...item,
-        company: item.company?.[0] || item.company || null,
-      }));
+      const contactData = (data as any) || null;
+      return (contactData?.company_names || []) as string[];
     },
     enabled: !!contactId,
     staleTime: 1000 * 60 * 2, // 2 minutos
   });
 
-  // Mutation para vincular empresa ao contato
-  const linkCompany = useMutation({
-    mutationFn: async (input: ContactCompanyInput) => {
+  // Mutation para adicionar nome de empresa ao array
+  const addCompany = useMutation({
+    mutationFn: async (companyName: string) => {
       if (!contactId) throw new Error("Contact ID é obrigatório");
 
       const clientId = await getCurrentClientId();
@@ -84,73 +50,47 @@ export function useContactCompanies(contactId: string | null) {
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
-      // Se is_primary for true, remover is_primary de outros relacionamentos
-      if (input.is_primary) {
-        await nexflowClient()
-          .from("contact_companies")
-          .update({ is_primary: false })
-          .eq("contact_id", contactId)
-          .eq("client_id", clientId);
-      }
-
-      const { data, error } = await nexflowClient()
-        .from("contact_companies")
-        .insert({
-          contact_id: contactId,
-          company_id: input.company_id,
-          role: input.role || null,
-          is_primary: input.is_primary || false,
-          client_id: clientId,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      // Adicionar 'parceiro' ao contact_type se não tiver
-      const { data: contactData } = await nexflowClient()
-        .from("contacts")
-        .select("contact_type")
+      // Buscar array atual
+      const { data, error: fetchError } = await nexflowClient()
+        .from("contacts" as any)
+        .select("company_names")
         .eq("id", contactId)
+        .eq("client_id", clientId)
         .single();
 
-      if (contactData) {
-        const currentTypes = (contactData.contact_type || []) as ("cliente" | "parceiro")[];
-        const hasParceiro = currentTypes.includes('parceiro');
-        
-        if (!hasParceiro) {
-          const updatedTypes: ("cliente" | "parceiro")[] = [...currentTypes, 'parceiro' as const];
-          await nexflowClient()
-            .from("contacts")
-            .update({ contact_type: updatedTypes })
-            .eq("id", contactId);
-        }
-      }
+      if (fetchError) throw fetchError;
 
-      return data;
+      const contactData = (data as any) || null;
+      const currentNames = ((contactData as any)?.company_names || []) as string[];
+      
+      // Adicionar se não existir
+      if (!currentNames.includes(companyName)) {
+        const updatedNames = [...currentNames, companyName];
+        
+        const { error } = await nexflowClient()
+          .from("contacts" as any)
+          .update({ company_names: updatedNames })
+          .eq("id", contactId)
+          .eq("client_id", clientId);
+
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
       queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
-      queryClient.invalidateQueries({ queryKey: ["company-relations"] });
-      toast.success("Empresa vinculada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      toast.success("Empresa adicionada com sucesso!");
     },
     onError: (error: Error) => {
-      console.error("Erro ao vincular empresa:", error);
-      toast.error(error.message || "Erro ao vincular empresa");
+      console.error("Erro ao adicionar empresa:", error);
+      toast.error(error.message || "Erro ao adicionar empresa");
     },
   });
 
-  // Mutation para atualizar relacionamento (role, is_primary)
-  const updateCompany = useMutation({
-    mutationFn: async ({
-      id,
-      ...updates
-    }: {
-      id: string;
-      role?: string | null;
-      is_primary?: boolean;
-    }) => {
+  // Mutation para remover nome de empresa do array
+  const removeCompany = useMutation({
+    mutationFn: async (companyName: string) => {
       if (!contactId) throw new Error("Contact ID é obrigatório");
 
       const clientId = await getCurrentClientId();
@@ -158,53 +98,24 @@ export function useContactCompanies(contactId: string | null) {
         throw new Error("Não foi possível identificar o tenant atual.");
       }
 
-      // Se is_primary for true, remover is_primary de outros relacionamentos
-      if (updates.is_primary) {
-        await nexflowClient()
-          .from("contact_companies")
-          .update({ is_primary: false })
-          .eq("contact_id", contactId)
-          .eq("client_id", clientId)
-          .neq("id", id);
-      }
-
-      const { data, error } = await nexflowClient()
-        .from("contact_companies")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
+      // Buscar array atual
+      const { data, error: fetchError } = await nexflowClient()
+        .from("contacts" as any)
+        .select("company_names")
+        .eq("id", contactId)
         .eq("client_id", clientId)
-        .select()
         .single();
 
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
-      queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
-      toast.success("Empresa atualizada com sucesso!");
-    },
-    onError: (error: Error) => {
-      console.error("Erro ao atualizar empresa:", error);
-      toast.error(error.message || "Erro ao atualizar empresa");
-    },
-  });
+      if (fetchError) throw fetchError;
 
-  // Mutation para desvincular empresa
-  const unlinkCompany = useMutation({
-    mutationFn: async (id: string) => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        throw new Error("Não foi possível identificar o tenant atual.");
-      }
+      const contactData = (data as any) || null;
+      const currentNames = ((contactData as any)?.company_names || []) as string[];
+      const updatedNames = currentNames.filter((name) => name !== companyName);
 
       const { error } = await nexflowClient()
-        .from("contact_companies")
-        .delete()
-        .eq("id", id)
+        .from("contacts" as any)
+        .update({ company_names: updatedNames })
+        .eq("id", contactId)
         .eq("client_id", clientId);
 
       if (error) throw error;
@@ -212,23 +123,55 @@ export function useContactCompanies(contactId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
       queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
-      toast.success("Empresa desvinculada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      toast.success("Empresa removida com sucesso!");
     },
     onError: (error: Error) => {
-      console.error("Erro ao desvincular empresa:", error);
-      toast.error(error.message || "Erro ao desvincular empresa");
+      console.error("Erro ao remover empresa:", error);
+      toast.error(error.message || "Erro ao remover empresa");
+    },
+  });
+
+  // Mutation para atualizar array completo de nomes
+  const updateCompanyNames = useMutation({
+    mutationFn: async (names: string[]) => {
+      if (!contactId) throw new Error("Contact ID é obrigatório");
+
+      const clientId = await getCurrentClientId();
+      if (!clientId) {
+        throw new Error("Não foi possível identificar o tenant atual.");
+      }
+
+      const { error } = await nexflowClient()
+        .from("contacts" as any)
+        .update({ company_names: names })
+        .eq("id", contactId)
+        .eq("client_id", clientId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      toast.success("Empresas atualizadas com sucesso!");
+    },
+    onError: (error: Error) => {
+      console.error("Erro ao atualizar empresas:", error);
+      toast.error(error.message || "Erro ao atualizar empresas");
     },
   });
 
   return {
-    companies,
+    companies: companyNames.map((name) => ({ name })), // Formato compatível com componente
+    companyNames,
     isLoading,
-    linkCompany: linkCompany.mutateAsync,
-    updateCompany: updateCompany.mutateAsync,
-    unlinkCompany: unlinkCompany.mutateAsync,
-    isLinking: linkCompany.isPending,
-    isUpdating: updateCompany.isPending,
-    isUnlinking: unlinkCompany.isPending,
+    addCompany: addCompany.mutateAsync,
+    removeCompany: removeCompany.mutateAsync,
+    updateCompanyNames: updateCompanyNames.mutateAsync,
+    isLinking: addCompany.isPending,
+    isUnlinking: removeCompany.isPending,
+    isUpdating: updateCompanyNames.isPending,
   };
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,9 @@ import { usePartners } from "@/hooks/usePartners";
 import { useUsersByTeam } from "@/hooks/useUsersByTeam";
 import { validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 import { CompanySelect } from "@/components/ui/company-select";
+import { useAuth } from "@/hooks/useAuth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { supabase } from "@/lib/supabase";
 
 // Componente separado para user_select para permitir uso de hook
 function UserSelectField({ field, value, error, onChange }: { field: FormFieldConfig; value: string; error?: string; onChange: (value: string) => void }) {
@@ -76,10 +79,15 @@ interface FormConfig {
     successMessage?: string;
     redirectUrl?: string;
   };
+  form_type?: "public" | "internal";
+  requires_auth?: boolean;
 }
 
 export function ContactFormPage() {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
+  const isInternalForm = location.pathname.startsWith("/form/internal/");
+  
   const [formConfig, setFormConfig] = useState<FormConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,7 +100,8 @@ export function ContactFormPage() {
   const [companyFieldName, setCompanyFieldName] = useState<string | null>(null);
 
   const { companies = [] } = useCompanies();
-  const { data: partners = [] } = usePartners();
+  const { partners = [] } = usePartners();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     if (!slug) {
@@ -103,15 +112,70 @@ export function ContactFormPage() {
 
     const fetchFormConfig = async () => {
       try {
-        const response = await fetch(
-          `${appConfig.supabase.url}/functions/v1/get-public-form?slug=${slug}`
-        );
+        // Determinar qual edge function usar baseado no tipo de formulário
+        const endpoint = isInternalForm
+          ? `${appConfig.supabase.url}/functions/v1/get-internal-form?slug=${slug}`
+          : `${appConfig.supabase.url}/functions/v1/get-public-form?slug=${slug}`;
+
+        // Para formulários internos, precisamos do token JWT
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
+
+        if (isInternalForm) {
+          // Aguardar verificação de autenticação
+          if (authLoading) {
+            return; // Aguardar enquanto verifica autenticação
+          }
+
+          if (!user) {
+            setErrorMessage("Este formulário requer autenticação. Por favor, faça login para continuar.");
+            setIsLoading(false);
+            return;
+          }
+
+          // Obter token de acesso
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) {
+            setErrorMessage("Sessão expirada. Por favor, faça login novamente.");
+            setIsLoading(false);
+            return;
+          }
+
+          headers["Authorization"] = `Bearer ${session.access_token}`;
+        }
+
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers,
+        });
 
         if (!response.ok) {
-          throw new Error("Formulário não encontrado");
+          if (response.status === 401 || response.status === 403) {
+            setErrorMessage("Este formulário requer autenticação. Por favor, faça login para continuar.");
+          } else {
+            throw new Error("Formulário não encontrado");
+          }
+          setIsLoading(false);
+          return;
         }
 
         const data = await response.json();
+        
+        // Verificar se formulário requer autenticação (fallback para formulários públicos que foram convertidos)
+        if (!isInternalForm && data.requires_auth) {
+          // Aguardar verificação de autenticação
+          if (authLoading) {
+            return; // Aguardar enquanto verifica autenticação
+          }
+          
+          if (!user) {
+            setErrorMessage("Este formulário requer autenticação. Por favor, faça login para continuar.");
+            setIsLoading(false);
+            return;
+          }
+        }
+
         setFormConfig(data);
 
         // Inicializar formData com valores vazios
@@ -135,7 +199,7 @@ export function ContactFormPage() {
     };
 
     fetchFormConfig();
-  }, [slug]);
+  }, [slug, user, authLoading, isInternalForm]);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -200,13 +264,34 @@ export function ContactFormPage() {
     setErrorMessage("");
 
     try {
+      // Preparar headers com autenticação se necessário
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Se formulário requer autenticação, adicionar token JWT
+      if (formConfig.requires_auth || isInternalForm) {
+        if (!user) {
+          setErrorMessage("Este formulário requer autenticação. Por favor, faça login para continuar.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          setErrorMessage("Sessão expirada. Por favor, faça login novamente.");
+          setIsSubmitting(false);
+          return;
+        }
+
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
       const response = await fetch(
         `${appConfig.supabase.url}/functions/v1/submit-contact-form`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers,
           body: JSON.stringify({
             formData,
             slug: formConfig.slug,
@@ -366,6 +451,32 @@ export function ContactFormPage() {
       case "user_select":
         return <UserSelectField key={field.id} field={field} value={formData[field.name] || ""} error={error} onChange={(val) => handleFieldChange(field.name, val)} />;
 
+      case "contact_type_select":
+        const contactTypeValue = formData[field.name] || "";
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label htmlFor={field.name}>
+              {field.label}
+              {field.required && <span className="text-destructive ml-1">*</span>}
+            </Label>
+            <Select
+              value={contactTypeValue}
+              onValueChange={(val) => handleFieldChange(field.name, val)}
+              required={field.required}
+            >
+              <SelectTrigger className={error ? "border-destructive" : ""}>
+                <SelectValue placeholder={field.placeholder || "Selecione o tipo de cliente..."} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cliente">Cliente</SelectItem>
+                <SelectItem value="parceiro">Parceiro</SelectItem>
+                <SelectItem value="cliente_e_parceiro">Cliente e Parceiro</SelectItem>
+              </SelectContent>
+            </Select>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+        );
+
       case "textarea":
         return (
           <div key={field.id} className="space-y-2">
@@ -446,12 +557,26 @@ export function ContactFormPage() {
   }
 
   if (errorMessage && !formConfig) {
+    const requiresAuth = errorMessage.includes("requer autenticação");
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="text-center space-y-4 max-w-md">
           <AlertCircle className="h-12 w-12 mx-auto text-destructive" />
-          <h1 className="text-2xl font-bold">Formulário não encontrado</h1>
-          <p className="text-muted-foreground">{errorMessage}</p>
+          <h1 className="text-2xl font-bold">
+            {requiresAuth ? "Autenticação Necessária" : "Formulário não encontrado"}
+          </h1>
+          <Alert variant="destructive">
+            <AlertTitle>Erro</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+          {requiresAuth && (
+            <Button
+              onClick={() => window.location.href = "/crm/login"}
+              className="mt-4"
+            >
+              Fazer Login
+            </Button>
+          )}
         </div>
       </div>
     );

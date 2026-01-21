@@ -183,6 +183,34 @@ const formatEventDetails = (event: CardTimelineEvent) => {
       };
 
     case "product_value_change":
+      // Tratar produtos como array (nova estrutura)
+      const beforeProducts = Array.isArray(previous_value?.products) 
+        ? previous_value.products 
+        : [];
+      const afterProducts = Array.isArray(new_value?.products) 
+        ? new_value.products 
+        : [];
+      
+      // Se houver produtos no formato array, usar essa estrutura
+      if (beforeProducts.length > 0 || afterProducts.length > 0) {
+        const beforeParts = beforeProducts.map((p: any) => {
+          const productName = p.itemName || p.itemId || 'Produto';
+          const productValue = p.totalValue || p.itemPrice || p.value;
+          return `• ${productName}${productValue ? ` - R$ ${Number(productValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}`;
+        });
+        const afterParts = afterProducts.map((p: any) => {
+          const productName = p.itemName || p.itemId || 'Produto';
+          const productValue = p.totalValue || p.itemPrice || p.value;
+          return `• ${productName}${productValue ? ` - R$ ${Number(productValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}`;
+        });
+        
+        return {
+          before: beforeParts.length > 0 ? beforeParts.join("\n") : "Nenhum produto",
+          after: afterParts.length > 0 ? afterParts.join("\n") : "Nenhum produto",
+        };
+      }
+      
+      // Fallback para estrutura antiga (product/value direto)
       const beforeParts: string[] = [];
       const afterParts: string[] = [];
 

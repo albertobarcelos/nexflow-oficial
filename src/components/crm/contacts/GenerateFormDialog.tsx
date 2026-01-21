@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Copy, ExternalLink, Loader2, Settings2 } from "lucide-react";
+import { Trash2, Plus, Copy, ExternalLink, Loader2, Settings2, Edit } from "lucide-react";
 import { usePublicContactForms, FormFieldConfig } from "@/hooks/usePublicContactForms";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { usePartners } from "@/hooks/usePartners";
@@ -87,6 +87,7 @@ export function GenerateFormDialog({
   const [isCreating, setIsCreating] = useState(false);
   const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
   const [configFieldId, setConfigFieldId] = useState<string | null>(null);
+  const [editingFormId, setEditingFormId] = useState<string | null>(null);
   
   const { data: teams = [] } = useOrganizationTeams();
   const { partners = [] } = usePartners();
@@ -97,6 +98,7 @@ export function GenerateFormDialog({
       setDescription("");
       setFields(defaultFields);
       setEditingFieldId(null);
+      setEditingFormId(null);
     }
   }, [open]);
 
@@ -131,6 +133,9 @@ export function GenerateFormDialog({
     }
     if (newType !== "user_select") {
       updates.userSelect = undefined;
+    }
+    if (newType !== "contact_type_select") {
+      // contact_type_select não precisa de configuração adicional
     }
 
     // Se mudou para um tipo que precisa de configuração, abrir modal
@@ -171,6 +176,29 @@ export function GenerateFormDialog({
     setFields(fields.filter((field) => field.id !== id));
   };
 
+  const handleEditForm = (formId: string) => {
+    const form = forms.find((f) => f.id === formId);
+    if (!form) return;
+
+    setEditingFormId(formId);
+    setTitle(form.title);
+    setDescription(form.description || "");
+    setFields(form.fields_config || defaultFields);
+    
+    // Scroll para a seção de edição
+    setTimeout(() => {
+      const editSection = document.querySelector('[data-edit-section]');
+      editSection?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingFormId(null);
+    setTitle("");
+    setDescription("");
+    setFields(defaultFields);
+  };
+
   const handleCreateForm = async () => {
     if (!title.trim()) {
       toast.error("Título é obrigatório");
@@ -193,15 +221,27 @@ export function GenerateFormDialog({
 
     setIsCreating(true);
     try {
-      await createForm.mutateAsync({
-        title,
-        description,
-        fields_config: fields,
-      });
-      setTitle("");
-      setDescription("");
-      setFields(defaultFields);
-      onOpenChange(false);
+      if (editingFormId) {
+        // Modo de edição
+        await updateForm.mutateAsync({
+          id: editingFormId,
+          title,
+          description,
+          fields_config: fields,
+        });
+        handleCancelEdit();
+      } else {
+        // Modo de criação
+        await createForm.mutateAsync({
+          title,
+          description,
+          fields_config: fields,
+        });
+        setTitle("");
+        setDescription("");
+        setFields(defaultFields);
+        onOpenChange(false);
+      }
     } catch (error) {
       // Error já é tratado no hook
     } finally {
@@ -283,7 +323,16 @@ export function GenerateFormDialog({
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleEditForm(form.id)}
+                              title="Editar formulário"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleCopyLink(form.slug)}
+                              title="Copiar link"
                             >
                               <Copy className="h-4 w-4" />
                             </Button>
@@ -291,6 +340,7 @@ export function GenerateFormDialog({
                               variant="ghost"
                               size="sm"
                               onClick={() => window.open(getFormUrl(form.slug), "_blank")}
+                              title="Abrir formulário"
                             >
                               <ExternalLink className="h-4 w-4" />
                             </Button>
@@ -299,11 +349,13 @@ export function GenerateFormDialog({
                               onCheckedChange={() =>
                                 handleToggleActive(form.id, form.is_active)
                               }
+                              title={form.is_active ? "Desativar" : "Ativar"}
                             />
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(form.id)}
+                              title="Deletar formulário"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -317,9 +369,11 @@ export function GenerateFormDialog({
             </div>
           )}
 
-          {/* Criar Novo Formulário */}
-          <div className="space-y-4 border-t pt-4">
-            <h3 className="font-semibold">Criar Novo Formulário</h3>
+          {/* Criar/Editar Formulário */}
+          <div className="space-y-4 border-t pt-4" data-edit-section>
+            <h3 className="font-semibold">
+              {editingFormId ? "Editar Formulário" : "Criar Novo Formulário"}
+            </h3>
 
             <div className="space-y-2">
               <Label htmlFor="title">Título *</Label>
@@ -413,6 +467,7 @@ export function GenerateFormDialog({
                                 <SelectItem value="company_toggle">Toggle Empresa</SelectItem>
                                 <SelectItem value="partner_select">Selecionar Parceiro</SelectItem>
                                 <SelectItem value="user_select">Selecionar Usuário</SelectItem>
+                                <SelectItem value="contact_type_select">Tipo de Cliente</SelectItem>
                               </SelectContent>
                             </Select>
                             {["select", "company_toggle", "partner_select", "user_select"].includes(field.type) && (
@@ -451,12 +506,17 @@ export function GenerateFormDialog({
             </div>
 
             <div className="flex justify-end gap-2">
+              {editingFormId && (
+                <Button variant="outline" onClick={handleCancelEdit}>
+                  Cancelar Edição
+                </Button>
+              )}
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
+                {editingFormId ? "Fechar" : "Cancelar"}
               </Button>
               <Button onClick={handleCreateForm} disabled={isCreating}>
                 {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Criar Formulário
+                {editingFormId ? "Salvar Alterações" : "Criar Formulário"}
               </Button>
             </div>
           </div>

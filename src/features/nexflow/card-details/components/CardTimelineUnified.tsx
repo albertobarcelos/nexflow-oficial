@@ -3,6 +3,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useCardTimeline } from "@/hooks/useCardTimeline";
 import { useCardStepHistory } from "@/hooks/useCardStepHistory";
+import { useStageFields } from "@/hooks/useStageFields";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import {
@@ -170,7 +171,7 @@ const formatDuration = (seconds: number | null): string => {
 };
 
 // Componente Dialog para detalhes de field_update
-function FieldUpdateDetailsDialog({ event }: { event: CardTimelineEvent }) {
+function FieldUpdateDetailsDialog({ event, cardId }: { event: CardTimelineEvent; cardId?: string }) {
   const fieldLabel = event.field?.label 
     || (event.details?.field_label as string) 
     || (event.details?.field_key as string) 
@@ -180,72 +181,121 @@ function FieldUpdateDetailsDialog({ event }: { event: CardTimelineEvent }) {
   const newValue = event.new_value?.value;
   const fieldType = event.field?.field_type || 'text';
 
+  // Buscar todos os campos da etapa naquele momento
+  const { data: allFields, isLoading: isLoadingFields } = useStageFields(
+    cardId || null,
+    event.step_id || null,
+    event.created_at
+  );
+
+  // Separar campo alterado dos outros campos
+  const otherFields = (allFields || []).filter(
+    (f) => f.field_id !== event.field_id
+  );
+
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="h-auto p-1 text-[10px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+          className="h-8 px-2.5 text-xs shrink-0"
         >
-          <Eye className="h-3 w-3 mr-1" />
-          Visualizar mais
+          <Eye className="h-3.5 w-3.5 mr-1.5" />
+          Ver etapa
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-base">Detalhes da Alteração</DialogTitle>
+          <DialogTitle className="text-base">
+            {event.step?.title || 'Etapa'} - {format(new Date(event.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+          </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          {/* Informações do campo */}
-          <div className="space-y-1">
-            <div className="text-xs font-medium text-muted-foreground">Campo</div>
-            <div className="text-sm font-semibold">{fieldLabel}</div>
-            {event.step && (
-              <div className="text-xs text-muted-foreground">
-                Etapa: {event.step.title}
+        <div className="space-y-6">
+          {/* Campo Alterado em Destaque */}
+          <div className="space-y-4 border-l-4 border-primary pl-4">
+            <h3 className="font-semibold text-sm text-foreground">Campo Alterado</h3>
+            
+            {/* Informações do campo */}
+            <div className="space-y-1">
+              <div className="text-xs font-medium text-muted-foreground">Campo</div>
+              <div className="text-sm font-semibold">{fieldLabel}</div>
+            </div>
+
+            {/* ANTES */}
+            {previousValue !== undefined && previousValue !== null && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">ANTES</span>
+                </div>
+                <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2.5">
+                  <div className="text-xs text-foreground whitespace-pre-wrap break-words">
+                    {formatFieldValue(previousValue, fieldType)}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Seta */}
+            {(previousValue !== undefined || newValue !== undefined) && (
+              <div className="flex justify-center">
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            )}
+
+            {/* DEPOIS */}
+            {newValue !== undefined && newValue !== null && (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">DEPOIS</span>
+                </div>
+                <div className="rounded-md border border-green-500/20 bg-green-500/5 p-2.5">
+                  <div className="text-xs text-foreground whitespace-pre-wrap break-words">
+                    {formatFieldValue(newValue, fieldType)}
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
-          {/* ANTES */}
-          {previousValue !== undefined && previousValue !== null && (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">ANTES</span>
-              </div>
-              <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2.5">
-                <div className="text-xs text-foreground whitespace-pre-wrap break-words">
-                  {formatFieldValue(previousValue, fieldType)}
-                </div>
+          {/* Todos os Outros Campos da Etapa */}
+          {isLoadingFields ? (
+            <div className="text-xs text-muted-foreground">Carregando campos da etapa...</div>
+          ) : otherFields.length > 0 ? (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-foreground">Outros Campos da Etapa</h3>
+              <div className="space-y-2">
+                {otherFields.map((field) => (
+                  <div 
+                    key={field.field_id || field.field_key} 
+                    className="border rounded-md p-2.5 bg-muted/30"
+                  >
+                    <div className="text-xs font-medium text-foreground mb-1">
+                      {field.field_label || field.field_key || 'Campo'}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {field.value !== null && field.value !== undefined
+                        ? formatFieldValue(field.value, field.field_type || 'text')
+                        : "—"}
+                    </div>
+                    {field.filled_at && (
+                      <div className="text-[10px] text-muted-foreground mt-1">
+                        Preenchido em: {format(new Date(field.filled_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
-          )}
-
-          {/* Seta */}
-          {(previousValue !== undefined || newValue !== undefined) && (
-            <div className="flex justify-center">
-              <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-          )}
-
-          {/* DEPOIS */}
-          {newValue !== undefined && newValue !== null && (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">DEPOIS</span>
-              </div>
-              <div className="rounded-md border border-green-500/20 bg-green-500/5 p-2.5">
-                <div className="text-xs text-foreground whitespace-pre-wrap break-words">
-                  {formatFieldValue(newValue, fieldType)}
-                </div>
-              </div>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">
+              Nenhum outro campo preenchido nesta etapa
             </div>
           )}
 
           {/* Informações adicionais */}
           {event.user && (
-            <div className="flex items-center gap-2 pt-2 border-t border-border">
+            <div className="flex items-center gap-2 pt-4 border-t border-border">
               <UserAvatar
                 user={{
                   name: event.user.name || event.user.email,
@@ -259,7 +309,7 @@ function FieldUpdateDetailsDialog({ event }: { event: CardTimelineEvent }) {
                   {event.user.name || event.user.email}
                 </div>
                 <div className="text-[10px] text-muted-foreground">
-                  {format(new Date(event.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  Realizou esta alteração
                 </div>
               </div>
             </div>
@@ -282,8 +332,26 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
       return [];
     }
 
+    // Debug: verificar dados recebidos
+    console.log('[CardTimelineUnified] timelineEvents:', timelineEvents);
+    console.log('[CardTimelineUnified] stepHistory:', stepHistory);
+
     // Combinar snapshots de etapas
     const allStepHistory: StepHistory[] = stepHistory || [];
+
+    // Debug: verificar dados recebidos (apenas em desenvolvimento)
+    if (process.env.NODE_ENV === 'development') {
+      const eventsByType = timelineEvents.reduce((acc, event) => {
+        acc[event.event_type] = (acc[event.event_type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const fieldUpdateEvents = timelineEvents.filter(e => e.event_type === 'field_update');
+      if (fieldUpdateEvents.length === 0 && Object.keys(eventsByType).length > 0) {
+        console.warn('[CardTimelineUnified] Nenhum evento field_update encontrado. Apenas:', eventsByType);
+        console.warn('[CardTimelineUnified] Verifique se o trigger trigger_track_card_field_update está ativo no banco de dados');
+      }
+    }
 
     // Converter eventos de timeline
     const eventItems: TimelineItem[] = timelineEvents.map((event) => {
@@ -312,6 +380,34 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
         if (event.activity) {
           cardSubtitle = event.activity.title;
         }
+      } else if (event.event_type === "product_value_change") {
+        cardTitle = "Produto/Valor";
+        
+        // Extrair produtos anteriores e novos
+        const previousProducts = Array.isArray(event.previous_value?.products) 
+          ? event.previous_value.products 
+          : [];
+        const newProducts = Array.isArray(event.new_value?.products) 
+          ? event.new_value.products 
+          : [];
+        
+        // Criar resumo das alterações
+        const addedProducts = newProducts.filter(
+          (np: any) => !previousProducts.some((pp: any) => pp.itemId === np.itemId)
+        );
+        const removedProducts = previousProducts.filter(
+          (pp: any) => !newProducts.some((np: any) => np.itemId === pp.itemId)
+        );
+        
+        // Montar subtitle com nomes dos produtos
+        const productNames = [
+          ...addedProducts.map((p: any) => p.itemName || p.itemId || 'Produto'),
+          ...removedProducts.map((p: any) => `-${p.itemName || p.itemId || 'Produto'}`)
+        ];
+        
+        cardSubtitle = productNames.length > 0 
+          ? productNames.join(", ") 
+          : "Alteração de produtos";
       } else {
         cardTitle = "Evento";
         cardSubtitle = event.event_type;
@@ -324,7 +420,12 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
         type: "event" as const,
         event, // Manter referência ao evento original
         content: (
-          <div className={cn("rounded-lg p-2.5 shadow-sm border w-full", colorClass, "border-border bg-background")}>
+          <div className={cn(
+            "rounded-lg shadow-sm border w-full", 
+            colorClass, 
+            "border-border bg-background",
+            event.event_type === "field_update" ? "p-4" : "p-2.5"
+          )}>
             <div className="flex items-center justify-between gap-1.5 mb-1.5">
               <Badge variant="outline" className={cn("text-[11px] whitespace-nowrap", isBackward && "border-orange-500 text-orange-600 dark:text-orange-400")}>
                 <Icon className="mr-1 h-3 w-3" />
@@ -355,33 +456,78 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
               )}
 
               {event.event_type === "field_update" && (
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 text-xs space-y-1">
+                    <div className="font-medium">
+                      {event.field?.label 
+                        || (event.details?.field_label as string) 
+                        || (event.details?.field_key as string) 
+                        || 'Campo'}
+                    </div>
+                    {/* Preview de valores */}
+                    {event.previous_value?.value !== undefined && event.new_value?.value !== undefined && (
+                      <div className="text-[10px] text-muted-foreground space-y-0.5">
+                        <div className="line-through opacity-60">
+                          {formatFieldValue(event.previous_value.value, event.field?.field_type || 'text')}
+                        </div>
+                        <div className="font-medium text-green-600 dark:text-green-400">
+                          → {formatFieldValue(event.new_value.value, event.field?.field_type || 'text')}
+                        </div>
+                      </div>
+                    )}
+                    {event.step && (
+                      <div className="text-[10px] text-muted-foreground">
+                        Etapa: {event.step.title}
+                      </div>
+                    )}
+                  </div>
+                  {/* Botão destacado para visualizar etapa */}
+                  <FieldUpdateDetailsDialog event={event} cardId={card?.id} />
+                </div>
+              )}
+
+              {event.event_type === "product_value_change" && (
                 <div className="text-xs space-y-1">
-                  <div className="font-medium">
-                    {event.field?.label 
-                      || (event.details?.field_label as string) 
-                      || (event.details?.field_key as string) 
-                      || 'Campo'}
-                  </div>
-                  {/* Preview de valores */}
-                  {event.previous_value?.value !== undefined && event.new_value?.value !== undefined && (
-                    <div className="text-[10px] text-muted-foreground space-y-0.5">
-                      <div className="line-through opacity-60">
-                        {formatFieldValue(event.previous_value.value, event.field?.field_type || 'text')}
-                      </div>
-                      <div className="font-medium text-green-600 dark:text-green-400">
-                        → {formatFieldValue(event.new_value.value, event.field?.field_type || 'text')}
-                      </div>
-                    </div>
-                  )}
-                  {event.step && (
-                    <div className="text-[10px] text-muted-foreground">
-                      Etapa: {event.step.title}
-                    </div>
-                  )}
-                  {/* Botão para visualizar mais */}
-                  <div className="pt-1">
-                    <FieldUpdateDetailsDialog event={event} />
-                  </div>
+                  {/* Extrair produtos anteriores e novos */}
+                  {(() => {
+                    const previousProducts = Array.isArray(event.previous_value?.products) 
+                      ? event.previous_value.products 
+                      : [];
+                    const newProducts = Array.isArray(event.new_value?.products) 
+                      ? event.new_value.products 
+                      : [];
+                    
+                    const addedProducts = newProducts.filter(
+                      (np: any) => !previousProducts.some((pp: any) => pp.itemId === np.itemId)
+                    );
+                    const removedProducts = previousProducts.filter(
+                      (pp: any) => !newProducts.some((np: any) => np.itemId === pp.itemId)
+                    );
+                    
+                    return (
+                      <>
+                        {addedProducts.length > 0 && (
+                          <div className="text-[10px] text-muted-foreground space-y-0.5">
+                            <div className="font-medium text-green-600 dark:text-green-400">
+                              + {addedProducts.map((p: any) => p.itemName || p.itemId || 'Produto').join(", ")}
+                            </div>
+                          </div>
+                        )}
+                        {removedProducts.length > 0 && (
+                          <div className="text-[10px] text-muted-foreground space-y-0.5">
+                            <div className="line-through opacity-60">
+                              - {removedProducts.map((p: any) => p.itemName || p.itemId || 'Produto').join(", ")}
+                            </div>
+                          </div>
+                        )}
+                        {addedProducts.length === 0 && removedProducts.length === 0 && (
+                          <div className="text-[10px] text-muted-foreground">
+                            Produtos modificados
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -503,8 +649,8 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
                 "relative mb-4 md:mb-6 flex items-center",
                 // Desktop: alternado (esquerda/direita)
                 isLeft 
-                  ? "md:justify-start md:pr-[calc(50%+20px)]" 
-                  : "md:justify-end md:pl-[calc(50%+20px)]",
+                  ? "md:justify-start md:pr-[calc(50%+4px)]" 
+                  : "md:justify-end md:pl-[calc(50%+4px)]",
                 // Mobile: single column centralizado
                 "max-md:justify-center max-md:px-4"
               )}

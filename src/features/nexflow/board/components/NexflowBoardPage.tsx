@@ -17,6 +17,7 @@ import { ListView } from "./ListView";
 import { useCardDragAndDrop } from "../hooks/useCardDragAndDrop";
 import { useBoardSearch } from "../hooks/useBoardSearch";
 import { getColorClasses } from "../utils/colorUtils";
+import { useWilliamMode } from "@/hooks/useWilliamMode";
 import type { ViewMode, CardsByStep, CardsByStepPaginated, StepCounts } from "../types";
 import type { NexflowCard, ChecklistProgressMap, StepFieldValueMap } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
@@ -35,7 +36,10 @@ export function NexflowBoardPage() {
   const [activeDragCard, setActiveDragCard] = useState<NexflowCard | null>(null);
   const [shakeCardId, setShakeCardId] = useState<string | null>(null);
   const [celebratedCardId, setCelebratedCardId] = useState<string | null>(null);
+  const [confettiCardId, setConfettiCardId] = useState<string | null>(null);
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
+  const confettiAudioRef = useRef<HTMLAudioElement | null>(null);
+  const { isEnabled: williamModeEnabled } = useWilliamMode();
   const [visibleCountPerStep, setVisibleCountPerStep] = useState<Record<string, number>>({});
   const [listPage, setListPage] = useState(1);
   const [filterUserId, setFilterUserId] = useState<string | null>(null);
@@ -116,6 +120,10 @@ export function NexflowBoardPage() {
     successAudioRef.current = new Audio("/sounds/success.mp3");
     if (successAudioRef.current) {
       successAudioRef.current.volume = 0.35;
+    }
+    confettiAudioRef.current = new Audio("/sounds/confetti-pop-sound-effect.mp3");
+    if (confettiAudioRef.current) {
+      confettiAudioRef.current.volume = 0.5;
     }
   }, []);
 
@@ -260,21 +268,41 @@ export function NexflowBoardPage() {
   const totalListPages = Math.ceil(listViewCards.length / LIST_PAGE_SIZE);
 
   const triggerCelebration = useCallback(
-    (cardId: string) => {
-      setCelebratedCardId(cardId);
-      try {
-        if (successAudioRef.current) {
-          successAudioRef.current.currentTime = 0;
-          void successAudioRef.current.play();
+    (cardId: string, status?: "inprogress" | "completed" | "canceled") => {
+      const isCompleted = status === "completed";
+      const shouldUseWilliamMode = williamModeEnabled && isCompleted;
+
+      if (shouldUseWilliamMode) {
+        // Modo William: confetti e som especial
+        setConfettiCardId(cardId);
+        try {
+          if (confettiAudioRef.current) {
+            confettiAudioRef.current.currentTime = 0;
+            void confettiAudioRef.current.play();
+          }
+        } catch {
+          // ignore autoplay restrictions
         }
-      } catch {
-        // ignore autoplay restrictions
+        setTimeout(() => {
+          setConfettiCardId((current) => (current === cardId ? null : current));
+        }, 2000);
+      } else {
+        // Celebração padrão: sparkles e som de success
+        setCelebratedCardId(cardId);
+        try {
+          if (successAudioRef.current) {
+            successAudioRef.current.currentTime = 0;
+            void successAudioRef.current.play();
+          }
+        } catch {
+          // ignore autoplay restrictions
+        }
+        setTimeout(() => {
+          setCelebratedCardId((current) => (current === cardId ? null : current));
+        }, 1200);
       }
-      setTimeout(() => {
-        setCelebratedCardId((current) => (current === cardId ? null : current));
-      }, 1200);
     },
-    []
+    [williamModeEnabled]
   );
 
   const handleValidateRequiredFields = useCallback(
@@ -480,17 +508,26 @@ export function NexflowBoardPage() {
     const destinationCards = cardsByStep[nextStep.id] ?? [];
     const targetIndex = destinationCards.length;
 
+    // Determinar o status baseado no tipo de etapa
+    let newStatus: "inprogress" | "completed" | "canceled" = "inprogress";
+    if (nextStep.stepType === "finisher" || nextStep.isCompletionStep) {
+      newStatus = "completed";
+    } else if (nextStep.stepType === "fail") {
+      newStatus = "canceled";
+    }
+
     const reordered = [...destinationCards, { ...card, stepId: nextStep.id }];
     const updates = reordered.map((item, index) => ({
       id: item.id,
       stepId: nextStep.id,
       position: (index + 1) * 1000,
+      status: item.id === card.id ? newStatus : undefined,
     }));
 
     await reorderCards({ items: updates });
     
     void queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", "count-by-step", id] });
-    triggerCelebration(card.id);
+    triggerCelebration(card.id, newStatus);
   };
 
   const handleLoadMoreForStep = useCallback(
@@ -601,6 +638,7 @@ export function NexflowBoardPage() {
               activeDragCard={activeDragCard}
               shakeCardId={shakeCardId}
               celebratedCardId={celebratedCardId}
+              confettiCardId={confettiCardId}
               onNewCard={() => setIsStartFormOpen(true)}
               onCardClick={setActiveCard}
               onLoadMore={handleLoadMoreForStep}

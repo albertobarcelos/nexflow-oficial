@@ -14,6 +14,8 @@ export interface PublicContactForm {
   fields_config: FormFieldConfig[];
   settings: FormSettings;
   is_active: boolean;
+  form_type?: "public" | "internal"; // Tipo do formulário
+  requires_auth?: boolean; // Se requer autenticação
   created_by?: string;
   created_at: string;
   updated_at: string;
@@ -21,7 +23,7 @@ export interface PublicContactForm {
 
 export interface FormFieldConfig {
   id: string;
-  type: "text" | "email" | "tel" | "textarea" | "select" | "number" | "checkbox" | "cpf_cnpj" | "company_toggle" | "partner_select" | "user_select";
+  type: "text" | "email" | "tel" | "textarea" | "select" | "number" | "checkbox" | "cpf_cnpj" | "company_toggle" | "partner_select" | "user_select" | "contact_type_select";
   label: string;
   name: string;
   placeholder?: string;
@@ -59,6 +61,7 @@ export interface CreateFormInput {
   description?: string;
   fields_config: FormFieldConfig[];
   settings?: FormSettings;
+  form_type?: "public" | "internal";
 }
 
 export function usePublicContactForms() {
@@ -79,7 +82,12 @@ export function usePublicContactForms() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return (data || []) as PublicContactForm[];
+      // Garantir compatibilidade com formulários existentes (default: public)
+      return (data || []).map((form: any) => ({
+        ...form,
+        form_type: form.form_type || "public",
+        requires_auth: form.requires_auth ?? (form.form_type === "internal"),
+      })) as PublicContactForm[];
     },
   });
 
@@ -109,6 +117,30 @@ export function usePublicContactForms() {
       // Gerar token secreto único
       const token = uuidv4();
 
+      // Determinar tipo de formulário e se requer autenticação
+      const formType = input.form_type || "public";
+      const requiresAuth = formType === "internal";
+
+      // Validar campos baseado no tipo
+      const PUBLIC_FIELD_TYPES = ["text", "email", "tel", "textarea", "number", "checkbox", "cpf_cnpj"];
+      const INTERNAL_FIELD_TYPES = [
+        ...PUBLIC_FIELD_TYPES,
+        "select",
+        "user_select",
+        "partner_select",
+        "company_toggle",
+        "contact_type_select",
+      ];
+
+      const allowedTypes = formType === "public" ? PUBLIC_FIELD_TYPES : INTERNAL_FIELD_TYPES;
+      const invalidFields = input.fields_config.filter((field) => !allowedTypes.includes(field.type));
+
+      if (invalidFields.length > 0) {
+        throw new Error(
+          `Campos do tipo ${invalidFields.map((f) => f.type).join(", ")} não são permitidos em formulários ${formType === "public" ? "públicos" : "internos"}`
+        );
+      }
+
       const { data, error } = await (supabase as any)
         .from("public_opportunity_forms")
         .insert({
@@ -119,6 +151,8 @@ export function usePublicContactForms() {
           token,
           fields_config: input.fields_config,
           settings: input.settings || {},
+          form_type: formType,
+          requires_auth: requiresAuth,
           created_by: user.id,
         })
         .select()

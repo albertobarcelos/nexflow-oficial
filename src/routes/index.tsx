@@ -33,6 +33,7 @@ import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
 import { ContactsPage } from "@/pages/crm/contacts/ContactsPage";
 import ContactsList from "@/pages/crm/ContactsList";
 import { ContactFormPage } from "@/pages/public/ContactForm";
+import { FormsManagementPage } from "@/pages/crm/forms/FormsManagementPage";
 import { CRMConfigurationsLayout } from "@/layouts/CRMConfigurationsLayout";
 import { UsersPage } from "@/pages/crm/configurations/UsersPage";
 import { TeamsPage } from "@/pages/crm/configurations/TeamsPage";
@@ -66,7 +67,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/form/:slug",
-        element: <ContactFormPage />,
+    element: <ContactFormPage />,
+  },
+  {
+    path: "/form/internal/:slug",
+    element: <ContactFormPage />,
   },
   {
     path: "/crm/login",
@@ -135,6 +140,10 @@ export const router = createBrowserRouter([
       {
         path: "contacts/list",
         element: <ContactsList />,
+      },
+      {
+        path: "forms",
+        element: <FormsManagementPage />,
       },
       {
         path: "people",

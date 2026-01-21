@@ -367,6 +367,9 @@ export function useNexflowCards(flowId?: string) {
     },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey });
+      // Invalidar histórico do card para atualização automática
+      queryClient.invalidateQueries({ queryKey: ["card-timeline", result.card.id] });
+      queryClient.invalidateQueries({ queryKey: ["card-step-history", result.card.id] });
       // Se o stepId mudou, invalidar queries de processos vinculados
       // Os triggers do banco já atualizam as vinculações automaticamente
       if (variables.stepId !== undefined) {

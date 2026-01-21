@@ -19,18 +19,6 @@ export interface ContactDetails extends Contact {
     client_name: string;
     main_contact: string | null;
   } | null;
-  companies?: Array<{
-    id: string;
-    company_id: string;
-    role: string | null;
-    is_primary: boolean;
-    company: {
-      id: string;
-      name: string;
-      cnpj: string | null;
-      razao_social: string | null;
-    };
-  }>;
 }
 
 export function useContactDetails(contactId: string | null | undefined) {
@@ -67,28 +55,7 @@ export function useContactDetails(contactId: string | null | undefined) {
         }
       }
 
-      // Buscar empresas vinculadas via contact_companies
-      const { data: contactCompanies, error: companiesError } = await nexflowClient()
-        .from("contact_companies")
-        .select(
-          `
-          id,
-          company_id,
-          role,
-          is_primary,
-          company:web_companies(
-            id,
-            name,
-            cnpj,
-            razao_social
-          )
-        `
-        )
-        .eq("contact_id", contactId);
-
-      if (companiesError) {
-        console.error("Erro ao buscar empresas do contato:", companiesError);
-      }
+      // Empresas agora são armazenadas apenas no array company_names da tabela contacts
 
       // Buscar cards vinculados
       const { data: cards, error: cardsError } = await nexflowClient()
@@ -163,14 +130,6 @@ export function useContactDetails(contactId: string | null | undefined) {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
-      const companies = (contactCompanies || []).map((cc: any) => ({
-        id: cc.id,
-        company_id: cc.company_id,
-        role: cc.role,
-        is_primary: cc.is_primary,
-        company: Array.isArray(cc.company) ? cc.company[0] : cc.company,
-      }));
-
       return {
         id: contactData.id,
         client_id: contactData.client_id,
@@ -188,7 +147,6 @@ export function useContactDetails(contactId: string | null | undefined) {
         indicated_by: contactData.indicated_by || null,
         contact_type: contactData.contact_type || null,
         indicated_by_contact: indicatedByContact || null,
-        companies,
         linkedCards,
         interactionHistory,
       };

@@ -295,6 +295,9 @@ export function useNexflowCardsInfinite(
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey });
+      // Invalidar histórico do card para atualização automática
+      queryClient.invalidateQueries({ queryKey: ["card-timeline", result.card.id] });
+      queryClient.invalidateQueries({ queryKey: ["card-step-history", result.card.id] });
       if (!result.silent) {
         toast.success("Card atualizado.");
       }

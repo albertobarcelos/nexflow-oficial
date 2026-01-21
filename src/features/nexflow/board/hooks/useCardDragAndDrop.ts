@@ -26,7 +26,7 @@ interface UseCardDragAndDropProps {
   getVisibleCount: (stepId: string) => number;
   validateRequiredFields: (card: NexflowCard, fromStepId: string) => boolean;
   reorderCards: (updates: { items: CardUpdate[] }) => Promise<void>;
-  triggerCelebration: (cardId: string) => void;
+  triggerCelebration: (cardId: string, status?: "inprogress" | "completed" | "canceled") => void;
   onCardMoved?: (card: NexflowCard, updates: CardUpdate) => void;
   flowId?: string;
   queryClient: any;
@@ -260,7 +260,7 @@ export function useCardDragAndDrop({
     }
 
     if (movedAcrossSteps) {
-      triggerCelebration(card.id);
+      triggerCelebration(card.id, newStatus);
     }
   }, [
     cards,

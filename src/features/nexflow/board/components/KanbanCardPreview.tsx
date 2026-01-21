@@ -22,7 +22,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
   const { data: cardTags = [] } = useCardTags(card.id);
   const { data: cardHistory = [] } = useCardHistory(card.id, card.parentCardId);
   const { data: contact } = useContactById(card.contactId);
-  const { companies: contactCompanies = [] } = useContactCompanies(card.contactId ?? null);
+  const { companyNames = [] } = useContactCompanies(card.contactId ?? null);
   const { data: hasChildren = false } = useCardChildren(card.id);
   
   const assignedUser = card.assignedTo
@@ -81,15 +81,20 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
   // Usar primeira tag do card se existir
   const firstTag = cardTags.length > 0 ? cardTags[0] : null;
 
-  // Obter empresa primária ou primeira empresa
-  const primaryCompany = useMemo(() => {
-    const primary = contactCompanies.find(c => c.is_primary);
-    return primary?.company || contactCompanies[0]?.company || null;
-  }, [contactCompanies]);
+  // Obter primeira empresa do array company_names
+  const companyName = useMemo(() => {
+    if (companyNames.length > 0) {
+      return companyNames[0];
+    }
+    // Fallback: usar company_names do contato se disponível
+    if (contact?.company_names && contact.company_names.length > 0) {
+      return contact.company_names[0];
+    }
+    return null;
+  }, [companyNames, contact?.company_names]);
 
   // Nome do contato
   const contactName = contact?.client_name || contact?.main_contact || null;
-  const companyName = primaryCompany?.name || primaryCompany?.razao_social || null;
 
   // Título do card: usar o título real do card ou contato
   const cardTitle = contactName || card.title;

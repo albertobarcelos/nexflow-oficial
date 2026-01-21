@@ -238,38 +238,11 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
           throw error;
         }
 
-        // Buscar empresas vinculadas para cada contato
-        const contactsWithCompanies = await Promise.all(
-          (data || []).map(async (contact: any) => {
-            // Buscar empresas vinculadas via contact_companies
-            const { data: contactCompanies } = await client
-              .from('contact_companies' as any)
-              .select(`
-                company:web_companies(
-                  id,
-                  name,
-                  cnpj,
-                  razao_social
-                )
-              `)
-              .eq('contact_id', contact.id)
-              .eq('client_id', userPermissions.clientId);
-
-            // Extrair nomes das empresas de web_companies
-            const companies = (contactCompanies || []).map((cc: any) => {
-              const company = Array.isArray(cc.company) ? cc.company[0] : cc.company;
-              return company?.name || null;
-            }).filter(Boolean) as string[];
-
-            return {
-              ...contact,
-              // Usar empresas vinculadas de web_companies se disponível, senão usar company_names como fallback
-              company_names: companies.length > 0 ? companies : (contact.company_names || []),
-            } as Contact;
-          })
-        );
-
-        return contactsWithCompanies;
+        // Usar apenas company_names do próprio contato (sem buscar contact_companies)
+        return (data || []).map((contact: any) => ({
+          ...contact,
+          company_names: contact.company_names || [],
+        })) as Contact[];
       } catch (error: any) {
         // Se der erro de permissão, tentar usar função RPC
         if (error?.code === '42501' || error?.message?.includes('permission denied')) {

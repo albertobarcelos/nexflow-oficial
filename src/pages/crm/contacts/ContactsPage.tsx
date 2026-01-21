@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConfigDialog";
 import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
 import { ContactDetailsPanel } from "@/components/crm/contacts/ContactDetailsPanel";
-import { GenerateFormDialog } from "@/components/crm/contacts/GenerateFormDialog";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +28,6 @@ export function ContactsPage() {
   const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
-  const [isGenerateFormDialogOpen, setIsGenerateFormDialogOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [contactForCard, setContactForCard] = useState<any>(null);
   const [filterTypes, setFilterTypes] = useState<("cliente" | "parceiro" | "indicações")[]>([]);
@@ -194,7 +192,7 @@ export function ContactsPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => setIsGenerateFormDialogOpen(true)}
+            onClick={() => navigate("/crm/forms")}
           >
             <Plus className="mr-2 h-4 w-4" />
             Gerar Formulário
@@ -315,11 +313,6 @@ export function ContactsPage() {
       )}
 
       {/* Dialogs */}
-      <GenerateFormDialog
-        open={isGenerateFormDialogOpen}
-        onOpenChange={setIsGenerateFormDialogOpen}
-      />
-
       <AutoCreateConfigDialog
         open={isAutoCreateDialogOpen}
         onOpenChange={setIsAutoCreateDialogOpen}

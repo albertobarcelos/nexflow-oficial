@@ -24,6 +24,7 @@ interface KanbanColumnProps {
   draggedCardId: string | null;
   shakeCardId: string | null;
   celebratedCardId: string | null;
+  confettiCardId: string | null;
   onLoadMore: (stepId: string) => void;
   isFetchingNextPage: boolean;
   getColorClasses: (hexColor: string) => { header: string; body: string; border: string };
@@ -41,6 +42,7 @@ export function KanbanColumn({
   draggedCardId,
   shakeCardId,
   celebratedCardId,
+  confettiCardId,
   onLoadMore,
   isFetchingNextPage,
   getColorClasses,
@@ -146,6 +148,7 @@ export function KanbanColumn({
                     isActiveDrag={draggedCardId === card.id}
                     shouldShake={shakeCardId === card.id}
                     isCelebrating={celebratedCardId === card.id}
+                    showConfetti={confettiCardId === card.id}
                     currentStep={step}
                   />
                 ))}

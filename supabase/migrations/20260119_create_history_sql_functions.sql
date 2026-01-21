@@ -165,7 +165,6 @@ BEGIN
       c.flow_id,
       c.step_id,
       c.status,
-      c.last_stage_change_at,
       c.created_at,
       c.updated_at,
       f.name AS flow_name,
@@ -181,8 +180,9 @@ BEGIN
     ORDER BY c.updated_at DESC
   LOOP
     -- Calcular tempo na etapa atual
+    -- Usar updated_at como referência (indica última modificação do card)
     v_reference_date := COALESCE(
-      v_card_record.last_stage_change_at,
+      v_card_record.updated_at,
       v_card_record.created_at
     );
     
@@ -252,9 +252,6 @@ BEGIN
     FROM (
       SELECT ch.*
       FROM public.card_history ch
-      LEFT JOIN public.core_client_users u ON u.id = ch.created_by
-      LEFT JOIN public.steps fs ON fs.id = ch.from_step_id
-      LEFT JOIN public.steps ts ON ts.id = ch.to_step_id
       WHERE ch.card_id = v_card_record.id
         AND ch.client_id = p_client_id
       ORDER BY ch.created_at DESC

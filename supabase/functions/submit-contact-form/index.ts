@@ -140,6 +140,78 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Verificar se formulário requer autenticação
+    const requiresAuth = form.requires_auth === true || form.form_type === "internal";
+    
+    if (requiresAuth) {
+      // Verificar autenticação JWT
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return new Response(
+          JSON.stringify({ error: "Este formulário requer autenticação. Por favor, faça login." }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const token = authHeader.replace("Bearer ", "");
+
+      // Criar cliente Supabase para validar JWT
+      const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+      
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+
+      // Validar token e obter usuário
+      const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: "Token de autenticação inválido ou expirado" }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Obter client_id do usuário
+      const { data: clientUser, error: clientUserError } = await supabaseClient
+        .from("core_client_users")
+        .select("client_id")
+        .eq("id", user.id)
+        .eq("is_active", true)
+        .single();
+
+      if (clientUserError || !clientUser) {
+        return new Response(
+          JSON.stringify({ error: "Usuário não possui acesso válido" }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Verificar se o usuário pertence ao mesmo client_id do formulário
+      if (form.client_id !== clientUser.client_id) {
+        return new Response(
+          JSON.stringify({ error: "Acesso negado: formulário não pertence ao seu cliente" }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     // Validar campos obrigatórios baseado na configuração
     const requiredFields = form.fields_config
       .filter((field: any) => field.required)
@@ -260,6 +332,7 @@ Deno.serve(async (req: Request) => {
     let companyId: string | null = null;
     let partnerId: string | null = null;
     let userId: string | null = null;
+    let contactType: ("cliente" | "parceiro")[] | null = null;
 
     for (const field of form.fields_config) {
       if (field.type === "company_toggle" && sanitizedData[field.name]) {
@@ -270,6 +343,17 @@ Deno.serve(async (req: Request) => {
       }
       if (field.type === "user_select" && sanitizedData[field.name]) {
         userId = sanitizedData[field.name];
+      }
+      if (field.type === "contact_type_select" && sanitizedData[field.name]) {
+        const contactTypeValue = sanitizedData[field.name];
+        // Converter valor para array contact_type
+        if (contactTypeValue === "cliente") {
+          contactType = ["cliente"];
+        } else if (contactTypeValue === "parceiro") {
+          contactType = ["parceiro"];
+        } else if (contactTypeValue === "cliente_e_parceiro") {
+          contactType = ["cliente", "parceiro"];
+        }
       }
     }
 
@@ -297,6 +381,7 @@ Deno.serve(async (req: Request) => {
         company_names: companyNames.length > 0 ? companyNames : null,
         tax_ids: taxIds.length > 0 ? taxIds : null,
         indicated_by: partnerId || null,
+        contact_type: contactType,
       })
       .select()
       .single();
@@ -314,19 +399,34 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Vincular empresa se selecionada
+    // Adicionar nome da empresa ao array company_names se selecionada
     if (companyId) {
-      const { error: companyError } = await supabaseAdmin
-        .from("contact_companies")
-        .insert({
-          contact_id: contact.id,
-          company_id: companyId,
-          client_id: form.client_id,
-          role: null,
-        });
+      // Buscar nome da empresa
+      const { data: company, error: companyFetchError } = await supabaseAdmin
+        .from("web_companies")
+        .select("name")
+        .eq("id", companyId)
+        .eq("client_id", form.client_id)
+        .single();
 
-      if (companyError) {
-        console.error("Erro ao vincular empresa:", companyError);
+      if (!companyFetchError && company?.name) {
+        // Adicionar ao array company_names se não existir
+        const currentNames = contact.company_names || [];
+        if (!currentNames.includes(company.name)) {
+          const updatedNames = [...currentNames, company.name];
+          
+          const { error: updateError } = await supabaseAdmin
+            .from("contacts")
+            .update({ company_names: updatedNames })
+            .eq("id", contact.id);
+
+          if (updateError) {
+            console.error("Erro ao adicionar empresa ao contato:", updateError);
+            // Não falhar o processo, apenas logar o erro
+          }
+        }
+      } else {
+        console.error("Erro ao buscar empresa:", companyFetchError);
         // Não falhar o processo, apenas logar o erro
       }
     }
