@@ -264,6 +264,34 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 | `web_states` | public | ❌ | Estados (IBGE) |
 | `web_region` | public | ❌ | Regiões/Polos |
 
+##### Relacionamentos entre `web_people` e `web_companies`
+
+**⚠️ IMPORTANTE**: Existem dois relacionamentos entre essas tabelas, o que requer especificação explícita em queries do Supabase:
+
+1. **`web_people.company_id` → `web_companies.id`**
+   - Constraint: `partners_company_id_fkey`
+   - Uso: Uma pessoa pode estar vinculada a uma empresa
+   - **Sintaxe no Supabase**: `company:web_companies!partners_company_id_fkey(...)`
+
+2. **`web_companies.partner_id` → `web_people.id`**
+   - Constraint: `companies_partner_id_fkey`
+   - Uso: Uma empresa pode ter um parceiro associado
+   - **Sintaxe no Supabase**: `partner:web_people!companies_partner_id_fkey(...)`
+
+**Nota**: Quando há múltiplos relacionamentos entre duas tabelas, o Supabase requer especificação explícita usando a sintaxe `!constraint_name` para evitar ambiguidade.
+
+##### Campos de Telefone em `web_people`
+
+A tabela `web_people` possui os seguintes campos relacionados a telefone:
+
+- **`phone`** (TEXT, nullable): Telefone fixo ou celular
+- **`whatsapp`** (VARCHAR, nullable): Número do WhatsApp
+
+**Validação**:
+- Formatos aceitos: `(99) 99999-9999` (celular), `(99) 9999-9999` (fixo), ou apenas dígitos
+- Validação implementada em `src/lib/validations/phone.ts`
+- Verificação de unicidade: Telefones devem ser únicos por `client_id` (implementado em `src/hooks/usePartners.ts`)
+
 #### Módulo NexFlow (Flows, Steps, Cards)
 
 **Nota**: Todas as tabelas foram migradas do schema `nexflow` para `public` em janeiro de 2025.
@@ -1435,8 +1463,14 @@ Identificadas via MCP:
 ---
 
 **Última Atualização**: Janeiro 2025  
-**Versão do Documento**: 1.5  
+**Versão do Documento**: 1.6  
 **Atualizações Recentes**:
+- Janeiro 2025: Documentação de relacionamentos múltiplos entre `web_people` e `web_companies`
+  - Adicionada nota sobre necessidade de especificar constraint explícita em queries Supabase
+  - Documentados dois relacionamentos: `partners_company_id_fkey` e `companies_partner_id_fkey`
+- Janeiro 2025: Documentação de campos de telefone
+  - Documentados campos `phone` e `whatsapp` em `web_people`
+  - Adicionada informação sobre validação e verificação de unicidade
 - Janeiro 2025: Criação da tabela `card_step_values` para snapshots de valores por etapa
   - Tabela para armazenar histórico de valores dos campos quando card é salvo em uma etapa
   - Triggers automáticos para salvar snapshots ao mudar de etapa e ao atualizar valores na mesma etapa

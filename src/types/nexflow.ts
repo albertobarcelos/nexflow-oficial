@@ -8,7 +8,8 @@ export type StepFieldType =
   | "date"
   | "checklist"
   | "file"
-  | "user_select";
+  | "user_select"
+  | "partner_select";
 
 export type FlowAccessRole = "viewer" | "editor" | "admin";
 

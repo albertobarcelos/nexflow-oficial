@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserData } from "@/lib/auth";
 import type { Partner, CreatePartnerData, UpdatePartnerData } from "@/types/partner";
+import { normalizePhone, validatePhoneFormat } from "@/lib/validations/phone";
 
 export function usePartners(id?: string) {
   const queryClient = useQueryClient();
@@ -32,7 +33,7 @@ export function usePartners(id?: string) {
               birth_date,
               avatar_type,
               avatar_seed,
-              company:web_companies (
+              company:web_companies!partners_company_id_fkey (
                 id,
                 name,
                 razao_social,
@@ -108,7 +109,7 @@ export function usePartners(id?: string) {
               birth_date,
               avatar_type,
               avatar_seed,
-              company:web_companies (
+              company:web_companies!partners_company_id_fkey (
                 id,
                 name,
                 razao_social,
@@ -168,8 +169,49 @@ export function usePartners(id?: string) {
     if (!data.whatsapp) throw new Error("WhatsApp é obrigatório");
     if (!data.partner_type) throw new Error("Tipo de parceiro é obrigatório");
 
+    // Validar formato de telefone
+    if (data.whatsapp && !validatePhoneFormat(data.whatsapp)) {
+      throw new Error("WhatsApp inválido. Use o formato (99) 99999-9999 ou (99) 9999-9999");
+    }
+    if (data.phone && !validatePhoneFormat(data.phone)) {
+      throw new Error("Telefone inválido. Use o formato (99) 99999-9999 ou (99) 9999-9999");
+    }
+
     // Buscar o client_id do usuário logado
     const collaborator = await getCurrentUserData();
+
+    // Verificar unicidade de telefone/whatsapp
+    const normalizedWhatsapp = data.whatsapp ? normalizePhone(data.whatsapp) : null;
+    const normalizedPhone = data.phone ? normalizePhone(data.phone) : null;
+
+    if (normalizedWhatsapp || normalizedPhone) {
+      const { data: existingPeople, error: checkError } = await supabase
+        .from("web_people")
+        .select("id, name, whatsapp, phone")
+        .eq("client_id", collaborator.client_id);
+
+      if (checkError) {
+        console.error("Erro ao verificar unicidade de telefone:", checkError);
+      } else if (existingPeople) {
+        const duplicate = existingPeople.find((person) => {
+          const personWhatsapp = person.whatsapp ? normalizePhone(person.whatsapp) : null;
+          const personPhone = person.phone ? normalizePhone(person.phone) : null;
+          
+          return (
+            (normalizedWhatsapp && personWhatsapp === normalizedWhatsapp) ||
+            (normalizedPhone && personPhone === normalizedPhone) ||
+            (normalizedWhatsapp && personPhone === normalizedWhatsapp) ||
+            (normalizedPhone && personWhatsapp === normalizedPhone)
+          );
+        });
+
+        if (duplicate) {
+          throw new Error(
+            `Telefone já cadastrado para ${duplicate.name}. Por favor, use um número diferente.`
+          );
+        }
+      }
+    }
 
     // Primeiro, criar web_people com os dados básicos
     const { data: newPeople, error: createPeopleError } = await supabase
@@ -229,6 +271,14 @@ export function usePartners(id?: string) {
     try {
       const { company_id, ...partnerData } = partner;
 
+      // Validar formato de telefone se fornecido
+      if (partnerData.whatsapp && !validatePhoneFormat(partnerData.whatsapp)) {
+        throw new Error("WhatsApp inválido. Use o formato (99) 99999-9999 ou (99) 9999-9999");
+      }
+      if (partnerData.phone && !validatePhoneFormat(partnerData.phone)) {
+        throw new Error("Telefone inválido. Use o formato (99) 99999-9999 ou (99) 9999-9999");
+      }
+
       // Primeiro buscar o collaborator
       const collaborator = await getCurrentUserData();
 
@@ -241,6 +291,40 @@ export function usePartners(id?: string) {
 
       if (!currentPartner?.people_id) {
         throw new Error("Parceiro não possui people_id associado");
+      }
+
+      // Verificar unicidade de telefone/whatsapp (excluindo o próprio registro)
+      const normalizedWhatsapp = partnerData.whatsapp ? normalizePhone(partnerData.whatsapp) : null;
+      const normalizedPhone = partnerData.phone ? normalizePhone(partnerData.phone) : null;
+
+      if (normalizedWhatsapp || normalizedPhone) {
+        const { data: existingPeople, error: checkError } = await supabase
+          .from("web_people")
+          .select("id, name, whatsapp, phone")
+          .eq("client_id", collaborator.client_id)
+          .neq("id", currentPartner.people_id); // Excluir o próprio registro
+
+        if (checkError) {
+          console.error("Erro ao verificar unicidade de telefone:", checkError);
+        } else if (existingPeople) {
+          const duplicate = existingPeople.find((person) => {
+            const personWhatsapp = person.whatsapp ? normalizePhone(person.whatsapp) : null;
+            const personPhone = person.phone ? normalizePhone(person.phone) : null;
+            
+            return (
+              (normalizedWhatsapp && personWhatsapp === normalizedWhatsapp) ||
+              (normalizedPhone && personPhone === normalizedPhone) ||
+              (normalizedWhatsapp && personPhone === normalizedWhatsapp) ||
+              (normalizedPhone && personWhatsapp === normalizedPhone)
+            );
+          });
+
+          if (duplicate) {
+            throw new Error(
+              `Telefone já cadastrado para ${duplicate.name}. Por favor, use um número diferente.`
+            );
+          }
+        }
       }
 
       // Atualizar dados em web_people (name, email, whatsapp, etc.)
