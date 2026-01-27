@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Info, Plus, Layers, Settings2, Trash2, Tag, Workflow } from "lucide-react";
+import { Info, Plus, Layers, Settings2, Trash2, Tag, Workflow, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { useFlowPermissions } from "@/hooks/useFlowPermissions";
@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import type { NexflowFlow } from "@/types/nexflow";
 import { FlowSettingsModal } from "@/components/crm/flows/FlowSettingsModal";
 import { FlowTagsModal } from "@/components/crm/flows/FlowTagsModal";
+import { ImportCardsCsvModal } from "@/components/crm/flows/ImportCardsCsvModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,7 @@ export function FlowsPage() {
   const [selectedFlow, setSelectedFlow] = useState<NexflowFlow | null>(null);
   const [flowToDelete, setFlowToDelete] = useState<NexflowFlow | null>(null);
   const [flowForTags, setFlowForTags] = useState<NexflowFlow | null>(null);
+  const [flowToImport, setFlowToImport] = useState<NexflowFlow | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const canCreateFlow = permissions?.canCreateFlow ?? false;
@@ -193,6 +195,22 @@ export function FlowsPage() {
                               </span>
                             </button>
                           </div>
+
+                          {/* Botão Importar CSV */}
+                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                            <button
+                              className="flex items-center h-8 px-2 text-xs"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setFlowToImport(flow);
+                              }}
+                            >
+                              <Upload className="h-4 w-4 flex-shrink-0" />
+                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                Importar CSV
+                              </span>
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div></div>
@@ -238,6 +256,17 @@ export function FlowsPage() {
         }}
         flowId={flowForTags?.id || ""}
         flowName={flowForTags?.name || ""}
+      />
+
+      <ImportCardsCsvModal
+        open={Boolean(flowToImport)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setFlowToImport(null);
+          }
+        }}
+        flowId={flowToImport?.id || ""}
+        flowName={flowToImport?.name || ""}
       />
 
       <AlertDialog

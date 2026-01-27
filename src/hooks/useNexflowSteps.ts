@@ -71,6 +71,7 @@ export function useNexflowSteps(flowId?: string) {
       return data.map(mapStepRow);
     },
     refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
+    refetchOnMount: true, // Garantir refetch quando componente montar
   });
 
   const createStepMutation = useMutation<NexflowStep, Error, CreateStepInput>({
@@ -308,8 +309,11 @@ export function useNexflowSteps(flowId?: string) {
     },
   });
 
+  // Garantir que sempre retorne um array, nunca undefined
+  const steps = Array.isArray(stepsQuery.data) ? stepsQuery.data : [];
+
   return {
-    steps: stepsQuery.data ?? [],
+    steps,
     isLoading: stepsQuery.isLoading,
     isError: stepsQuery.isError,
     refetch: stepsQuery.refetch,
