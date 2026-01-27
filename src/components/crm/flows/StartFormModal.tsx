@@ -18,11 +18,14 @@ import type {
   CardMovementEntry,
   ChecklistProgressMap,
   NexflowStepField,
+  StepFieldType,
   StepFieldValueMap,
 } from "@/types/nexflow";
 import { formatCnpjCpf, validateCnpjCpf } from "@/lib/utils/cnpjCpf";
 import { useUsers } from "@/hooks/useUsers";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
+import { useContactsPartners } from "@/hooks/useContactsPartners";
+import { Loader2 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isSystemField, SYSTEM_FIELDS } from "@/lib/flowBuilder/systemFields";
 import { AgentsMultiSelect } from "./AgentsMultiSelect";
@@ -52,8 +55,9 @@ type StartFormValues = {
 
 export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartFormModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { data: users = [] } = useUsers();
-  const { data: teams = [] } = useOrganizationTeams();
+  const { data: users = [], isLoading: isLoadingUsers } = useUsers();
+  const { data: teams = [], isLoading: isLoadingTeams } = useOrganizationTeams();
+  const { data: partnerContacts = [], isLoading: isLoadingPartners } = useContactsPartners();
   const form = useForm<StartFormValues>({
     defaultValues: {
       fields: {},
@@ -389,7 +393,8 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
     if (field.fieldType === "user_select") {
       const fieldValue = watch(`fields.${field.id}` as const);
       const isTeamField = field.slug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID;
-      const activeUsers = users.filter((user) => user.is_active);
+      // useUsers() já filtra por is_active, então não precisamos filtrar novamente
+      const activeUsers = users || [];
       const activeTeams = teams.filter((team) => team.is_active);
       
       if (isTeamField) {
@@ -408,13 +413,18 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                   shouldValidate: true,
                 });
               }}
-              disabled={activeTeams.length === 0}
+              disabled={isLoadingTeams || activeTeams.length === 0}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione um time" />
+                <SelectValue placeholder={isLoadingTeams ? "Carregando times..." : "Selecione um time"} />
               </SelectTrigger>
               <SelectContent>
-                {activeTeams.length === 0 ? (
+                {isLoadingTeams ? (
+                  <div className="flex items-center justify-center px-2 py-6">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <span className="ml-2 text-sm text-muted-foreground">Carregando times...</span>
+                  </div>
+                ) : activeTeams.length === 0 ? (
                   <div className="px-2 py-1.5 text-sm text-muted-foreground">
                     Nenhum time disponível
                   </div>
@@ -451,13 +461,18 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                 shouldValidate: true,
               });
             }}
-            disabled={activeUsers.length === 0}
+            disabled={isLoadingUsers || activeUsers.length === 0}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Selecione um usuário" />
+              <SelectValue placeholder={isLoadingUsers ? "Carregando usuários..." : "Selecione um usuário"} />
             </SelectTrigger>
             <SelectContent>
-              {activeUsers.length === 0 ? (
+              {isLoadingUsers ? (
+                <div className="flex items-center justify-center px-2 py-6">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Carregando usuários...</span>
+                </div>
+              ) : activeUsers.length === 0 ? (
                 <div className="px-2 py-1.5 text-sm text-muted-foreground">
                   Nenhum usuário disponível
                 </div>
@@ -465,6 +480,60 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                 activeUsers.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name} {user.surname}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {formState.errors.fields?.[field.id]?.message ? (
+            <p className="text-xs text-red-500">
+              {formState.errors.fields?.[field.id]?.message as string}
+            </p>
+          ) : null}
+        </div>
+      );
+    }
+
+    // Campo de seleção de parceiro
+    const isPartnerSelect = field.fieldType === ("partner_select" as StepFieldType);
+    if (isPartnerSelect) {
+      const fieldValue = watch(`fields.${field.id}` as const);
+      // partnerContacts já vem filtrado com apenas parceiros da tabela contacts
+      const partnersList = partnerContacts || [];
+      
+      return (
+        <div className="space-y-2">
+          <Label className="text-sm font-semibold text-neutral-800">
+            {field.label}
+            {field.isRequired && <span className="ml-1 text-red-500">*</span>}
+          </Label>
+          <Select
+            value={(fieldValue as string) ?? ""}
+            onValueChange={(value) => {
+              setValue(`fields.${field.id}` as const, value, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            disabled={isLoadingPartners || partnersList.length === 0}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={isLoadingPartners ? "Carregando parceiros..." : "Selecione um parceiro"} />
+            </SelectTrigger>
+            <SelectContent>
+              {isLoadingPartners ? (
+                <div className="flex items-center justify-center px-2 py-6">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Carregando parceiros...</span>
+                </div>
+              ) : partnersList.length === 0 ? (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                  Nenhum parceiro disponível
+                </div>
+              ) : (
+                partnersList.map((partner) => (
+                  <SelectItem key={partner.id} value={partner.id}>
+                    {partner.client_name || partner.main_contact || "Sem nome"}
                   </SelectItem>
                 ))
               )}
