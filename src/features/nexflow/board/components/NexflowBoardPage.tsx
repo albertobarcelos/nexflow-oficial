@@ -39,6 +39,7 @@ export function NexflowBoardPage() {
   const [confettiCardId, setConfettiCardId] = useState<string | null>(null);
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
   const confettiAudioRef = useRef<HTMLAudioElement | null>(null);
+  const hasAutoLoadedAllCardsRef = useRef<string | null>(null);
   const { isEnabled: williamModeEnabled } = useWilliamMode();
   const [visibleCountPerStep, setVisibleCountPerStep] = useState<Record<string, number>>({});
   const [listPage, setListPage] = useState(1);
@@ -213,8 +214,33 @@ export function NexflowBoardPage() {
       entry.cards = entry.cards.slice(0, visibleCount);
     });
 
+    // Garantir entrada para toda etapa do flow: etapas sem cards em memória
+    // (por paginação global) têm total do stepCounts e hasMore true para exibir "Carregar mais"
+    steps.forEach((step) => {
+      if (result[step.id] === undefined) {
+        const count = stepCounts[step.id] ?? 0;
+        result[step.id] = {
+          cards: [],
+          total: count,
+          hasMore: count > 0,
+        };
+      }
+    });
+
     return result;
-  }, [filteredCards, getVisibleCount, searchQuery, searchCards, serverSearchResults, users, teams]);
+  }, [filteredCards, getVisibleCount, searchQuery, searchCards, serverSearchResults, users, teams, steps, stepCounts]);
+
+  // #region agent log
+  useEffect(() => {
+    steps.forEach((step) => {
+      const stepCount = stepCounts[step.id];
+      const entry = cardsByStepPaginated[step.id];
+      const visibleCount = getVisibleCount(step.id);
+      const isEmptyButCount = (stepCount ?? 0) > 0 && (entry?.cards?.length ?? 0) === 0;
+      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:cardsByStepPaginated',message:'step-diagnostic',data:{stepId:step.id,stepCount,totalInMemory:entry?.total,cardsLength:entry?.cards?.length,visibleCount,isEmptyButCount,cardsTotal:cards.length,filteredTotal:filteredCards.length,searchQuery:searchQuery?.length||0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:isEmptyButCount?'H1':'H2'})}).catch(()=>{});
+    });
+  }, [steps, stepCounts, cardsByStepPaginated, getVisibleCount, cards.length, filteredCards.length, searchQuery]);
+  // #endregion
 
   const listViewCards = useMemo(() => {
     let result: NexflowCard[] = [];
@@ -545,28 +571,65 @@ export function NexflowBoardPage() {
     [visibleCountPerStep, hasNextPage, isFetchingNextPage, fetchNextPage]
   );
 
-  const handleLoadAllCards = async () => {
+  const handleLoadAllCards = useCallback(async () => {
     let attempts = 0;
     const maxAttempts = 1000;
-    
+
     while (attempts < maxAttempts) {
       const queryData = queryClient.getQueryData<{
         pages: Array<{ cards: NexflowCard[]; nextPage: number | null }>;
         pageParams: number[];
       }>(["nexflow", "cards", "infinite", id, filterUserId, filterTeamId]);
-      
+
       const lastPage = queryData?.pages[queryData.pages.length - 1];
-      const stillHasNext = lastPage?.nextPage !== null && lastPage?.nextPage !== undefined;
-      
+      const stillHasNext =
+        lastPage?.nextPage !== null && lastPage?.nextPage !== undefined;
+
       if (!stillHasNext) {
         break;
       }
-      
+
       await fetchNextPage();
       attempts++;
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
-  };
+  }, [queryClient, id, filterUserId, filterTeamId, fetchNextPage]);
+
+  // Ao abrir o board, carregar todas as páginas de cards para que etapas com
+  // contagem no servidor já exibam seus cards (evita colunas "57 cards" vazias)
+  useEffect(() => {
+    if (
+      !id ||
+      isLoading ||
+      isLoadingCards ||
+      steps.length === 0 ||
+      hasAutoLoadedAllCardsRef.current === id
+    ) {
+      return;
+    }
+
+    const hasStepWithCountButNoCards = steps.some((step) => {
+      const count = stepCounts[step.id] ?? 0;
+      const inMemory = filteredCards.filter((c) => c.stepId === step.id).length;
+      return count > 0 && inMemory === 0;
+    });
+
+    if (!hasStepWithCountButNoCards || !hasNextPage) {
+      return;
+    }
+
+    hasAutoLoadedAllCardsRef.current = id;
+    void handleLoadAllCards();
+  }, [
+    id,
+    isLoading,
+    isLoadingCards,
+    steps,
+    stepCounts,
+    filteredCards,
+    hasNextPage,
+    handleLoadAllCards,
+  ]);
 
   const isLoadingPage = isLoading || isLoadingCards;
 

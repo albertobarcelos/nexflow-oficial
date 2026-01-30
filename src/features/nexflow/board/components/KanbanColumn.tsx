@@ -15,7 +15,10 @@ import type { CardProduct } from "@/features/nexflow/card-details/types";
 interface KanbanColumnProps {
   step: NexflowStepWithFields;
   columnData: CardsByStepPaginated[string] | undefined;
+  /** Total em memória (cards carregados para esta etapa) */
   totalCards: number;
+  /** Total no servidor (contagem por etapa); usado para exibir "X de Y" quando serverTotal > totalCards */
+  serverTotal: number | null;
   hasMore: boolean;
   isStartColumn: boolean;
   flowId?: string;
@@ -34,6 +37,7 @@ export function KanbanColumn({
   step,
   columnData,
   totalCards,
+  serverTotal,
   hasMore,
   isStartColumn,
   flowId,
@@ -48,6 +52,11 @@ export function KanbanColumn({
   getColorClasses,
 }: KanbanColumnProps) {
   const columnCards = columnData?.cards ?? [];
+  // #region agent log
+  if (totalCards > 0 && columnCards.length === 0) {
+    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'KanbanColumn.tsx:render',message:'empty-column-with-count',data:{stepId:step.id,totalCards,columnCardsLength:columnCards.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
+  }
+  // #endregion
   const accentColor = step.color ?? "#2563eb";
   const colorClasses = getColorClasses(accentColor);
 
@@ -92,7 +101,9 @@ export function KanbanColumn({
             <span className="text-xs font-semibold uppercase tracking-wide opacity-90">Etapa</span>
           </div>
           <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium">
-            {totalCards} {totalCards === 1 ? "card" : "cards"}
+            {serverTotal != null && serverTotal > totalCards
+              ? `${totalCards} de ${serverTotal} cards`
+              : `${totalCards} ${totalCards === 1 ? "card" : "cards"}`}
           </span>
         </div>
         <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">

@@ -2,7 +2,8 @@ import { motion } from "framer-motion";
 import { DragOverlay } from "@dnd-kit/core";
 import { KanbanColumn } from "./KanbanColumn";
 import { KanbanCardPreview } from "./KanbanCardPreview";
-import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
+import type { NexflowCard } from "@/types/nexflow";
+import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import type { CardsByStepPaginated, StepCounts } from "../types";
 
 interface KanbanViewProps {
@@ -45,16 +46,24 @@ export function KanbanView({
       <div className="flex h-full gap-6">
         {steps.map((step) => {
           const columnData = cardsByStepPaginated[step.id];
-          const totalCards = stepCounts[step.id] ?? columnData?.total ?? 0;
+          // totalCards = total em memória para esta etapa (o que realmente temos carregado)
+          const totalCards = columnData?.total ?? stepCounts[step.id] ?? 0;
+          // total no servidor (contagem por etapa) para exibir "X de Y" quando ainda não carregamos tudo
+          const serverTotal = stepCounts[step.id] ?? null;
           const hasMore = columnData?.hasMore ?? false;
           const isStartColumn = step.id === startStep?.id;
-          
+          // #region agent log
+          if (totalCards > 0) {
+            fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'KanbanView.tsx:render',message:'column-data',data:{stepId:step.id,totalCards,columnDataDefined:!!columnData,cardsLength:columnData?.cards?.length??0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:(columnData?.cards?.length??0)===0?'H1':'H4'})}).catch(()=>{});
+          }
+          // #endregion
           return (
             <KanbanColumn
               key={step.id}
               step={step}
               columnData={columnData}
               totalCards={totalCards}
+              serverTotal={serverTotal}
               hasMore={hasMore}
               isStartColumn={isStartColumn}
               flowId={flowId}

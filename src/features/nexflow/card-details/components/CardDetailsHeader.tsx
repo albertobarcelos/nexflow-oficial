@@ -53,8 +53,8 @@ export function CardDetailsHeader({
           <CardTagsSection cardId={card.id} flowId={card.flowId} />
         </div>
 
-        {/* Lado direito: Pipeline de Estágios */}
-        <div className="flex items-center justify-start gap-4 pr-12 overflow-visible pt-[26px]">
+        {/* Lado direito: Pipeline de Estágios (janela de 3 etapas, compacto) */}
+        <div className="flex items-center justify-start gap-4 pr-12 min-w-0 overflow-hidden pt-[26px]">
           <CardPipelineStages 
             steps={steps} 
             currentStepId={card.stepId} 

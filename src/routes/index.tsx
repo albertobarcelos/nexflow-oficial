@@ -60,7 +60,8 @@ const ResellerReports = () => <div>Reseller Reports - Em desenvolvimento</div>;
 const ResellerSettings = () => <div>Reseller Settings - Em desenvolvimento</div>;
 const ResellerProfile = () => <div>Reseller Profile - Em desenvolvimento</div>;
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
   {
     path: "/",
     element: <SelectPortal />,
@@ -289,10 +290,12 @@ export const router = createBrowserRouter([
       },
     ],
   },
-], {
-  future: {
-    v7_relativeSplatPath: true,
-  },
-});
+],
+  {
+    future: {
+      v7_relativeSplatPath: true,
+    },
+  }
+);
 
 

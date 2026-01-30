@@ -5,11 +5,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useContactsWithIndications } from "@/hooks/useContactsWithIndications";
 import { ContactCard } from "@/components/crm/contacts/ContactCard";
 import { RocketLoader } from "@/components/ui/rocket-loader";
-import { Loader2, Settings, Plus, List, Filter, Search } from "lucide-react";
+import { Loader2, Filter, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConfigDialog";
+import { ContactsPageHeader } from "@/components/crm/contacts/ContactsPageHeader";
 import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
 import { ContactDetailsPanel } from "@/components/crm/contacts/ContactDetailsPanel";
 import { Badge } from "@/components/ui/badge";
@@ -172,40 +173,21 @@ export function ContactsPage() {
     return null; // O redirecionamento já foi feito no useEffect
   }
 
+  const handleAddContact = () => {
+    toast({
+      title: "Em breve",
+      description: "A funcionalidade de adicionar novo contato estará disponível em breve.",
+    });
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Contatos</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Visualize e gerencie os contatos de clientes e indicações
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/crm/contacts/list')}
-          >
-            <List className="mr-2 h-4 w-4" />
-            Visualizar Lista
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => navigate("/crm/forms")}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Gerar Formulário
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setIsAutoCreateDialogOpen(true)}
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Automações
-          </Button>
-        </div>
-      </div>
+      <ContactsPageHeader
+        viewMode="cards"
+        onOpenAutomations={() => setIsAutoCreateDialogOpen(true)}
+        onAddContact={handleAddContact}
+      />
 
       {/* Campo de busca */}
       <div className="relative">

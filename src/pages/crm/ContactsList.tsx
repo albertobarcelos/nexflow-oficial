@@ -5,9 +5,11 @@ import { useToast } from '@/hooks/use-toast';
 import { useContactsWithIndications } from '@/hooks/useContactsWithIndications';
 import { ContactDetailsPanel } from '@/components/crm/contacts/ContactDetailsPanel';
 import { CreateCardFromContactDialog } from '@/components/crm/contacts/CreateCardFromContactDialog';
+import { AutoCreateConfigDialog } from '@/components/crm/contacts/AutoCreateConfigDialog';
+import { ContactsPageHeader } from '@/components/crm/contacts/ContactsPageHeader';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
-import { Plus, Grid, Loader2, Filter, Tag, Search } from 'lucide-react';
+import { Plus, Loader2, Filter, Tag, Search } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -45,6 +47,7 @@ export default function ContactsList() {
   const [contactForCard, setContactForCard] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
   const pageSize = 20;
 
   const {
@@ -194,30 +197,21 @@ export default function ContactsList() {
     return null;
   }
 
+  const handleAddContact = () => {
+    toast({
+      title: "Em breve",
+      description:
+        "A funcionalidade de adicionar novo contato estará disponível em breve.",
+    });
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex justify-between items-center">
-        <div className="space-y-2">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Contatos</h1>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Visualize e gerencie os contatos em formato de lista
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/crm/contacts')}
-          >
-            <Grid className="h-4 w-4 mr-2" />
-            Visualizar Cards
-          </Button>
-          <Button size="sm">
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Contato
-          </Button>
-        </div>
-      </div>
+      <ContactsPageHeader
+        viewMode="list"
+        onOpenAutomations={() => setIsAutoCreateDialogOpen(true)}
+        onAddContact={handleAddContact}
+      />
 
       {/* Campo de busca */}
       <div className="relative">
@@ -528,6 +522,11 @@ export default function ContactsList() {
       )}
 
       {/* Dialogs */}
+      <AutoCreateConfigDialog
+        open={isAutoCreateDialogOpen}
+        onOpenChange={setIsAutoCreateDialogOpen}
+      />
+
       <ContactDetailsPanel
         open={isDetailsPanelOpen}
         onOpenChange={setIsDetailsPanelOpen}

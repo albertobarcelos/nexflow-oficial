@@ -104,11 +104,11 @@ export function FlowsPage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-2 overflow-visible">
                 {flows?.map((flow: NexflowFlow) => (
                   <div
                     key={flow.id}
-                    className="rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
+                    className="rounded-2xl border border-border bg-card p-4 min-h-[180px] overflow-visible transition hover:-translate-y-1 hover:border-primary hover:shadow-lg"
                   >
                     <div
                       className="space-y-2 cursor-pointer"
@@ -145,9 +145,9 @@ export function FlowsPage() {
                       </p>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                       {canEditFlow(flow) ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 min-h-[2.5rem]">
                           {/* Botão Editar Estrutura */}
                           <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
                             <button
