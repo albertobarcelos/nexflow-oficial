@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getCurrentUserData } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
 export interface OrganizationTeam {
@@ -16,7 +17,12 @@ export function useOrganizationTeams() {
     queryKey: ["organization-teams"],
     queryFn: async () => {
       try {
-        // Buscar todos os times com JOIN em core_clients e filtrar apenas ativos
+        const collaborator = await getCurrentUserData();
+        if (!collaborator?.client_id) {
+          return [];
+        }
+
+        // Buscar times do client logado com JOIN em core_clients
         // Nota: core_teams pode não estar no schema TypeScript, mas existe no banco
         const { data: teams, error } = await (supabase as any)
           .from("core_teams")
@@ -32,7 +38,7 @@ export function useOrganizationTeams() {
               company_name
             )
           `)
-          
+          .eq("client_id", collaborator.client_id)
           .order("name");
 
         if (error) {
