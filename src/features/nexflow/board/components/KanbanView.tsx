@@ -52,11 +52,6 @@ export function KanbanView({
           const serverTotal = stepCounts[step.id] ?? null;
           const hasMore = columnData?.hasMore ?? false;
           const isStartColumn = step.id === startStep?.id;
-          // #region agent log
-          if (totalCards > 0) {
-            fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'KanbanView.tsx:render',message:'column-data',data:{stepId:step.id,totalCards,columnDataDefined:!!columnData,cardsLength:columnData?.cards?.length??0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:(columnData?.cards?.length??0)===0?'H1':'H4'})}).catch(()=>{});
-          }
-          // #endregion
           return (
             <KanbanColumn
               key={step.id}

@@ -28,6 +28,7 @@ import {
   Trash,
 } from "lucide-react";
 import type { NexflowStep } from "@/types/nexflow";
+import type { StepDraft } from "@/hooks/useFlowBuilderState";
 
 const STEP_COLORS = [
   "#2563eb",
@@ -45,6 +46,8 @@ interface FlowBuilderHeaderProps {
   flowDescription?: string | null;
   steps: NexflowStep[];
   activeStepId: string | null;
+  /** Draft da etapa ativa (painel de propriedades); usado para mostrar cor/título antes de salvar */
+  activeStepDraft?: StepDraft | null;
   onSelectStep: (stepId: string) => void;
   onCreateStep: (payload: { title: string; color: string }) => Promise<void>;
   onRenameStep: (stepId: string, title: string) => void;
@@ -62,6 +65,7 @@ export function FlowBuilderHeader({
   flowDescription,
   steps,
   activeStepId,
+  activeStepDraft,
   onSelectStep,
   onCreateStep,
   onRenameStep,
@@ -242,7 +246,12 @@ export function FlowBuilderHeader({
                       >
                         <div
                           className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: step.color }}
+                          style={{
+                            backgroundColor:
+                              step.id === activeStepId && activeStepDraft?.color
+                                ? activeStepDraft.color
+                                : step.color,
+                          }}
                         />
                         <span
                           className={cn(

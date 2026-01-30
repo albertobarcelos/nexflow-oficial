@@ -52,13 +52,9 @@ export function KanbanColumn({
   getColorClasses,
 }: KanbanColumnProps) {
   const columnCards = columnData?.cards ?? [];
-  // #region agent log
-  if (totalCards > 0 && columnCards.length === 0) {
-    fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'KanbanColumn.tsx:render',message:'empty-column-with-count',data:{stepId:step.id,totalCards,columnCardsLength:columnCards.length},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-  }
-  // #endregion
   const accentColor = step.color ?? "#2563eb";
   const colorClasses = getColorClasses(accentColor);
+  const isCustomHeader = !colorClasses.header;
 
   // Calcular o valor total dos produtos da etapa
   const totalProductsValue = useMemo(() => {
@@ -92,6 +88,7 @@ export function KanbanColumn({
           colorClasses.header
         )}
         style={{
+          ...(isCustomHeader ? { backgroundColor: accentColor } : {}),
           boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.05)}`,
         }}
       >

@@ -40,25 +40,28 @@ export function FormTypeSelector({ selectedType, onTypeSelect }: FormTypeSelecto
           </CardContent>
         </Card>
 
-        {/* Formulário Interno */}
+        {/* Formulário Interno - Em desenvolvimento */}
         <Card
           className={cn(
-            "cursor-pointer transition-all hover:shadow-md",
-            selectedType === "internal"
-              ? "border-blue-500 border-2 shadow-md"
-              : "border"
+            "cursor-not-allowed opacity-75 bg-muted/30 border-muted",
+            "transition-all select-none pointer-events-none"
           )}
-          onClick={() => onTypeSelect("internal")}
+          aria-disabled="true"
         >
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-blue-100 p-2">
-                <Shield className="h-5 w-5 text-blue-600" />
+              <div className="rounded-lg bg-muted p-2">
+                <Shield className="h-5 w-5 text-muted-foreground" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-sm">Formulário Interno</h3>
+                <h3 className="font-semibold text-sm text-muted-foreground">
+                  Formulário Interno
+                </h3>
                 <p className="text-xs text-muted-foreground mt-1">
                   Uso da equipe para qualificação.
+                </p>
+                <p className="text-xs font-medium text-muted-foreground mt-2 italic">
+                  Em desenvolvimento
                 </p>
               </div>
             </div>

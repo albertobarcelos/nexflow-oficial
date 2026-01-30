@@ -230,18 +230,6 @@ export function NexflowBoardPage() {
     return result;
   }, [filteredCards, getVisibleCount, searchQuery, searchCards, serverSearchResults, users, teams, steps, stepCounts]);
 
-  // #region agent log
-  useEffect(() => {
-    steps.forEach((step) => {
-      const stepCount = stepCounts[step.id];
-      const entry = cardsByStepPaginated[step.id];
-      const visibleCount = getVisibleCount(step.id);
-      const isEmptyButCount = (stepCount ?? 0) > 0 && (entry?.cards?.length ?? 0) === 0;
-      fetch('http://127.0.0.1:7242/ingest/161cbf26-47b2-4a4e-a3dd-0e1bec2ffe55',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'NexflowBoardPage.tsx:cardsByStepPaginated',message:'step-diagnostic',data:{stepId:step.id,stepCount,totalInMemory:entry?.total,cardsLength:entry?.cards?.length,visibleCount,isEmptyButCount,cardsTotal:cards.length,filteredTotal:filteredCards.length,searchQuery:searchQuery?.length||0},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:isEmptyButCount?'H1':'H2'})}).catch(()=>{});
-    });
-  }, [steps, stepCounts, cardsByStepPaginated, getVisibleCount, cards.length, filteredCards.length, searchQuery]);
-  // #endregion
-
   const listViewCards = useMemo(() => {
     let result: NexflowCard[] = [];
 

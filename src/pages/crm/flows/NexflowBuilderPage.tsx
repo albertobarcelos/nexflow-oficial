@@ -218,6 +218,7 @@ export function NexflowBuilderPage() {
           flowDescription={flowDraft.description}
           steps={steps}
           activeStepId={activeStepId}
+          activeStepDraft={stepDraft}
           onSelectStep={selectStep}
           onCreateStep={createStep}
           onRenameStep={renameStep}
