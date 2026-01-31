@@ -27,9 +27,6 @@ export function CardDetailsHeader({
       <div className="flex items-start justify-between gap-4">
         {/* Lado esquerdo: Título e informações */}
         <div className="flex-1 min-w-0">
-          <span className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">
-            Card
-          </span>
           <div className="flex items-center gap-3 mt-1">
             <h1 className="text-2xl font-bold text-slate-800 dark:text-white truncate">{card.title}</h1>
             <ContactFloatingWidget contactId={card.contactId} />
@@ -54,7 +51,7 @@ export function CardDetailsHeader({
         </div>
 
         {/* Lado direito: Pipeline de Estágios (janela de 3 etapas, compacto) */}
-        <div className="flex items-center justify-start gap-4 pr-12 min-w-0 overflow-hidden pt-[26px]">
+        <div className="flex items-center justify-start gap-4 pr-12 min-w-0 overflow-hidden pt-[22px]">
           <CardPipelineStages 
             steps={steps} 
             currentStepId={card.stepId} 

@@ -646,11 +646,11 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
             <div
               key={item.id}
               className={cn(
-                "relative mb-4 md:mb-6 flex items-center",
+                "relative mb-12 md:mb- flex items-center",
                 // Desktop: alternado (esquerda/direita)
                 isLeft 
-                  ? "md:justify-start md:pr-[calc(50%+4px)]" 
-                  : "md:justify-end md:pl-[calc(50%+4px)]",
+                  ? "md:justify-end md:pr-[calc(50%+15px)] " 
+                  : "md:pl-[calc(50%+15px)] ",
                 // Mobile: single column centralizado
                 "max-md:justify-center max-md:px-4"
               )}
@@ -667,7 +667,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
               {/* Container do card */}
               <div className={cn(
                 // Desktop: largura fit-content
-                "md:w-fit",
+                "md:w-[500px]",
                 // Mobile: largura quase total
                 "max-md:w-full max-md:max-w-[95%]",
                 isLeft ? "md:text-right" : "md:text-left",

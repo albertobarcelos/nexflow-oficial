@@ -23,7 +23,7 @@ export function CardOverviewTab({
     : null;
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-">
       <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-8">
         Informações do Card
       </h2>

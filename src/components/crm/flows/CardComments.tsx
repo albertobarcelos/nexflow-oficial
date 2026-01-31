@@ -780,8 +780,8 @@ export function CardComments({ cardId }: CardCommentsProps) {
           </div>
         ) : (
           /* Modo normal: campo de texto e botões */
-          <div className="flex gap-2 items-end justify-center max-w-4xl mx-auto w-full">
-            <div className="flex-1 max-w-2xl">
+          <div className="flex gap-2 items-end justify-start  mx-auto w-full">
+            <div className="flex-1 max-w-2x8">
               <MentionInput
                 value={message}
                 onChange={setMessage}

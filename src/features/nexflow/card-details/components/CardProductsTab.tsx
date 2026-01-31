@@ -611,9 +611,9 @@ export function CardProductsTab({
         variant="outline"
         onClick={handleAddProduct}
         disabled={isDisabled}
-        className="w-full"
+        className="w-[200px]"
       >
-        <Plus className="h-4 w-4 mr-2" />
+        <Plus className="h-4 w-4 mr-2 aling" />
         Adicionar Produto
       </Button>
 
