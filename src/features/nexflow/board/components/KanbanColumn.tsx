@@ -81,7 +81,7 @@ export function KanbanColumn({
   }, [columnCards]);
 
   return (
-    <div className="w-80 shrink-0 flex flex-col h-full">
+    <div className="w-80 shrink-0 flex flex-col h-full  ">
       <div
         className={cn(
           "rounded-t-2xl p-4 shadow-lg z-10 relative",
@@ -92,31 +92,36 @@ export function KanbanColumn({
           boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.05)}`,
         }}
       >
-        <div className="flex items-center justify-between text-white mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-white/50 rounded-full"></div>
-            <span className="text-xs font-semibold uppercase tracking-wide opacity-90">Etapa</span>
-          </div>
-          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium">
-            {serverTotal != null && serverTotal > totalCards
-              ? `${totalCards} de ${serverTotal} cards`
-              : `${totalCards} ${totalCards === 1 ? "card" : "cards"}`}
-          </span>
-        </div>
-        <h2 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          {step.title}
+        <div className="flex flex-col justify-between text-white mb-3">
+        <h2 className="text-lg font-bold text-white mb-2 flex justify-between">
+          <span className="truncate max-w-[250px]">
+            {step.title}
+            </span>
           {step.isCompletionStep && (
             <CheckCircle2 className="h-4 w-4 opacity-90" />
           )}
-          {flowId && (
+          <span> {flowId && (
             <StepResponsibleSelector step={step} flowId={flowId} />
-          )}
+          )}</span>
+         
         </h2>
-        {totalProductsValue > 0 && (
+        
+          <div className="flex items-center gap-2 justify-between">
+          {totalProductsValue > 0 && (
           <div className="text-sm font-semibold text-white/90">
             {formatCurrency(totalProductsValue)}
           </div>
         )}
+            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium ">
+            {serverTotal != null && serverTotal > totalCards
+              ? `${totalCards} de ${serverTotal} cards`
+              : `${totalCards} ${totalCards === 1 ? "card" : "cards"}`}
+          </span>
+          </div>
+          
+        </div>
+        
+        
       </div>
       <div
         className={cn(

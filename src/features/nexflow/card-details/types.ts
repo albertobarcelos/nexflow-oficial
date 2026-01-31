@@ -31,7 +31,17 @@ export interface CardFormValues {
 }
 
 export type SaveStatus = "idle" | "saving" | "saved";
-export type ActiveSection = "overview" | "history" | "fields" | "attachments" | "comments" | "processes" | "activities" | "products";
+export type ActiveSection =
+  | "overview"
+  | "history"
+  | "fields"
+  | "attachments"
+  | "comments"
+  | "processes"
+  | "activities"
+  | "products"
+  | "contacts"
+  | "company";
 
 export interface CardDetailsModalProps {
   card: NexflowCard | null;

@@ -99,6 +99,10 @@ export interface NexflowCard {
   assigneeType?: 'user' | 'team' | 'unassigned';
   agents?: string[];
   contactId?: string | null;
+  /** IDs de contatos vinculados via tabela card_contacts (quando existir) */
+  contactIds?: string[];
+  /** Empresa (web_companies) vinculada ao card (quando coluna company_id existir) */
+  companyId?: string | null;
   indicationId?: string | null;
   position: number;
   status?: string | null;
@@ -107,7 +111,7 @@ export interface NexflowCard {
   cardType?: 'finance' | 'onboarding';
   product?: string | null;
   value?: number | null;
-  lead?: string | null;
+  contact?: string | null;
 }
 
 export interface NexflowFlowAccess {

@@ -8,6 +8,8 @@ import { CardHistoryTab } from "./CardHistoryTab";
 import { CardFieldsTab } from "./CardFieldsTab";
 import { CardProductsTab } from "./CardProductsTab";
 import { CardActivitiesTab } from "./CardActivitiesTab";
+import { CardContactsTab } from "./CardContactsTab";
+import { CardCompanyTab } from "./CardCompanyTab";
 import { CardActions } from "./CardActions";
 import { useCardDetails } from "../hooks/useCardDetails";
 import { useCardForm } from "../hooks/useCardForm";
@@ -343,6 +345,18 @@ export function CardDetailsModal({
             <CardActivitiesTab card={card} />
           </div>
         );
+      case "contacts":
+        return (
+          <div className="h-full overflow-y-auto">
+            <CardContactsTab card={card} />
+          </div>
+        );
+      case "company":
+        return (
+          <div className="h-full overflow-y-auto">
+            <CardCompanyTab card={card} />
+          </div>
+        );
       case "processes":
         if (selectedProcess) {
           return <ProcessDetails process={selectedProcess} card={card} />;
@@ -369,7 +383,7 @@ export function CardDetailsModal({
   return (
     <Dialog open={Boolean(card)} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 p-0 shadow-2xl"
+        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-8xl flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 p-0 shadow-2xl"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         hideCloseButton

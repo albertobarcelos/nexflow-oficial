@@ -32,6 +32,7 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     assigneeType: assigneeType,
     agents: Array.isArray(row.agents) ? row.agents : undefined,
     contactId: row.contact_id ?? null,
+    companyId: row.company_id ?? null,
     indicationId: row.indication_id ?? null,
     position: row.position ?? 0,
     status: row.status ?? null,
