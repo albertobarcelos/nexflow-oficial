@@ -196,18 +196,20 @@ export function FlowsPage() {
                             </button>
                           </div>
 
-                          {/* Botão Importar CSV */}
-                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                          {/* Botão Importar CSV atualmente bloqueado*/}
+                          <div
+                            className="group relative overflow-hidden rounded-md border border-input bg-background cursor-not-allowed opacity-50"
+                            title="Importação de CSV temporariamente indisponível"
+                          >
                             <button
-                              className="flex items-center h-8 px-2 text-xs"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setFlowToImport(flow);
-                              }}
+                              className="flex items-center h-8 px-2 text-xs pointer-events-none"
+                              type="button"
+                              disabled
+                              tabIndex={-1}
                             >
                               <Upload className="h-4 w-4 flex-shrink-0" />
-                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
-                                Importar CSV
+                              <span className="ml-2 whitespace-nowrap max-w-0 opacity-0 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                BLOQUEADO TEMPORARIAMENTE
                               </span>
                             </button>
                           </div>
