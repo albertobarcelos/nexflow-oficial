@@ -1,5 +1,13 @@
 import { useMemo } from "react";
-import { ArrowUp, ArrowDown, User, Package, CheckSquare, Timer } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  User,
+  Package,
+  CheckSquare,
+  Timer,
+  Building2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { TeamAvatar } from "@/components/ui/team-avatar";
@@ -10,6 +18,7 @@ import { useCardHistory } from "@/hooks/useCardHistory";
 import { useContactById } from "@/hooks/useContactById";
 import { useContactCompanies } from "@/hooks/useContactCompanies";
 import { useCardChildren } from "@/hooks/useCardChildren";
+import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import type { NexflowCard } from "@/types/nexflow";
 
 interface KanbanCardPreviewProps {
@@ -24,6 +33,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
   const { data: contact } = useContactById(card.contactId);
   const { companyNames = [] } = useContactCompanies(card.contactId ?? null);
   const { data: hasChildren = false } = useCardChildren(card.id);
+  const { companies = [] } = useCompanies();
   
   const assignedUser = card.assignedTo
     ? users.find((user) => user.id === card.assignedTo)
@@ -81,23 +91,31 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
   // Usar primeira tag do card se existir
   const firstTag = cardTags.length > 0 ? cardTags[0] : null;
 
-  // Obter primeira empresa do array company_names
-  const companyName = useMemo(() => {
-    if (companyNames.length > 0) {
-      return companyNames[0];
+  // Nome da empresa: quando card tem company_id, buscar em web_companies; senão do contato
+  const companyNameFromId = useMemo(() => {
+    if (card.companyId && companies.length > 0) {
+      return companies.find((c) => c.id === card.companyId)?.name ?? null;
     }
-    // Fallback: usar company_names do contato se disponível
+    return null;
+  }, [card.companyId, companies]);
+
+  // Obter primeira empresa do array company_names (fallback quando não há company_id)
+  const companyNameFromContact = useMemo(() => {
+    if (companyNames.length > 0) return companyNames[0];
     if (contact?.company_names && contact.company_names.length > 0) {
       return contact.company_names[0];
     }
     return null;
   }, [companyNames, contact?.company_names]);
 
+  const companyName = companyNameFromId ?? companyNameFromContact;
+
   // Nome do contato
   const contactName = contact?.client_name || contact?.main_contact || null;
 
-  // Título do card: usar o título real do card ou contato
-  const cardTitle = contactName || card.title;
+  // Título do card: prioridade = nome da empresa (company_id) > contato > card.title
+  const cardTitle =
+     contactName ?? companyNameFromId ?? companyName ?? card.title;
 
   // Nome do usuário responsável
   const responsibleName = assignedUser 
@@ -221,13 +239,18 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
               <ArrowDown className="h-3.5 w-3.5" />
             </div>
           )}
-          {card.lead && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui lead">
+          {card.contactId && (
+            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Contato">
               <User className="h-3.5 w-3.5" />
             </div>
           )}
-          {card.product && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui produto">
+          {card.companyId && (
+            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Empresa">
+              <Building2 className="h-3.5 w-3.5" />
+            </div>
+          )}
+          {(card.product || (card.value != null && card.value !== undefined)) && (
+            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Produto / valor">
               <Package className="h-3.5 w-3.5" />
             </div>
           )}

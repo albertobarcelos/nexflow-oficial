@@ -128,15 +128,7 @@ export function ContactPopover({
 
             {/* Footer com ação */}
             <div className="p-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={handleViewDetails}
-              >
-                <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                Ver Detalhes
-              </Button>
+              
             </div>
           </div>
         )}

@@ -40,7 +40,6 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     cardType: row.card_type ?? 'onboarding',
     product: row.product ?? null,
     value: row.value ? Number(row.value) : null,
-    lead: row.lead ?? null,
   };
 };
 
@@ -56,6 +55,16 @@ export interface CreateCardInput {
   assignedTeamId?: string | null;
   agents?: string[];
   status?: string | null;
+  /** Contato principal (cards.contact_id); usado também como primeiro em contactIds */
+  contactId?: string | null;
+  /** IDs de contatos para card_contacts (N:N); se não informado e contactId existir, usa [contactId] */
+  contactIds?: string[];
+  /** Empresa vinculada ao card (cards.company_id) */
+  companyId?: string | null;
+  /** ID do primeiro produto (web_items) para cards.product */
+  product?: string | null;
+  /** Valor total do card (cards.value) */
+  value?: number | null;
 }
 
 export interface UpdateCardInput {
@@ -176,6 +185,21 @@ export function useNexflowCardsInfinite(
       // Determinar card_type baseado na category do flow
       const cardType = flow.category === 'finance' ? 'finance' : 'onboarding';
 
+      // Produto: input.product ou primeiro item de field_values.products
+      const fieldProducts = input.fieldValues?.products;
+      const firstProductItemId =
+        typeof fieldProducts === "object" &&
+        Array.isArray(fieldProducts) &&
+        fieldProducts.length > 0 &&
+        fieldProducts[0] &&
+        typeof fieldProducts[0] === "object" &&
+        "itemId" in (fieldProducts[0] as Record<string, unknown>)
+          ? (fieldProducts[0] as { itemId: string }).itemId
+          : null;
+      const productValue = input.product ?? firstProductItemId ?? null;
+      const numericValue =
+        input.value != null && typeof input.value === "number" ? input.value : null;
+
       const payload: Database["public"]["Tables"]["cards"]["Insert"] = {
         flow_id: input.flowId,
         step_id: input.stepId,
@@ -195,8 +219,10 @@ export function useNexflowCardsInfinite(
         agents: input.agents,
         status: (input.status as "canceled" | "completed" | "inprogress" | null) ?? null,
         card_type: cardType,
-        product: null,
-        value: null,
+        contact_id: input.contactId ?? null,
+        company_id: input.companyId ?? null,
+        product: productValue,
+        value: numericValue,
       };
 
       const { data, error } = await nexflowClient()
@@ -207,6 +233,30 @@ export function useNexflowCardsInfinite(
 
       if (error || !data) {
         throw error ?? new Error("Falha ao criar card.");
+      }
+
+      const cardId = (data as CardRow).id;
+      const contactIdsToLink =
+        (input.contactIds?.length ?? 0) > 0
+          ? input.contactIds
+          : input.contactId
+            ? [input.contactId]
+            : [];
+
+      if (contactIdsToLink.length > 0) {
+        const cardContactsPayload = contactIdsToLink.map((contact_id) => ({
+          card_id: cardId,
+          client_id: clientId,
+          contact_id,
+        }));
+        const { error: cardContactsError } = await nexflowClient()
+          .from("card_contacts")
+          .insert(cardContactsPayload);
+
+        if (cardContactsError) {
+          console.error("Erro ao vincular contatos ao card (card_contacts):", cardContactsError);
+          // Card já foi criado; não falhar a mutation, apenas logar
+        }
       }
 
       return mapCardRow(data);
@@ -289,7 +339,6 @@ export function useNexflowCardsInfinite(
         cardType: data.card.cardType ?? 'onboarding',
         product: data.card.product ?? null,
         value: data.card.value ? Number(data.card.value) : null,
-        lead: data.card.lead ?? null,
       };
 
       return { card: updatedCard, silent: input.silent };

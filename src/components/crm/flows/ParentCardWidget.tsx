@@ -71,7 +71,6 @@ export function ParentCardWidget({
         cardType: data.card_type ?? 'onboarding',
         product: data.product ?? null,
         value: data.value ? Number(data.value) : null,
-        lead: data.lead ?? null,
       } as NexflowCard;
     },
     enabled: !!parentCardId,

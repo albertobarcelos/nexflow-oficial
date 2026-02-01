@@ -4,8 +4,9 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { StartFormModal, type StartFormPayload } from "@/components/crm/flows/StartFormModal";
 import { CardDetailsModal, type CardFormValues } from "@/features/nexflow/card-details/components/CardDetailsModal";
+import { NewCardWizard, type NewCardWizardResult } from "./NewCardWizard";
+import { buildCreateCardInputFromWizard } from "../utils/buildCreateCardInputFromWizard";
 import { useNexflowFlow } from "@/hooks/useNexflowFlows";
 import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
 import { nexflowClient } from "@/lib/supabase";
@@ -419,21 +420,13 @@ export function NexflowBoardPage() {
     return cards.find((card) => card.id === activeCard.parentCardId)?.title ?? null;
   }, [activeCard, cards]);
 
-  const handleSubmitStartForm = async (payload: StartFormPayload) => {
-    if (!id || !startStep) {
-      return;
-    }
-    await createCard({
-      flowId: id,
-      stepId: startStep.id,
-      title: payload.title,
-      fieldValues: payload.fieldValues,
-      checklistProgress: payload.checklistProgress,
-      assignedTo: payload.assignedTo,
-      assignedTeamId: payload.assignedTeamId,
-      agents: payload.agents,
+  const handleWizardSuccess = async (data: NewCardWizardResult) => {
+    if (!id || !startStep) return;
+    const input = buildCreateCardInputFromWizard(data, id, startStep.id);
+    await createCard(input);
+    void queryClient.invalidateQueries({
+      queryKey: ["nexflow", "cards", "count-by-step", id],
     });
-    void queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", "count-by-step", id] });
   };
 
   const handleSaveCardFields = async (
@@ -648,10 +641,10 @@ export function NexflowBoardPage() {
       />
 
       <main className={cn(
-        "flex-1 custom-scrollbar bg-neutral-50 dark:bg-neutral-950",
+        "flex-1 min-h-0 flex flex-col custom-scrollbar bg-neutral-50 dark:bg-neutral-950",
         viewMode === "list" 
           ? "overflow-y-auto overflow-x-hidden p-6 pb-8" 
-          : "overflow-x-auto overflow-y-hidden p-6"
+          : "overflow-hidden p-6"
       )}>
         {isLoadingPage ? (
           <div className="text-center text-neutral-500 py-12">Carregando...</div>
@@ -700,11 +693,13 @@ export function NexflowBoardPage() {
         )}
       </main>
 
-      <StartFormModal
+      <NewCardWizard
         open={isStartFormOpen}
-        step={startStep ?? null}
-        onOpenChange={(open) => setIsStartFormOpen(open)}
-        onSubmit={handleSubmitStartForm}
+        onOpenChange={setIsStartFormOpen}
+        onSuccess={handleWizardSuccess}
+        flowId={id ?? ""}
+        stepId={startStep?.id ?? ""}
+        clientId={flow?.clientId ?? ""}
       />
 
       <CardDetailsModal

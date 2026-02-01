@@ -81,7 +81,7 @@ export function KanbanColumn({
   }, [columnCards]);
 
   return (
-    <div className="w-80 shrink-0 flex flex-col h-full  ">
+    <div className="w-80 shrink-0 flex flex-col h-full min-h-0">
       <div
         className={cn(
           "rounded-t-2xl p-4 shadow-lg z-10 relative",
@@ -125,7 +125,7 @@ export function KanbanColumn({
       </div>
       <div
         className={cn(
-          "flex-1 border-x border-b rounded-b-2xl p-3 overflow-y-auto custom-scrollbar",
+          "flex-1 min-h-0 border-x border-b rounded-b-2xl p-3 overflow-y-auto custom-scrollbar",
           colorClasses.body,
           colorClasses.border
         )}

@@ -115,7 +115,7 @@ export function Sidebar() {
   if (hasOpportunitiesAccess) {
     menuItems.push({
       title: "Contatos",
-      icon: Sparkles,
+      icon: Users,
       href: "/crm/contacts",
     });
   }

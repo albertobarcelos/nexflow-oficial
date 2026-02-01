@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase, nexflowClient } from "@/lib/supabase";
-import { Indication } from "@/types/indications";
+import { Indication, type IndicationStatus } from "@/types/indications";
 import { NexflowCard } from "@/types/nexflow";
 import type { Json } from "@/types/database";
 
@@ -72,7 +72,6 @@ export function useIndicationDetails(indicationId: string | null | undefined) {
         cardType: card.card_type ?? 'onboarding',
         product: card.product ?? null,
         value: card.value ? Number(card.value) : null,
-        lead: card.lead ?? null,
       }));
 
       // Buscar informações do hunter
@@ -130,6 +129,7 @@ export function useIndicationDetails(indicationId: string | null | undefined) {
 
       return {
         ...indication,
+        status: indication.status as IndicationStatus,
         hunter: hunter,
         linkedCards,
         interactionHistory: interactionHistory.sort(

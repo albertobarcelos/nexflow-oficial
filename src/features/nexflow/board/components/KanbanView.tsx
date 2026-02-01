@@ -43,7 +43,9 @@ export function KanbanView({
 }: KanbanViewProps) {
   return (
     <>
-      <div className="flex h-full gap-6">
+      {/* Container com scroll horizontal apenas quando há muitas colunas; altura fixa na tela */}
+      <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar">
+        <div className="flex h-full gap-6 min-h-0">
         {steps.map((step) => {
           const columnData = cardsByStepPaginated[step.id];
           // totalCards = total em memória para esta etapa (o que realmente temos carregado)
@@ -75,6 +77,7 @@ export function KanbanView({
           );
         })}
         <div className="w-6 shrink-0"></div>
+        </div>
       </div>
 
       <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>

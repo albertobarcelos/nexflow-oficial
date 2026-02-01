@@ -27,8 +27,8 @@ export function ContactFloatingWidget({
         className="cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-2 px-3 py-1.5"
         onClick={() => setIsPopoverOpen(true)}
       >
-        <Sparkles className="h-3.5 w-3.5 text-primary" />
-        <span className="text-xs font-medium">Lead</span>
+        <User className="h-3.5 w-3.5 text-primary" />
+        <span className="text-xs font-medium">Contato</span>
       </Badge>
     </ContactPopover>
   );
