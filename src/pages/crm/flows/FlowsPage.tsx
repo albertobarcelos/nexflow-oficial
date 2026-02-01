@@ -267,6 +267,7 @@ export function FlowsPage() {
         }}
         flowId={flowToImport?.id || ""}
         flowName={flowToImport?.name || ""}
+        clientId={flowToImport?.clientId ?? undefined}
       />
 
       <AlertDialog

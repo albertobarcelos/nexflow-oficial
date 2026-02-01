@@ -28,6 +28,8 @@ interface ImportCardsCsvPayload {
         title?: string;
         value?: string;
         product?: string;
+        contact?: string;
+        company?: string;
         lead?: string;
         assignedTo?: string;
         assignedTeamId?: string;
@@ -48,6 +50,11 @@ interface ImportCardsCsvPayload {
       enabled: boolean;
       defaultFieldType?: "text" | "number" | "date";
       targetStepId?: string;
+    };
+    /** Quando definido, cada linha cria um card_item com este produto e valor da coluna indicada */
+    productValueToExistingItem?: {
+      itemId: string;
+      valueColumn: string;
     };
     batchSize?: number;
     skipHeaderRow?: boolean;
@@ -354,6 +361,8 @@ async function mapRowToCard(
     lead?: string | null;
     assigned_to?: string | null;
     assigned_team_id?: string | null;
+    company_id?: string | null;
+    contact_id?: string | null;
     created_by: string;
     position: number;
   };
@@ -465,6 +474,36 @@ async function mapRowToCard(
     }
   }
 
+  // Empresa: find/create web_companies e setar company_id no card
+  let companyId: string | null = null;
+  if (config.columnMapping.nativeFields?.company) {
+    const companyCol = config.columnMapping.nativeFields.company;
+    const companyName = row[companyCol]?.trim();
+    if (companyName) {
+      const company = await findOrCreateWebCompany(supabase, clientId, companyName);
+      companyId = company?.id ?? null;
+    }
+  }
+
+  // Contato: find/create contacts e setar contact_id no card (antes do insert)
+  let contactId: string | null = null;
+  if (config.columnMapping.nativeFields?.contact) {
+    const contactCol = config.columnMapping.nativeFields.contact;
+    const mainContactValue = row[contactCol]?.trim();
+    if (mainContactValue) {
+      const companyNameForContact = config.columnMapping.nativeFields?.company
+        ? row[config.columnMapping.nativeFields.company]?.trim()
+        : undefined;
+      const contact = await findOrCreateContact(
+        supabase,
+        clientId,
+        mainContactValue,
+        companyNameForContact
+      );
+      contactId = contact?.id ?? null;
+    }
+  }
+
   // Aplicar roteamento de step
   const stepId = routeToStep(row, config.stepRouting, config.defaultStepId);
 
@@ -480,6 +519,8 @@ async function mapRowToCard(
       lead: lead,
       assigned_to: assignedTo,
       assigned_team_id: assignedTeamId,
+      company_id: companyId,
+      contact_id: contactId,
       created_by: "", // Será preenchido depois
       position: 0, // Será calculado depois
     },
@@ -504,6 +545,142 @@ async function getMaxPositionForStep(
     .single();
 
   return data?.position || 0;
+}
+
+/**
+ * Busca ou cria web_item por nome e client_id.
+ * Se não existir, insere com item_type "product", billing_type "recurring".
+ * nativeFields.product implica criar/buscar web_items e inserir card_items.
+ */
+async function findOrCreateWebItem(
+  supabase: ReturnType<typeof createClient>,
+  clientId: string,
+  productName: string,
+  price?: number | null
+): Promise<{ id: string; name: string; price: number | null } | null> {
+  const name = productName.trim();
+  if (!name) return null;
+
+  const nameLower = name.toLowerCase();
+  const { data: existing } = await supabase
+    .from("web_items")
+    .select("id, name, price")
+    .eq("client_id", clientId)
+    .ilike("name", nameLower)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    return {
+      id: existing.id,
+      name: existing.name,
+      price: existing.price ?? null,
+    };
+  }
+
+  const { data: created, error } = await supabase
+    .from("web_items")
+    .insert({
+      client_id: clientId,
+      name: name,
+      item_type: "product",
+      billing_type: "recurring",
+      price: price ?? null,
+      is_active: true,
+    })
+    .select("id, name, price")
+    .single();
+
+  if (error || !created) {
+    console.error("Erro ao criar web_item:", error);
+    return null;
+  }
+  return {
+    id: created.id,
+    name: created.name,
+    price: created.price ?? null,
+  };
+}
+
+/**
+ * Busca ou cria contact por main_contact e client_id.
+ * Unicidade: client_id + main_contact (trim, case-insensitive).
+ * nativeFields.contact implica find/create contacts e insert em card_contacts.
+ */
+async function findOrCreateContact(
+  supabase: ReturnType<typeof createClient>,
+  clientId: string,
+  mainContactValue: string,
+  clientNameValue?: string
+): Promise<{ id: string } | null> {
+  const mainContact = mainContactValue.trim();
+  if (!mainContact) return null;
+
+  const { data: existing } = await supabase
+    .from("contacts")
+    .select("id")
+    .eq("client_id", clientId)
+    .ilike("main_contact", mainContact)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return { id: existing.id };
+
+  const clientName = (clientNameValue ?? mainContact).trim() || mainContact;
+  const { data: created, error } = await supabase
+    .from("contacts")
+    .insert({
+      client_id: clientId,
+      main_contact: mainContact,
+      client_name: clientName,
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) {
+    console.error("Erro ao criar contact:", error);
+    return null;
+  }
+  return { id: created.id };
+}
+
+/**
+ * Busca ou cria web_company por name e client_id.
+ * nativeFields.company implica find/create web_companies e setar cards.company_id.
+ */
+async function findOrCreateWebCompany(
+  supabase: ReturnType<typeof createClient>,
+  clientId: string,
+  companyName: string
+): Promise<{ id: string } | null> {
+  const name = companyName.trim();
+  if (!name) return null;
+
+  const { data: existing } = await supabase
+    .from("web_companies")
+    .select("id")
+    .eq("client_id", clientId)
+    .ilike("name", name)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) return { id: existing.id };
+
+  const { data: created, error } = await supabase
+    .from("web_companies")
+    .insert({
+      client_id: clientId,
+      name: name,
+      company_type: "customer",
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) {
+    console.error("Erro ao criar web_company:", error);
+    return null;
+  }
+  return { id: created.id };
 }
 
 Deno.serve(async (req: Request) => {
@@ -849,10 +1026,34 @@ Deno.serve(async (req: Request) => {
 
     // Processar cada linha do CSV
     const batchSize = config.batchSize || DEFAULT_BATCH_SIZE;
-    const cardsByStep = new Map<string, Array<{
-      card: any;
-      rowNumber: number;
-    }>>();
+    const productColumn = config.columnMapping.nativeFields?.product;
+    const valueColumn = config.columnMapping.nativeFields?.value;
+    const contactColumn = config.columnMapping.nativeFields?.contact;
+    const companyColumn = config.columnMapping.nativeFields?.company;
+    const productValueToExisting = config.productValueToExistingItem;
+
+    // Se modo "valor para produto existente", buscar nome do item uma vez
+    let productValueExistingItemInfo: { id: string; name: string; price: number | null } | null = null;
+    if (productValueToExisting?.itemId) {
+      const { data: existingItem } = await supabase
+        .from("web_items")
+        .select("id, name, price")
+        .eq("id", productValueToExisting.itemId)
+        .eq("client_id", clientId)
+        .single();
+      if (existingItem) {
+        productValueExistingItemInfo = {
+          id: existingItem.id,
+          name: existingItem.name,
+          price: existingItem.price ?? null,
+        };
+      }
+    }
+
+    const cardsByStep = new Map<
+      string,
+      Array<{ card: Record<string, unknown>; rowNumber: number; row: Record<string, string> }>
+    >();
 
     for (let i = 0; i < csvRows.length; i++) {
       const row = csvRows[i];
@@ -888,11 +1089,11 @@ Deno.serve(async (req: Request) => {
         // Adicionar created_by
         card.created_by = userId;
 
-        // Agrupar por step_id para batch insert
+        // Agrupar por step_id para batch insert (guardar row para criar card_items depois)
         if (!cardsByStep.has(stepId)) {
           cardsByStep.set(stepId, []);
         }
-        cardsByStep.get(stepId)!.push({ card, rowNumber });
+        cardsByStep.get(stepId)!.push({ card, rowNumber, row });
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
         errors.push({
@@ -949,28 +1150,105 @@ Deno.serve(async (req: Request) => {
               });
             }
           } else if (insertedCards) {
-            // Sucesso - atualizar resultados
+            // Sucesso - atualizar resultados e criar card_items quando produto mapeado
             for (let j = 0; j < batch.length; j++) {
-              const cardId = insertedCards[j]?.id;
-              if (cardId) {
-                results.push({
-                  rowNumber: batch[j].rowNumber,
-                  status: "success",
-                  cardId,
-                  stepId,
-                });
-              } else {
+              const cardId = insertedCards[j]?.id as string | undefined;
+              const item = batch[j];
+              if (!cardId) {
                 errors.push({
-                  rowNumber: batch[j].rowNumber,
+                  rowNumber: item.rowNumber,
                   error: "Card inserido mas ID não retornado",
                   data: {},
                 });
                 results.push({
-                  rowNumber: batch[j].rowNumber,
+                  rowNumber: item.rowNumber,
                   status: "error",
                   error: "Card inserido mas ID não retornado",
                   stepId,
                 });
+                continue;
+              }
+              results.push({
+                rowNumber: item.rowNumber,
+                status: "success",
+                cardId,
+                stepId,
+              });
+
+              // Modo "produto por nome": coluna produto mapeada e linha tem valor → buscar/criar web_item e inserir card_item
+              if (productColumn && item.row[productColumn]?.trim()) {
+                const productName = item.row[productColumn].trim();
+                let unitPrice: number | null = null;
+                if (valueColumn && item.row[valueColumn]) {
+                  const parsed = parseFloat(
+                    item.row[valueColumn].replace(/[^\d.,-]/g, "").replace(",", ".")
+                  );
+                  if (!isNaN(parsed)) unitPrice = parsed;
+                }
+                const webItem = await findOrCreateWebItem(
+                  supabase,
+                  clientId,
+                  productName,
+                  unitPrice ?? undefined
+                );
+                if (webItem) {
+                  const price = unitPrice ?? webItem.price ?? 0;
+                  await supabase.from("card_items").insert({
+                    card_id: cardId,
+                    client_id: clientId,
+                    item_id: webItem.id,
+                    item_name: webItem.name,
+                    unit_price: price,
+                    total_price: price,
+                    quantity: 1,
+                  });
+                }
+              }
+
+              // Modo "valor para produto existente": produto fixo + coluna com valor
+              if (
+                productValueToExisting &&
+                productValueExistingItemInfo &&
+                productValueToExisting.valueColumn
+              ) {
+                const valueStr = item.row[productValueToExisting.valueColumn];
+                let unitPrice = productValueExistingItemInfo.price ?? 0;
+                if (valueStr) {
+                  const parsed = parseFloat(
+                    valueStr.replace(/[^\d.,-]/g, "").replace(",", ".")
+                  );
+                  if (!isNaN(parsed)) unitPrice = parsed;
+                }
+                await supabase.from("card_items").insert({
+                  card_id: cardId,
+                  client_id: clientId,
+                  item_id: productValueExistingItemInfo.id,
+                  item_name: productValueExistingItemInfo.name,
+                  unit_price: unitPrice,
+                  total_price: unitPrice,
+                  quantity: 1,
+                });
+              }
+
+              // Contato: insert em card_contacts (contact_id já está no card; N:N mantido aqui)
+              if (contactColumn && item.row[contactColumn]?.trim()) {
+                const mainContactValue = item.row[contactColumn].trim();
+                const clientNameValue = companyColumn
+                  ? item.row[companyColumn]?.trim()
+                  : undefined;
+                const contact = await findOrCreateContact(
+                  supabase,
+                  clientId,
+                  mainContactValue,
+                  clientNameValue
+                );
+                if (contact) {
+                  await supabase.from("card_contacts").insert({
+                    card_id: cardId,
+                    contact_id: contact.id,
+                    client_id: clientId,
+                  });
+                }
               }
             }
           }
