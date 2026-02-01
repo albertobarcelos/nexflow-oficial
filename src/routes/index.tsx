@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from './ProtectedRoute';
 import { SettingsLayout } from "@/layouts/SettingsLayout";
 import AdminLayout from "@/layouts/AdminLayout";
@@ -10,36 +10,46 @@ import { ResetPasswordPage } from "@/pages/auth/crm/ResetPasswordPage";
 import { LoginPage as AdminLoginPage } from "@/pages/auth/admin/LoginPage";
 import { LoginPage as ResellerLoginPage } from "@/pages/auth/reseller/LoginPage";
 import { Dashboard } from "@/pages/crm/Dashboard";
-import FlowPage from "@/pages/crm/funnels/FlowPage";
 import { FlowBuilderPage } from "@/pages/crm/flows/FlowBuilderPage";
+import { NewNexflowPage } from "@/pages/crm/flows/NewNexflowPage";
+import { NexflowBuilderPage } from "@/pages/crm/flows/NexflowBuilderPage";
+import { NexflowBoardPage } from "@/pages/crm/flows/NexflowBoardPage";
 import { FlowViewsPage } from "@/pages/crm/flows/FlowViewsPage";
-import OpportunityDetails from "@/pages/crm/OpportunityDetails";
-import { CompaniesPage } from "@/pages/crm/companies/CompaniesPage";
-import { CompanyDetailsPage } from "@/features/companies/pages/CompanyDetailsPage";
-import { PeoplePage } from "@/pages/crm/people/PeoplePage";
-import { EditPersonPage } from "@/pages/crm/people/EditPersonPage";
+import { FlowsPage } from "@/pages/crm/flows/FlowsPage";
+import { ProcessBuilderPage } from "@/pages/crm/flows/ProcessBuilderPage";
+import ContactDetails from "@/pages/crm/ContactDetails";
+
+
+
 // AIDEV-NOTE: Removido EntitiesSettings - sistema simplificado para focar apenas em deals
 import { GeneralSettings } from "@/components/crm/settings/general/GeneralSettings";
 import { TeamSettings } from "@/components/crm/settings/TeamSettings";
-import { AutomationSettings } from "@/components/crm/settings/AutomationSettings";
-import { CustomizationSettings } from "@/components/crm/settings/CustomizationSettings";
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
+import { ProfileSettings } from "@/components/crm/settings/ProfileSettings";
 import { PipelineSettings } from "@/components/crm/settings/PipelineSettings";
-import { CustomFieldsSettings } from "@/components/crm/settings/CustomFieldsSettings";
-import Tasks from "@/pages/crm/tasks/Tasks";
 import { Home } from "@/pages/crm/home/Home";
 import NewFlowSettings from "@/components/crm/flows/NewFlowSettings";
 import AccountProfilePage from "@/pages/crm/account/AccountProfile.tsx";
-import { Overview } from "@/pages/crm/overview/Overview";
+import { ContactsPage } from "@/pages/crm/contacts/ContactsPage";
+import ContactsList from "@/pages/crm/ContactsList";
+import { ContactFormPage } from "@/pages/public/ContactForm";
+import { FormsManagementPage } from "@/pages/crm/forms/FormsManagementPage";
+import { CRMConfigurationsLayout } from "@/layouts/CRMConfigurationsLayout";
+import { UsersPage } from "@/pages/crm/configurations/UsersPage";
+import { TeamsPage } from "@/pages/crm/configurations/TeamsPage";
+import { UnitsPage } from "@/pages/crm/configurations/UnitsPage";
+import { ItemsPage } from "@/pages/crm/configurations/ItemsPage";
+import { CompanyRelationsPage } from "@/pages/crm/companies/CompanyRelationsPage";
 
 // Páginas temporárias
 // const DealsPage = () => <div className="p-6"><h1 className="text-2xl font-bold">Negócios</h1><p>Página de negócios em desenvolvimento</p></div>;
 
-// Páginas de Admin - Usando placeholders temporários
-const AdminDashboard = () => <div>Admin Dashboard - Em desenvolvimento</div>;
-const AdminClients = () => <div>Admin Clients - Em desenvolvimento</div>;
+// Páginas de Admin
+import Management from "@/pages/admin/Management";
+import { AdminDashboard } from "@/pages/admin/AdminDashboard";
+import { AdminClients } from "@/pages/admin/AdminClients";
+import { AdminSettings } from "@/pages/admin/AdminSettings";
 const AdminResellers = () => <div>Admin Resellers - Em desenvolvimento</div>;
-const AdminSettings = () => <div>Admin Settings - Em desenvolvimento</div>;
 
 // Páginas de Revendedor - Usando placeholders temporários  
 const ResellerDashboard = () => <div>Reseller Dashboard - Em desenvolvimento</div>;
@@ -50,10 +60,19 @@ const ResellerReports = () => <div>Reseller Reports - Em desenvolvimento</div>;
 const ResellerSettings = () => <div>Reseller Settings - Em desenvolvimento</div>;
 const ResellerProfile = () => <div>Reseller Profile - Em desenvolvimento</div>;
 
-export const router = createBrowserRouter([
+export const router = createBrowserRouter(
+  [
   {
     path: "/",
     element: <SelectPortal />,
+  },
+  {
+    path: "/form/:slug",
+    element: <ContactFormPage />,
+  },
+  {
+    path: "/form/internal/:slug",
+    element: <ContactFormPage />,
   },
   {
     path: "/crm/login",
@@ -84,16 +103,24 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "overview",
-        element: <Overview />,
+        path: "flows",
+        element: <FlowsPage />,
       },
       {
-        path: "tasks",
-        element: <Tasks />,
+        path: "flows/new",
+        element: <NewNexflowPage />,
       },
       {
-        path: "flow/:id",
-        element: <FlowPage />,
+        path: "flows/:id/builder",
+        element: <NexflowBuilderPage />,
+      },
+      {
+        path: "flows/:id/board",
+        element: <NexflowBoardPage />,
+      },
+      {
+        path: "flows/:id/processes",
+        element: <ProcessBuilderPage />,
       },
       {
         path: "flows/builder",
@@ -104,29 +131,63 @@ export const router = createBrowserRouter([
         element: <FlowViewsPage />,
       },
       {
-        path: "flow/:flowId/opportunities/:id",
-        element: <OpportunityDetails />,
+        path: "flow/:flowId/contacts/:id",
+        element: <ContactDetails />,
       },
       {
-        path: "companies",
-        element: <CompaniesPage />,
+        path: "contacts",
+        element: <ContactsPage />,
       },
       {
-        path: "companies/:id",
-        element: <CompanyDetailsPage />,
+        path: "contacts/list",
+        element: <ContactsList />,
+      },
+      {
+        path: "forms",
+        element: <FormsManagementPage />,
       },
       {
         path: "people",
-        element: <PeoplePage />,
+        element: <Navigate to="/crm/contacts" replace />,
       },
       {
-        path: "people/:id",
-        element: <EditPersonPage />,
+        path: "companies",
+        element: <Navigate to="/crm/companies/relations" replace />,
+      },
+      {
+        path: "companies/relations",
+        element: <CompanyRelationsPage />,
       },
       // AIDEV-NOTE: Rota de deals removida - funcionalidade desnecessária
       {
         path: "account/profile",
         element: <AccountProfilePage />,
+      },
+      {
+        path: "configurations",
+        element: <CRMConfigurationsLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/crm/configurations/users" replace />,
+          },
+          {
+            path: "users",
+            element: <UsersPage />,
+          },
+          {
+            path: "teams",
+            element: <TeamsPage />,
+          },
+          {
+            path: "units",
+            element: <UnitsPage />,
+          },
+          {
+            path: "items",
+            element: <ItemsPage />,
+          },
+        ],
       },
       {
         path: "settings",
@@ -137,30 +198,17 @@ export const router = createBrowserRouter([
             element: <GeneralSettings />,
           },
           {
-            path: "team",
-            element: <TeamSettings />,
-          },
-          {
-            path: "automation",
-            element: <AutomationSettings />,
-          },
-          {
-            path: "customization",
-            element: <CustomizationSettings />,
-          },
-          {
             path: "notifications",
             element: <NotificationSettings />,
           },
           {
-            path: "pipeline",
-            element: <PipelineSettings />,
+            path: "team",
+            element: <TeamSettings />,
           },
           {
-            path: "custom-fields",
-            element: <CustomFieldsSettings />,
+            path: "profile",
+            element: <ProfileSettings />,
           },
-          // AIDEV-NOTE: Removido rota de EntitiesSettings - sistema simplificado para focar apenas em deals
         ],
       },
       {
@@ -193,6 +241,10 @@ export const router = createBrowserRouter([
       {
         path: "resellers",
         element: <AdminResellers />,
+      },
+      {
+        path: "management",
+        element: <Management />,
       },
       {
         path: "settings",
@@ -238,9 +290,12 @@ export const router = createBrowserRouter([
       },
     ],
   },
-], {
-  future: {
-    v7_startTransition: true,
-    v7_relativeSplatPath: true,
-  },
-});
+],
+  {
+    future: {
+      v7_relativeSplatPath: true,
+    },
+  }
+);
+
+

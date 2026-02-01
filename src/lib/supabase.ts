@@ -27,6 +27,12 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
   },
 });
 
+/**
+ * @deprecated Schema nexflow foi migrado para public. Use supabase diretamente.
+ * Helper mantido apenas para compatibilidade temporária.
+ */
+export const nexflowClient = () => supabase;
+
 // Log da inicialização
 logger.info('🔗 Cliente Supabase inicializado', {
   url: supabaseUrl,
@@ -130,7 +136,7 @@ export const getCompaniesWithRelations = async () => {
       *,
       city:web_cities(name),
       state:web_states(name, uf),
-      creator:core_client_users(first_name, last_name, email)
+      creator:core_client_users(name, surname, email)
     `)
     .order('created_at', { ascending: false });
 };
@@ -183,7 +189,7 @@ export const getTasksWithRelations = async () => {
  */
 export async function getCurrentClientId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) {
     logger.warn('getCurrentClientId: Usuário não autenticado.');
     return null;
@@ -197,13 +203,13 @@ export async function getCurrentClientId(): Promise<string | null> {
 
   if (error) {
     logger.error('Erro ao buscar client_id:', { userId: user.id, error });
-    logRLSInstructions('core_client_users');
+    logRLSInstructions();
     return null;
   }
   
   if (!clientUser) {
     logger.warn('getCurrentClientId: Nenhum registro encontrado em core_client_users para o usuário.', { userId: user.id });
-    logRLSInstructions('core_client_users');
+    logRLSInstructions();
     return null;
   }
 
@@ -294,9 +300,4 @@ export {
   getCurrentUserWithClient as getRLSUserWithClient,
   checkUserPermission as checkRLSPermission,
   logRLSInstructions
-} from './supabase/rls';
-
-// Log das instruções RLS na inicialização (desenvolvimento)
-if (appConfig.app.debugMode) {
-  logRLSInstructions();
-} 
+} from './supabase/rls'; 

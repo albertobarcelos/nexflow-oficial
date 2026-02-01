@@ -26,7 +26,7 @@ import { GripVertical, Pencil, Trash2, AlignEndHorizontal } from "lucide-react";
 import NewStage, { Stage } from "./NewStage";
 import ChooseBase from "./ChooseBase";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserData } from "@/lib/auth";
 import { toast } from "sonner";
@@ -63,7 +63,7 @@ function SortableStageRow({
     <tr
       ref={setNodeRef}
       style={style}
-      className={`border-b last:border-b-0 transition-colors ${isDragging ? 'bg-blue-50' : 'hover:bg-[#f1f5f9]'}`}
+      className={`border-b last:border-b-0 transition ${isDragging ? "bg-blue-50 shadow-sm" : ""}`}
     >
       <td className="p-3 align-middle cursor-grab" {...attributes} {...listeners}>
         <GripVertical className="w-4 h-4 text-muted-foreground" />
@@ -123,6 +123,7 @@ const NewFlowSettings: React.FC = () => {
     const [selectedBases, setSelectedBases] = useState<string[]>([]);
     const [confirmBase, setConfirmBase] = useState<string | null>(null);
     const [confirmStageIdx, setConfirmStageIdx] = useState<number | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Configuração dos sensores para @dnd-kit
     const sensors = useSensors(
@@ -185,50 +186,165 @@ const NewFlowSettings: React.FC = () => {
     };
 
     const handleSaveFlow = async () => {
+        // Prevenir múltiplos cliques
+        if (isSaving) {
+            console.log("⏳ Salvamento já em andamento, ignorando clique...");
+            return;
+        }
+
+        // Validação inicial
+        if (!flowTitle || !flowTitle.trim()) {
+            toast.error("O nome do flow é obrigatório");
+            return;
+        }
+
+        setIsSaving(true);
         try {
+
             const user = await getCurrentUserData();
-            if (!user?.client_id || !user?.id) throw new Error("Usuário inválido");
+            if (!user?.client_id || !user?.id) {
+                console.error("❌ Erro: Usuário inválido", { user });
+                throw new Error("Usuário inválido. Verifique se está autenticado.");
+            }
+
+            // Preparar payload do flow - remover campos undefined
+            const flowName = capitalize(flowTitle.trim());
+            const flowPayload: {
+                client_id: string;
+                name: string;
+                created_by: string;
+                description?: string | null;
+            } = {
+                client_id: user.client_id,
+                name: flowName,
+                created_by: user.id,
+            };
+
+            // Adicionar description apenas se existir
+            // (assumindo que description é opcional na tabela)
+
+            console.log("📝 Tentando criar flow com payload:", {
+                client_id: flowPayload.client_id,
+                name: flowPayload.name,
+                created_by: flowPayload.created_by,
+                stagesCount: stages.length,
+            });
 
             // 1. Criar o flow
             const { data: flow, error: flowError } = await supabase
                 .from("web_flows")
-                .insert({ 
-                    client_id: user.client_id, 
-                    name: capitalize(flowTitle),
-                    created_by: user.id
-                })
+                .insert(flowPayload)
                 .select()
                 .single();
-            if (flowError || !flow) throw flowError || new Error("Erro ao criar flow");
+
+            if (flowError) {
+                console.error("❌ Erro completo ao salvar flow:", {
+                    error: flowError,
+                    errorCode: flowError.code,
+                    errorMessage: flowError.message,
+                    errorDetails: flowError.details,
+                    errorHint: flowError.hint,
+                    flowData: {
+                        client_id: flowPayload.client_id,
+                        name: flowPayload.name,
+                        created_by: flowPayload.created_by,
+                    },
+                    stagesCount: stages.length,
+                });
+                throw flowError;
+            }
+
+            if (!flow) {
+                console.error("❌ Flow não foi criado - resposta vazia");
+                throw new Error("Erro ao criar flow: resposta vazia do servidor");
+            }
+
+            console.log("✅ Flow criado com sucesso:", { flowId: flow.id, flowName: flow.name });
 
             // 2. Criar as etapas
             if (stages.length > 0) {
-                const stageInserts = stages.map((stage, idx) => ({
+                const validStages = stages.filter((stage, idx) => {
+                    const hasName = Boolean(stage.name?.trim());
+                    if (!hasName) {
+                        console.warn(`⚠️ Etapa ${idx + 1} sem nome, pulando...`);
+                    }
+                    return hasName;
+                });
+
+                const stageInserts = validStages.map((stage, idx) => ({
                     client_id: user.client_id,
                     flow_id: flow.id,
-                    name: stage.name,
-                    description: stage.description,
-                    color: stage.color,
+                    name: stage.name!.trim(),
+                    description: stage.description?.trim() || null,
+                    color: stage.color || "#6B7280",
                     order_index: idx + 1,
+                    is_final_stage: false,
+                    stage_type: "active" as const,
                 }));
-                
-                // Usar web_funnel_stages que existe na tipagem
-                const { error: stagesError } = await supabase
-                    .from("web_funnel_stages")
-                    .insert(stageInserts);
-                
-                if (stagesError) {
-                    console.warn("Erro ao criar etapas:", stagesError);
-                    // Continua mesmo se houver erro nas etapas
+
+                if (stageInserts.length > 0) {
+                    console.log(`📝 Criando ${stageInserts.length} etapa(s)...`);
+
+                    // Usar web_flow_stages (correção: estava usando web_funnel_stages)
+                    const { error: stagesError } = await supabase
+                        .from("web_flow_stages")
+                        .insert(stageInserts);
+
+                    if (stagesError) {
+                        console.error("❌ Erro ao criar etapas:", {
+                            error: stagesError,
+                            errorCode: stagesError.code,
+                            errorMessage: stagesError.message,
+                            errorDetails: stagesError.details,
+                            stagesCount: stageInserts.length,
+                        });
+                        // Continua mesmo se houver erro nas etapas, mas avisa o usuário
+                        toast.warning("Flow criado, mas houve erro ao criar algumas etapas");
+                    } else {
+                        console.log("✅ Etapas criadas com sucesso");
+                    }
                 }
             }
 
             toast.success("Flow criado com sucesso!");
             resetFlow();
-            navigate(`/crm/flow/${flow.id}`);
+            navigate(`/crm/flows/${flow.id}/board`);
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : String(err);
-            toast.error(message || "Erro ao salvar flow");
+            // Tratamento detalhado de erros
+            let errorMessage = "Erro ao salvar flow";
+            
+            if (err instanceof Error) {
+                errorMessage = err.message;
+                console.error("❌ Erro capturado:", {
+                    message: err.message,
+                    name: err.name,
+                    stack: err.stack,
+                });
+            } else if (typeof err === "object" && err !== null) {
+                // Erro do Supabase
+                const supabaseError = err as any;
+                console.error("❌ Erro do Supabase:", {
+                    code: supabaseError.code,
+                    message: supabaseError.message,
+                    details: supabaseError.details,
+                    hint: supabaseError.hint,
+                });
+                
+                // Mensagens mais específicas baseadas no código de erro
+                if (supabaseError.code === "23505") {
+                    errorMessage = "Já existe um flow com este nome";
+                } else if (supabaseError.code === "42501") {
+                    errorMessage = "Sem permissão para criar flows. Verifique suas permissões.";
+                } else if (supabaseError.message) {
+                    errorMessage = supabaseError.message;
+                }
+            } else {
+                console.error("❌ Erro desconhecido:", err);
+            }
+
+            toast.error(errorMessage);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -243,7 +359,17 @@ const NewFlowSettings: React.FC = () => {
                     className="bg-orange-500 text-white border border-orange-500 hover:bg-white hover:text-orange-600 hover:border-orange-500 transition-colors"
                     size="sm"
                     onClick={handleSaveFlow}
-                >Salvar</Button>
+                    disabled={isSaving || !flowTitle?.trim() || !stages.some((s) => s.name?.trim())}
+                >
+                    {isSaving ? (
+                        <>
+                            <span className="animate-spin mr-2">⏳</span>
+                            Salvando...
+                        </>
+                    ) : (
+                        "Salvar"
+                    )}
+                </Button>
             </div>
             <div className="mt-1 text-[22px] ml-6 font-semibold text-orange-500 italic">{capitalize(flowTitle)}</div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
@@ -349,8 +475,11 @@ const NewFlowSettings: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Remover base de dados?</DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja remover a base <span className="font-semibold text-blue-600">{confirmBase}</span> deste Flow?
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="py-2">Tem certeza que deseja remover a base <span className="font-semibold text-blue-600">{confirmBase}</span> deste Flow?</div>
+                    <div className="py-2">Esta ação não pode ser desfeita.</div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setConfirmBase(null)}>Cancelar</Button>
                         <Button variant="destructive" onClick={handleConfirmDeleteBase}>Remover</Button>
@@ -361,8 +490,10 @@ const NewFlowSettings: React.FC = () => {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Remover etapa?</DialogTitle>
+                        <DialogDescription>
+                            Tem certeza que deseja remover esta etapa do Flow? Esta ação não pode ser desfeita.
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="py-2">Tem certeza que deseja remover esta etapa do Flow?</div>
                     <DialogFooter>
                         <Button variant="ghost" onClick={() => setConfirmStageIdx(null)}>Cancelar</Button>
                         <Button variant="destructive" onClick={() => confirmStageIdx !== null && handleDeleteStage(confirmStageIdx)}>Remover</Button>

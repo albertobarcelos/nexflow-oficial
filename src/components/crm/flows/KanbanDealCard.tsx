@@ -127,13 +127,13 @@ export const KanbanDealCard = memo(function KanbanDealCard({
 
         return (
             <div className="flex items-center gap-2 mt-1">
-                <div className="flex-1 bg-slate-200 rounded-full h-1.5">
+                <div className="flex-1 bg-neutral-200 rounded-full h-1.5">
                     <div 
                         className={`h-1.5 rounded-full transition-all duration-300 ${getColorClass(probability)}`}
                         style={{ width: `${probability}%` }}
                     />
                 </div>
-                <span className="text-xs text-slate-500 font-medium">{probability}%</span>
+                <span className="text-xs text-neutral-500 font-medium">{probability}%</span>
             </div>
         );
     }, []);
@@ -157,10 +157,10 @@ export const KanbanDealCard = memo(function KanbanDealCard({
 
     return (
         <div
-            className={`group relative bg-white rounded-xl border border-slate-200/60 shadow-sm transition-all duration-200 
+            className={`group relative bg-white rounded-xl border border-neutral-200/60 shadow-sm transition-all duration-200 
                 ${isDragging
                     ? 'shadow-lg border-blue-300 bg-blue-50/20'
-                    : 'hover:shadow-md hover:border-slate-300/80'
+                    : 'hover:shadow-md hover:border-neutral-300/80'
                 } 
                 ${!isMobile ? 'mb-2' : 'mb-1.5'}
                 `}
@@ -174,7 +174,7 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                     <div className="relative flex-shrink-0">
                         <img
                             src={responsible.avatar}
-                            className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-100 shadow-sm"
+                            className="w-8 h-8 rounded-full object-cover ring-2 ring-neutral-100 shadow-sm"
                             alt={responsible.name}
                         />
 
@@ -185,8 +185,8 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                         <div className="flex justify-between">
                             <div className="flex gap-2">
                                 {/* Título do deal */}
-                                <h4 className="font-semibold text-slate-800 text-sm leading-tight">
-                                    {deal.title} <span className="text-slate-400 ml-1 text-[10px]">{new Intl.NumberFormat("pt-BR", {
+                                <h4 className="font-semibold text-neutral-800 text-sm leading-tight">
+                                    {deal.title} <span className="text-neutral-400 ml-1 text-[10px]">{new Intl.NumberFormat("pt-BR", {
                                         style: "currency",
                                         currency: "BRL",
                                         notation: "compact",
@@ -243,13 +243,13 @@ export const KanbanDealCard = memo(function KanbanDealCard({
 
                 {/* Informações da empresa/pessoa */}
                 <div className="flex items-center gap-2 mb-2">
-                    <User className="w-3 h-3 text-slate-400" />
-                    <span className="text-xs text-slate-600 truncate">
+                    <User className="w-3 h-3 text-neutral-400" />
+                    <span className="text-xs text-neutral-600 truncate">
                         {deal.companies?.name || deal.people?.name || "Sem empresa/pessoa"}
                     </span>
                     {/* 🆕 INDICADOR DE TIPO DE ENTIDADE */}
                     {deal.entity_type && (
-                        <Badge variant="outline" className="text-[10px] px-1 py-0 border-slate-300">
+                        <Badge variant="outline" className="text-[10px] px-1 py-0 border-neutral-300">
                             {deal.entity_type === 'company' ? 'Empresa' : 
                              deal.entity_type === 'person' ? 'Pessoa' : 'Parceiro'}
                         </Badge>
@@ -269,7 +269,7 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <div className="text-xs text-slate-500 truncate cursor-help border-b border-dashed border-slate-300">
+                                    <div className="text-xs text-neutral-500 truncate cursor-help border-b border-dashed border-neutral-300">
                                         {deal.description.length > 50 
                                             ? `${deal.description.substring(0, 50)}...` 
                                             : deal.description}
@@ -331,10 +331,10 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            className="h-6 w-6 p-0 hover:bg-neutral-100"
                                             onClick={(e) => handleActionClick(e, 'call')}
                                         >
-                                            <Phone className="h-3 w-3 text-slate-500" />
+                                            <Phone className="h-3 w-3 text-neutral-500" />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>Ligar</TooltipContent>
@@ -347,10 +347,10 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            className="h-6 w-6 p-0 hover:bg-neutral-100"
                                             onClick={(e) => handleActionClick(e, 'email')}
                                         >
-                                            <Mail className="h-3 w-3 text-slate-500" />
+                                            <Mail className="h-3 w-3 text-neutral-500" />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>E-mail</TooltipContent>
@@ -363,10 +363,10 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-6 w-6 p-0 hover:bg-slate-100"
+                                            className="h-6 w-6 p-0 hover:bg-neutral-100"
                                             onClick={(e) => handleActionClick(e, 'message')}
                                         >
-                                            <MessageSquare className="h-3 w-3 text-slate-500" />
+                                            <MessageSquare className="h-3 w-3 text-neutral-500" />
                                         </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>Mensagem</TooltipContent>
@@ -377,10 +377,10 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                 </div>
 
                 {/* Timestamp e informações adicionais */}
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-neutral-100">
                     <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-slate-400" />
-                        <span className="text-xs text-slate-500">
+                        <Clock className="w-3 h-3 text-neutral-400" />
+                        <span className="text-xs text-neutral-500">
                             {deal.last_activity && deal.last_activity !== deal.created_at 
                                 ? `Atividade: ${formatDistanceToNow(new Date(deal.last_activity), { addSuffix: true, locale: ptBR })}`
                                 : timeAgo
@@ -408,8 +408,8 @@ export const KanbanDealCard = memo(function KanbanDealCard({
                 {/* 🆕 INFORMAÇÕES DO RESPONSÁVEL */}
                 <div className="flex items-center justify-between mt-1">
                     <div className="flex items-center gap-1">
-                        <span className="text-xs text-slate-400">Por:</span>
-                        <span className="text-xs text-slate-600 font-medium">{responsible.name}</span>
+                        <span className="text-xs text-neutral-400">Por:</span>
+                        <span className="text-xs text-neutral-600 font-medium">{responsible.name}</span>
                     </div>
                     
                     {/* 🆕 NOTAS INDICATOR */}

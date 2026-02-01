@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Settings, Users, Bell, Palette, Database, Workflow, Zap, Sliders } from "lucide-react";
+import { ArrowLeft, Settings, Users, Bell, User } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function SettingsLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,8 +33,6 @@ export function SettingsLayout() {
           .select(`
             id,
             client_id,
-            first_name,
-            last_name,
             email,
             role,
             is_active,
@@ -78,62 +78,38 @@ export function SettingsLayout() {
       exact: true,
     },
     {
-      title: "Equipe",
-      description: "Gerenciar usuários e permissões",
-      icon: Users,
-      path: "/crm/settings/team",
-    },
-    {
-      title: "Automação",
-      description: "Configurar automações e workflows",
-      icon: Workflow,
-      path: "/crm/settings/automation",
-    },
-    {
-      title: "Personalização",
-      description: "Personalizar aparência e layout",
-      icon: Palette,
-      path: "/crm/settings/customization",
-    },
-    {
       title: "Notificações",
       description: "Configurar alertas e notificações",
       icon: Bell,
       path: "/crm/settings/notifications",
     },
     {
-      title: "Pipeline",
-      description: "Configurar funis e etapas",
-      icon: Zap,
-      path: "/crm/settings/pipeline",
+      title: "Equipe",
+      description: "Visualizar equipes que você faz parte",
+      icon: Users,
+      path: "/crm/settings/team",
     },
     {
-      title: "Campos Personalizados",
-      description: "Criar e gerenciar campos customizados",
-      icon: Sliders,
-      path: "/crm/settings/custom-fields",
-    },
-    {
-      title: "Entidades",
-      description: "Configurar entidades do sistema",
-      icon: Database,
-      path: "/crm/settings/entities",
+      title: "Perfil",
+      description: "Editar avatar, nome e senha",
+      icon: User,
+      path: "/crm/settings/profile",
     },
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-600">Carregando configurações...</span>
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-muted-foreground">Carregando configurações...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
@@ -147,8 +123,8 @@ export function SettingsLayout() {
               Voltar ao Dashboard
             </Button>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Configurações</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
+          <p className="text-muted-foreground mt-1">
             Gerencie as configurações do seu CRM
           </p>
         </div>
@@ -165,22 +141,37 @@ export function SettingsLayout() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="space-y-1">
-                  {settingsMenuItems.map((item) => (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      className="w-full justify-start h-auto p-4 text-left"
-                      onClick={() => navigate(item.path)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <item.icon className="w-5 h-5 mt-0.5 text-gray-500" />
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{item.title}</div>
-                          <div className="text-sm text-gray-500">{item.description}</div>
+                  {settingsMenuItems.map((item) => {
+                    const isActive = item.exact 
+                      ? location.pathname === item.path 
+                      : location.pathname.startsWith(item.path);
+                    
+                    return (
+                      <Button
+                        key={item.path}
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start h-auto p-4 text-left",
+                          isActive && "bg-primary/10 hover:bg-primary/20"
+                        )}
+                        onClick={() => navigate(item.path)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <item.icon className={cn(
+                            "w-5 h-5 mt-0.5",
+                            isActive ? "text-primary" : "text-muted-foreground"
+                          )} />
+                          <div className="flex-1">
+                            <div className={cn(
+                              "font-medium",
+                              isActive ? "text-primary" : "text-foreground"
+                            )}>{item.title}</div>
+                            <div className="text-sm text-muted-foreground">{item.description}</div>
+                          </div>
                         </div>
-                      </div>
-                    </Button>
-                  ))}
+                      </Button>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

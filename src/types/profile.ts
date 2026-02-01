@@ -5,8 +5,8 @@ import { User } from "@supabase/supabase-js";
 export interface UserProfile extends User {
   organizationId?: string;
   organizationName?: string;
-  first_name?: string;
-  last_name?: string;
+  name?: string;
+  surname?: string;
   avatar_url?: string;
   avatar_type?: string;
   avatar_seed?: string;

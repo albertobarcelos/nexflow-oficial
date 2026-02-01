@@ -1,5 +1,5 @@
 import { 
-  Type, AlignLeft, FileText, Paperclip, CheckSquare, 
+  Type, AlignLeft, FileText, CheckSquare, 
   User, Calendar, Clock, Tag, Mail, Phone, List, 
   Radio, Timer, Hash, DollarSign, File, Fingerprint,
   Search, CreditCard, Link, MapPin, Building2
@@ -114,13 +114,6 @@ export const fieldTypes: FieldTypeInfo[] = [
     name: "Documentos",
     description: "Gerenciamento de documentos",
     icon: <File className="w-4 h-4" />,
-    category: "document"
-  },
-  {
-    id: "attachment",
-    name: "Anexo",
-    description: "Para upload de arquivos",
-    icon: <Paperclip className="w-4 h-4" />,
     category: "document"
   },
   // Datas

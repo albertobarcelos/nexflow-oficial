@@ -1,268 +1,182 @@
-import { FlowTemplates } from "@/components/crm/flows/FlowTemplates";
-// AIDEV-NOTE: EntityTemplates removido - sistema simplificado sem entidades dinâmicas
-import { ConfigurationDropdown } from "@/components/crm/flows/ConfigurationDropdown";
-// AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado sem entidades dinâmicas
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { Info, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
-// AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
-
-type UserData = {
-    client_id: string;
-    first_name?: string;
-};
-
-type Flow = {
-    id: string;
-    name: string;
-    description: string | null;
-};
-
-type Entity = {
-    id: string;
-    name: string;
-    description: string | null;
-    icon: string;
-    color: string;
-    count?: number;
-    table?: string;
-};
-
-// Função helper para obter dados do usuário
-const getCurrentUserData = async (): Promise<UserData> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Usuário não autenticado");
-
-    // A função agora busca diretamente pelo ID do usuário
-    const { data, error } = await supabase
-        .from('core_client_users')
-        .select('client_id, first_name')
-        .eq('id', user.id) // CORRIGIDO: usa a coluna 'id'
-        .single();
-
-    if (error) {
-        console.error('Error fetching user data:', error);
-        throw error;
-    }
-
-    if (!data) {
-        throw new Error("Dados do colaborador não encontrados.");
-    }
-
-    return {
-        client_id: data.client_id,
-        first_name: data.first_name
-    };
-};
+import { Share2, Lightbulb, CheckCircle, XCircle, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useDashboardStats, PeriodFilter } from "@/hooks/useDashboardStats";
+import { useContactFlowData } from "@/hooks/useContactFlowData";
+import { useRecentActivities } from "@/hooks/useRecentActivities";
+import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
+import { useOrganizationUsers } from "@/hooks/useOrganizationUsers";
+import { MetricCard } from "@/components/crm/dashboard/MetricCard";
+import { ContactFlowChart } from "@/components/crm/dashboard/ContactFlowChart";
+import { RecentActivitiesTable } from "@/components/crm/dashboard/RecentActivitiesTable";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function Home() {
-    const navigate = useNavigate();
-    const { toast } = useToast();
-    const [showTemplates, setShowTemplates] = useState(false);
-    // AIDEV-NOTE: showEntityTemplates removido - sistema simplificado sem entidades dinâmicas
-    const [newFlowTitle, setNewFlowTitle] = useState<string | null>(null);
-    const isMobile = useIsMobile();
+  const [period, setPeriod] = useState<PeriodFilter>('today');
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  
+  const { data: teams = [] } = useOrganizationTeams();
+  const { data: users = [] } = useOrganizationUsers();
+  
+  const { metrics, isLoading: isLoadingStats } = useDashboardStats(period, {
+    teamId: selectedTeamId,
+    userId: selectedUserId,
+  });
+  const { data: flowData, isLoading: isLoadingFlow } = useContactFlowData(period);
+  const { activities, isLoading: isLoadingActivities } = useRecentActivities(10, {
+    teamId: selectedTeamId,
+    userId: selectedUserId,
+  });
 
-    const { data: user } = useQuery<UserData>({
-        queryKey: ["user"],
-        queryFn: getCurrentUserData,
-    });
+  const periodButtons: { label: string; value: PeriodFilter }[] = [
+    { label: 'Hoje', value: 'today' },
+    { label: '7 Dias', value: '7days' },
+    { label: '30 Dias', value: '30days' },
+    { label: 'Custom', value: 'custom' },
+  ];
 
-    const { data: flows } = useQuery<Flow[]>({
-        queryKey: ["flows", user?.client_id],
-        queryFn: async () => {
-            if (!user?.client_id) return [];
-            const { data, error } = await supabase
-                .from('web_flows')
-                .select('id, name, description')
-                .eq('client_id', user.client_id)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            return data;
-        },
-        enabled: !!user?.client_id
-    });
-
-    // AIDEV-NOTE: Entidades dinâmicas removidas - sistema simplificado
-    // Agora focamos apenas em Companies, People e Deals fixos
-    const entities: Entity[] = [];
-
-    const handleSelectTemplate = (templateId: string) => {
-        // TODO: Implement template selection logic
-        console.log('Selected template:', templateId);
-        setShowTemplates(false);
-    };
-
-    // Ícones para entidades
-    const getEntityIcon = (iconName: string) => {
-        const iconMap: Record<string, string> = {
-            'database': '🗃️',
-            'building2': '🏢',
-            'users': '👥',
-            'package': '📦',
-            'home': '🏠',
-            'car': '🚗',
-            'graduation-cap': '🎓',
-            'briefcase': '💼',
-            'heart': '❤️',
-            'shopping-cart': '🛒'
-        };
-        return iconMap[iconName] || '🗃️';
-    };
-
-    return (
-        <div className="min-h-screen bg-[#f8faff] p-4 md:p-8">
-            <div className="bg-white rounded-2xl p-4 md:p-8 shadow-sm">
-                <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
-                    <h1 className="text-xl md:text-2xl">
-                        <span className="font-bold">Olá, {user?.first_name || 'usuário'}</span>, vamos arrasar hoje!
-                    </h1>
-                    {!isMobile && (
-                        <Button variant="ghost" className="bg-blue-50 text-blue-900 hover:bg-blue-100 rounded-full px-4 py-2 text-sm gap-2 w-fit">
-                            🎯 Minhas Tarefas
-                        </Button>
-                    )}
-                </div>
-
-                <div className="space-y-6 md:space-y-8">
-                    <div>
-                        <div className="flex items-center gap-2 mb-4">
-                            <h2 className="text-base md:text-lg font-medium">Flows</h2>
-                            <Info className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                            <div
-                                onClick={() => setShowTemplates(true)}
-                                className="border border-orange-500 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-pointer hover:bg-orange-50/50 min-h-[100px] md:min-h-[120px]"
-                            >
-                                <Plus className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
-                                <span className="text-orange-500 text-xs md:text-sm text-center">Criar Flow</span>
-                            </div>
-                            {flows?.map((flow) => (
-                                <div
-                                    key={flow.id}
-                                    className="bg-[#F1F3F9] rounded-xl p-4 md:p-6 cursor-pointer hover:bg-[#E9EBF1] min-h-[100px] md:min-h-[120px] relative group"
-                                >
-                                    <div
-                                        className="space-y-1 md:space-y-2 h-full"
-                                        onClick={() => navigate(`/crm/flow/${flow.id}`)}
-                                    >
-                                        <h3 className="text-xs md:text-sm font-medium line-clamp-2">{flow.name}</h3>
-                                        <p className="text-xs text-gray-500 line-clamp-2 hidden sm:block">{flow.description || 'Sem descrição'}</p>
-                                    </div>
-
-                                    {/* Botão de configuração */}
-                                    <div
-                                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <ConfigurationDropdown
-                                            flowId={flow.id}
-                                            flowName={flow.name}
-                                        />
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div className="flex items-center gap-2 mb-4">
-                            <h2 className="text-base md:text-lg font-medium">Bases de Dados</h2>
-                            <Info className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
-                            <div
-                                className="border border-gray-300 rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 cursor-not-allowed opacity-50 min-h-[100px] md:min-h-[120px]"
-                                title="Funcionalidade removida - sistema simplificado para deals"
-                            >
-                                <Plus className="w-5 h-5 md:w-6 md:h-6 text-gray-400" />
-                                <span className="text-gray-400 text-xs md:text-sm text-center">Criar Base (Desabilitado)</span>
-                            </div>
-                            {/* Link para EntityPage de mock, só em dev */}
-                            {process.env.NODE_ENV === 'development' && (
-                                <Button
-                                    variant="outline"
-                                    className="rounded-xl p-4 md:p-6 flex flex-col items-center justify-center space-y-2 md:space-y-3 min-h-[100px] md:min-h-[120px] border border-blue-400 text-blue-700 hover:bg-blue-50"
-                                    onClick={() => navigate('/crm/entity/mock')}
-                                    style={{ gridColumn: 'auto' }}
-                                >
-                                    <span className="text-lg">🧪</span>
-                                    <span className="text-xs md:text-sm text-center">Abrir Mock EntityPage</span>
-                                </Button>
-                            )}
-                            {/* Entidades dinâmicas */}
-                            {entities?.map((entity) => (
-                                <div
-                                    key={entity.id}
-                                    className="rounded-xl p-4 md:p-6 cursor-pointer hover:shadow-md transition-all min-h-[100px] md:min-h-[120px] relative overflow-hidden group"
-                                    style={{
-                                        backgroundColor: `${entity.color}10`,
-                                        borderLeft: `4px solid ${entity.color}`
-                                    }}
-                                >
-                                    <div
-                                        className="space-y-1 md:space-y-2 h-full"
-                                        onClick={() => navigate(`/crm/entity/${entity.id}`)}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-lg">{getEntityIcon(entity.icon)}</span>
-                                            <h3 className="text-xs md:text-sm font-medium line-clamp-1" style={{ color: entity.color }}>
-                                                {entity.name}
-                                            </h3>
-                                        </div>
-                                        <p className="text-xs text-gray-500 line-clamp-2 hidden sm:block">
-                                            {entity.description || 'Sem descrição'}
-                                        </p>
-                                        <p className="text-xs font-medium" style={{ color: entity.color }}>
-                                            {entity.count || 0} registros
-                                        </p>
-                                    </div>
-
-                                    {/* Botão de configuração */}
-                                    {/* AIDEV-NOTE: EntityConfigurationDropdown removido - sistema simplificado para deals */}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Ações rápidas em mobile */}
-                    {isMobile && (
-                        <div className="grid grid-cols-2 gap-3 pt-4 border-t">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full"
-                                onClick={() => navigate("/crm/tasks")}
-                            >
-                                🎯 Tarefas
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="w-full"
-                                onClick={() => navigate("/crm/dashboard")}
-                            >
-                                📊 Dashboard
-                            </Button>
-                        </div>
-                    )}
-                </div>
+  return (
+    <div className="min-h-screen bg-[#f4f6f9] dark:bg-[#111827] p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+              Olá! <span className="font-normal text-gray-500 dark:text-gray-400">vamos analisar os dados hoje?</span>
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Visão geral do desempenho e métricas chave.
+            </p>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Team and User Filters */}
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedTeamId ?? "all"}
+                onValueChange={(value) => setSelectedTeamId(value === "all" ? null : value)}
+              >
+                <SelectTrigger className="w-[180px] h-9 text-sm bg-white dark:bg-gray-800">
+                  <SelectValue placeholder="Todos os times" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os times</SelectItem>
+                  {teams
+                    .filter((team) => team.is_active)
+                    .map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              
+              <Select
+                value={selectedUserId ?? "all"}
+                onValueChange={(value) => setSelectedUserId(value === "all" ? null : value)}
+              >
+                <SelectTrigger className="w-[180px] h-9 text-sm bg-white dark:bg-gray-800">
+                  <SelectValue placeholder="Todos os usuários" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os usuários</SelectItem>
+                  {users
+                    .filter((user) => user.is_active)
+                    .map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name} {user.surname}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            <FlowTemplates
-                open={showTemplates}
-                onOpenChange={setShowTemplates}
-            />
-
-            {/* AIDEV-NOTE: EntityTemplates removido - sistema simplificado para deals */}
+            
+            {/* Period Filter Buttons */}
+            <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+              {periodButtons.map(({ label, value }) => (
+                <Button
+                  key={value}
+                  variant={period === value ? 'default' : 'ghost'}
+                  size="sm"
+                  className={period === value 
+                    ? "bg-[#25335b] text-white shadow-sm" 
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }
+                  onClick={() => setPeriod(value)}
+                >
+                  {value === 'custom' && <Calendar className="w-3 h-3 mr-1" />}
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
         </div>
-    );
-}
 
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {isLoadingStats ? (
+            <>
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-32 rounded-xl" />
+              ))}
+            </>
+          ) : (
+            <>
+              <MetricCard
+                title="Indicações"
+                value={metrics.indications}
+                trend={metrics.indicationsTrend}
+                icon={Share2}
+                iconColor="text-blue-500"
+                showInfo
+              />
+              <MetricCard
+                title="Oportunidades"
+                value={metrics.opportunities}
+                trend={metrics.opportunitiesTrend}
+                icon={Lightbulb}
+                iconColor="text-yellow-500"
+              />
+              <MetricCard
+                title="Cards Completos"
+                value={metrics.completedCards}
+                trend={metrics.completedCardsTrend}
+                icon={CheckCircle}
+                iconColor="text-green-500"
+              />
+              <MetricCard
+                title="Cards Cancelados"
+                value={metrics.cancelledCards}
+                trend={metrics.cancelledCardsTrend}
+                icon={XCircle}
+                iconColor="text-red-500"
+              />
+            </>
+          )}
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ContactFlowChart 
+            data={flowData} 
+            isLoading={isLoadingFlow}
+          />
+        </div>
+
+        {/* Recent Activities Table */}
+        <RecentActivitiesTable 
+          activities={activities} 
+          isLoading={isLoadingActivities}
+        />
+      </div>
+    </div>
+  );
+}

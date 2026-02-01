@@ -1,4 +1,4 @@
-import { Database } from "./supabase";
+import { Database } from "./database";
 
 export interface Tag {
   id: string;

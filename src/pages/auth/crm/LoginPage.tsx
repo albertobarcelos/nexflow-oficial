@@ -119,19 +119,52 @@ export function LoginPage() {
       if (authError) throw authError;
 
       // Verificar se o usuário é um colaborador do CRM
-      const { data: collaboratorData, error: collaboratorError } = await supabase
-        .from('core_client_users')
-        .select(`
-          id,
-          client_id,
-          first_name,
-          last_name,
-          email,
-          role,
-          is_active
-        `)
-        .eq('id', authData.user.id)
-        .single();
+      // Retry logic para contornar erro PGRST002 (cache do schema corrompido)
+      let collaboratorData = null;
+      let collaboratorError = null;
+      const maxRetries = 5; // Aumentado para 5 tentativas
+      let retryCount = 0;
+      
+      while (retryCount < maxRetries && !collaboratorData && (!collaboratorError || collaboratorError?.code === 'PGRST002')) {
+        if (retryCount > 0) {
+          // Aguardar antes de tentar novamente (exponencial backoff - até 5 segundos)
+          const waitTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        
+        const result = await supabase
+          .from('core_client_users')
+          .select(`
+            id,
+            client_id,
+            email,
+            role,
+            is_active
+          `)
+          .eq('id', authData.user.id)
+          .single();
+        
+        collaboratorData = result.data;
+        collaboratorError = result.error;
+        retryCount++;
+        
+        // Se ainda for PGRST002 após todas as tentativas, tentar usar RPC como fallback
+        if (retryCount >= maxRetries && collaboratorError?.code === 'PGRST002') {
+          
+          // Tentar usar uma Edge Function ou RPC como alternativa
+          try {
+            const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('get_user_data', { 
+              user_id: authData.user.id 
+            });
+            if (!rpcError && rpcData) {
+              collaboratorData = rpcData;
+              collaboratorError = null;
+            }
+          } catch (e) {
+            // Ignorar erro do fallback
+          }
+        }
+      }
 
       // TEMPORÁRIO: Permitir acesso para barceloshd@gmail.com mesmo sem estar na tabela
       if ((collaboratorError || !collaboratorData) && email !== 'barceloshd@gmail.com') {
@@ -145,8 +178,6 @@ export function LoginPage() {
         userData = {
           id: authData.user.id,
           client_id: 'test-client-001',
-          first_name: 'Henrique',
-          last_name: 'Barcelos',
           email: 'barceloshd@gmail.com',
           role: 'administrator',
           is_active: true
@@ -176,7 +207,20 @@ export function LoginPage() {
           .eq('id', authData.user.id);
       }
 
-      toast.success(`Bem-vindo(a), ${userData.first_name} ${userData.last_name}!`);
+      const rawEmail = userData.email?.trim() ?? "";
+      let userName = "Usuário";
+      if (rawEmail.length > 0) {
+        const atIndex = rawEmail.indexOf("@");
+        if (atIndex > 0) {
+          const candidate = rawEmail.slice(0, atIndex).trim();
+          if (candidate) {
+            userName = candidate;
+          }
+        } else {
+          userName = rawEmail;
+        }
+      }
+      toast.success(`Bem-vindo(a), ${userName}!`);
       navigate("/crm");
 
     } catch (error: any) {

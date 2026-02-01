@@ -1,140 +1,196 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+// Schema de validação com Zod
+const loginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const onSubmit = async (values: LoginFormValues) => {
+    setIsLoading(true);
     try {
-      setLoading(true);
-      
-      // Fazer login
+      // 1. Login no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: values.email,
+        password: values.password,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        throw new Error("Credenciais inválidas.");
+      }
 
-      // Verificar se o usuário é um administrador do sistema (role = 'administrator')
-      const { data: adminData, error: adminError } = await supabase
-        .from('core_client_users')
-        .select(`
-          id,
-          client_id,
-          first_name,
-          last_name,
-          email,
-          role,
-          is_active
-        `)
-        .eq('id', authData.user.id)
-        .eq('role', 'administrator')
-        .eq('is_active', true)
-        .single();
+      // 2. Validação de Segurança (RPC)
+      // Retry logic para contornar erro PGRST002 (cache do schema corrompido)
+      let rpcData = null;
+      let rpcError = null;
+      const maxRetries = 5; // Aumentado para 5 tentativas
+      let retryCount = 0;
+      
+      while (retryCount < maxRetries && !rpcData && (!rpcError || rpcError?.code === 'PGRST002')) {
+        if (retryCount > 0) {
+          // Aguardar antes de tentar novamente (exponencial backoff - até 5 segundos)
+          const waitTime = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        
+        const result = await (supabase.rpc as any)(
+          "check_admin_access"
+        ) as { data: { allowed: boolean; error?: string; user?: { name: string; surname: string } } | null; error: any };
+        
+        rpcData = result.data;
+        rpcError = result.error;
+        retryCount++;
+      }
 
-      if (adminError || !adminData) {
+      if (rpcError || !rpcData || !rpcData.allowed) {
+        // Se falhar na validação de role, desloga imediatamente para não manter sessão aberta
         await supabase.auth.signOut();
-        throw new Error('Acesso não autorizado. Você não tem permissão para acessar o portal administrativo.');
+        throw new Error(
+          rpcData?.error || "Acesso restrito a administradores."
+        );
       }
 
-      // Atualizar último login
-      await supabase
-        .from('core_client_users')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('id', authData.user.id);
-
-      toast.success(`Bem-vindo(a) ao Portal Administrativo, ${adminData.first_name} ${adminData.last_name}!`);
+      // 3. Sucesso
+      if (rpcData.user) {
+        toast.success(`Bem-vindo, ${rpcData.user.name}!`);
+      }
       navigate("/admin");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao fazer login:", error);
-      
-      let errorMessage = "Erro ao fazer login. Tente novamente.";
-      
-      if (error.message?.includes('Invalid login credentials')) {
-        errorMessage = "Email ou senha incorretos.";
-      } else if (error.message?.includes('não autorizado')) {
-        errorMessage = error.message;
-      }
-      
-      toast.error(errorMessage);
+      toast.error(error.message || "Erro ao fazer login. Tente novamente.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50 bg-gradient-to-br from-neutral-50 to-neutral-100">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-3xl font-bold text-center">
             Portal Administrativo
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          </CardTitle>
+          <CardDescription className="text-center">
             Gerencie todos os clientes e configurações do sistema
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email
-              </label>
-              <Input
-                id="email"
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
                 name="email"
-                type="email"
-                autoComplete="email"
-                required
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="email"
+                          placeholder="seu@email.com"
+                          autoComplete="email"
+                          className="pl-9"
+                          disabled={isLoading}
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Senha
-              </label>
-              <Input
-                id="password"
+              <FormField
+                control={form.control}
                 name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                placeholder="Senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Senha</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="password"
+                          placeholder="••••••••"
+                          autoComplete="current-password"
+                          className="pl-9"
+                          disabled={isLoading}
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-          </div>
-
-          <div className="flex space-x-4">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => navigate("/")}
-              className="text-sm"
-            >
-              Voltar para seleção
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-              className="flex-1"
-            >
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-          </div>
-        </form>
-      </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Entrando...
+                  </>
+                ) : (
+                  "Entrar"
+                )}
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate("/")}
+            className="text-sm"
+            disabled={isLoading}
+          >
+            Voltar para seleção
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 } 

@@ -3,6 +3,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuLab
 import { Button } from '@/components/ui/button';
 import { Settings, FormInput, Layers, Users, Mail, Zap, Eye, Copy, Share2, Archive, Trash2, MoreHorizontal } from 'lucide-react';
 import { FormBuilderModal } from './FormBuilderModal';
+import { FlowPermissionsModal } from './FlowPermissionsModal';
 
 interface ConfigurationDropdownProps {
   flowId: string;
@@ -12,9 +13,14 @@ interface ConfigurationDropdownProps {
 
 export function ConfigurationDropdown({ flowId, flowName, type = 'flow' }: ConfigurationDropdownProps) {
   const [formBuilderOpen, setFormBuilderOpen] = useState(false);
+  const [permissionsModalOpen, setPermissionsModalOpen] = useState(false);
 
   const handleFormBuilderClick = () => {
     setFormBuilderOpen(true);
+  };
+
+  const handlePermissionsClick = () => {
+    setPermissionsModalOpen(true);
   };
 
   return (
@@ -59,7 +65,7 @@ export function ConfigurationDropdown({ flowId, flowName, type = 'flow' }: Confi
               </div>
             </DropdownMenuItem>
             
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handlePermissionsClick}>
               <Users className="mr-2 h-4 w-4" />
               <div className="flex flex-col">
                 <span>Permissões</span>
@@ -120,6 +126,14 @@ export function ConfigurationDropdown({ flowId, flowName, type = 'flow' }: Confi
       <FormBuilderModal
         open={formBuilderOpen}
         onOpenChange={setFormBuilderOpen}
+        flowId={flowId}
+        flowName={flowName}
+      />
+
+      {/* Modal de Permissões */}
+      <FlowPermissionsModal
+        open={permissionsModalOpen}
+        onOpenChange={setPermissionsModalOpen}
         flowId={flowId}
         flowName={flowName}
       />

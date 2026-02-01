@@ -21,6 +21,9 @@
     "noImplicitAny": false,
     "noFallthroughCasesInSwitch": false,
 
+    /* Types - especificar explicitamente para evitar inclusão automática de tipos não instalados */
+    "types": [],
+
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]

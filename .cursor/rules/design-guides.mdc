@@ -1,0 +1,150 @@
+---
+description: UI/UX & Frontend Design Guidelines
+alwaysApply: false
+---
+---
+
+```markdown
+# UI/UX & Frontend Design Guidelines
+
+**Context:** You are an expert UI/UX Engineer and Frontend Developer specializing in Tailwind CSS, Shadcn/UI, and Accessible Design Systems.
+**Goal:** Create visually consistent, accessible, and responsive interfaces that align with the existing design system.
+
+## 1. Visual Identity & Theming
+
+### 1.1. Color System (CSS Variables)
+**NEVER hardcode hex values** (e.g., `#FFFFFF`, `#000000`).
+Always use the semantic Tailwind utility classes mapped to CSS variables in `globals.css`. This ensures **Dark Mode** works automatically.
+
+* **Backgrounds:** `bg-background`, `bg-card`, `bg-muted`, `bg-popover`.
+* **Foregrounds (Text):** `text-foreground`, `text-muted-foreground`, `text-card-foreground`.
+* **Primary Actions:** `bg-primary`, `text-primary-foreground`.
+* **Destructive:** `bg-destructive`, `text-destructive-foreground`.
+* **Borders:** `border-input`, `border-border`.
+
+**Example:**
+```tsx
+// ✅ GOOD (Supports Dark Mode)
+<div className="bg-card text-card-foreground border border-border">...</div>
+
+// ❌ BAD (Breaks in Dark Mode)
+<div className="bg-white text-black border-gray-200">...</div>
+
+```
+
+### 1.2. Spacing & Sizing
+
+Avoid arbitrary values (e.g., `w-[350px]`, `mt-[13px]`). Use the Tailwind spacing scale.
+
+* **Padding/Margin:** `p-4`, `m-6`, `gap-2`.
+* **Width/Height:** `w-full`, `h-screen`, `max-w-md`.
+
+---
+
+## 2. Component Usage (Shadcn/UI)
+
+### 2.1. Composition over Reinvention
+
+Do not create custom buttons or inputs from scratch. Import primitives from `@/components/ui`.
+
+```tsx
+// ✅ GOOD
+import { Button } from "@/components/ui/button";
+<Button variant="outline" size="sm">Click me</Button>
+
+// ❌ BAD
+<button className="px-4 py-2 border rounded bg-transparent...">Click me</button>
+
+```
+
+### 2.2. Overriding Styles
+
+Use the `className` prop combined with `cn()` to override specific styles on Shadcn components, rather than wrapping them in unnecessary divs.
+
+---
+
+## 3. Responsive Design
+
+**Mobile-First Approach:** Write base styles for mobile, then use breakpoints (`sm:`, `md:`, `lg:`, `xl:`) for larger screens.
+
+* **Layouts:** Use CSS Grid or Flexbox.
+* **Touch Targets:** Ensure buttons are at least 44px height on mobile (`h-10` or `h-11`).
+
+```tsx
+// ✅ GOOD
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {/* 1 col on mobile, 2 on tablet, 3 on desktop */}
+</div>
+
+```
+
+---
+
+## 4. Typography
+
+Use the configured font stack (Inter/Sans). Avoid adding custom Google Fonts unless specified in `layout.tsx`.
+
+* **Headings:** Use `tracking-tight` for large headings (h1, h2) to match the Shadcn aesthetic.
+* **Weights:** Use `font-medium` for interactive elements, `font-semibold` for headings.
+* **Muted Text:** Use `text-muted-foreground` and `text-sm` for supporting text.
+
+---
+
+## 5. Accessibility (a11y)
+
+* **Focus States:** Never remove `outline` unless replacing it with `ring`. Shadcn handles this, do not break it.
+* **Contrast:** Ensure text on `primary` backgrounds uses `primary-foreground`.
+* **Semantics:** Use `<main>`, `<section>`, `<header>`, `<footer>` instead of just `<div>`.
+
+---
+
+## 6. Motion & Animation
+
+* **Micro-interactions:** Use `transition-all duration-200` for hover states.
+* **Complex Animations:** Use `framer-motion`.
+* **Entry Animations:** Use `tailwindcss-animate` (e.g., `animate-in fade-in zoom-in duration-300`).
+
+```tsx
+// ✅ GOOD (Simple Hover)
+<div className="hover:bg-muted/50 transition-colors duration-200 cursor-pointer">...</div>
+
+```
+
+---
+
+## 7. Icons
+
+* Use **Lucide React**.
+* Set size using Tailwind classes (`h-4 w-4`) instead of `size` prop when inside buttons/inputs.
+
+```tsx
+import { Loader2 } from "lucide-react";
+<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+
+```
+
+---
+
+## 8. Anti-Patterns (What NOT to do)
+
+1. **Inline Styles:** Never use `style={{ ... }}` for static styles. Use Tailwind classes.
+2. **Global CSS:** Do not add CSS to `index.css` unless it's a complex keyframe animation that Tailwind can't handle.
+3. **Z-Index Wars:** Use the predefined z-index scale. Avoid `z-[9999]`.
+4. **Important:** Avoid `!important` (`!bg-red-500`) unless overriding a third-party library that uses inline styles.
+
+```
+
+### Example Prompt to use with this file
+
+When asking the AI to refactor UI, use this prompt:
+
+> "Refactor the Login page. Improve the visual design strictly following the guidelines in `@docs/DESIGN_GUIDELINES.md`.
+>
+> 1. Use Shadcn components (Card, Input, Button).
+> 2. Ensure colors use semantic variables (bg-card, text-muted-foreground) to support Dark Mode.
+> 3. Add micro-interactions (hover, focus) using Tailwind.
+> 4. Use Lucide icons.
+>
+> The layout must be responsive (mobile-first)."
+
+```

@@ -12,7 +12,7 @@ export function ProtectedRoute() {
 
   if (!user) {
     // Se não houver usuário, redireciona para a página de login
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/crm/login" replace />;
   }
 
   // Se o usuário estiver autenticado, renderiza o layout principal do CRM

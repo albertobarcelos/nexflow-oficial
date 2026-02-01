@@ -10,7 +10,7 @@ import { Upload, RefreshCw, CheckCircle2 } from "lucide-react";
 
 interface UserProfileFormProps {
     user: UserProfile;
-    onSave: (data: { first_name?: string; last_name?: string; email?: string; avatar_file?: File | null; avatar_seed?: string; avatar_type?: string; custom_avatar_url?: string | null }) => Promise<void>;
+    onSave: (data: { name?: string; surname?: string; email?: string; avatar_file?: File | null; avatar_seed?: string; avatar_type?: string; custom_avatar_url?: string | null }) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -19,8 +19,8 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
     onSave,
     isLoading,
 }) => {
-    const [firstName, setFirstName] = useState(user?.first_name || "");
-    const [lastName, setLastName] = useState(user?.last_name || "");
+    const [name, setName] = useState(user?.name || "");
+    const [surname, setSurname] = useState(user?.surname || "");
     const [email, setEmail] = useState(user?.email || "");
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(
@@ -36,13 +36,16 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
     const [uploadPreview, setUploadPreview] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
+    // Atualizar campos quando o usuário mudar
     useEffect(() => {
-        setFirstName(user.first_name || "");
-        setLastName(user.last_name || "");
-        setEmail(user.email || "");
-        setAvatarPreview((user as any).custom_avatar_url ?? null);
-        setAvatarSeed((user as any).avatar_seed ?? "1|1");
-        setAvatarType((user as any).avatar_type ?? "toy_face");
+        if (user) {
+            setName(user.name || "");
+            setSurname(user.surname || "");
+            setEmail(user.email || "");
+            setAvatarPreview(user.custom_avatar_url ?? null);
+            setAvatarSeed(user.avatar_seed ?? "1|1");
+            setAvatarType(user.avatar_type ?? "toy_face");
+        }
     }, [user]);
 
     const handleAvatarChange = (file: File | null, url: string | null) => {
@@ -89,8 +92,8 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
         
         try {
             await onSave({ 
-                first_name: firstName, 
-                last_name: lastName, 
+                name: name, 
+                surname: surname, 
                 email, 
                 avatar_file: avatarFile, 
                 avatar_seed: finalAvatarSeed, 
@@ -145,12 +148,24 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <Label htmlFor="first-name">Nome</Label>
-                        <Input id="first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                        <Label htmlFor="name">Nome</Label>
+                        <Input 
+                            id="name" 
+                            value={name} 
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder="Digite seu nome"
+                            disabled={isLoading}
+                        />
                     </div>
                     <div>
-                        <Label htmlFor="last-name">Sobrenome</Label>
-                        <Input id="last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                        <Label htmlFor="surname">Sobrenome</Label>
+                        <Input 
+                            id="surname" 
+                            value={surname} 
+                            onChange={(e) => setSurname(e.target.value)}
+                            placeholder="Digite seu sobrenome"
+                            disabled={isLoading}
+                        />
                     </div>
                 </div>
 
@@ -162,6 +177,7 @@ export const UserProfileForm: React.FC<UserProfileFormProps> = ({
                         value={email} 
                         disabled={true}
                         className="bg-gray-50 cursor-not-allowed"
+                        placeholder="seu@email.com"
                         title="O e-mail não pode ser alterado pois é o identificador único do usuário"
                     />
                     <p className="text-xs text-muted-foreground mt-1">

@@ -127,10 +127,10 @@ export function StageFormBuilder({ flowId, flowName }: StageFormBuilderProps) {
   return (
     <div className="flex h-full">
       {/* Stages Sidebar */}
-      <div className="w-80 bg-slate-50 border-r border-slate-200 overflow-y-auto">
+      <div className="w-80 bg-neutral-50 border-r border-neutral-200 overflow-y-auto">
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800">Fases do Pipeline</h3>
+            <h3 className="font-semibold text-neutral-800">Fases do Pipeline</h3>
             <Button onClick={addNewStage} size="sm" variant="outline">
               <Plus className="w-4 h-4 mr-2" />
               Nova Fase
@@ -144,7 +144,7 @@ export function StageFormBuilder({ flowId, flowName }: StageFormBuilderProps) {
                 className={`cursor-pointer transition-all border-2 ${
                   selectedStageId === stage.id 
                     ? 'border-blue-500 bg-blue-50' 
-                    : 'border-transparent hover:border-slate-300'
+                    : 'border-transparent hover:border-neutral-300'
                 }`}
                 onClick={() => handleStageSelect(stage.id)}
               >
@@ -155,14 +155,14 @@ export function StageFormBuilder({ flowId, flowName }: StageFormBuilderProps) {
                       style={{ backgroundColor: stage.color }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-slate-700 truncate">
+                      <div className="font-medium text-neutral-700 truncate">
                         {stage.name}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         <Badge variant="outline" className="text-xs">
                           {stage.fields.length} campo{stage.fields.length !== 1 ? 's' : ''}
                         </Badge>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-neutral-500">
                           Ordem {stage.order}
                         </span>
                       </div>
@@ -176,8 +176,8 @@ export function StageFormBuilder({ flowId, flowName }: StageFormBuilderProps) {
             ))}
           </div>
 
-          <div className="pt-4 border-t border-slate-200">
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+          <div className="pt-4 border-t border-neutral-200">
+            <div className="flex items-center gap-2 text-sm text-neutral-500">
               <Layers className="w-4 h-4" />
               <span>{stages.length} fase{stages.length !== 1 ? 's' : ''} configurada{stages.length !== 1 ? 's' : ''}</span>
             </div>
@@ -204,11 +204,11 @@ export function StageFormBuilder({ flowId, flowName }: StageFormBuilderProps) {
       ) : (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Layers className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            <Layers className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
+            <h3 className="text-lg font-semibold text-neutral-700 mb-2">
               Selecione uma fase
             </h3>
-            <p className="text-slate-500">
+            <p className="text-neutral-500">
               Escolha uma fase para configurar seus campos
             </p>
           </div>

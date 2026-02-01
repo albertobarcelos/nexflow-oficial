@@ -4,8 +4,8 @@ import { getCurrentUserData } from "@/lib/auth";
 
 export interface User {
   id: string;
-  first_name: string;
-  last_name: string;
+  name: string;
+  surname: string;
   email: string;
   role: string;
   is_active: boolean;
@@ -29,8 +29,8 @@ export function useUsers() {
           .from("core_client_users")
           .select(`
             id,
-            first_name,
-            last_name,
+            name,
+            surname,
             email,
             role,
             is_active,
@@ -43,21 +43,19 @@ export function useUsers() {
             avatar_url
           `)
           .eq("client_id", collaborator.client_id)
-          .order("first_name");
+          .order("name");
 
         if (error) {
           console.error("Erro ao buscar usuários:", error);
           return [];
         }
 
-
-
         return (collaborators || [])
           .filter((c: any) => c.is_active)
           .map((c: any) => ({
             id: c.id,
-            first_name: c.first_name,
-            last_name: c.last_name,
+            name: c.name || "",
+            surname: c.surname || "",
             email: c.email,
             role: c.role,
             is_active: c.is_active,
@@ -74,5 +72,7 @@ export function useUsers() {
         return [];
       }
     },
+    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    // #endregion
   });
 }

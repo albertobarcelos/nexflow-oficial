@@ -387,7 +387,7 @@ export function DefaultValuesConfigModal({
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-blue-600 hover:bg-blue-700 min-w-[120px]"
+            className="bg-primary hover:bg-primary/90 min-w-[120px]"
           >
             {isSaving ? (
               <>

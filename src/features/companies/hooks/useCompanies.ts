@@ -1,252 +1,133 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
-import { Database } from "@/types/database";
+import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
 import { toast } from "sonner";
 
-type Company = Database["public"]["Tables"]["web_companies"]["Row"];
-
-export interface CompanyWithRelations extends Company {
-  cidade?: string;
-  estado?: string;
-  uf?: string;
-  address?: {
-    cep?: string | null;
-    rua?: string | null;
-    numero?: string | null;
-    complemento?: string | null;
-    bairro?: string | null;
-  };
-}
-
-interface CreateCompanyData {
+export interface Company {
+  id: string;
   name: string;
-  razao_social?: string;
-  cnpj?: string;
-  email?: string;
-  phone?: string;
-  whatsapp?: string;
-  website?: string;
-  description?: string;
-  segment?: string;
-  size?: string;
-  cep?: string;
-  rua?: string;
-  numero?: string;
-  complemento?: string;
-  bairro?: string;
-  city_id?: string;
-  state_id?: string;
-  creator_id?: string;
+  cnpj: string | null;
+  razao_social: string | null;
+  description?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export function useCompanies({ search }: { search?: string } = {}) {
+export interface CreateCompanyInput {
+  name: string;
+  cnpj?: string | null;
+  razao_social?: string | null;
+  description?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  state_id?: string | null;
+  city_id?: string | null;
+  cep?: string | null;
+  rua?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+}
+
+/**
+ * Hook para buscar e gerenciar empresas da tabela web_companies
+ */
+export function useCompanies() {
   const queryClient = useQueryClient();
 
-  const {
-    data: companies,
-    isLoading,
-    refetch: refreshCompanies,
-  } = useQuery({
-    queryKey: ["companies", search],
-    queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast.error("Usuário não autenticado");
+  // Query para buscar todas as empresas
+  const { data: companies = [], isLoading } = useQuery({
+    queryKey: ["companies"],
+    queryFn: async (): Promise<Company[]> => {
+      const clientId = await getCurrentClientId();
+      if (!clientId) {
+        console.error("Não foi possível identificar o tenant atual.");
         return [];
       }
 
-      const { data: collaborator } = await supabase
-        .from("core_client_users")
-        .select("client_id")
-        .eq("id", user.id)
-        .single();
-
-      if (!collaborator) {
-        toast.error("Colaborador não encontrado");
-        return [];
-      }
-
-      let query = supabase
-        .from("web_companies")
-        .select(
-          `
-          *,
-          city:web_cities (
-            id,
-            name
-          ),
-          state:web_states (
-            id,
-            name,
-            uf
-          )
-        `
-        )
-        .eq("client_id", collaborator.client_id);
-
-      if (search) {
-        query = query.or(
-          `name.ilike.%${search}%,razao_social.ilike.%${search}%,cnpj.ilike.%${search}%,email.ilike.%${search}%,whatsapp.ilike.%${search}%`
-        );
-      }
-
-      const { data, error } = await query;
+      const { data, error } = await nexflowClient()
+        .from("web_companies" as any)
+        .select("id, name, cnpj, razao_social, description, email, phone, created_at, updated_at")
+        .eq("client_id", clientId)
+        .order("name", { ascending: true });
 
       if (error) {
         console.error("Erro ao buscar empresas:", error);
-        toast.error("Erro ao buscar empresas");
         return [];
       }
 
-      return data.map((company) => ({
-        ...company,
-        cidade: company.city?.name,
-        estado: company.state?.name,
-        uf: company.state?.uf,
-        address: {
-          cep: company.cep,
-          rua: company.rua,
-          numero: company.numero,
-          complemento: company.complemento,
-          bairro: company.bairro,
-        },
-      })) as CompanyWithRelations[];
+      return (data || []).map((company: any) => ({
+        id: company.id,
+        name: company.name,
+        cnpj: company.cnpj || null,
+        razao_social: company.razao_social || null,
+        description: company.description || null,
+        email: company.email || null,
+        phone: company.phone || null,
+        created_at: company.created_at,
+        updated_at: company.updated_at,
+      }));
     },
     staleTime: 1000 * 60 * 5, // 5 minutos
-    retry: 1,
   });
 
+  // Mutation para criar empresa
   const createCompany = useMutation({
-    mutationFn: async (data: CreateCompanyData) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        throw new Error("Usuário não autenticado");
+    mutationFn: async (input: CreateCompanyInput) => {
+      const clientId = await getCurrentClientId();
+      if (!clientId) {
+        throw new Error("Não foi possível identificar o tenant atual.");
       }
 
-      const { data: collaborator } = await supabase
-        .from("core_client_users")
-        .select("client_id")
-        .eq("id", user.id)
-        .single();
-
-      if (!collaborator) {
-        throw new Error("Colaborador não encontrado");
-      }
-
-      // AIDEV-NOTE: Preparar dados da empresa com campos corretos do banco
-      const companyData = {
-        client_id: collaborator.client_id,
-        creator_id: data.creator_id || user.id,
-        name: data.name,
-        razao_social: data.razao_social || null,
-        cnpj: data.cnpj || null,
-        email: data.email || null,
-        whatsapp: data.whatsapp || null,
-        celular: data.phone || null,
-        website: data.website || null,
-        description: data.description || null,
-        segment: data.segment || null,
-        size: data.size || null,
-        company_type: "Possível Cliente (Lead)", // valor padrão
-        state_id: data.state_id || null,
-        city_id: data.city_id || null,
-        cep: data.cep || null,
-        rua: data.rua || null,
-        numero: data.numero || null,
-        complemento: data.complemento || null,
-        bairro: data.bairro || null,
-      };
-
-      const { data: newCompany, error } = await supabase
-        .from("web_companies")
-        .insert(companyData)
+      const { data, error } = await nexflowClient()
+        .from("web_companies" as any)
+        .insert({
+          client_id: clientId,
+          name: input.name,
+          cnpj: input.cnpj || null,
+          razao_social: input.razao_social || null,
+          description: input.description || null,
+          email: input.email || null,
+          phone: input.phone || null,
+          state_id: input.state_id || null,
+          city_id: input.city_id || null,
+          cep: input.cep || null,
+          rua: input.rua || null,
+          numero: input.numero || null,
+          complemento: input.complemento || null,
+          bairro: input.bairro || null,
+          company_type: "cliente", // Tipo padrão
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error("Erro ao criar empresa:", error);
-        throw error;
-      }
-
-      return newCompany;
+      if (error) throw error;
+      
+      // Retornar no formato esperado (usar type assertion para evitar erro de tipo)
+      const companyData = data as any;
+      return {
+        id: companyData.id,
+        name: companyData.name,
+        razao_social: companyData.razao_social || null,
+        cnpj: companyData.cnpj || null,
+      };
     },
-    onSuccess: (newCompany) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
       toast.success("Empresa criada com sucesso!");
-      return newCompany;
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Erro ao criar empresa:", error);
-      toast.error("Erro ao criar empresa");
-    },
-  });
-
-  const updateCompany = useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: Partial<CreateCompanyData>;
-    }) => {
-      const { data: updatedCompany, error } = await supabase
-        .from("web_companies")
-        .update(data)
-        .eq("id", id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Erro ao atualizar empresa:", error);
-        throw error;
-      }
-
-      return updatedCompany;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast.success("Empresa atualizada com sucesso!");
-    },
-    onError: (error) => {
-      console.error("Erro ao atualizar empresa:", error);
-      toast.error("Erro ao atualizar empresa");
-    },
-  });
-
-  const deleteCompany = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("web_companies")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        console.error("Erro ao deletar empresa:", error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast.success("Empresa deletada com sucesso!");
-    },
-    onError: (error) => {
-      console.error("Erro ao deletar empresa:", error);
-      toast.error("Erro ao deletar empresa");
+      toast.error(error.message || "Erro ao criar empresa");
     },
   });
 
   return {
-    companies: companies || [],
+    companies,
     isLoading,
-    createCompany,
-    updateCompany,
-    deleteCompany,
-    refreshCompanies,
+    createCompany: createCompany.mutateAsync,
+    isCreating: createCompany.isPending,
   };
 }
+

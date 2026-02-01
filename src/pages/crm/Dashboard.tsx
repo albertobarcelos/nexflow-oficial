@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, Target, CheckSquare, TrendingUp, Activity } from "lucide-react";
+import { Building2, Users, Target, TrendingUp, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Database } from "@/types/database";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -52,7 +52,6 @@ export function Dashboard() {
           { count: companiesCount },
           { count: peopleCount },
           { count: dealsCount },
-          { count: tasksCount },
         ] = await Promise.all([
           supabase
             .from("web_companies")
@@ -66,17 +65,12 @@ export function Dashboard() {
             .from("web_deals")
             .select("*", { count: "exact", head: true })
             .eq("client_id", collaborator.client_id),
-          supabase
-            .from("web_tasks")
-            .select("*", { count: "exact", head: true })
-            .eq("client_id", collaborator.client_id),
         ]);
 
         return {
           companies: companiesCount || 0,
           people: peopleCount || 0,
           deals: dealsCount || 0,
-          tasks: tasksCount || 0,
         };
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
@@ -85,10 +79,10 @@ export function Dashboard() {
           companies: 0,
           people: 0,
           deals: 0,
-          tasks: 0,
         };
       }
     },
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
   const { data: recentDeals } = useQuery({
@@ -113,6 +107,7 @@ export function Dashboard() {
         return [];
       }
     },
+    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
   if (isLoading) {
@@ -141,7 +136,6 @@ export function Dashboard() {
     companies: 0,
     people: 0,
     deals: 0,
-    tasks: 0,
   };
 
   return (
@@ -204,21 +198,6 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card
-          className="cursor-pointer hover:bg-accent/50 transition-colors"
-          onClick={() => navigate("/crm/tasks")}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium">Tarefas</CardTitle>
-            <CheckSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl md:text-2xl font-bold">{statsData.tasks}</div>
-            <p className="text-xs text-muted-foreground">
-              {isMobile ? "Pendentes" : "Tarefas pendentes"}
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Grid principal responsivo */}
@@ -267,13 +246,6 @@ export function Dashboard() {
                   <p className="text-xs text-muted-foreground">{statsData.deals} oportunidades</p>
                 </div>
               </div>
-              <div className="flex items-center">
-                <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Tarefas pendentes</p>
-                  <p className="text-xs text-muted-foreground">{statsData.tasks} itens</p>
-                </div>
-              </div>
             </div>
           </CardContent>
         </Card>
@@ -312,15 +284,6 @@ export function Dashboard() {
                 <div className="text-center">
                   <Target className="h-6 w-6 mx-auto mb-2 text-primary" />
                   <p className="text-sm font-medium">Novo Negócio</p>
-                </div>
-              </Card>
-              <Card
-                className="cursor-pointer hover:bg-accent/50 transition-colors p-3"
-                onClick={() => navigate("/crm/tasks/new")}
-              >
-                <div className="text-center">
-                  <CheckSquare className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  <p className="text-sm font-medium">Nova Tarefa</p>
                 </div>
               </Card>
             </div>

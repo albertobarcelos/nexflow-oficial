@@ -3,13 +3,9 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import {
   Users,
-  Workflow,
-  Paintbrush,
   Bell,
-  GitBranch,
-  SlidersHorizontal,
   Settings as SettingsIcon,
-  Building2
+  User
 } from "lucide-react";
 
 const settingsNavItems = [
@@ -19,39 +15,19 @@ const settingsNavItems = [
     icon: SettingsIcon,
   },
   {
-    title: "Equipe",
-    href: "/crm/settings/team",
-    icon: Users,
-  },
-  {
-    title: "Automações",
-    href: "/crm/settings/automation",
-    icon: Workflow,
-  },
-  {
-    title: "Personalização",
-    href: "/crm/settings/customization",
-    icon: Paintbrush,
-  },
-  {
     title: "Notificações",
     href: "/crm/settings/notifications",
     icon: Bell,
   },
   {
-    title: "Pipeline",
-    href: "/crm/settings/pipeline",
-    icon: GitBranch,
+    title: "Equipe",
+    href: "/crm/settings/team",
+    icon: Users,
   },
   {
-    title: "Campos Personalizados",
-    href: "/crm/settings/custom-fields",
-    icon: SlidersHorizontal,
-  },
-  {
-    title: "Entidades",
-    href: "/crm/settings/entities",
-    icon: Building2,
+    title: "Perfil",
+    href: "/crm/settings/profile",
+    icon: User,
   },
 ];
 

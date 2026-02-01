@@ -1,26 +1,13 @@
 import {
-  BarChart3,
-  Building2,
   LayoutDashboard,
   LogOut,
+  Building2,
   Settings,
-  Users,
-  FileText,
+  Briefcase,
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar";
 import { supabase } from "@/lib/supabase";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -29,25 +16,11 @@ const menuItems = [
     icon: LayoutDashboard,
     url: "/admin/dashboard",
   },
+ 
   {
-    title: "Clientes",
-    icon: Building2,
-    url: "/admin/clients",
-  },
-  {
-    title: "Relatórios",
-    icon: FileText,
-    url: "/admin/reports",
-  },
-  {
-    title: "Usuários",
-    icon: Users,
-    url: "/admin/users",
-  },
-  {
-    title: "Análises",
-    icon: BarChart3,
-    url: "/admin/analytics",
+    title: "Gestão",
+    icon: Briefcase,
+    url: "/admin/management",
   },
   {
     title: "Configurações",
@@ -59,68 +32,58 @@ const menuItems = [
 export function AdminSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
 
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
-      });
+      toast.success("Logout realizado com sucesso");
       navigate("/admin/login");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
-      toast({
-        title: "Erro ao fazer logout",
-        description: "Ocorreu um erro ao tentar desconectar.",
-        variant: "destructive",
-      });
+      toast.error("Erro ao fazer logout");
     }
   };
 
   return (
-    <Sidebar>
-      <SidebarHeader className="border-b border-border p-4">
-        <h2 className="text-lg font-semibold">Portal Administrador</h2>
-        <p className="text-sm text-muted-foreground">OEM Nexsyn</p>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    className={cn(
-                      location.pathname === item.url && "bg-muted"
-                    )}
-                  >
-                    <Link
-                      to={item.url}
-                      className="flex items-center gap-2"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 text-red-500 hover:text-red-600"
+    <aside className="w-64 bg-nex-dark-blue text-white flex flex-col fixed h-full">
+      {/* Logo */}
+      <div className="p-6">
+        <h1 className="text-2xl font-bold tracking-wider">
+          <span className="text-nex-orange">N</span> NEXPANEL
+        </h1>
+      </div>
+
+      {/* Navigation Links */}
+      <nav className="mt-4 flex-1">
+        <ul>
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.url;
+            return (
+              <li key={item.title}>
+                <Link
+                  to={item.url}
+                  className={cn(
+                    "flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200",
+                    isActive && "text-white bg-nex-orange"
+                  )}
                 >
-                  <LogOut className="h-4 w-4" />
-                  <span>Sair</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+                  <item.icon className="h-4 w-4 mr-3" />
+                  {item.title}
+                </Link>
+              </li>
+            );
+          })}
+          <li>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors duration-200 w-full text-left"
+            >
+              <LogOut className="h-4 w-4 mr-3" />
+              Sair
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </aside>
   );
 }

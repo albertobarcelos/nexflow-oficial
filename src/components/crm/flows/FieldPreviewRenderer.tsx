@@ -11,7 +11,6 @@ import {
   DollarSign, 
   Phone, 
   Mail, 
-  Paperclip, 
   User, 
   Users, 
   Tag, 
@@ -168,16 +167,6 @@ export function FieldPreviewRenderer({
               <Badge variant="secondary" className="text-xs">Opção 2</Badge>
               <span className="text-gray-500 text-sm">+ mais opções</span>
             </div>
-          </div>
-        );
-
-      case 'attachment':
-        return (
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-            <Paperclip className="w-6 h-6 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">
-              Clique para anexar arquivos
-            </p>
           </div>
         );
 

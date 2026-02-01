@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -83,6 +83,9 @@ export function FieldConfigurationModal({
                   <DialogTitle className="text-lg font-semibold">
                     {fieldType?.label || config.type}
                   </DialogTitle>
+                  <DialogDescription className="sr-only">
+                    {fieldType?.description || 'Configure as opções do campo'}
+                  </DialogDescription>
                   <p className="text-sm text-gray-500 mt-1">
                     {fieldType?.description || 'Configure as opções do campo'}
                   </p>

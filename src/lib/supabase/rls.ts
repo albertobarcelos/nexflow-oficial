@@ -12,7 +12,7 @@ import { logger } from '../config';
 export async function getCurrentClientId(): Promise<string | null> {
   try {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
+
     if (userError) {
       logger.error('Erro ao obter usuário autenticado:', userError);
       return null;

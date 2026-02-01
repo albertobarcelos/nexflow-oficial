@@ -1,21 +1,20 @@
 import { useNavigate, useLocation, useParams, useSearchParams } from "react-router-dom";
 import {
   Home,
-  CheckSquare,
   Building2,
   Users,
   Handshake,
   DollarSign,
-  BarChart3,
-  ChevronDown,
   Search,
   Bell,
-  Settings,
   LogOut,
   User,
   LucideProps,
   Database,
-  Eye,
+  Workflow,
+  Target,
+  Sparkles,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,10 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useAccountProfile } from "@/hooks/useAccountProfile";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { useHuntersAccess } from "@/hooks/useHuntersAccess";
+import { useOpportunitiesAccess } from "@/hooks/useOpportunitiesAccess";
+import { NotificationBell } from "@/components/crm/notifications/NotificationBell";
+import { Logo } from "@/components/ui/logo";
 // AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
 interface MenuItem {
@@ -56,32 +59,12 @@ const baseMenuItems: MenuItem[] = [
     href: "/crm/dashboard",
   },
   {
-    title: "Visão Geral",
-    icon: Eye,
-    href: "/crm/overview",
-  },
-  {
-    title: "Tarefas",
-    icon: CheckSquare,
-    href: "/crm/tasks",
+    title: "Flows",
+    icon: Workflow,
+    href: "/crm/flows",
   },
   // AIDEV-NOTE: Empresas e Pessoas aparecem condicionalmente dentro de flows
   // Removido "Negócios" - funcionalidade desnecessária
-];
-
-const reportItems = [
-  {
-    title: "Vendas",
-    href: "/crm/reports/sales",
-  },
-  {
-    title: "Atividades",
-    href: "/crm/reports/activities",
-  },
-  {
-    title: "Pipeline",
-    href: "/crm/reports/pipeline",
-  },
 ];
 
 function getInitials(name: string) {
@@ -100,16 +83,20 @@ export function Sidebar() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { user: userProfile, lastUpdate } = useAccountProfile();
+  const { hasAccess: hasHuntersAccess } = useHuntersAccess();
+  const { hasAccess: hasOpportunitiesAccess } = useOpportunitiesAccess();
 
-  // AIDEV-NOTE: Detecta se estamos dentro de um flow OU nas páginas de Empresas/Pessoas
+  // AIDEV-NOTE: Detecta se estamos dentro de um flow
   const isInsideFlow = location.pathname.includes('/flow/') && params.id;
-  const isInCompaniesOrPeople = location.pathname.includes('/companies') || location.pathname.includes('/people');
+  // Verifica se está nas páginas específicas de Empresas ou Pessoas (não em relações)
+  const isInCompaniesPage = location.pathname === '/crm/companies';
+  const isInPeoplePage = location.pathname === '/crm/people';
   
   // AIDEV-NOTE: Menu base sempre visível
   const menuItems = [...baseMenuItems];
   
-  // AIDEV-NOTE: Adiciona Empresas e Pessoas quando dentro de um flow OU nas próprias páginas
-  if (isInsideFlow || isInCompaniesOrPeople) {
+  // AIDEV-NOTE: Adiciona Empresas e Pessoas apenas quando dentro de um flow OU nas páginas específicas
+  if (isInsideFlow || isInCompaniesPage || isInPeoplePage) {
     menuItems.push(
       {
         title: "Empresas",
@@ -123,6 +110,22 @@ export function Sidebar() {
       }
     );
   }
+
+  // Adiciona Contatos se o usuário tiver acesso
+  if (hasOpportunitiesAccess) {
+    menuItems.push({
+      title: "Contatos",
+      icon: Users,
+      href: "/crm/contacts",
+    });
+  }
+
+  // Adiciona Empresas (Relações)
+  menuItems.push({
+    title: "Empresas",
+    icon: Building2,
+    href: "/crm/companies/relations",
+  });
 
   const handleLogout = async () => {
     try {
@@ -138,22 +141,22 @@ export function Sidebar() {
   
 
   return (
-    <div className="flex h-14 items-center justify-between px-4 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]" >
+    <div className="flex h-14 items-center justify-between px-4 bg-background border-b border-border shadow-sm" >
       <div className="flex items-center gap-4">
-        <h1 className="text-xl italic text-blue-950"><strong>NEXFLOW</strong>CRM</h1>
+        <Logo />
         <div className="flex items-center gap-3">
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
               location.pathname + location.search === item.href :
-              location.pathname === item.href;
+              (item.href === '/crm/flows' || item.href === '/crm/contacts') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
               
             return (
               <Button
                 key={item.title}
                 variant="ghost"
                 className={cn(
-                  "justify-start gap-2 text-blue-950 hover:bg-blue-950 hover:text-white rounded-full px-3 py-1 text-[13px]",
-                  isActive && "bg-blue-950 text-white"
+                  "justify-start gap-2 text-foreground hover:bg-primary hover:text-primary-foreground rounded-full px-3 py-1 text-[13px]",
+                  isActive && "bg-primary text-primary-foreground"
                 )}
                 onClick={() => item.onClick ? item.onClick(navigate) : navigate(item.href as string)}
               >
@@ -162,26 +165,6 @@ export function Sidebar() {
               </Button>
             );
           })}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="gap-2 text-blue-950 hover:bg-white/10">
-                <BarChart3 className="h-4 w-4" />
-                Relatórios
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {reportItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.href}
-                  onClick={() => navigate(item.href)}
-                >
-                  {item.title}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
@@ -191,13 +174,11 @@ export function Sidebar() {
           <Input
             type="search"
             placeholder="Buscar..."
-            className="w-64 pl-8 text-white placeholder:text-muted-foreground"
+            className="w-64 pl-8 text-foreground placeholder:text-muted-foreground"
           />
         </div>
 
-        <Button variant="ghost" size="icon" className="text-blue-950 hover:bg-blue-950 hover:text-white">
-          <Bell className="h-5 w-5" />
-        </Button>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -221,7 +202,7 @@ export function Sidebar() {
               <User className="mr-2 h-4 w-4" />
               Meu Perfil
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/crm/settings')}>
+            <DropdownMenuItem onClick={() => navigate('/crm/configurations')}>
               <Settings className="mr-2 h-4 w-4" />
               Configurações
             </DropdownMenuItem>
