@@ -67,9 +67,9 @@ export function ContactDetailsPanel({
 
       const { error } = await nexflowClient()
         .from("contacts")
-        .update({ contact_type: contactTypeValue as ("cliente" | "parceiro")[] | null })
-        .eq("id", contactId)
-        .eq("client_id", clientId);
+        .update({ contact_type: contactTypeValue } as any)
+        .eq("id", contactId as any)
+        .eq("client_id", clientId as any);
 
       if (error) throw error;
     },
@@ -146,7 +146,7 @@ export function ContactDetailsPanel({
             <div className="flex-1 min-h-0 overflow-hidden px-6 pb-6">
               <ScrollArea className="h-full">
                 <div className="pr-4">
-                <TabsContent value="informacoes" className="space-y-6 mt-4">
+                <TabsContent value="informacoes" forceMount className="space-y-6 mt-4 data-[state=inactive]:hidden">
                 {/* Header com avatar e nome */}
                 <div className="flex items-start gap-4">
                   <UserAvatar
@@ -334,11 +334,11 @@ export function ContactDetailsPanel({
                 </div>
                 </TabsContent>
 
-                <TabsContent value="empresas" className="mt-4">
+                <TabsContent value="empresas" forceMount className="mt-4 data-[state=inactive]:hidden">
                   <ContactCompaniesTab contactId={contactId} />
                 </TabsContent>
 
-                <TabsContent value="historico" className="mt-4">
+                <TabsContent value="historico" forceMount className="mt-4 data-[state=inactive]:hidden">
                   <ContactTimeline contactId={contactId} />
                 </TabsContent>
                 </div>

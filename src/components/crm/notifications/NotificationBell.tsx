@@ -147,7 +147,7 @@ export function NotificationBell() {
               </div>
             ) : (
               <>
-                <TabsContent value="unread" className="m-0">
+                <TabsContent value="unread" forceMount className="m-0 data-[state=inactive]:hidden">
                   {unreadNotifications.length === 0 ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">
                       Nenhuma notificação nova
@@ -158,7 +158,7 @@ export function NotificationBell() {
                     </div>
                   )}
                 </TabsContent>
-                <TabsContent value="read" className="m-0">
+                <TabsContent value="read" forceMount className="m-0 data-[state=inactive]:hidden">
                   {readNotifications.length === 0 ? (
                     <div className="p-4 text-center text-sm text-muted-foreground">
                       Nenhuma notificação lida

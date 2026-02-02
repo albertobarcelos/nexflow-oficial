@@ -19,6 +19,8 @@ import { useCardDragAndDrop } from "../hooks/useCardDragAndDrop";
 import { useBoardSearch } from "../hooks/useBoardSearch";
 import { getColorClasses } from "../utils/colorUtils";
 import { useWilliamMode } from "@/hooks/useWilliamMode";
+import successMp3Url from "@/assets/sounds/success.mp3";
+import confettiMp3Url from "@/assets/sounds/confetti-pop-sound-effect.mp3";
 import type { ViewMode, CardsByStep, CardsByStepPaginated, StepCounts } from "../types";
 import type { NexflowCard, ChecklistProgressMap, StepFieldValueMap } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
@@ -82,16 +84,21 @@ export function NexflowBoardPage() {
 
       await Promise.all(
         steps.map(async (step) => {
+          // Tipos do Supabase (condicionais com SchemaName genérico) não aceitam string direta; valores são compatíveis em runtime.
           let query = client
             .from("cards")
             .select("*", { count: "exact", head: true })
+            
             .eq("flow_id", id)
+           
             .eq("step_id", step.id);
 
           if (filterUserId !== null && filterUserId !== undefined) {
+            
             query = query.eq("assigned_to", filterUserId);
           }
           if (filterTeamId !== null && filterTeamId !== undefined) {
+           
             query = query.eq("assigned_team_id", filterTeamId);
           }
 
@@ -119,11 +126,11 @@ export function NexflowBoardPage() {
   const { searchCards } = useBoardSearch();
 
   useEffect(() => {
-    successAudioRef.current = new Audio("/sounds/success.mp3");
+    successAudioRef.current = new Audio(successMp3Url);
     if (successAudioRef.current) {
       successAudioRef.current.volume = 0.35;
     }
-    confettiAudioRef.current = new Audio("/sounds/confetti-pop-sound-effect.mp3");
+    confettiAudioRef.current = new Audio(confettiMp3Url);
     if (confettiAudioRef.current) {
       confettiAudioRef.current.volume = 0.5;
     }

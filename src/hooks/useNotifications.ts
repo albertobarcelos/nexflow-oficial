@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getCurrentClientId } from '@/lib/supabase';
 import type { Notification } from '@/types/notifications';
@@ -29,22 +29,24 @@ export function useNotifications(limit = 50) {
     },
   });
 
-  // Realtime subscription para novas notificações
+  // Realtime subscription para novas notificações (ref garante remoção no cleanup mesmo com setup async)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
 
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.id) return;
+      if (!user?.id || cancelled) return;
 
-      channel = supabase
+      const ch = supabase
         .channel(`notifications-${user.id}`)
         .on(
           'postgres_changes',
           {
             event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
+            schema: 'public',
+            table: 'notifications',
             filter: `user_id=eq.${user.id}`,
           },
           () => {
@@ -54,14 +56,20 @@ export function useNotifications(limit = 50) {
         )
         .subscribe();
 
-      return channel;
+      if (cancelled) {
+        supabase.removeChannel(ch);
+        return;
+      }
+      channelRef.current = ch;
     };
 
     setupSubscription();
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
+      cancelled = true;
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
   }, [queryClient]);

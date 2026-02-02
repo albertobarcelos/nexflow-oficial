@@ -19,12 +19,20 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseKey, {
       'X-Client-Info': 'nexflow-crm',
     },
   },
-  // Configurar realtime baseado na config
+  // Configurar realtime: worker evita throttling em abas em segundo plano.
   realtime: {
+    worker: true,
     params: {
       eventsPerSecond: 10,
     },
   },
+});
+
+// Reconectar quando o heartbeat detectar desconexão (ex.: após perda de foco da aba).
+supabase.realtime.onHeartbeat((status) => {
+  if (status === 'disconnected') {
+    supabase.realtime.connect();
+  }
 });
 
 /**
@@ -76,14 +84,6 @@ export type WebDealUpdate = Database['public']['Tables']['web_deals']['Update'];
 export type WebTask = Database['public']['Tables']['web_tasks']['Row'];
 export type WebTaskInsert = Database['public']['Tables']['web_tasks']['Insert'];
 export type WebTaskUpdate = Database['public']['Tables']['web_tasks']['Update'];
-
-export type WebFunnel = Database['public']['Tables']['web_funnels']['Row'];
-export type WebFunnelInsert = Database['public']['Tables']['web_funnels']['Insert'];
-export type WebFunnelUpdate = Database['public']['Tables']['web_funnels']['Update'];
-
-export type WebFunnelStage = Database['public']['Tables']['web_funnel_stages']['Row'];
-export type WebFunnelStageInsert = Database['public']['Tables']['web_funnel_stages']['Insert'];
-export type WebFunnelStageUpdate = Database['public']['Tables']['web_funnel_stages']['Update'];
 
 export type WebCity = Database['public']['Tables']['web_cities']['Row'];
 export type WebCityInsert = Database['public']['Tables']['web_cities']['Insert'];
@@ -198,7 +198,8 @@ export async function getCurrentClientId(): Promise<string | null> {
   const { data: clientUser, error } = await supabase
     .from('core_client_users')
     .select('client_id')
-    .eq('id', user.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase .eq() espera tipo condicional; user.id (string) é o id da tabela
+    .eq('id', user.id as any)
     .single();
 
   if (error) {
@@ -206,8 +207,8 @@ export async function getCurrentClientId(): Promise<string | null> {
     logRLSInstructions();
     return null;
   }
-  
-  if (!clientUser) {
+
+  if (!clientUser || !('client_id' in clientUser)) {
     logger.warn('getCurrentClientId: Nenhum registro encontrado em core_client_users para o usuário.', { userId: user.id });
     logRLSInstructions();
     return null;
@@ -231,7 +232,8 @@ export async function getCurrentUserWithClient() {
       *,
       core_clients:client_id (*)
     `)
-    .eq('id', user.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase .eq() espera tipo condicional; user.id (string) é o id da tabela
+    .eq('id', user.id as any)
     .single();
 
   return clientUser;
@@ -249,10 +251,11 @@ export async function checkUserPermission(permission: string): Promise<boolean> 
   const { data: clientUser } = await supabase
     .from('core_client_users')
     .select('role')
-    .eq('id', user.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Supabase .eq() espera tipo condicional; user.id (string) é o id da tabela
+    .eq('id', user.id as any)
     .single();
 
-  if (!clientUser) return false;
+  if (!clientUser || !('role' in clientUser)) return false;
 
   // Administradores têm todas as permissões
   if (clientUser.role === 'administrator') return true;
@@ -289,7 +292,8 @@ export async function checkUserPermission(permission: string): Promise<boolean> 
     ],
   };
 
-  const userPermissions = rolePermissions[clientUser.role] || [];
+  const role = clientUser.role;
+  const userPermissions = (role && rolePermissions[role]) || [];
   return userPermissions.includes('*') || userPermissions.includes(permission);
 }
 
