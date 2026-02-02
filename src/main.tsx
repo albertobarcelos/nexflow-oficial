@@ -12,7 +12,11 @@ import "./index.css";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false, // Disable auto refetch, rely on soft reload
+      staleTime: 1000 * 60 * 5, // 5 minutos — evita refetch em massa ao voltar foco
+      gcTime: 1000 * 60 * 30, // 30 min (antigo cacheTime)
+      refetchOnWindowFocus: true, // com staleTime > 0, só refetch quando stale
+      retry: 3,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 30000),
     },
   },
 });
@@ -36,13 +40,10 @@ function SoftReloadOnFocus() {
           
           if (session?.user) {
             try {
-              // Invalidar todas as queries ativas para forçar refetch
-              await queryClient.invalidateQueries();
-              
-              // Refetch todas as queries ativas
-              await queryClient.refetchQueries();
-            } catch (invalidateError) {
-              console.error('Erro durante invalidate/refetch:', invalidateError);
+              // Refetch apenas queries ativas/stale (sem invalidar em massa)
+              await queryClient.refetchQueries({ type: 'active' });
+            } catch (refetchError) {
+              console.error('Erro durante refetch ao voltar foco:', refetchError);
             }
           }
         } catch (error) {

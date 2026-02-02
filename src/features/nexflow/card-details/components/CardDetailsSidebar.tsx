@@ -74,7 +74,7 @@ export function CardDetailsSidebar({
           </TabsList>
         </div>
 
-        <TabsContent value="informacoes" className="flex-1 overflow-y-auto mt-0 p-4 space-y-1">
+        <TabsContent value="informacoes" forceMount className="flex-1 overflow-y-auto mt-0 p-4 space-y-1 data-[state=inactive]:hidden">
           <nav className="space-y-1">
             <button
               onClick={() => {
@@ -231,7 +231,7 @@ export function CardDetailsSidebar({
           </nav>
         </TabsContent>
 
-        <TabsContent value="processos" className="flex-1 overflow-y-auto mt-0 p-4">
+        <TabsContent value="processos" forceMount className="flex-1 overflow-y-auto mt-0 p-4 data-[state=inactive]:hidden">
           <ProcessesSidebar 
             card={card} 
             selectedProcessId={selectedProcessId}
