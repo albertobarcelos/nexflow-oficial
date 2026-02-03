@@ -23,12 +23,12 @@ export function ContactFloatingWidget({
       onOpenChange={setIsPopoverOpen}
     >
       <Badge
-        variant="outline"
-        className="cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-2 px-3 py-1.5"
+        variant="default"
+        className="cursor-pointer hover:bg-primary/10 transition-colors flex items-center gap-1 px-2 py-1"
         onClick={() => setIsPopoverOpen(true)}
       >
-        <User className="h-3.5 w-3.5 text-primary" />
-        <span className="text-xs font-medium">Contato</span>
+        <User className="h-2.5 w-2.5" />
+        
       </Badge>
     </ContactPopover>
   );

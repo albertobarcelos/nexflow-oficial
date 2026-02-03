@@ -1,5 +1,12 @@
 import { useState, useCallback, useMemo } from "react";
-import { UserPlus, Building2, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  UserPlus,
+  Building2,
+  Package,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,13 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Combobox } from "@/components/ui/combobox";
 import { useContactsForSelect } from "@/hooks/useContactsForSelect";
 import { useCreateContact } from "@/hooks/useCreateContact";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
@@ -68,6 +69,7 @@ export function NewCardWizard({
   const [newContactClientName, setNewContactClientName] = useState("");
   const [newContactMainContact, setNewContactMainContact] = useState("");
   const [newCompanyName, setNewCompanyName] = useState("");
+  const [contactSearchTerm, setContactSearchTerm] = useState("");
 
   const { data: contacts = [] } = useContactsForSelect();
   const createContactMutation = useCreateContact();
@@ -86,6 +88,17 @@ export function NewCardWizard({
     () => companies.find((c) => c.id === companyId),
     [companies, companyId]
   );
+
+  // Lista de contatos filtrada por pesquisa (client_name ou main_contact)
+  const filteredContacts = useMemo(() => {
+    const term = contactSearchTerm.trim().toLowerCase();
+    if (!term) return contacts;
+    return contacts.filter(
+      (c) =>
+        (c.client_name ?? "").toLowerCase().includes(term) ||
+        (c.main_contact ?? "").toLowerCase().includes(term)
+    );
+  }, [contacts, contactSearchTerm]);
 
   const canGoNext = useMemo(() => {
     if (step === 1) return contactIds.length > 0;
@@ -197,6 +210,7 @@ export function NewCardWizard({
     setNewContactClientName("");
     setNewContactMainContact("");
     setNewCompanyName("");
+    setContactSearchTerm("");
   }, []);
 
   return (
@@ -262,13 +276,32 @@ export function NewCardWizard({
                   Selecione um ou mais contatos para o card. Você pode criar um
                   novo contato se necessário.
                 </p>
+                <div className="relative">
+                  <Search
+                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                    aria-hidden
+                  />
+                  <Input
+                    type="search"
+                    value={contactSearchTerm}
+                    onChange={(e) => setContactSearchTerm(e.target.value)}
+                    placeholder="Pesquisar contatos..."
+                    aria-label="Pesquisar contatos por nome ou contato principal"
+                    className={cn("pl-9")}
+                  />
+                </div>
                 <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3">
                   {contacts.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">
                       Nenhum contato cadastrado. Crie um novo abaixo.
                     </p>
+                  ) : filteredContacts.length === 0 &&
+                    contactSearchTerm.trim() !== "" ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      Nenhum contato encontrado para essa pesquisa.
+                    </p>
                   ) : (
-                    contacts.map((c) => (
+                    filteredContacts.map((c) => (
                       <div
                         key={c.id}
                         className="flex items-center gap-3 rounded-md p-2 hover:bg-muted/50"
@@ -315,25 +348,15 @@ export function NewCardWizard({
                 </p>
                 <div className="space-y-2">
                   <Label>Empresa</Label>
-                  <Select
+                  <Combobox
+                    items={companies.map((c) => ({
+                      value: c.id,
+                      label: c.name,
+                    }))}
                     value={companyId ?? ""}
-                    onValueChange={handleCompanySelect}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma empresa" />
-                    </SelectTrigger>
-                    <SelectContent
-                      className="z-[100]"
-                      position="popper"
-                      sideOffset={4}
-                    >
-                      {companies.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={handleCompanySelect}
+                    placeholder="Selecione uma empresa"
+                  />
                 </div>
                 <Button
                   type="button"

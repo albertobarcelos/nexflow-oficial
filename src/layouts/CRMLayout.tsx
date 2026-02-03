@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -12,8 +12,12 @@ import { FlowBuilderProvider } from "@/contexts/FlowBuilderContext";
 
 export default function CRMLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  // Rota do board: ajustar layout para altura fixa e apenas scroll horizontal no Kanban
+  const isBoardRoute = /^\/crm\/flows\/[^/]+\/board\/?$/.test(location.pathname);
 
   // TEMPORÁRIO: Comentando toda a verificação de autenticação para permitir acesso direto ao CRM
   /*
@@ -87,12 +91,30 @@ export default function CRMLayout() {
   return (
     <FlowBuilderProvider>
       <TooltipProvider>
-        <div className="flex flex-col min-h-screen">
+        <div
+          className={
+            isBoardRoute
+              ? "flex flex-col min-h-screen h-screen overflow-hidden"
+              : "flex flex-col min-h-screen"
+          }
+        >
           <header className="h-14 flex-shrink-0 fixed top-0 left-0 right-0 z-10 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]">
             <Sidebar />
           </header>
-          <main className="flex-grow overflow-y-auto mt-14">
-            <Outlet />
+          <main
+            className={
+              isBoardRoute
+                ? "flex-1 min-h-0 overflow-hidden flex flex-col mt-14"
+                : "flex-grow overflow-y-auto mt-14"
+            }
+          >
+            {isBoardRoute ? (
+              <div className="flex-1 min-h-0">
+                <Outlet />
+              </div>
+            ) : (
+              <Outlet />
+            )}
           </main>
         </div>
         <Toaster />

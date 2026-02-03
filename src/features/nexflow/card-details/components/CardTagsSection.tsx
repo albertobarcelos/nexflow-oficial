@@ -82,8 +82,7 @@ export function CardTagsSection({ cardId, flowId }: CardTagsSectionProps) {
               className="h-6 text-xs px-2 py-0 border-dashed"
               type="button"
             >
-              <Plus className="h-3 w-3 mr-1" />
-              Adicionar tag
+            <Tag className="h-2 w-2 " />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64 p-0" align="start">

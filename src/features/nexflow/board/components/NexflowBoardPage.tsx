@@ -623,8 +623,8 @@ export function NexflowBoardPage() {
 
   return (
     <div className={cn(
-      "min-h-screen bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300 font-sans flex flex-col transition-colors duration-200",
-      viewMode === "list" ? "h-auto min-h-screen" : "h-screen overflow-hidden"
+      "bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300 font-sans flex flex-col transition-colors duration-200",
+      viewMode === "list" ? "h-full min-h-0" : "h-full min-h-0 overflow-hidden"
     )}>
       <BoardHeader
         viewMode={viewMode}

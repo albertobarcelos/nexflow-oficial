@@ -92,8 +92,8 @@ export function KanbanColumn({
           boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.05)}`,
         }}
       >
-        <div className="flex flex-col justify-between text-white mb-3">
-        <h2 className="text-lg font-bold text-white mb-2 flex justify-between">
+        <div className="flex flex-col justify-between text-white mb-3 h-10">
+        <h2 className="text-sm font-bold text-white mb-2 flex justify-between">
           <span className="truncate max-w-[250px]">
             {step.title}
             </span>
