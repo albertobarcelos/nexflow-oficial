@@ -97,7 +97,6 @@ export function useCompanies() {
           numero: input.numero || null,
           complemento: input.complemento || null,
           bairro: input.bairro || null,
-          company_type: "cliente", // Tipo padrão
         })
         .select()
         .single();

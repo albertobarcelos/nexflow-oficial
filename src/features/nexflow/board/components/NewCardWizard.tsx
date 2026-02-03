@@ -22,6 +22,7 @@ import { Combobox } from "@/components/ui/combobox";
 import { useContactsForSelect } from "@/hooks/useContactsForSelect";
 import { useCreateContact } from "@/hooks/useCreateContact";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
+import { CompanyQuickForm } from "@/components/ui/company-quick-form";
 import { ProductSelector } from "@/features/nexflow/card-details/components/ProductSelector";
 import type { CardProduct } from "@/features/nexflow/card-details/types";
 import { cn } from "@/lib/utils";
@@ -68,16 +69,11 @@ export function NewCardWizard({
   const [createCompanyOpen, setCreateCompanyOpen] = useState(false);
   const [newContactClientName, setNewContactClientName] = useState("");
   const [newContactMainContact, setNewContactMainContact] = useState("");
-  const [newCompanyName, setNewCompanyName] = useState("");
   const [contactSearchTerm, setContactSearchTerm] = useState("");
 
   const { data: contacts = [] } = useContactsForSelect();
   const createContactMutation = useCreateContact();
-  const {
-    companies,
-    createCompany: createCompanyMutation,
-    isCreating: isCreatingCompany,
-  } = useCompanies();
+  const { companies } = useCompanies();
 
   const totalValue = useMemo(
     () => products.reduce((sum, p) => sum + (p.totalValue || 0), 0),
@@ -149,19 +145,13 @@ export function NewCardWizard({
     createContactMutation,
   ]);
 
-  const handleCreateCompanySubmit = useCallback(async () => {
-    if (!newCompanyName.trim()) return;
-    try {
-      const created = await createCompanyMutation({
-        name: newCompanyName.trim(),
-      });
-      handleCompanySelect(created.id);
-      setNewCompanyName("");
+  const handleCreateCompanySuccess = useCallback(
+    (company: { id: string; name: string; razao_social?: string | null }) => {
+      handleCompanySelect(company.id);
       setCreateCompanyOpen(false);
-    } catch {
-      // toast já tratado no hook
-    }
-  }, [newCompanyName, createCompanyMutation, handleCompanySelect]);
+    },
+    [handleCompanySelect]
+  );
 
   const handleFinish = useCallback(async () => {
     if (!canGoNext && step < 2) return;
@@ -209,7 +199,6 @@ export function NewCardWizard({
     setCreateCompanyOpen(false);
     setNewContactClientName("");
     setNewContactMainContact("");
-    setNewCompanyName("");
     setContactSearchTerm("");
   }, []);
 
@@ -487,42 +476,27 @@ export function NewCardWizard({
         </DialogContent>
       </Dialog>
 
-      {/* Dialog: Criar nova empresa */}
+      {/* Dialog: Criar nova empresa — reutiliza CompanyQuickForm (nome, CNPJ, razão social, estado, cidade, endereço) */}
       <Dialog open={createCompanyOpen} onOpenChange={setCreateCompanyOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Criar nova empresa</DialogTitle>
             <DialogDescription className="sr-only">
-              Informe o nome da empresa.
+              Preencha nome, CNPJ e demais campos da empresa.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div>
-              <Label htmlFor="new-company-name">Nome da empresa</Label>
-              <Input
-                id="new-company-name"
-                value={newCompanyName}
-                onChange={(e) => setNewCompanyName(e.target.value)}
-                placeholder="Ex.: Empresa ABC"
-                className="mt-1"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
+          <div className="pt-2">
+            <CompanyQuickForm
+              initialName=""
+              onSuccess={handleCreateCompanySuccess}
+            />
+            <div className="flex justify-end mt-4">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setCreateCompanyOpen(false)}
               >
                 Cancelar
-              </Button>
-              <Button
-                type="button"
-                onClick={handleCreateCompanySubmit}
-                disabled={
-                  !newCompanyName.trim() || isCreatingCompany
-                }
-              >
-                {isCreatingCompany ? "Criando..." : "Criar"}
               </Button>
             </div>
           </div>
