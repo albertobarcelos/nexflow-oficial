@@ -1,5 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { useSecureClientQuery } from "@/hooks/useSecureClientQuery";
 
 export interface OrganizationUser {
   id: string;
@@ -16,15 +15,18 @@ export interface OrganizationUser {
   avatar_seed?: string | null;
 }
 
+/**
+ * Usuários da organização do cliente atual (multi-tenant seguro).
+ * Filtra por client_id e usa validação dupla nos dados retornados.
+ */
 export function useOrganizationUsers() {
-  return useQuery({
+  return useSecureClientQuery<OrganizationUser[]>({
     queryKey: ["organization-users"],
-    queryFn: async () => {
-      try {
-        // Buscar todos os usuários com JOIN na empresa (admin pode ver todos)
-        const { data: users, error } = await supabase
-          .from("core_client_users")
-          .select(`
+    queryFn: async (client, clientId) => {
+      const { data: users, error } = await client
+        .from("core_client_users")
+        .select(
+          `
             id,
             name,
             surname,
@@ -41,37 +43,37 @@ export function useOrganizationUsers() {
               name,
               company_name
             )
-          `)
-          .order("name");
+          `
+        )
+        .eq("client_id", clientId)
+        .order("name");
 
-        if (error) {
-          console.error("Erro ao buscar usuários:", error);
-          return [];
-        }
-
-        return (users || []).map((user: any) => {
-          const company = user.core_clients;
-          return {
-            id: user.id,
-            name: user.name || "",
-            surname: user.surname || "",
-            email: user.email,
-            role: user.role,
-            is_active: user.is_active,
-            client_id: user.client_id,
-            company_name: company?.company_name || company?.name || "Sem empresa",
-            avatar_url: user.avatar_url,
-            custom_avatar_url: user.custom_avatar_url,
-            avatar_type: user.avatar_type,
-            avatar_seed: user.avatar_seed,
-          };
-        });
-      } catch (error) {
+      if (error) {
         console.error("Erro ao buscar usuários:", error);
         return [];
       }
+
+      return (users || []).map((user: Record<string, unknown>) => {
+        const company = user.core_clients as { company_name?: string; name?: string } | null;
+        return {
+          id: user.id as string,
+          name: (user.name as string) || "",
+          surname: (user.surname as string) || "",
+          email: user.email as string,
+          role: user.role as string,
+          is_active: user.is_active as boolean,
+          client_id: user.client_id as string | null,
+          company_name: company?.company_name || company?.name || "Sem empresa",
+          avatar_url: user.avatar_url as string | null,
+          custom_avatar_url: user.custom_avatar_url as string | null,
+          avatar_type: user.avatar_type as string | null,
+          avatar_seed: user.avatar_seed as string | null,
+        };
+      });
     },
-    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
+    validateClientIdOnData: true,
+    queryOptions: {
+      refetchOnWindowFocus: false,
+    },
   });
 }
-

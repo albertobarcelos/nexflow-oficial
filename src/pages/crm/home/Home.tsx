@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Share2, Lightbulb, CheckCircle, XCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useDashboardStats, PeriodFilter } from "@/hooks/useDashboardStats";
 import { useContactFlowData } from "@/hooks/useContactFlowData";
 import { useRecentActivities } from "@/hooks/useRecentActivities";
@@ -19,13 +20,22 @@ import { RecentActivitiesTable } from "@/components/crm/dashboard/RecentActiviti
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function Home() {
+  const { hasAccess, accessError, currentClient } = useClientAccessGuard();
+
   const [period, setPeriod] = useState<PeriodFilter>('today');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  
+
+  // Auditoria: registro de acesso à página Dashboard
+  useEffect(() => {
+    if (hasAccess && currentClient?.name) {
+      console.log(`[AUDIT] Dashboard acessado - Client: ${currentClient.name}`);
+    }
+  }, [hasAccess, currentClient?.name]);
+
   const { data: teams = [] } = useOrganizationTeams();
   const { data: users = [] } = useOrganizationUsers();
-  
+
   const { metrics, isLoading: isLoadingStats } = useDashboardStats(period, {
     teamId: selectedTeamId,
     userId: selectedUserId,
@@ -35,6 +45,17 @@ export function Home() {
     teamId: selectedTeamId,
     userId: selectedUserId,
   });
+
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-[#f4f6f9] dark:bg-[#111827] p-6 md:p-8 flex items-center justify-center">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso ao dashboard</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   const periodButtons: { label: string; value: PeriodFilter }[] = [
     { label: 'Hoje', value: 'today' },

@@ -1,6 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
-import { getCurrentUserData } from "@/lib/auth";
-import { supabase } from "@/lib/supabase";
+import { useSecureClientQuery } from "@/hooks/useSecureClientQuery";
 
 export interface OrganizationTeam {
   id: string;
@@ -12,21 +10,18 @@ export interface OrganizationTeam {
   is_active: boolean;
 }
 
+/**
+ * Times da organização do cliente atual (multi-tenant seguro).
+ * QueryKey inclui clientId; validação dupla nos dados retornados.
+ */
 export function useOrganizationTeams() {
-  return useQuery({
+  return useSecureClientQuery<OrganizationTeam[]>({
     queryKey: ["organization-teams"],
-    queryFn: async () => {
-      try {
-        const collaborator = await getCurrentUserData();
-        if (!collaborator?.client_id) {
-          return [];
-        }
-
-        // Buscar times do client logado com JOIN em core_clients
-        // Nota: core_teams pode não estar no schema TypeScript, mas existe no banco
-        const { data: teams, error } = await (supabase as any)
-          .from("core_teams")
-          .select(`
+    queryFn: async (client, clientId) => {
+      const { data: teams, error } = await client
+        .from("core_teams")
+        .select(
+          `
             id,
             name,
             description,
@@ -37,51 +32,47 @@ export function useOrganizationTeams() {
               name,
               company_name
             )
-          `)
-          .eq("client_id", collaborator.client_id)
-          .order("name");
+          `
+        )
+        .eq("client_id", clientId)
+        .order("name");
 
-        if (error) {
-          console.error("Erro ao buscar times:", error);
-          return [];
-        }
-
-        // Para cada time, contar os membros e processar dados do cliente
-        const teamsWithCount = await Promise.all(
-          (teams || []).map(async (team: any) => {
-            const { count, error: countError } = await (supabase as any)
-              .from("core_team_members")
-              .select("*", { count: "exact", head: true })
-              .eq("team_id", team.id);
-
-            if (countError) {
-              console.error(`Erro ao contar membros do time ${team.id}:`, countError);
-            }
-
-            // Extrair nome do cliente do JOIN
-            const client = team.core_clients;
-            const clientName = client?.company_name || client?.name || "Cliente não encontrado";
-
-            return {
-              id: team.id,
-              name: team.name,
-              description: team.description,
-              member_count: count || 0,
-              client_id: team.client_id,
-              clientName: clientName,
-              is_active: team.is_active,
-            };
-          })
-        );
-
-        return teamsWithCount;
-      } catch (error) {
+      if (error) {
         console.error("Erro ao buscar times:", error);
         return [];
       }
+
+      const teamsWithCount = await Promise.all(
+        (teams || []).map(async (team: Record<string, unknown>) => {
+          const { count, error: countError } = await client
+            .from("core_team_members")
+            .select("*", { count: "exact", head: true })
+            .eq("team_id", team.id);
+
+          if (countError) {
+            console.error(`Erro ao contar membros do time ${team.id}:`, countError);
+          }
+
+          const clientData = team.core_clients as { company_name?: string; name?: string } | null;
+          const clientName = clientData?.company_name || clientData?.name || "Cliente não encontrado";
+
+          return {
+            id: team.id as string,
+            name: team.name as string,
+            description: team.description as string | null,
+            member_count: count || 0,
+            client_id: team.client_id as string,
+            clientName,
+            is_active: team.is_active as boolean,
+          };
+        })
+      );
+
+      return teamsWithCount;
     },
-    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
-    // #endregion
+    validateClientIdOnData: true,
+    queryOptions: {
+      refetchOnWindowFocus: false,
+    },
   });
 }
-

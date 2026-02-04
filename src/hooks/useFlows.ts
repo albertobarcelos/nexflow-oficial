@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 
 // Função helper para obter dados do usuário (incluindo usuário de teste)
 const getCurrentUserData = async () => {
@@ -33,7 +34,7 @@ export async function getFirstFlow() {
     const collaborator = await getCurrentUserData();
 
     const { data: flows } = await supabase
-      .from("web_funnels")
+      .from("web_flows")
       .select("*")
       .eq("client_id", collaborator.client_id)
       .order("created_at", { ascending: true })
@@ -47,15 +48,20 @@ export async function getFirstFlow() {
   }
 }
 
+/**
+ * Flows (web_flows) do cliente atual. Multi-tenant: queryKey com clientId.
+ */
 export function useFlows() {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["flows"],
+    queryKey: ["flows", clientId],
     queryFn: async () => {
       try {
         const collaborator = await getCurrentUserData();
 
         const { data: flows } = await supabase
-          .from("web_funnels")
+          .from("web_flows")
           .select("*")
           .eq("client_id", collaborator.client_id)
           .order("created_at", { ascending: true });
@@ -66,5 +72,6 @@ export function useFlows() {
         return [];
       }
     },
+    enabled: !!clientId,
   });
 } 

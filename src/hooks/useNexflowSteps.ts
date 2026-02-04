@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient, supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Database } from "@/types/database";
 import { NexflowStep, StepType } from "@/types/nexflow";
 
@@ -46,11 +47,12 @@ interface ReorderStepsInput {
 
 export function useNexflowSteps(flowId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "steps", flowId];
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
+  const queryKey = ["nexflow", "steps", clientId, flowId];
 
   const stepsQuery = useQuery({
     queryKey,
-    enabled: Boolean(flowId),
+    enabled: Boolean(flowId) && Boolean(clientId),
     queryFn: async (): Promise<NexflowStep[]> => {
       if (!flowId) {
         return [];
@@ -74,7 +76,13 @@ export function useNexflowSteps(flowId?: string) {
     refetchOnMount: true, // Garantir refetch quando componente montar
   });
 
-  const createStepMutation = useMutation<NexflowStep, Error, CreateStepInput>({
+  type CreateStepContext = { previousSteps: NexflowStep[] };
+  const createStepMutation = useMutation<
+    NexflowStep,
+    Error,
+    CreateStepInput,
+    CreateStepContext
+  >({
     mutationFn: async ({ title, color, position, isCompletionStep, stepType }: CreateStepInput) => {
       if (!flowId) {
         throw new Error("Flow não informado.");
@@ -135,17 +143,15 @@ export function useNexflowSteps(flowId?: string) {
 
       return { previousSteps };
     },
-    onError: (_error, _variables, context) => {
+    onError: (err, _variables, context: CreateStepContext | undefined) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
+      toast.error("Erro ao criar etapa. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Etapa criada com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao criar etapa. Tente novamente.");
     },
   });
 
@@ -213,10 +219,11 @@ export function useNexflowSteps(flowId?: string) {
 
       return { previousSteps };
     },
-    onError: (_error, _variables, context) => {
+    onError: (_error, _variables, context: { previousSteps: NexflowStep[] } | undefined) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
+      toast.error("Erro ao atualizar etapa. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -228,9 +235,6 @@ export function useNexflowSteps(flowId?: string) {
         queryClient.invalidateQueries({ queryKey: ["nexflow", "flow"] });
       }
       toast.success("Etapa atualizada com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao atualizar etapa. Tente novamente.");
     },
   });
 
@@ -296,16 +300,14 @@ export function useNexflowSteps(flowId?: string) {
       queryClient.setQueryData(queryKey, updatedSteps);
       return { previousSteps };
     },
-    onError: (_error, _variables, context) => {
+    onError: (_error, _variables, context: { previousSteps: NexflowStep[] } | undefined) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
+      toast.error("Erro ao reordenar etapas. Tente novamente.");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-    },
-    onError: () => {
-      toast.error("Erro ao reordenar etapas. Tente novamente.");
     },
   });
 

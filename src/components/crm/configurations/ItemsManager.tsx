@@ -260,10 +260,7 @@ export function ItemsManager({ clientId }: ItemsManagerProps) {
       const item = items.find((i) => i.id === itemToDelete);
       if (!item) return;
 
-      await deleteItem.mutateAsync({
-        id: itemToDelete,
-        clientId: item.client_id,
-      });
+      await deleteItem.mutateAsync({ id: itemToDelete });
       setItemToDelete(null);
     } catch (error) {
       console.error("Erro ao excluir item:", error);

@@ -1,22 +1,27 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { getCurrentClientId } from '@/lib/supabase';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import type {
   CardActivity,
   CreateCardActivityInput,
   UpdateCardActivityInput,
   GroupedCardActivities,
-} from '@/types/activities';
-import { format, isToday, isFuture, parseISO, startOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+} from "@/types/activities";
+import { format, isToday, isFuture, parseISO, startOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
+/**
+ * Atividades do card (multi-tenant: queryKey com clientId).
+ */
 export function useCardActivities(cardId: string | null) {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   const query = useQuery({
-    queryKey: ['card-activities', cardId],
+    queryKey: ["card-activities", clientId, cardId],
     queryFn: async (): Promise<CardActivity[]> => {
       if (!cardId) return [];
 
@@ -109,7 +114,7 @@ export function useCardActivities(cardId: string | null) {
           : null,
       })) as CardActivity[];
     },
-    enabled: !!cardId,
+    enabled: !!clientId && !!cardId,
     staleTime: 1000 * 60 * 2, // 2 minutos
   });
 
@@ -128,7 +133,9 @@ export function useCardActivities(cardId: string | null) {
           filter: `card_id=eq.${cardId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['card-activities', cardId] });
+          queryClient.invalidateQueries({
+            queryKey: ["card-activities", clientId, cardId],
+          });
         }
       )
       .subscribe();
@@ -136,7 +143,7 @@ export function useCardActivities(cardId: string | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [cardId, queryClient]);
+  }, [cardId, clientId, queryClient]);
 
   return query;
 }
@@ -145,10 +152,11 @@ export function useGroupedCardActivities(
   cardId: string | null,
   filter: 'all' | 'pending' | 'completed' | 'today' | 'upcoming' = 'all'
 ) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
   const { data: activities = [], ...rest } = useCardActivities(cardId);
 
   const grouped = useQuery({
-    queryKey: ['card-activities-grouped', cardId, filter],
+    queryKey: ["card-activities-grouped", clientId, cardId, filter],
     queryFn: (): GroupedCardActivities[] => {
       let filtered = activities;
 
@@ -192,7 +200,7 @@ export function useGroupedCardActivities(
         }))
         .sort((a, b) => a.date.localeCompare(b.date));
     },
-    enabled: !!cardId && activities.length > 0,
+    enabled: !!clientId && !!cardId && activities.length > 0,
   });
 
   return {
@@ -203,6 +211,7 @@ export function useGroupedCardActivities(
 
 export function useCreateCardActivity() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async (input: CreateCardActivityInput): Promise<CardActivity> => {
@@ -230,11 +239,15 @@ export function useCreateCardActivity() {
       return data.activity as CardActivity;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['card-activities', data.card_id] });
       queryClient.invalidateQueries({
-        queryKey: ['card-activities-grouped', data.card_id],
+        queryKey: ["card-activities", clientId, data.card_id],
       });
-      queryClient.invalidateQueries({ queryKey: ['flow-activity-types'] });
+      queryClient.invalidateQueries({
+        queryKey: ["card-activities-grouped", clientId, data.card_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["flow-activity-types", clientId],
+      });
       toast.success('Atividade criada com sucesso');
     },
     onError: (error: Error) => {
@@ -246,6 +259,7 @@ export function useCreateCardActivity() {
 
 export function useUpdateCardActivity() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async ({
@@ -295,11 +309,13 @@ export function useUpdateCardActivity() {
       return data as unknown as CardActivity;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['card-activities', data.card_id] });
       queryClient.invalidateQueries({
-        queryKey: ['card-activities-grouped', data.card_id],
+        queryKey: ["card-activities", clientId, data.card_id],
       });
-      toast.success('Atividade atualizada com sucesso');
+      queryClient.invalidateQueries({
+        queryKey: ["card-activities-grouped", clientId, data.card_id],
+      });
+      toast.success("Atividade atualizada com sucesso");
     },
     onError: (error: Error) => {
       console.error('[UpdateCardActivity] Erro:', error);
@@ -310,6 +326,7 @@ export function useUpdateCardActivity() {
 
 export function useDeleteCardActivity() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async ({
@@ -334,12 +351,12 @@ export function useDeleteCardActivity() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['card-activities', variables.cardId],
+        queryKey: ["card-activities", clientId, variables.cardId],
       });
       queryClient.invalidateQueries({
-        queryKey: ['card-activities-grouped', variables.cardId],
+        queryKey: ["card-activities-grouped", clientId, variables.cardId],
       });
-      toast.success('Atividade deletada com sucesso');
+      toast.success("Atividade deletada com sucesso");
     },
     onError: (error: Error) => {
       console.error('[DeleteCardActivity] Erro:', error);
@@ -350,6 +367,7 @@ export function useDeleteCardActivity() {
 
 export function useCompleteCardActivity() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async ({
@@ -380,8 +398,12 @@ export function useCompleteCardActivity() {
     // Atualização otimista - atualiza a UI antes da resposta do servidor
     onMutate: async ({ id, cardId, completed }) => {
       // Cancelar queries em andamento para evitar sobrescrever a atualização otimista
-      await queryClient.cancelQueries({ queryKey: ['card-activities', cardId] });
-      await queryClient.cancelQueries({ queryKey: ['card-activities-grouped', cardId] });
+      await queryClient.cancelQueries({
+        queryKey: ["card-activities", clientId, cardId],
+      });
+      await queryClient.cancelQueries({
+        queryKey: ["card-activities-grouped", clientId, cardId],
+      });
 
       // Snapshot do valor anterior
       const previousActivities = queryClient.getQueryData<CardActivity[]>(['card-activities', cardId]);
@@ -389,7 +411,9 @@ export function useCompleteCardActivity() {
 
       // Atualizar otimisticamente a lista de atividades
       if (previousActivities) {
-        queryClient.setQueryData<CardActivity[]>(['card-activities', cardId], (old) => {
+        queryClient.setQueryData<CardActivity[]>(
+          ["card-activities", clientId, cardId],
+          (old) => {
           if (!old) return old;
           return old.map((activity) =>
             activity.id === id
@@ -405,7 +429,9 @@ export function useCompleteCardActivity() {
 
       // Atualizar otimisticamente a lista agrupada
       if (previousGrouped) {
-        queryClient.setQueryData<GroupedCardActivities[]>(['card-activities-grouped', cardId], (old) => {
+        queryClient.setQueryData<GroupedCardActivities[]>(
+          ["card-activities-grouped", clientId, cardId],
+          (old) => {
           if (!old) return old;
           return old.map((group) => ({
             ...group,
@@ -427,9 +453,11 @@ export function useCompleteCardActivity() {
     },
     onSuccess: (data) => {
       // Invalidar queries para garantir sincronização com o servidor
-      queryClient.invalidateQueries({ queryKey: ['card-activities', data.card_id] });
       queryClient.invalidateQueries({
-        queryKey: ['card-activities-grouped', data.card_id],
+        queryKey: ["card-activities", clientId, data.card_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["card-activities-grouped", clientId, data.card_id],
       });
       toast.success(
         data.completed ? 'Atividade marcada como concluída' : 'Atividade reaberta'
@@ -438,10 +466,16 @@ export function useCompleteCardActivity() {
     onError: (error: Error, variables, context) => {
       // Rollback em caso de erro
       if (context?.previousActivities) {
-        queryClient.setQueryData(['card-activities', variables.cardId], context.previousActivities);
+        queryClient.setQueryData(
+          ["card-activities", clientId, variables.cardId],
+          context.previousActivities
+        );
       }
       if (context?.previousGrouped) {
-        queryClient.setQueryData(['card-activities-grouped', variables.cardId], context.previousGrouped);
+        queryClient.setQueryData(
+          ["card-activities-grouped", clientId, variables.cardId],
+          context.previousGrouped
+        );
       }
       console.error('[CompleteCardActivity] Erro:', error);
       toast.error('Erro ao atualizar atividade: ' + error.message);

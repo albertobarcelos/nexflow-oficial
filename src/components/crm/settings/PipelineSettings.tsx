@@ -1,8 +1,40 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings } from "lucide-react";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Plus, Settings } from "lucide-react";
 
 export function PipelineSettings() {
+  const { hasAccess, accessError, currentClient, isLoading } = useClientAccessGuard();
+
+  useEffect(() => {
+    if (hasAccess && currentClient?.name) {
+      console.log(
+        `[AUDIT] Settings (pipeline) - Client: ${currentClient.name}`
+      );
+    }
+  }, [hasAccess, currentClient?.name]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          {accessError ??
+            "Cliente não definido. Não é possível acessar as configurações de pipeline."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>

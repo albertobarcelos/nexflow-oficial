@@ -3,6 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -99,6 +102,7 @@ function SortableStageRow({
 const NewFlowSettings: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { hasAccess, accessError, currentClient, isLoading: isGuardLoading } = useClientAccessGuard();
     const { 
         title: flowTitle, 
         stages, 
@@ -115,6 +119,30 @@ const NewFlowSettings: React.FC = () => {
             navigate("/crm");
         }
     }, [flowTitle, navigate]);
+
+    useEffect(() => {
+        if (hasAccess && currentClient?.name) {
+            console.log(`[AUDIT] Settings (new flow) - Client: ${currentClient.name}`);
+        }
+    }, [hasAccess, currentClient?.name]);
+
+    if (isGuardLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[200px]">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    if (!hasAccess) {
+        return (
+            <Alert variant="destructive">
+                <AlertDescription>
+                    {accessError ?? "Cliente não definido. Não é possível acessar as configurações do flow."}
+                </AlertDescription>
+            </Alert>
+        );
+    }
 
     const [modalOpen, setModalOpen] = useState(false);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);

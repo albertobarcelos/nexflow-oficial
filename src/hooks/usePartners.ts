@@ -2,17 +2,22 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useClientStore } from "@/stores/clientStore";
 import { getCurrentUserData } from "@/lib/auth";
 import type { Partner, CreatePartnerData, UpdatePartnerData } from "@/types/partner";
 import { normalizePhone, validatePhoneFormat } from "@/lib/validations/phone";
 
+/**
+ * Parceiros do cliente atual (multi-tenant: queryKey com clientId).
+ */
 export function usePartners(id?: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   // Buscar todos os parceiros
   const { data: partners, isLoading } = useQuery({
-    queryKey: ["partners"],
+    queryKey: ["partners", clientId],
     queryFn: async () => {
       try {
         const collaborator = await getCurrentUserData();
@@ -85,12 +90,12 @@ export function usePartners(id?: string) {
         return [];
       }
     },
-    enabled: !!user?.id && !id,
+    enabled: !!clientId && !!user?.id && !id,
   });
 
   // Buscar um parceiro específico
   const { data: partner } = useQuery({
-    queryKey: ["partners", id],
+    queryKey: ["partners", clientId, id],
     queryFn: async () => {
       try {
         const { data, error } = await supabase
@@ -261,7 +266,7 @@ export function usePartners(id?: string) {
     }
 
     // Invalidar cache
-    queryClient.invalidateQueries({ queryKey: ["partners"] });
+    queryClient.invalidateQueries({ queryKey: ["partners", clientId] });
 
     return newPartner;
   };
@@ -424,8 +429,10 @@ export function usePartners(id?: string) {
       };
 
       // Invalidar cache
-      queryClient.invalidateQueries({ queryKey: ["partners"] });
-      queryClient.invalidateQueries({ queryKey: ["partners", partner.id] });
+      queryClient.invalidateQueries({ queryKey: ["partners", clientId] });
+      queryClient.invalidateQueries({
+        queryKey: ["partners", clientId, partner.id],
+      });
 
       return mappedPartner;
     } catch (error) {
@@ -454,7 +461,7 @@ export function usePartners(id?: string) {
     }
 
     // Invalidar cache
-    queryClient.invalidateQueries({ queryKey: ["partners"] });
+    queryClient.invalidateQueries({ queryKey: ["partners", clientId] });
   };
 
   return {

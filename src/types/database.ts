@@ -4579,7 +4579,6 @@ export type Database = {
           city_id: string | null
           client_id: string
           cnpj: string | null
-          company_type: string
           complemento: string | null
           created_at: string
           creator_id: string | null
@@ -4618,7 +4617,6 @@ export type Database = {
           city_id?: string | null
           client_id: string
           cnpj?: string | null
-          company_type?: string
           complemento?: string | null
           created_at?: string
           creator_id?: string | null
@@ -4657,7 +4655,6 @@ export type Database = {
           city_id?: string | null
           client_id?: string
           cnpj?: string | null
-          company_type?: string
           complemento?: string | null
           created_at?: string
           creator_id?: string | null
@@ -6661,7 +6658,6 @@ export type Database = {
           city_id: string
           client_id: string
           cnpj: string
-          company_type: string
           complemento: string
           created_at: string
           creator_id: string

@@ -1,18 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserProfileForm } from "@/components/crm/account/UserProfileForm";
 import { PasswordChangeForm } from "@/components/crm/account/PasswordChangeForm";
 import { useAccountProfile } from "@/hooks/useAccountProfile";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useToast } from "@/hooks/use-toast";
 import { ProfileSidebar } from "@/components/crm/account/ProfileSidebar";
-import { ClientInfoForm } from "@/components/crm/account/ClientInfoForm";
 import { TeamInfoPanel } from "@/components/crm/account/TeamInfoPanel";
 import { GeneralSettings } from "@/components/crm/settings/general/GeneralSettings";
 import { NotificationSettings } from "@/components/crm/settings/NotificationSettings";
-import ReactToyFace from "react-toy-face";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function AccountProfilePage() {
+    const { hasAccess, accessError, currentClient, isLoading: isLoadingGuard } = useClientAccessGuard();
     const { user, isLoadingUser, updateUserProfile, changeUserPassword, uploadAvatar } = useAccountProfile();
+
+    // Auditoria: log uma vez quando tiver acesso e perfil carregado
+    useEffect(() => {
+        if (hasAccess && currentClient?.id && user) {
+            console.info("[AUDIT] Perfil da conta - Client:", currentClient.id);
+        }
+    }, [hasAccess, currentClient?.id, user]);
     const { toast } = useToast();
     const [isSaving, setIsSaving] = useState(false);
     const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -128,7 +135,16 @@ export default function AccountProfilePage() {
         }
     };
 
-    if (isLoadingUser) {
+    // Guard: sem acesso ao contexto do cliente — não exibir dados sensíveis
+    if (!isLoadingGuard && !hasAccess) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <p className="text-destructive">{accessError ?? "Cliente não definido"}</p>
+            </div>
+        );
+    }
+
+    if (isLoadingGuard || isLoadingUser) {
         return (
             <div className="flex justify-center items-center h-screen">
                 <p>Carregando perfil...</p>

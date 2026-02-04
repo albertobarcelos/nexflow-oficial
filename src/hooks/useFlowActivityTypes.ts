@@ -1,16 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { getCurrentClientId } from '@/lib/supabase';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import type {
   FlowActivityType,
   CreateFlowActivityTypeInput,
   UpdateFlowActivityTypeInput,
-} from '@/types/activities';
+} from "@/types/activities";
 
+/**
+ * Tipos de atividade do flow (multi-tenant: queryKey com clientId).
+ */
 export function useFlowActivityTypes(flowId: string | null) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ['flow-activity-types', flowId],
+    queryKey: ["flow-activity-types", clientId, flowId],
     queryFn: async (): Promise<FlowActivityType[]> => {
       if (!flowId) return [];
 
@@ -34,13 +40,14 @@ export function useFlowActivityTypes(flowId: string | null) {
       }
       return (data || []) as FlowActivityType[];
     },
-    enabled: !!flowId,
+    enabled: !!clientId && !!flowId,
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 }
 
 export function useCreateFlowActivityType() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async (input: CreateFlowActivityTypeInput): Promise<FlowActivityType> => {
@@ -64,8 +71,10 @@ export function useCreateFlowActivityType() {
       return data as unknown as FlowActivityType;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['flow-activity-types', data.flow_id] });
-      toast.success('Tipo de atividade criado com sucesso');
+      queryClient.invalidateQueries({
+        queryKey: ["flow-activity-types", clientId, data.flow_id],
+      });
+      toast.success("Tipo de atividade criado com sucesso");
     },
     onError: (error: Error) => {
       console.error('[CreateFlowActivityType] Erro:', error);
@@ -76,6 +85,7 @@ export function useCreateFlowActivityType() {
 
 export function useUpdateFlowActivityType() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async ({
@@ -104,8 +114,10 @@ export function useUpdateFlowActivityType() {
       return data as unknown as FlowActivityType;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['flow-activity-types', data.flow_id] });
-      toast.success('Tipo de atividade atualizado com sucesso');
+      queryClient.invalidateQueries({
+        queryKey: ["flow-activity-types", clientId, data.flow_id],
+      });
+      toast.success("Tipo de atividade atualizado com sucesso");
     },
     onError: (error: Error) => {
       console.error('[UpdateFlowActivityType] Erro:', error);
@@ -116,6 +128,7 @@ export function useUpdateFlowActivityType() {
 
 export function useDeleteFlowActivityType() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async ({
@@ -130,8 +143,10 @@ export function useDeleteFlowActivityType() {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['flow-activity-types', variables.flowId] });
-      toast.success('Tipo de atividade deletado com sucesso');
+      queryClient.invalidateQueries({
+        queryKey: ["flow-activity-types", clientId, variables.flowId],
+      });
+      toast.success("Tipo de atividade deletado com sucesso");
     },
     onError: (error: Error) => {
       console.error('[DeleteFlowActivityType] Erro:', error);

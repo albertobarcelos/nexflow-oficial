@@ -1,10 +1,9 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
+import { useSecureClientMutation, invalidateClientQueries } from "@/hooks/useSecureClientMutation";
 import { Json } from "@/types/database";
 import { NexflowCard, ChecklistProgressMap, StepFieldValueMap } from "@/types/nexflow";
 
-// Tipo manual para CardRow já que a tabela cards não está no Database type ainda
 interface CardRow {
   id: string;
   flow_id: string;
@@ -24,7 +23,7 @@ interface CardRow {
   status: string | null;
   created_at: string;
   updated_at: string;
-  card_type: 'finance' | 'onboarding' | null;
+  card_type: "finance" | "onboarding" | null;
   product: string | null;
   value: number | null;
 }
@@ -38,30 +37,30 @@ interface CardInsert {
   position: number;
   field_values?: Json | null;
   checklist_progress?: Json | null;
-  card_type?: 'finance' | 'onboarding' | null;
+  card_type?: "finance" | "onboarding" | null;
   product?: string | null;
   value?: number | null;
 }
 
-interface CreateCardFromContactInput {
+export interface CreateCardFromContactInput {
   contactId: string;
   flowId: string;
   stepId: string;
   title?: string;
 }
 
+/**
+ * Hook para criar card a partir de um contato (multi-tenant: useSecureClientMutation).
+ * Garante que o contato pertence ao client_id antes de criar o card.
+ */
 export function useCreateCardFromContact() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (input: CreateCardFromContactInput): Promise<NexflowCard> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        throw new Error("Não foi possível identificar o tenant atual.");
-      }
+  return useSecureClientMutation({
+    mutationFn: async (client, clientId, input: CreateCardFromContactInput): Promise<NexflowCard> => {
+      const c = client as any;
 
-      // Buscar o contato para obter dados
-      const { data: contact, error: contactError } = await (nexflowClient() as any)
+      const { data: contact, error: contactError } = await c
         .from("contacts")
         .select("*")
         .eq("id", input.contactId)
@@ -72,8 +71,7 @@ export function useCreateCardFromContact() {
         throw new Error("Contato não encontrado ou acesso negado.");
       }
 
-      // Buscar o flow para obter a category
-      const { data: flow, error: flowError } = await (nexflowClient() as any)
+      const { data: flow, error: flowError } = await c
         .from("flows")
         .select("category")
         .eq("id", input.flowId)
@@ -83,11 +81,9 @@ export function useCreateCardFromContact() {
         throw new Error("Não foi possível encontrar o flow.");
       }
 
-      // Determinar card_type baseado na category do flow
-      const cardType = flow.category === 'finance' ? 'finance' : 'onboarding';
+      const cardType = flow.category === "finance" ? "finance" : "onboarding";
 
-      // Calcular a próxima posição
-      const { data: positionData } = await (nexflowClient() as any)
+      const { data: positionData } = await c
         .from("cards")
         .select("position")
         .eq("step_id", input.stepId)
@@ -98,13 +94,9 @@ export function useCreateCardFromContact() {
       const maxPosition = positionData?.position ?? 0;
       const nextPosition = maxPosition + 1000;
 
-      // Determinar o título do card
-      const cardTitle = input.title || 
-        (contact as any).name || 
-        (contact as any).client_name || 
-        "Novo Contato";
+      const cardTitle =
+        input.title || contact.name || contact.client_name || "Novo Contato";
 
-      // Criar o card
       const payload: CardInsert = {
         flow_id: input.flowId,
         step_id: input.stepId,
@@ -119,7 +111,7 @@ export function useCreateCardFromContact() {
         value: null,
       };
 
-      const { data: newCard, error: cardError } = await (nexflowClient() as any)
+      const { data: newCard, error: cardError } = await c
         .from("cards")
         .insert(payload)
         .select("*")
@@ -129,12 +121,11 @@ export function useCreateCardFromContact() {
         throw cardError ?? new Error("Falha ao criar card.");
       }
 
-      // Mapear para NexflowCard
       const card = newCard as unknown as CardRow;
       const assignedTo = card.assigned_to ?? null;
       const assignedTeamId = card.assigned_team_id ?? null;
-      const assigneeType = assignedTo ? 'user' : assignedTeamId ? 'team' : 'unassigned';
-      
+      const assigneeType = assignedTo ? "user" : assignedTeamId ? "team" : "unassigned";
+
       return {
         id: card.id,
         flowId: card.flow_id,
@@ -151,29 +142,31 @@ export function useCreateCardFromContact() {
           movedBy?: string | null;
         }>) ?? [],
         parentCardId: card.parent_card_id,
-        assignedTo: assignedTo,
-        assignedTeamId: assignedTeamId,
-        assigneeType: assigneeType,
+        assignedTo,
+        assignedTeamId,
+        assigneeType,
         agents: Array.isArray(card.agents) ? card.agents : undefined,
         contactId: card.contact_id,
         position: card.position,
         status: card.status ?? null,
         createdAt: card.created_at,
-        cardType: card.card_type ?? 'onboarding',
+        cardType: card.card_type ?? "onboarding",
         product: card.product ?? null,
         value: card.value ? Number(card.value) : null,
       };
     },
-    onSuccess: (newCard) => {
-      // Invalidar queries relacionadas
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", newCard.flowId] });
-      queryClient.invalidateQueries({ queryKey: ["contact-details"] });
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      toast.success("Card criado com sucesso!");
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao criar card: ${error.message}`);
+    validateClientIdOnResult: false,
+    mutationOptions: {
+      onSuccess: (newCard) => {
+        queryClient.invalidateQueries({ queryKey: ["nexflow", "cards", newCard.flowId] });
+        invalidateClientQueries(queryClient, ["contact-details"]);
+        invalidateClientQueries(queryClient, ["contacts-with-indications"]);
+        queryClient.invalidateQueries({ queryKey: ["contacts"] });
+        toast.success("Card criado com sucesso!");
+      },
+      onError: (error: Error) => {
+        toast.error(`Erro ao criar card: ${error.message}`);
+      },
     },
   });
 }
-

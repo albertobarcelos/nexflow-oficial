@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 
 export interface FlowVisibilityData {
   visibilityType: "company" | "team" | "user" | "user_exclusion";
@@ -10,9 +11,10 @@ export interface FlowVisibilityData {
 
 // Hook UNIFICADO para ler visibilidade (Substitui useFlowTeamAccess e useFlowUserExclusions)
 export function useFlowVisibilityData(flowId?: string) {
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
   return useQuery({
-    queryKey: ["nexflow", "flow-visibility", flowId],
-    enabled: !!flowId,
+    queryKey: ["nexflow", "flow-visibility", clientId, flowId],
+    enabled: Boolean(flowId) && Boolean(clientId),
     queryFn: async (): Promise<FlowVisibilityData> => {
       const { data, error } = await supabase.functions.invoke("get-flow-visibility", {
         body: { flowId },
@@ -88,8 +90,8 @@ export function useUpdateFlowVisibility() {
 import { nexflowClient } from "@/lib/supabase";
 import { Database } from "@/types/database";
 
-type FlowTeamAccessRow = Database["nexflow"]["Tables"]["flow_team_access"]["Row"];
-type FlowUserExclusionsRow = Database["nexflow"]["Tables"]["flow_user_exclusions"]["Row"];
+type FlowTeamAccessRow = Database["public"]["Tables"]["flow_team_access"]["Row"];
+type FlowUserExclusionsRow = Database["public"]["Tables"]["flow_user_exclusions"]["Row"];
 
 export interface FlowTeamAccess {
   id: string;

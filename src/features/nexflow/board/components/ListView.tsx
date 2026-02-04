@@ -16,11 +16,11 @@ import { ListCardTags } from "./ListCardTags";
 import { useUsers } from "@/hooks/useUsers";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
 import { useQueryClient } from "@tanstack/react-query";
-import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
+import type { NexflowCard, NexflowStep } from "@/types/nexflow";
 
 interface ListViewProps {
   cards: NexflowCard[];
-  steps: NexflowStepWithFields[];
+  steps: NexflowStep[];
   searchQuery: string;
   isSearchingOnServer: boolean;
   currentPage: number;
@@ -59,17 +59,6 @@ export function ListView({
 
   return (
     <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle>Cards</CardTitle>
-          {isSearchingOnServer && (
-            <div className="flex items-center gap-2 text-sm text-neutral-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Buscando...</span>
-            </div>
-          )}
-        </div>
-      </CardHeader>
       <CardContent className="p-0">
         {cards.length === 0 ? (
           <div className="text-center py-12 text-neutral-500 px-6">

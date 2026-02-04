@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
+import { toast } from "sonner";
 
 // Tipos para as fases
 export interface FlowStage {
@@ -20,12 +21,15 @@ export interface CreateStageData {
   allowCreateCards?: boolean;
 }
 
-// AIDEV-NOTE: Simplificação - Otimizar query para incluir client_id diretamente, reduzindo chamadas aninhadas.
+/**
+ * Estágios do flow (web_flow_stages). Multi-tenant: queryKey com clientId.
+ */
 export function useFlowStages(flowId: string) {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   const { data: stages = [], isLoading, error } = useQuery({
-    queryKey: ['flow-stages', flowId],
+    queryKey: ["flow-stages", clientId, flowId],
     queryFn: async () => {
       if (!flowId) return [];
 
@@ -50,7 +54,7 @@ export function useFlowStages(flowId: string) {
       if (error) throw error;
       return data || [];
     },
-    enabled: !!flowId,
+    enabled: !!clientId && !!flowId,
   });
 
   // Mutation para criar nova fase

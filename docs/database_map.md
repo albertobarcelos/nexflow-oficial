@@ -264,6 +264,10 @@ Todas as migrations estão localizadas em `supabase/migrations/` e são executad
 | `web_states` | public | ❌ | Estados (IBGE) |
 | `web_region` | public | ❌ | Regiões/Polos |
 
+##### Nota sobre `web_companies`
+
+A tabela `web_companies` **não possui** a coluna `company_type` no schema atual (PostgREST/schema cache). Inserts e tipos em `src/types/database.ts` não devem incluir `company_type`.
+
 ##### Relacionamentos entre `web_people` e `web_companies`
 
 **⚠️ IMPORTANTE**: Existem dois relacionamentos entre essas tabelas, o que requer especificação explícita em queries do Supabase:

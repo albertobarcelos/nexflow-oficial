@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useClientStore } from "@/stores/clientStore";
 
 export interface TeamLevel {
   id: string;
@@ -36,19 +37,31 @@ export interface UpdateTeamLevelInput {
 }
 
 /**
- * Hook para buscar níveis de um time
+ * Hook para buscar níveis de um time (multi-tenant: queryKey inclui clientId para cache isolado).
  */
 export function useTeamLevels(teamId: string | null) {
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
+
   return useQuery({
-    queryKey: ["team-levels", teamId],
+    queryKey: ["team-levels", clientId, teamId],
     queryFn: async (): Promise<TeamLevel[]> => {
       if (!teamId) {
         return [];
       }
 
       try {
-        const { data, error } = await supabase
-          .from("core_team_levels")
+        // Cast evita "Type instantiation is excessively deep" do Supabase/Postgrest com Database grande
+        const fromTable = supabase.from("core_team_levels") as unknown as {
+          select: (cols: string) => {
+            eq: (col: string, val: string) => {
+              order: (col: string, opts: { ascending: boolean }) => Promise<{
+                data: TeamLevel[] | null;
+                error: Error | null;
+              }>;
+            };
+          };
+        };
+        const { data, error } = await fromTable
           .select("*")
           .eq("team_id", teamId)
           .order("level_order", { ascending: true });
@@ -58,13 +71,13 @@ export function useTeamLevels(teamId: string | null) {
           throw error;
         }
 
-        return (data || []) as TeamLevel[];
+        return data ?? [];
       } catch (error) {
         console.error("Erro ao buscar níveis do time:", error);
         return [];
       }
     },
-    enabled: !!teamId,
+    enabled: !!clientId && !!teamId,
   });
 }
 
@@ -107,7 +120,7 @@ export function useCreateTeamLevel() {
         throw error;
       }
 
-      return data as TeamLevel;
+      return data as unknown as TeamLevel;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["team-levels", data.team_id] });
@@ -146,7 +159,7 @@ export function useUpdateTeamLevel() {
         throw error;
       }
 
-      return data as TeamLevel;
+      return data as unknown as TeamLevel;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["team-levels", data.team_id] });
@@ -168,11 +181,11 @@ export function useDeleteTeamLevel() {
   return useMutation({
     mutationFn: async (levelId: string): Promise<void> => {
       // Buscar team_id antes de deletar para invalidar cache
-      const { data: level } = await supabase
+      const { data: level } = (await supabase
         .from("core_team_levels")
         .select("team_id")
         .eq("id", levelId)
-        .single();
+        .single()) as { data: { team_id: string } | null };
 
       const { error } = await supabase
         .from("core_team_levels")
@@ -184,7 +197,7 @@ export function useDeleteTeamLevel() {
         throw error;
       }
 
-      if (level) {
+      if (level?.team_id) {
         queryClient.invalidateQueries({ queryKey: ["team-levels", level.team_id] });
       }
     },

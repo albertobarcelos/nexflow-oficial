@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useClientStore } from "@/stores/clientStore";
 
 export interface TeamMemberLevel {
   id: string;
@@ -34,11 +35,13 @@ export interface TeamMemberWithLevel {
 }
 
 /**
- * Hook para buscar níveis de um membro do time
+ * Hook para buscar níveis de um membro do time (multi-tenant: queryKey inclui clientId para cache isolado).
  */
 export function useTeamMemberLevels(teamMemberId: string | null) {
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
+
   return useQuery({
-    queryKey: ["team-member-levels", teamMemberId],
+    queryKey: ["team-member-levels", clientId, teamMemberId],
     queryFn: async (): Promise<TeamMemberLevel[]> => {
       if (!teamMemberId) {
         return [];
@@ -65,7 +68,7 @@ export function useTeamMemberLevels(teamMemberId: string | null) {
           throw error;
         }
 
-        return (data || []).map((item: any) => ({
+        return (data || []).map((item: Record<string, unknown>) => ({
           ...item,
           level: item.core_team_levels,
         })) as TeamMemberLevel[];
@@ -74,7 +77,7 @@ export function useTeamMemberLevels(teamMemberId: string | null) {
         return [];
       }
     },
-    enabled: !!teamMemberId,
+    enabled: !!clientId && !!teamMemberId,
   });
 }
 

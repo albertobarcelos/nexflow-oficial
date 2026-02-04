@@ -21,6 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const defaultFields: FormFieldConfig[] = [
   {
@@ -51,6 +53,7 @@ const defaultFields: FormFieldConfig[] = [
 
 export function FormsManagementPage() {
   const navigate = useNavigate();
+  const { hasAccess, accessError, currentClient } = useClientAccessGuard();
   const {
     forms,
     isLoading,
@@ -72,6 +75,13 @@ export function FormsManagementPage() {
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) || null;
 
+  // Auditoria: registro de acesso à página de Formulários
+  useEffect(() => {
+    if (hasAccess && currentClient?.name) {
+      console.log(`[AUDIT] Formulários - Client: ${currentClient.name}`);
+    }
+  }, [hasAccess, currentClient?.name]);
+
   // Reset ao mudar tipo de formulário
   useEffect(() => {
     if (formType && !editingFormId) {
@@ -81,6 +91,19 @@ export function FormsManagementPage() {
       setSelectedFieldId(null);
     }
   }, [formType, editingFormId]);
+
+  if (!hasAccess) {
+    return (
+      <div className="p-4 md:p-6">
+        <Alert variant="destructive">
+          <AlertDescription>
+            {accessError ??
+              "Cliente não definido. Não é possível acessar a gestão de formulários."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   const handleAddField = (section: "public" | "internal") => {
     const PUBLIC_FIELD_TYPES = ["text", "email", "tel", "textarea", "number", "checkbox", "cpf_cnpj"];

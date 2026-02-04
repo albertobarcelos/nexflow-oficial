@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,8 @@ interface Team {
 }
 
 export function TeamSettings() {
+  const clientId = useClientStore((s) => s.currentClient?.id);
+
   const { data: user } = useQuery({
     queryKey: ['current-user'],
     queryFn: async () => {
@@ -34,13 +37,13 @@ export function TeamSettings() {
   });
 
   const { data: teams, isLoading } = useQuery({
-    queryKey: ['user-teams', user?.id],
-    enabled: !!user?.id,
+    queryKey: ['user-teams', clientId, user?.id],
+    enabled: !!clientId && !!user?.id,
     queryFn: async (): Promise<Team[]> => {
       if (!user?.id) return [];
 
-      const clientId = await getCurrentClientId();
-      if (!clientId) return [];
+      const cid = clientId ?? (await getCurrentClientId());
+      if (!cid) return [];
 
       // Buscar times do usuário
       const result = await (supabase
@@ -71,7 +74,7 @@ export function TeamSettings() {
       const teamsWithMembers = await Promise.all(
         teamMembers.map(async (tm: any) => {
           const team = tm.core_teams;
-          if (!team || team.client_id !== clientId) return null;
+          if (!team || team.client_id !== cid) return null;
 
           const membersResult = await (supabase
             .from('core_team_members' as any)

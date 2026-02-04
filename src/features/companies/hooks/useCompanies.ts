@@ -1,6 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
+import type { Database } from "@/types/database";
+import { useSecureClientQuery } from "@/hooks/useSecureClientQuery";
+import {
+  useSecureClientMutation,
+  invalidateClientQueries,
+} from "@/hooks/useSecureClientMutation";
+import { getCompanyCreateErrorMessage } from "@/lib/supabase/companyErrors";
 import { toast } from "sonner";
+
+type WebCompanyRow = Database["public"]["Tables"]["web_companies"]["Row"];
 
 export interface Company {
   id: string;
@@ -30,25 +38,39 @@ export interface CreateCompanyInput {
   bairro?: string | null;
 }
 
+/** Converte row do banco para o tipo Company exposto pelo hook */
+function rowToCompany(row: WebCompanyRow): Company {
+  return {
+    id: row.id,
+    name: row.name,
+    cnpj: row.cnpj ?? null,
+    razao_social: row.razao_social ?? null,
+    description: row.description ?? null,
+    email: row.email ?? null,
+    phone: row.phone ?? null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+}
+
 /**
- * Hook para buscar e gerenciar empresas da tabela web_companies
+ * Hook para buscar e gerenciar empresas da tabela web_companies.
+ * Usa useSecureClientQuery e useSecureClientMutation para isolamento por client_id.
  */
 export function useCompanies() {
   const queryClient = useQueryClient();
 
-  // Query para buscar todas as empresas
-  const { data: companies = [], isLoading } = useQuery({
+  const { data: companies = [], isLoading } = useSecureClientQuery<
+    Company[],
+    Error
+  >({
     queryKey: ["companies"],
-    queryFn: async (): Promise<Company[]> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        console.error("Não foi possível identificar o tenant atual.");
-        return [];
-      }
-
-      const { data, error } = await nexflowClient()
-        .from("web_companies" as any)
-        .select("id, name, cnpj, razao_social, description, email, phone, created_at, updated_at")
+    queryFn: async (client, clientId) => {
+      const { data, error } = await client
+        .from("web_companies")
+        .select(
+          "id, name, cnpj, razao_social, description, email, phone, created_at, updated_at, client_id"
+        )
         .eq("client_id", clientId)
         .order("name", { ascending: true });
 
@@ -57,77 +79,82 @@ export function useCompanies() {
         return [];
       }
 
-      return (data || []).map((company: any) => ({
-        id: company.id,
-        name: company.name,
-        cnpj: company.cnpj || null,
-        razao_social: company.razao_social || null,
-        description: company.description || null,
-        email: company.email || null,
-        phone: company.phone || null,
-        created_at: company.created_at,
-        updated_at: company.updated_at,
-      }));
-    },
-    staleTime: 1000 * 60 * 5, // 5 minutos
-  });
-
-  // Mutation para criar empresa
-  const createCompany = useMutation({
-    mutationFn: async (input: CreateCompanyInput) => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        throw new Error("Não foi possível identificar o tenant atual.");
+      const rows = (data || []) as WebCompanyRow[];
+      // Validação dupla: garantir que todos os itens pertencem ao cliente atual
+      const invalid = rows.filter((row) => row.client_id !== clientId);
+      if (invalid.length > 0) {
+        console.error("[SECURITY] Dados de outro cliente detectados:", invalid.length);
+        throw new Error("Violação de segurança: dados de outro cliente detectados");
       }
 
-      const { data, error } = await nexflowClient()
-        .from("web_companies" as any)
+      return rows.map(rowToCompany);
+    },
+    queryOptions: {
+      staleTime: 1000 * 60 * 5, // 5 minutos
+    },
+  });
+
+  const createCompanyMutation = useSecureClientMutation<
+    {
+      id: string;
+      name: string;
+      razao_social: string | null;
+      cnpj: string | null;
+      client_id: string;
+    },
+    Error,
+    CreateCompanyInput
+  >({
+    mutationFn: async (client, clientId, input) => {
+      const { data, error } = await client
+        .from("web_companies")
         .insert({
           client_id: clientId,
           name: input.name,
-          cnpj: input.cnpj || null,
-          razao_social: input.razao_social || null,
-          description: input.description || null,
-          email: input.email || null,
-          phone: input.phone || null,
-          state_id: input.state_id || null,
-          city_id: input.city_id || null,
-          cep: input.cep || null,
-          rua: input.rua || null,
-          numero: input.numero || null,
-          complemento: input.complemento || null,
-          bairro: input.bairro || null,
-          company_type: "cliente", // Tipo padrão
+          cnpj: input.cnpj ?? null,
+          razao_social: input.razao_social ?? null,
+          description: input.description ?? null,
+          email: input.email ?? null,
+          phone: input.phone ?? null,
+          state_id: input.state_id ?? null,
+          city_id: input.city_id ?? null,
+          cep: input.cep ?? null,
+          rua: input.rua ?? null,
+          numero: input.numero ?? null,
+          complemento: input.complemento ?? null,
+          bairro: input.bairro ?? null,
         })
-        .select()
+        .select("id, name, razao_social, cnpj, client_id")
         .single();
 
       if (error) throw error;
-      
-      // Retornar no formato esperado (usar type assertion para evitar erro de tipo)
-      const companyData = data as any;
+      if (!data) throw new Error("Resposta vazia ao criar empresa");
+
       return {
-        id: companyData.id,
-        name: companyData.name,
-        razao_social: companyData.razao_social || null,
-        cnpj: companyData.cnpj || null,
+        id: data.id,
+        name: data.name,
+        razao_social: data.razao_social ?? null,
+        cnpj: data.cnpj ?? null,
+        client_id: data.client_id,
       };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["companies"] });
-      toast.success("Empresa criada com sucesso!");
-    },
-    onError: (error: Error) => {
-      console.error("Erro ao criar empresa:", error);
-      toast.error(error.message || "Erro ao criar empresa");
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["companies"]);
+        toast.success("Empresa criada com sucesso!");
+      },
+      onError: (error: Error) => {
+        console.error("Erro ao criar empresa:", error);
+        toast.error(getCompanyCreateErrorMessage(error));
+      },
     },
   });
 
   return {
     companies,
     isLoading,
-    createCompany: createCompany.mutateAsync,
-    isCreating: createCompany.isPending,
+    createCompany: createCompanyMutation.mutateAsync,
+    isCreating: createCompanyMutation.isPending,
   };
 }
-

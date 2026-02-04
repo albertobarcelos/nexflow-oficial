@@ -88,35 +88,37 @@ export function KanbanColumn({
           colorClasses.header
         )}
         style={{
-          ...(isCustomHeader ? { backgroundColor: accentColor } : {}),
-          boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.05)}`,
+          ...(isCustomHeader ? { borderBottom: `1px solid ${accentColor}` } : {}),
+          boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.01)}`,
         }}
       >
-        <div className="flex flex-col justify-between text-white mb-3">
-        <h2 className="text-lg font-bold text-white mb-2 flex justify-between">
-          <span className="truncate max-w-[250px]">
+       
+        <div className="flex flex-row text-white h-0.5 w-full ">
+        <h2 className="text-xs font-bold text-white flex  items-center w-full">
+          <span className="truncate-ellipsis max-w-[180px] overflow-hidden whitespace-nowrap">
             {step.title}
             </span>
-          {step.isCompletionStep && (
-            <CheckCircle2 className="h-4 w-4 opacity-90" />
+            <span className="text-xs px-1.5 py-0.25 text-white/50 font-semibold ">
+            {serverTotal != null && serverTotal > totalCards
+              ? `${totalCards} de ${serverTotal} cards`
+              : `${totalCards}`}
+          </span>
+        </h2>
+        <div className="flex flex-row items-center gap-2 mr-2">{step.isCompletionStep && (
+            <CheckCircle2 className="h-1.5 w-1.5  opacity-90 " />
           )}
           <span> {flowId && (
             <StepResponsibleSelector step={step} flowId={flowId} />
-          )}</span>
-         
-        </h2>
+          )}</span></div>
         
-          <div className="flex items-center gap-2 justify-between">
+        
+          <div className="flex items-center gap-2 justify-between flex-row ">
           {totalProductsValue > 0 && (
-          <div className="text-sm font-semibold text-white/90">
+          <div className="text-[10px] font-semibold text-white/90 truncate max-w-[80px] overflow-hidden">
             {formatCurrency(totalProductsValue)}
           </div>
         )}
-            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-medium ">
-            {serverTotal != null && serverTotal > totalCards
-              ? `${totalCards} de ${serverTotal} cards`
-              : `${totalCards} ${totalCards === 1 ? "card" : "cards"}`}
-          </span>
+           
           </div>
           
         </div>

@@ -1,15 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, nexflowClient } from '@/lib/supabase';
-import { getCurrentClientId } from '@/lib/supabase';
+import { useSecureClientQuery } from '@/hooks/useSecureClientQuery';
+import { useSecureClientMutation } from '@/hooks/useSecureClientMutation';
+import { useClientStore } from '@/stores/clientStore';
 import type { NotificationSettings, NotificationSettingsUpdate } from '@/types/notifications';
 
-export function useNotificationSettings() {
-  return useQuery({
-    queryKey: ['notification-settings'],
-    queryFn: async (): Promise<NotificationSettings | null> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) throw new Error('Client ID not found');
+/** Query key base para configurações de notificação (com clientId na key) */
+export const NOTIFICATION_SETTINGS_QUERY_KEY = ['notification-settings'] as const;
 
+export function useNotificationSettings() {
+  return useSecureClientQuery<NotificationSettings | null>({
+    queryKey: NOTIFICATION_SETTINGS_QUERY_KEY,
+    queryFn: async (_supabase, clientId): Promise<NotificationSettings | null> => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
@@ -25,22 +27,23 @@ export function useNotificationSettings() {
         if (error.code === 'PGRST116') {
           return null;
         }
-        
         // Tratamento específico para erro 403 (Forbidden)
-        if (error.status === 403 || error.message?.includes('403') || error.message?.includes('Forbidden')) {
+        if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
           console.error('Erro 403 ao acessar configurações de notificação:', {
             error,
             userId: user.id,
             clientId,
             message: 'Acesso negado. Verifique se o usuário existe em core_client_users e tem o client_id correto.',
           });
-          
-          // Retorna null para permitir que o sistema tente criar as configurações
-          // Isso evita que a aplicação quebre completamente
           return null;
         }
-        
         throw error;
+      }
+
+      // Validação dupla: garantir que o registro pertence ao cliente atual
+      if (data.client_id !== clientId) {
+        console.error('[SECURITY] user_notification_settings com client_id incorreto');
+        throw new Error('Violação de segurança: dados de outro cliente');
       }
 
       return {
@@ -53,181 +56,200 @@ export function useNotificationSettings() {
   });
 }
 
-export function useUpdateNotificationSettings() {
-  const queryClient = useQueryClient();
+async function updateNotificationSettingsFn(
+  _supabase: typeof supabase,
+  clientId: string,
+  updates: NotificationSettingsUpdate
+): Promise<NotificationSettings> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
 
-  return useMutation({
-    mutationFn: async (updates: NotificationSettingsUpdate): Promise<NotificationSettings> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) throw new Error('Client ID not found');
+  const { data: existing, error: checkError } = await nexflowClient()
+    .from('user_notification_settings')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('client_id', clientId)
+    .single();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+  if (
+    checkError &&
+    checkError.code !== 'PGRST116' &&
+    !checkError.message?.includes('403') &&
+    !checkError.message?.includes('Forbidden')
+  ) {
+    console.warn('Erro ao verificar configurações existentes:', checkError);
+  }
 
-      // Verificar se já existe configuração
-      const { data: existing, error: checkError } = await nexflowClient()
-        .from('user_notification_settings')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('client_id', clientId)
-        .single();
+  const settingsData = {
+    ...updates,
+    notify_new_cards_in_stages: updates.notify_new_cards_in_stages ?? [],
+    client_id: clientId,
+    user_id: user.id,
+  };
 
-      // Se erro 403 ao verificar, tentar criar mesmo assim
-      if (checkError && checkError.status !== 403 && checkError.code !== 'PGRST116') {
-        console.warn('Erro ao verificar configurações existentes:', checkError);
-      }
+  if (existing && !checkError) {
+    const { data, error } = await nexflowClient()
+      .from('user_notification_settings')
+      .update(settingsData)
+      .eq('id', existing.id)
+      .select()
+      .single();
 
-      const settingsData = {
-        ...updates,
-        notify_new_cards_in_stages: updates.notify_new_cards_in_stages || [],
-        client_id: clientId,
-        user_id: user.id,
-      };
-
-      if (existing && !checkError) {
-        // Atualizar existente
-        const { data, error } = await nexflowClient()
-          .from('user_notification_settings')
-          .update(settingsData)
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (error) {
-          // Se erro 403, tentar criar novo registro
-          if (error.status === 403 || error.message?.includes('403') || error.message?.includes('Forbidden')) {
-            console.warn('Erro 403 ao atualizar, tentando criar novo registro:', error);
-            // Continuar para criar novo registro
-          } else {
-            throw error;
-          }
-        } else {
-          return {
-            ...data,
-            notify_new_cards_in_stages: Array.isArray(data.notify_new_cards_in_stages)
-              ? data.notify_new_cards_in_stages
-              : [],
-          } as NotificationSettings;
-        }
-      }
-      
-      // Criar novo (ou se houve erro ao atualizar)
-      const { data, error } = await nexflowClient()
-        .from('user_notification_settings')
-        .insert(settingsData)
-        .select()
-        .single();
-
-      if (error) {
-        // Tratamento específico para erro 403
-        if (error.status === 403 || error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          const errorMessage = 'Acesso negado ao criar configurações de notificação. Verifique se o usuário existe em core_client_users e tem permissões adequadas.';
-          console.error(errorMessage, { error, userId: user.id, clientId });
-          throw new Error(errorMessage);
-        }
-        throw error;
-      }
-      
+    if (!error) {
       return {
         ...data,
         notify_new_cards_in_stages: Array.isArray(data.notify_new_cards_in_stages)
           ? data.notify_new_cards_in_stages
           : [],
       } as NotificationSettings;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+    }
+    if (!error.message?.includes('403') && !error.message?.includes('Forbidden')) {
+      throw error;
+    }
+  }
+
+  const { data, error } = await nexflowClient()
+    .from('user_notification_settings')
+    .insert(settingsData)
+    .select()
+    .single();
+
+  if (error) {
+    if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+      throw new Error(
+        'Acesso negado ao criar configurações de notificação. Verifique se o usuário existe em core_client_users e tem permissões adequadas.'
+      );
+    }
+    throw error;
+  }
+
+  return {
+    ...data,
+    notify_new_cards_in_stages: Array.isArray(data.notify_new_cards_in_stages)
+      ? data.notify_new_cards_in_stages
+      : [],
+  } as NotificationSettings;
+}
+
+export function useUpdateNotificationSettings() {
+  const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id);
+
+  return useSecureClientMutation<
+    NotificationSettings,
+    Error,
+    NotificationSettingsUpdate
+  >({
+    mutationFn: updateNotificationSettingsFn,
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: [...NOTIFICATION_SETTINGS_QUERY_KEY, clientId],
+        });
+        if (!clientId) {
+          queryClient.invalidateQueries({ queryKey: NOTIFICATION_SETTINGS_QUERY_KEY });
+        }
+      },
     },
   });
 }
 
-export function useUpdateStageNotifications() {
-  const queryClient = useQueryClient();
+async function updateStageNotificationsFn(
+  _supabase: typeof supabase,
+  clientId: string,
+  stepIds: string[]
+): Promise<NotificationSettings> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
 
-  return useMutation({
-    mutationFn: async (stepIds: string[]): Promise<NotificationSettings> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) throw new Error('Client ID not found');
+  const { data: existing, error: checkError } = await nexflowClient()
+    .from('user_notification_settings')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('client_id', clientId)
+    .single();
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+  if (
+    checkError &&
+    checkError.code !== 'PGRST116' &&
+    !checkError.message?.includes('403') &&
+    !checkError.message?.includes('Forbidden')
+  ) {
+    console.warn('Erro ao verificar configurações existentes:', checkError);
+  }
 
-      // Verificar se já existe configuração
-      const { data: existing, error: checkError } = await nexflowClient()
-        .from('user_notification_settings')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('client_id', clientId)
-        .single();
+  const settingsData = {
+    notify_new_cards_in_stages: stepIds,
+    client_id: clientId,
+    user_id: user.id,
+  };
 
-      // Se erro 403 ao verificar, tentar criar mesmo assim
-      if (checkError && checkError.status !== 403 && checkError.code !== 'PGRST116') {
-        console.warn('Erro ao verificar configurações existentes:', checkError);
-      }
+  if (existing && !checkError) {
+    const { data, error } = await nexflowClient()
+      .from('user_notification_settings')
+      .update(settingsData)
+      .eq('id', existing.id)
+      .select()
+      .single();
 
-      const settingsData = {
-        notify_new_cards_in_stages: stepIds,
-        client_id: clientId,
-        user_id: user.id,
-      };
-
-      if (existing && !checkError) {
-        const { data, error } = await nexflowClient()
-          .from('user_notification_settings')
-          .update(settingsData)
-          .eq('id', existing.id)
-          .select()
-          .single();
-
-        if (error) {
-          // Se erro 403, tentar criar novo registro
-          if (error.status === 403 || error.message?.includes('403') || error.message?.includes('Forbidden')) {
-            console.warn('Erro 403 ao atualizar, tentando criar novo registro:', error);
-            // Continuar para criar novo registro
-          } else {
-            throw error;
-          }
-        } else {
-          return {
-            ...data,
-            notify_new_cards_in_stages: Array.isArray(data.notify_new_cards_in_stages)
-              ? data.notify_new_cards_in_stages
-              : [],
-          } as NotificationSettings;
-        }
-      }
-      
-      // Criar novo (ou se houve erro ao atualizar)
-      const { data, error } = await nexflowClient()
-        .from('user_notification_settings')
-        .insert({
-          ...settingsData,
-          notify_card_assigned: true,
-          notify_mentions: true,
-          email_notifications_enabled: false,
-        })
-        .select()
-        .single();
-
-      if (error) {
-        // Tratamento específico para erro 403
-        if (error.status === 403 || error.message?.includes('403') || error.message?.includes('Forbidden')) {
-          const errorMessage = 'Acesso negado ao criar configurações de notificação. Verifique se o usuário existe em core_client_users e tem permissões adequadas.';
-          console.error(errorMessage, { error, userId: user.id, clientId });
-          throw new Error(errorMessage);
-        }
-        throw error;
-      }
-      
+    if (!error) {
       return {
         ...data,
         notify_new_cards_in_stages: Array.isArray(data.notify_new_cards_in_stages)
           ? data.notify_new_cards_in_stages
           : [],
       } as NotificationSettings;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notification-settings'] });
+    }
+    if (!error.message?.includes('403') && !error.message?.includes('Forbidden')) {
+      throw error;
+    }
+  }
+
+  const { data, error } = await nexflowClient()
+    .from('user_notification_settings')
+    .insert({
+      ...settingsData,
+      notify_card_assigned: true,
+      notify_mentions: true,
+      email_notifications_enabled: false,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.message?.includes('403') || error.message?.includes('Forbidden')) {
+      throw new Error(
+        'Acesso negado ao criar configurações de notificação. Verifique se o usuário existe em core_client_users e tem permissões adequadas.'
+      );
+    }
+    throw error;
+  }
+
+  return {
+    ...data,
+    notify_new_cards_in_stages: Array.isArray(data.notify_new_cards_in_stages)
+      ? data.notify_new_cards_in_stages
+      : [],
+  } as NotificationSettings;
+}
+
+export function useUpdateStageNotifications() {
+  const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id);
+
+  return useSecureClientMutation<NotificationSettings, Error, string[]>({
+    mutationFn: updateStageNotificationsFn,
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: [...NOTIFICATION_SETTINGS_QUERY_KEY, clientId],
+        });
+        if (!clientId) {
+          queryClient.invalidateQueries({ queryKey: NOTIFICATION_SETTINGS_QUERY_KEY });
+        }
+      },
     },
   });
 }

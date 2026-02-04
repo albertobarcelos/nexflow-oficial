@@ -66,17 +66,17 @@ export function StepResponsibleSelector({
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           className={cn(
-            "h-7 w-7 p-0 text-white/80 hover:text-white hover:bg-white/20",
+            "h-6 w-6 p-0 text-white/80 hover:text-white hover:bg-white/20",
             hasResponsible && "text-white bg-white/20"
           )}
           title="Definir Responsável Automático"
         >
           {hasResponsible ? (
-            <Users className="h-4 w-4" />
+            <Users className="h-3 w-3" />
           ) : (
-            <User className="h-4 w-4" />
+            <User className="h-3 w-3" />
           )}
         </Button>
       </PopoverTrigger>

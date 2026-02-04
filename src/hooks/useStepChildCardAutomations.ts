@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { StepChildCardAutomation } from "@/types/nexflow";
 import { isValidUUID } from "@/lib/utils";
 
@@ -53,9 +54,13 @@ const mapAutomationRow = (row: StepChildCardAutomationRow | Record<string, unkno
   };
 };
 
+/**
+ * Automações de card filho por step (multi-tenant: queryKey com clientId).
+ */
 export function useStepChildCardAutomations(stepId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "step-child-card-automations", stepId];
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+  const queryKey = ["nexflow", "step-child-card-automations", clientId, stepId];
 
   const automationsQuery = useQuery({
     queryKey,
@@ -83,7 +88,7 @@ export function useStepChildCardAutomations(stepId?: string) {
 
       return (data || []).map(mapAutomationRow);
     },
-    enabled: !stepId || isValidUUID(stepId),
+    enabled: !!clientId && (!stepId || isValidUUID(stepId)),
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 
@@ -124,8 +129,12 @@ export function useStepChildCardAutomations(stepId?: string) {
       return mapAutomationRow(data);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "step-child-card-automations"] });
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "step-child-card-automations", variables.stepId] });
+      queryClient.invalidateQueries({
+        queryKey: ["nexflow", "step-child-card-automations", clientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["nexflow", "step-child-card-automations", clientId, variables.stepId],
+      });
       toast.success("Automação de card filho criada com sucesso!");
     },
     onError: (error: Error) => {
@@ -174,8 +183,12 @@ export function useStepChildCardAutomations(stepId?: string) {
       return mapAutomationRow(data);
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "step-child-card-automations"] });
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "step-child-card-automations", data.stepId] });
+      queryClient.invalidateQueries({
+        queryKey: ["nexflow", "step-child-card-automations", clientId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["nexflow", "step-child-card-automations", clientId, data.stepId],
+      });
       toast.success("Automação atualizada com sucesso!");
     },
     onError: (error: Error) => {
@@ -204,9 +217,13 @@ export function useStepChildCardAutomations(stepId?: string) {
       return automation?.step_id;
     },
     onSuccess: (stepId) => {
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "step-child-card-automations"] });
+      queryClient.invalidateQueries({
+        queryKey: ["nexflow", "step-child-card-automations", clientId],
+      });
       if (stepId) {
-        queryClient.invalidateQueries({ queryKey: ["nexflow", "step-child-card-automations", stepId] });
+        queryClient.invalidateQueries({
+          queryKey: ["nexflow", "step-child-card-automations", clientId, stepId],
+        });
       }
       toast.success("Automação removida com sucesso!");
     },

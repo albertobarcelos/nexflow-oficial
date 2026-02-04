@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 
 /**
- * Hook para verificar se um card possui cards filhos
- * (cards que têm parent_card_id apontando para este card)
+ * Verifica se um card possui cards filhos (multi-tenant: queryKey com clientId).
  */
 export function useCardChildren(cardId: string | null | undefined) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["card-children", cardId],
+    queryKey: ["card-children", clientId, cardId],
     queryFn: async (): Promise<boolean> => {
       if (!cardId) {
         return false;
@@ -33,7 +35,7 @@ export function useCardChildren(cardId: string | null | undefined) {
 
       return (count ?? 0) > 0;
     },
-    enabled: !!cardId,
+    enabled: !!clientId && !!cardId,
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 }

@@ -1,4 +1,4 @@
-import type { NexflowCard, NexflowStepWithFields } from "@/types/nexflow";
+import type { NexflowCard, NexflowStep } from "@/types/nexflow";
 
 export type ViewMode = "kanban" | "list";
 

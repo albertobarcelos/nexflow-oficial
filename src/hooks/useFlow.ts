@@ -4,10 +4,11 @@ import { Database } from "@/types/database";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { createHistory } from "@/lib/history";
+import { useClientStore } from "@/stores/clientStore";
 
 type Deal = Database["public"]["Tables"]["web_deals"]["Row"];
-type FlowStage = Database["public"]["Tables"]["web_funnel_stages"]["Row"];
-type Flow = Database["public"]["Tables"]["web_funnels"]["Row"];
+type FlowStage = Database["public"]["Tables"]["web_flow_stages"]["Row"];
+type Flow = Database["public"]["Tables"]["web_flows"]["Row"];
 
 interface CreateDealInput {
   title: string;
@@ -63,43 +64,52 @@ const getCurrentUserData = async () => {
 export function useFlow() {
   const queryClient = useQueryClient();
   const { id } = useParams();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
-  // Buscar flow pelo ID da rota ou o flow padrão
+  // Buscar flow pelo ID da rota ou o flow padrão (multi-tenant: queryKey com clientId)
   const { data: flow, isLoading: isFlowLoading, isError: isFlowError } = useQuery({
-    queryKey: ["flow", id],
+    queryKey: ["flow", clientId, id],
     queryFn: async () => {
       try {
         const collaborator = await getCurrentUserData();
         
-        const query = supabase.from("web_funnels").select("*").eq("client_id", collaborator.client_id);
-        
+        let query = supabase.from("web_flows").select("*").eq("client_id", collaborator.client_id);
+
         if (id && id !== "default") {
-          query.eq("id", id);
-        } else {
-          query.eq("is_default", true);
+          query = query.eq("id", id);
+          const { data, error } = await query.single();
+          if (error) {
+            console.error("Erro ao carregar flow:", error);
+            throw error;
+          }
+          return data;
         }
 
-        const { data, error } = await query.single();
+        const { data, error } = await query
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
 
         if (error) {
           console.error("Erro ao carregar flow:", error);
           throw error;
         }
 
-        return data;
+        return data ?? null;
       } catch (error) {
         console.error("Erro ao carregar flow:", error);
         return null;
       }
     },
+    enabled: !!clientId,
     retry: 3,
     retryDelay: 1000,
     refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
-  // Buscar estágios do flow
+  // Buscar estágios do flow (multi-tenant: queryKey com clientId)
   const { data: stages = [], isLoading: isStagesLoading, isError: isStagesError } = useQuery({
-    queryKey: ["flow", flow?.id, "stages"],
+    queryKey: ["flow", clientId, flow?.id, "stages"],
     queryFn: async () => {
       if (!flow?.id) return [];
       
@@ -107,9 +117,9 @@ export function useFlow() {
         const collaborator = await getCurrentUserData();
         
         const { data, error } = await supabase
-          .from("web_funnel_stages")
+          .from("web_flow_stages")
           .select("*")
-          .eq("funnel_id", flow.id)
+          .eq("flow_id", flow.id)
           .eq("client_id", collaborator.client_id)
           .order("order_index", { ascending: true });
 
@@ -130,9 +140,9 @@ export function useFlow() {
     refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
   });
 
-  // Query dos negócios
+  // Query dos negócios (multi-tenant: queryKey com clientId)
   const { data: deals = [], isLoading: isDealsLoading, isError: isDealsError } = useQuery({
-    queryKey: ["flow-deals", flow?.id],
+    queryKey: ["flow-deals", clientId, flow?.id],
     queryFn: async () => {
       if (!flow?.id) return [];
 
@@ -151,7 +161,7 @@ export function useFlow() {
               custom_avatar_url
             )
           `)
-          .eq("funnel_id", flow.id)
+          .eq("flow_id", flow.id)
           .eq("client_id", collaborator.client_id)
           .order("position");
 
@@ -196,18 +206,22 @@ export function useFlow() {
       });
     },
     onMutate: async ({ dealId, stageId, newPosition }) => {
-      // Cancelar queries pendentes
-      await queryClient.cancelQueries({ 
-        queryKey: ["flow-deals", flow?.id],
-        exact: true
+      // Cancelar queries pendentes (key com clientId para multi-tenant)
+      await queryClient.cancelQueries({
+        queryKey: ["flow-deals", clientId, flow?.id],
+        exact: true,
       });
-      
+
       // Snapshot do estado atual
-      const previousDeals = queryClient.getQueryData(["flow-deals", flow?.id]);
+      const previousDeals = queryClient.getQueryData([
+        "flow-deals",
+        clientId,
+        flow?.id,
+      ]);
 
       // Atualizar o cache otimisticamente
       queryClient.setQueryData(
-        ["flow-deals", flow?.id],
+        ["flow-deals", clientId, flow?.id],
         (old: any[] = []) => {
           return old.map(deal => 
             deal.id === dealId 
@@ -219,10 +233,10 @@ export function useFlow() {
 
       return { previousDeals };
     },
-    onError: (err, variables, context) => {
+    onError: (_err, _variables, context) => {
       // Reverter para o estado anterior em caso de erro
       queryClient.setQueryData(
-        ["flow-deals", flow?.id], 
+        ["flow-deals", clientId, flow?.id],
         context?.previousDeals
       );
       toast.error("Erro ao mover o negócio. Tente novamente.");
@@ -231,12 +245,12 @@ export function useFlow() {
       // Atrasar a invalidação e usar uma estratégia mais suave
       setTimeout(() => {
         queryClient.invalidateQueries({
-          queryKey: ["flow-deals", flow?.id],
+          queryKey: ["flow-deals", clientId, flow?.id],
           exact: true,
-          refetchType: "inactive" // Só refetch se os dados estiverem inativos
+          refetchType: "inactive", // Só refetch se os dados estiverem inativos
         });
       }, 800);
-    }
+    },
   });
 
   // Mutation para criar negócio
@@ -246,9 +260,9 @@ export function useFlow() {
 
       // Buscar o primeiro estágio do flow
       const { data: firstStage } = await supabase
-        .from('web_funnel_stages')
+        .from("web_flow_stages")
         .select('id')
-        .eq('funnel_id', flow?.id)
+        .eq("flow_id", flow?.id)
         .eq('client_id', collaborator.client_id)
         .order('order_index', { ascending: true })
         .limit(1)
@@ -327,7 +341,7 @@ export function useFlow() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["flow-deals", flow?.id]
+        queryKey: ["flow-deals", clientId, flow?.id],
       });
       toast.success("Negócio criado com sucesso!");
     },
@@ -391,10 +405,10 @@ export function useFlow() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["flow-deals", flow?.id]
+        queryKey: ["flow-deals", clientId, flow?.id],
       });
       toast.success("Parceiro atualizado com sucesso!");
-    }
+    },
   });
 
   // Mutation para atualizar negócio
@@ -426,9 +440,9 @@ export function useFlow() {
       });
     },
     onSuccess: () => {
-      toast.success('Negócio atualizado com sucesso!');
+      toast.success("Negócio atualizado com sucesso!");
       queryClient.invalidateQueries({
-        queryKey: ['flow-deals', flow?.id]
+        queryKey: ["flow-deals", clientId, flow?.id],
       });
     },
     onError: (error) => {
@@ -456,9 +470,9 @@ export function useFlow() {
       });
     },
     onSuccess: () => {
-      toast.success('Negócio excluído com sucesso!');
+      toast.success("Negócio excluído com sucesso!");
       queryClient.invalidateQueries({
-        queryKey: ['flow-deals', flow?.id]
+        queryKey: ["flow-deals", clientId, flow?.id],
       });
     },
     onError: (error) => {
@@ -498,9 +512,9 @@ export function useFlow() {
       });
     },
     onSuccess: () => {
-      toast.success('Tag adicionada com sucesso!');
+      toast.success("Tag adicionada com sucesso!");
       queryClient.invalidateQueries({
-        queryKey: ['flow-deals', flow?.id]
+        queryKey: ["flow-deals", clientId, flow?.id],
       });
     },
     onError: (error) => {
@@ -540,9 +554,9 @@ export function useFlow() {
       });
     },
     onSuccess: () => {
-      toast.success('Tag removida com sucesso!');
+      toast.success("Tag removida com sucesso!");
       queryClient.invalidateQueries({
-        queryKey: ['flow-deals', flow?.id]
+        queryKey: ["flow-deals", clientId, flow?.id],
       });
     },
     onError: (error) => {

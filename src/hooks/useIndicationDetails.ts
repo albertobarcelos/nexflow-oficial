@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase, nexflowClient } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Indication, type IndicationStatus } from "@/types/indications";
 import { NexflowCard } from "@/types/nexflow";
 import type { Json } from "@/types/database";
@@ -14,19 +15,25 @@ export interface IndicationDetails extends Indication {
   }>;
 }
 
+/**
+ * Detalhes da indicação (multi-tenant: queryKey com clientId; filtra por client_id).
+ */
 export function useIndicationDetails(indicationId: string | null | undefined) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["indication-details", indicationId],
+    queryKey: ["indication-details", clientId, indicationId],
     queryFn: async (): Promise<IndicationDetails | null> => {
-      if (!indicationId) {
+      if (!indicationId || !clientId) {
         return null;
       }
 
-      // Buscar indicação
+      // Buscar indicação (apenas do cliente atual)
       const { data: indication, error: indError } = await supabase
         .from("core_indications")
         .select("*")
         .eq("id", indicationId)
+        .eq("client_id", clientId)
         .single();
 
       if (indError || !indication) {
@@ -137,7 +144,7 @@ export function useIndicationDetails(indicationId: string | null | undefined) {
         ),
       };
     },
-    enabled: !!indicationId,
+    enabled: !!clientId && !!indicationId,
     staleTime: 1000 * 30, // 30 segundos
   });
 }

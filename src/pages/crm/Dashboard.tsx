@@ -1,114 +1,106 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, Target, TrendingUp, Activity } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Database } from "@/types/database";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { useSecureClientQuery } from "@/hooks/useSecureClientQuery";
 
-// Atualizar tipo para usar web_deals ao invés de opportunities
 type Deal = Database["public"]["Tables"]["web_deals"]["Row"] & {
   company: Database["public"]["Tables"]["web_companies"]["Row"] | null;
 };
 
-// Função helper para obter dados do usuário (incluindo usuário de teste)
-const getCurrentUserData = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Usuário não autenticado");
-
-  // Tentar buscar na tabela core_client_users
-  const { data: collaborator } = await supabase
-    .from("core_client_users")
-    .select("client_id")
-    .eq("id", user.id)
-    .single();
-
-  // Se encontrou, retorna os dados
-  if (collaborator) {
-    return collaborator;
-  }
-
-  // Se não encontrou e é o usuário de teste, retorna dados temporários
-  if (user.email === 'barceloshd@gmail.com') {
-    return {
-      client_id: 'test-client-001'
-    };
-  }
-
-  throw new Error("Colaborador não encontrado");
-};
+interface DashboardStats {
+  companies: number;
+  people: number;
+  deals: number;
+}
 
 export function Dashboard() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { hasAccess, accessError, currentClient } = useClientAccessGuard();
 
-  const { data: stats, isLoading, error } = useQuery({
+  // Auditoria: registro de acesso à página Dashboard (legado)
+  useEffect(() => {
+    if (hasAccess && currentClient?.name) {
+      console.log(
+        `[AUDIT] Dashboard (legado) acessado - Client: ${currentClient.name}`
+      );
+    }
+  }, [hasAccess, currentClient?.name]);
+
+  const { data: stats, isLoading, error } = useSecureClientQuery<DashboardStats>({
     queryKey: ["dashboard-stats"],
-    queryFn: async () => {
+    queryFn: async (client, clientId) => {
       try {
-        const collaborator = await getCurrentUserData();
-
         const [
           { count: companiesCount },
           { count: peopleCount },
           { count: dealsCount },
         ] = await Promise.all([
-          supabase
+          client
             .from("web_companies")
             .select("*", { count: "exact", head: true })
-            .eq("client_id", collaborator.client_id),
-          supabase
+            .eq("client_id", clientId),
+          client
             .from("web_people")
             .select("*", { count: "exact", head: true })
-            .eq("client_id", collaborator.client_id),
-          supabase
+            .eq("client_id", clientId),
+          client
             .from("web_deals")
             .select("*", { count: "exact", head: true })
-            .eq("client_id", collaborator.client_id),
+            .eq("client_id", clientId),
         ]);
 
         return {
-          companies: companiesCount || 0,
-          people: peopleCount || 0,
-          deals: dealsCount || 0,
+          companies: companiesCount ?? 0,
+          people: peopleCount ?? 0,
+          deals: dealsCount ?? 0,
         };
-      } catch (error) {
-        console.error("Erro ao carregar estatísticas:", error);
-        // Retornar dados padrão em caso de erro
-        return {
-          companies: 0,
-          people: 0,
-          deals: 0,
-        };
+      } catch (err) {
+        console.error("Erro ao carregar estatísticas:", err);
+        return { companies: 0, people: 0, deals: 0 };
       }
     },
-    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
+    queryOptions: { refetchOnWindowFocus: false },
   });
 
-  const { data: recentDeals } = useQuery({
-    queryKey: ["recent-deals"],
-    queryFn: async () => {
+  const { data: recentDeals } = useSecureClientQuery<Deal[]>({
+    queryKey: ["recent-deals", isMobile],
+    queryFn: async (client, clientId) => {
       try {
-        const collaborator = await getCurrentUserData();
-
-        const { data } = await supabase
+        const { data } = await client
           .from("web_deals")
-          .select(`
+          .select(
+            `
             *,
             company:web_companies(*)
-          `)
-          .eq("client_id", collaborator.client_id)
+          `
+          )
+          .eq("client_id", clientId)
           .order("created_at", { ascending: false })
           .limit(isMobile ? 3 : 5);
-
-        return data || [];
-      } catch (error) {
-        console.error("Erro ao carregar negócios recentes:", error);
+        return (data ?? []) as Deal[];
+      } catch (err) {
+        console.error("Erro ao carregar negócios recentes:", err);
         return [];
       }
     },
-    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
+    queryOptions: { refetchOnWindowFocus: false },
   });
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso ao dashboard</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

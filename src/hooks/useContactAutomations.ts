@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 
 // Tipos temporários até a tabela ser adicionada aos tipos gerados
 interface ContactAutomationRow {
@@ -78,9 +79,13 @@ const mapAutomationRow = (row: ContactAutomationRow): ContactAutomation => ({
   updatedAt: row.updated_at,
 });
 
+/**
+ * Automações de contato do cliente atual (multi-tenant: queryKey com clientId).
+ */
 export function useContactAutomations() {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "contact-automations"];
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+  const queryKey = ["nexflow", "contact-automations", clientId];
 
   const automationsQuery = useQuery({
     queryKey,
@@ -108,6 +113,7 @@ export function useContactAutomations() {
 
       return (data || []).map(mapAutomationRow);
     },
+    enabled: !!clientId,
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 

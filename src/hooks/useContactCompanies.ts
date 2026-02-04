@@ -1,17 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { toast } from "sonner";
 
 /**
- * Hook para gerenciar array company_names na tabela contacts
- * A partir de agora, empresas são armazenadas apenas como nomes no array company_names
+ * Hook para gerenciar array company_names na tabela contacts (multi-tenant: queryKey com clientId).
+ * Empresas são armazenadas apenas como nomes no array company_names.
  */
 export function useContactCompanies(contactId: string | null) {
   const queryClient = useQueryClient();
+  const { currentClient } = useClientStore();
+  const clientId = currentClient?.id ?? null;
 
   // Query para buscar nomes de empresas do contato
   const { data: companyNames = [], isLoading } = useQuery({
-    queryKey: ["contact-companies", contactId],
+    queryKey: ["contact-companies", clientId, contactId],
     queryFn: async (): Promise<string[]> => {
       if (!contactId) return [];
 
@@ -36,7 +39,7 @@ export function useContactCompanies(contactId: string | null) {
       const contactData = (data as any) || null;
       return (contactData?.company_names || []) as string[];
     },
-    enabled: !!contactId,
+    enabled: !!contactId && !!clientId,
     staleTime: 1000 * 60 * 2, // 2 minutos
   });
 
@@ -77,8 +80,10 @@ export function useContactCompanies(contactId: string | null) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
-      queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
+      if (clientId) {
+        queryClient.invalidateQueries({ queryKey: ["contact-companies", clientId, contactId] });
+        queryClient.invalidateQueries({ queryKey: ["contact-details", clientId, contactId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Empresa adicionada com sucesso!");
     },
@@ -121,8 +126,10 @@ export function useContactCompanies(contactId: string | null) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
-      queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
+      if (clientId) {
+        queryClient.invalidateQueries({ queryKey: ["contact-companies", clientId, contactId] });
+        queryClient.invalidateQueries({ queryKey: ["contact-details", clientId, contactId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Empresa removida com sucesso!");
     },
@@ -151,8 +158,10 @@ export function useContactCompanies(contactId: string | null) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact-companies", contactId] });
-      queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
+      if (clientId) {
+        queryClient.invalidateQueries({ queryKey: ["contact-companies", clientId, contactId] });
+        queryClient.invalidateQueries({ queryKey: ["contact-details", clientId, contactId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Empresas atualizadas com sucesso!");
     },

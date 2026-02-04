@@ -194,17 +194,14 @@ ALTER TABLE core_client_users ENABLE ROW LEVEL SECURITY;
 -- FUNÇÕES AUXILIARES
 -- =====================================================
 
--- Função para obter o client_id do usuário autenticado
-CREATE OR REPLACE FUNCTION auth.get_current_client_id()
+-- Função para obter o client_id do usuário autenticado (schema public; core_client_users.id, não user_id)
+CREATE OR REPLACE FUNCTION public.get_current_client_id()
 RETURNS UUID AS $$
-BEGIN
-  RETURN (
-    SELECT client_id 
-    FROM core_client_users 
-    WHERE id = auth.uid()
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+  SELECT ccu.client_id
+  FROM public.core_client_users ccu
+  WHERE ccu.id = auth.uid()
+  LIMIT 1;
+$$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public;
 
 -- =====================================================
 -- POLÍTICAS PARA TABELAS WEB
@@ -213,128 +210,128 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- WEB_COMPANIES
 CREATE POLICY "Users can view companies from their tenant" 
 ON web_companies FOR SELECT 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can insert companies to their tenant" 
 ON web_companies FOR INSERT 
-WITH CHECK (client_id = auth.get_current_client_id());
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can update companies from their tenant" 
 ON web_companies FOR UPDATE 
-USING (client_id = auth.get_current_client_id())
-WITH CHECK (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id())
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can delete companies from their tenant" 
 ON web_companies FOR DELETE 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 -- WEB_PEOPLE
 CREATE POLICY "Users can view people from their tenant" 
 ON web_people FOR SELECT 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can insert people to their tenant" 
 ON web_people FOR INSERT 
-WITH CHECK (client_id = auth.get_current_client_id());
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can update people from their tenant" 
 ON web_people FOR UPDATE 
-USING (client_id = auth.get_current_client_id())
-WITH CHECK (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id())
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can delete people from their tenant" 
 ON web_people FOR DELETE 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 -- WEB_DEALS
 CREATE POLICY "Users can view deals from their tenant" 
 ON web_deals FOR SELECT 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can insert deals to their tenant" 
 ON web_deals FOR INSERT 
-WITH CHECK (client_id = auth.get_current_client_id());
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can update deals from their tenant" 
 ON web_deals FOR UPDATE 
-USING (client_id = auth.get_current_client_id())
-WITH CHECK (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id())
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can delete deals from their tenant" 
 ON web_deals FOR DELETE 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 -- WEB_TASKS
 CREATE POLICY "Users can view tasks from their tenant" 
 ON web_tasks FOR SELECT 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can insert tasks to their tenant" 
 ON web_tasks FOR INSERT 
-WITH CHECK (client_id = auth.get_current_client_id());
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can update tasks from their tenant" 
 ON web_tasks FOR UPDATE 
-USING (client_id = auth.get_current_client_id())
-WITH CHECK (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id())
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can delete tasks from their tenant" 
 ON web_tasks FOR DELETE 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 -- WEB_FUNNELS
 CREATE POLICY "Users can view funnels from their tenant" 
 ON web_funnels FOR SELECT 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can insert funnels to their tenant" 
 ON web_funnels FOR INSERT 
-WITH CHECK (client_id = auth.get_current_client_id());
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can update funnels from their tenant" 
 ON web_funnels FOR UPDATE 
-USING (client_id = auth.get_current_client_id())
-WITH CHECK (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id())
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can delete funnels from their tenant" 
 ON web_funnels FOR DELETE 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 -- WEB_FUNNEL_STAGES
 CREATE POLICY "Users can view funnel_stages from their tenant" 
 ON web_funnel_stages FOR SELECT 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can insert funnel_stages to their tenant" 
 ON web_funnel_stages FOR INSERT 
-WITH CHECK (client_id = auth.get_current_client_id());
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can update funnel_stages from their tenant" 
 ON web_funnel_stages FOR UPDATE 
-USING (client_id = auth.get_current_client_id())
-WITH CHECK (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id())
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can delete funnel_stages from their tenant" 
 ON web_funnel_stages FOR DELETE 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 -- WEB_FLOWS
 CREATE POLICY "Users can view flows from their tenant" 
 ON web_flows FOR SELECT 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can insert flows to their tenant" 
 ON web_flows FOR INSERT 
-WITH CHECK (client_id = auth.get_current_client_id());
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can update flows from their tenant" 
 ON web_flows FOR UPDATE 
-USING (client_id = auth.get_current_client_id())
-WITH CHECK (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id())
+WITH CHECK (client_id = public.get_current_client_id());
 
 CREATE POLICY "Users can delete flows from their tenant" 
 ON web_flows FOR DELETE 
-USING (client_id = auth.get_current_client_id());
+USING (client_id = public.get_current_client_id());
 
 -- =====================================================
 -- POLÍTICAS PARA TABELAS CORE
@@ -355,7 +352,7 @@ WITH CHECK (id = auth.uid());
 -- =====================================================
 
 -- Conceder acesso às funções auxiliares
-GRANT EXECUTE ON FUNCTION auth.get_current_client_id() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_current_client_id() TO authenticated;
 `;
 
 /**

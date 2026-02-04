@@ -38,7 +38,7 @@ export function CompanyUsersManager({ clientId, companyName }: CompanyUsersManag
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<OrganizationUser | null>(null);
   const [userToDelete, setUserToDelete] = useState<OrganizationUser | null>(null);
-  const { data: users = [], isLoading } = useCompanyUsers(clientId);
+  const { data: users = [], isLoading } = useCompanyUsers();
 
   if (isLoading) {
     return (

@@ -146,7 +146,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
       {/* Topo: Título e Avatar do usuário */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white leading-tight truncate">
+          <h3 className="font-semibold text-gray-900 dark:text-white leading-tight truncate-ellipsis max-w-[180px] overflow-hidden whitespace-nowrap">
             {cardTitle}
           </h3>
           {/* Tag abaixo do título com formato arredondado */}
@@ -213,7 +213,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
               </p>
             )}
             {card.value !== null && card.value !== undefined && (
-              <p className="font-bold text-gray-900 dark:text-gray-200 leading-tight whitespace-nowrap">
+              <p className="font-bold text-gray-900 dark:text-gray-200 leading-tight truncate max-w-[120px] overflow-hidden ">
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',

@@ -191,7 +191,7 @@ export function FlowBuilderHeader({
               type="button"
               onClick={onSave}
               disabled={isSaving || !canSave}
-              className="flex items-center gap-2 bg-orange-200 hover:bg-orange-300 dark:bg-orange-700 dark:hover:bg-orange-600 text-white dark:text-orange-50 px-8 py-3 rounded-xl shadow-sm transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-white dark:text-orange-50 px-8 py-3 rounded-xl shadow-sm transition-colors text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSaving ? (
                 <>

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 
 export interface FlowPermissions {
   isAdministrator: boolean;
@@ -22,8 +23,10 @@ export function useFlowPermissions(flowId?: string): {
   isLoading: boolean;
   isError: boolean;
 } {
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
   const query = useQuery({
-    queryKey: ["flow-permissions", flowId],
+    queryKey: ["nexflow", "permissions", "access", clientId, flowId],
+    enabled: Boolean(clientId),
     queryFn: async (): Promise<FlowPermissions> => {
       const { data, error } = await supabase.functions.invoke("check-flow-permissions", {
         body: flowId ? { flowId } : {},

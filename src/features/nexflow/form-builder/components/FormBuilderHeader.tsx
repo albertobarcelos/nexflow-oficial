@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils"; // Importe o cn se estiver usando shadcn padrão
 
 interface FormBuilderHeaderProps {
   formTitle: string;
@@ -39,7 +40,7 @@ export function FormBuilderHeader({
           />
         </div>
         {hasUnsavedChanges && (
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-xs border-orange-500 text-orange-600 bg-orange-50">
             Alterações não salvas
           </Badge>
         )}
@@ -49,7 +50,20 @@ export function FormBuilderHeader({
           <Eye className="w-4 h-4 mr-2" />
           Preview
         </Button>
-        <Button size="sm" onClick={onSave} disabled={isSaving}>
+        
+        <Button
+          size="sm"
+          // Quando tem alterações, usamos null para o variant não sobrescrever nossa cor customizada
+          variant={hasUnsavedChanges ? "default" : "secondary"} 
+          className={cn(
+            "transition-all duration-200", // Animação suave
+            hasUnsavedChanges
+              ? "bg-orange-600 hover:bg-orange-500 text-white shadow-md shadow-orange-200 hover:shadow-lg hover:shadow-orange-300 ring-2 ring-orange-500 ring-offset-1" 
+              : "opacity-50 cursor-not-allowed" // Estilo explicito de desabilitado se quiser forçar
+          )}
+          onClick={onSave}
+          disabled={isSaving || !hasUnsavedChanges}
+        >
           {isSaving ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -57,11 +71,12 @@ export function FormBuilderHeader({
             </>
           ) : (
             <>
-              <Save className="w-4 h-4 mr-2" />
+              <Save className=" bg-orange-600 w-4 h-4 mr-2" />
               Salvar
             </>
           )}
         </Button>
+
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />
         </Button>
@@ -69,4 +84,3 @@ export function FormBuilderHeader({
     </div>
   );
 }
-

@@ -1,217 +1,220 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { User } from "@supabase/supabase-js";
 import { Database } from "@/types/database";
 import { UserProfile } from "@/types/profile";
+import { useClientStore } from "@/stores/clientStore";
+
+/** Dados brutos do perfil vindos do Supabase (core_client_users + core_clients) */
+interface ProfileRow {
+  id: string;
+  client_id: string;
+  name: string | null;
+  surname: string | null;
+  avatar_url: string | null;
+  avatar_type: string | null;
+  avatar_seed: string | null;
+  custom_avatar_url: string | null;
+  core_clients: { name: string } | null;
+}
+
+async function fetchAccountProfile(
+  userId: string,
+  clientId: string
+): Promise<UserProfile | null> {
+  const {
+    data: { user: authUser },
+  } = await supabase.auth.getUser();
+  if (!authUser || authUser.id !== userId) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("core_client_users")
+    .select(
+      `
+      id,
+      client_id,
+      name,
+      surname,
+      avatar_url,
+      avatar_type,
+      avatar_seed,
+      custom_avatar_url,
+      core_clients (
+        name
+      )
+    `
+    )
+    .eq("id", userId)
+    .single();
+
+  if (error && error.code !== "PGRST116") {
+    throw error;
+  }
+
+  const row = data as ProfileRow | null;
+  if (!row) {
+    return {
+      ...authUser,
+      name: "",
+      surname: "",
+      avatar_url: "",
+      avatar_type: "toy_face",
+      avatar_seed: "1|1",
+      custom_avatar_url: null,
+      organizationId: undefined,
+      organizationName: "N/A",
+    };
+  }
+
+  // Validação de segurança: perfil deve pertencer ao cliente do contexto
+  if (row.client_id !== clientId) {
+    console.error("[SECURITY] Perfil com client_id diferente do contexto atual");
+    throw new Error("Violação de segurança: perfil não pertence ao cliente atual");
+  }
+
+  const profile: UserProfile = {
+    ...authUser,
+    name: row.name ?? "",
+    surname: row.surname ?? "",
+    avatar_url: row.avatar_url ?? "",
+    avatar_type: row.avatar_type ?? "toy_face",
+    avatar_seed: row.avatar_seed ?? "1|1",
+    custom_avatar_url: row.custom_avatar_url ?? null,
+    organizationId: row.client_id,
+    organizationName:
+      (row.core_clients as { name: string } | null)?.name ?? "N/A",
+  };
+
+  // Auditoria na primeira carga relevante
+  console.info("[AUDIT] Perfil da conta - Client:", clientId);
+
+  return profile;
+}
 
 export function useAccountProfile() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const queryClient = useQueryClient();
+  const { currentClient } = useClientStore();
+  const clientId = currentClient?.id ?? null;
+
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now());
 
-  const fetchUserProfile = useCallback(async (supabaseUser: User) => {
-    try {
-      const { data, error } = await supabase
-        .from("core_client_users")
-        .select(
-          `
-          *,
-          core_clients (
-            name
-          )
-        `
-        )
-        .eq("id", supabaseUser.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
-
-      if (data) {
-        setUser({
-          ...supabaseUser,
-          name: data.name || "",
-          surname: data.surname || "",
-          avatar_url: data.avatar_url || "",
-          avatar_type: data.avatar_type || "toy_face",
-          avatar_seed: data.avatar_seed || "1|1",
-          custom_avatar_url: data.custom_avatar_url || null,
-          organizationId: data.client_id,
-          organizationName:
-            (data.core_clients as unknown as { name: string })?.name || "N/A",
-        });
-      } else {
-        setUser(supabaseUser);
-      }
-    } catch (error: unknown) {
-      console.error("Error fetching user profile:", (error as Error).message);
-      setUser(supabaseUser);
-    } finally {
-      setIsLoadingUser(false);
-    }
-  }, []);
-
+  // Sincronizar userId com a sessão de auth para queryKey e invalidação
   useEffect(() => {
-    const getSession = async () => {
-      setIsLoadingUser(true);
+    const loadSession = async () => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setUser(null);
-        setIsLoadingUser(false);
-      }
+      setAuthUserId(session?.user?.id ?? null);
+      setSessionLoaded(true);
     };
+    loadSession();
 
-    getSession();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUserId(session?.user?.id ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (session?.user) {
-          await fetchUserProfile(session.user);
-        } else {
-          setUser(null);
-          setIsLoadingUser(false);
-        }
-      }
-    );
-
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, [fetchUserProfile]);
+  const {
+    data: user,
+    isLoading: isQueryLoading,
+    error: profileError,
+  } = useQuery({
+    queryKey: ["account-profile", clientId, authUserId],
+    queryFn: () =>
+      fetchAccountProfile(authUserId!, clientId!),
+    enabled: !!clientId && !!authUserId,
+    staleTime: 1000 * 60 * 5,
+  });
 
   const updateUserProfile = useCallback(
     async (
       newName?: string,
       newSurname?: string,
-      newEmail?: string,
+      _newEmail?: string,
       newAvatarUrl?: string | null,
       newAvatarType?: string,
       newAvatarSeed?: string,
       newCustomAvatarUrl?: string | null
     ) => {
-      console.log("🔄 updateUserProfile iniciado", { 
-        newName, newSurname, newEmail, newAvatarUrl, newAvatarType, newAvatarSeed, newCustomAvatarUrl 
-      });
-      
       if (!user) throw new Error("User not authenticated.");
-
-      // TEMPORÁRIO: Pulando atualização de autenticação para resolver o travamento
-      console.log("⏭️ Pulando atualização de autenticação temporariamente");
 
       const profileUpdates: Partial<
         Database["public"]["Tables"]["core_client_users"]["Update"]
       > = {};
-      
-      // Sempre incluir campos que foram passados, mesmo que sejam iguais
-      if (newName !== undefined) {
-        profileUpdates.name = newName;
-      }
-      if (newSurname !== undefined) {
-        profileUpdates.surname = newSurname;
-      }
-      if (newAvatarUrl !== undefined) {
-        profileUpdates.avatar_url = newAvatarUrl;
-      }
-      if (newAvatarType !== undefined) {
-        profileUpdates.avatar_type = newAvatarType;
-      }
-      if (newAvatarSeed !== undefined) {
-        profileUpdates.avatar_seed = newAvatarSeed;
-      }
-      if (newCustomAvatarUrl !== undefined) {
+      if (newName !== undefined) profileUpdates.name = newName;
+      if (newSurname !== undefined) profileUpdates.surname = newSurname;
+      if (newAvatarUrl !== undefined) profileUpdates.avatar_url = newAvatarUrl;
+      if (newAvatarType !== undefined) profileUpdates.avatar_type = newAvatarType;
+      if (newAvatarSeed !== undefined) profileUpdates.avatar_seed = newAvatarSeed;
+      if (newCustomAvatarUrl !== undefined)
         profileUpdates.custom_avatar_url = newCustomAvatarUrl;
-      }
 
-      console.log("💾 Atualizações do perfil:", profileUpdates);
+      if (Object.keys(profileUpdates).length === 0) return;
 
-      if (Object.keys(profileUpdates).length > 0) {
-        console.log("📊 Atualizando dados do perfil no banco...");
-        console.log("🔍 ID do usuário sendo usado:", user.id);
-        console.log("🔍 Tipo do ID:", typeof user.id);
-        
-        console.log("🚀 Iniciando query de atualização...");
-        let updatedProfile;
-        try {
-          const { data, error: profileError } = await supabase
-            .from("core_client_users")
-            .update(profileUpdates)
-            .eq("id", user.id)
-            .select();
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from("core_client_users")
+        .update(profileUpdates)
+        .eq("id", user.id)
+        .select();
 
-          updatedProfile = data;
+      if (profileError) throw profileError;
 
-          console.log("📥 Resposta da query recebida");
-          console.log("📊 Data:", updatedProfile);
-          console.log("❌ Error:", profileError);
-
-          if (profileError) {
-            console.error("❌ Erro no banco de dados:", profileError);
-            throw profileError;
-          }
-
-          console.log("✅ Dados do perfil atualizados no banco:", updatedProfile);
-        } catch (queryError) {
-          console.error("💥 Erro durante execução da query:", queryError);
-          throw queryError;
-        }
-
-        if (updatedProfile && updatedProfile.length > 0) {
-          const profile = updatedProfile[0];
-          console.log("🔄 Atualizando estado local com dados do banco:", profile);
-          setUser((prev) =>
+      if (updatedProfile && updatedProfile.length > 0) {
+        const profile = updatedProfile[0];
+        queryClient.setQueryData<UserProfile | null>(
+          ["account-profile", clientId, authUserId],
+          (prev) =>
             prev
               ? {
                   ...prev,
-                  name: profile.name || "",
-                  surname: profile.surname || "",
-                  avatar_url: profile.avatar_url || null,
-                  avatar_type: profile.avatar_type || "toy_face",
-                  avatar_seed: profile.avatar_seed || "1|1",
-                  custom_avatar_url: profile.custom_avatar_url || null,
+                  name: profile.name ?? "",
+                  surname: profile.surname ?? "",
+                  avatar_url: profile.avatar_url ?? null,
+                  avatar_type: profile.avatar_type ?? "toy_face",
+                  avatar_seed: profile.avatar_seed ?? "1|1",
+                  custom_avatar_url: profile.custom_avatar_url ?? null,
                 }
               : null
-          );
-          console.log("✅ Estado local atualizado com sucesso");
-          setLastUpdate(Date.now()); // Forçar re-renderização
-          console.log("🔄 lastUpdate atualizado:", Date.now());
-        } else {
-          console.log("⚠️ Nenhum perfil retornado do banco, forçando atualização do estado local");
-          // Forçar atualização do estado local mesmo sem retorno do banco
-          setUser((prev) =>
+        );
+      } else {
+        queryClient.setQueryData<UserProfile | null>(
+          ["account-profile", clientId, authUserId],
+          (prev) =>
             prev
               ? {
                   ...prev,
-                  name: newName !== undefined ? newName : prev.name,
-                  surname: newSurname !== undefined ? newSurname : prev.surname,
-                  avatar_url: newAvatarUrl !== undefined ? newAvatarUrl : prev.avatar_url,
-                  avatar_type: newAvatarType !== undefined ? newAvatarType : prev.avatar_type,
-                  avatar_seed: newAvatarSeed !== undefined ? newAvatarSeed : prev.avatar_seed,
-                  custom_avatar_url: newCustomAvatarUrl !== undefined ? newCustomAvatarUrl : prev.custom_avatar_url,
+                  name: newName ?? prev.name,
+                  surname: newSurname ?? prev.surname,
+                  avatar_url: newAvatarUrl ?? prev.avatar_url,
+                  avatar_type: newAvatarType ?? prev.avatar_type,
+                  avatar_seed: newAvatarSeed ?? prev.avatar_seed,
+                  custom_avatar_url: newCustomAvatarUrl ?? prev.custom_avatar_url,
                 }
               : null
-          );
-          setLastUpdate(Date.now()); // Forçar re-renderização
-          console.log("🔄 lastUpdate atualizado (fallback):", Date.now());
-        }
+        );
       }
-      
-      console.log("🏁 updateUserProfile concluído com sucesso");
+
+      setLastUpdate(Date.now());
+      queryClient.invalidateQueries({
+        queryKey: ["account-profile", clientId, authUserId],
+      });
     },
-    [user]
+    [user, clientId, authUserId, queryClient]
   );
 
   const changeUserPassword = useCallback(
-    async (currentPassword: string, newPassword: string) => {
+    async (_currentPassword: string, newPassword: string) => {
       if (!user) throw new Error("User not authenticated.");
       const { data, error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-
       if (error) throw error;
       return data;
     },
@@ -222,67 +225,49 @@ export function useAccountProfile() {
     async (file: File) => {
       if (!user) throw new Error("User not authenticated.");
 
-      // Remover avatares antigos do usuário
       try {
-        console.log("🗑️ Removendo avatares antigos...");
         const { data: existingFiles } = await supabase.storage
           .from("avatars")
-          .list("", {
-            search: user.id
-          });
+          .list("", { search: user.id });
 
-        if (existingFiles && existingFiles.length > 0) {
+        if (existingFiles?.length) {
           const filesToRemove = existingFiles
-            .filter(file => file.name.startsWith(user.id))
-            .map(file => file.name);
-          
+            .filter((f) => f.name.startsWith(user.id))
+            .map((f) => f.name);
           if (filesToRemove.length > 0) {
-            await supabase.storage
-              .from("avatars")
-              .remove(filesToRemove);
-            console.log("✅ Avatares antigos removidos:", filesToRemove);
+            await supabase.storage.from("avatars").remove(filesToRemove);
           }
         }
-      } catch (cleanupError) {
-        console.warn("⚠️ Erro ao limpar avatares antigos:", cleanupError);
+      } catch {
         // Não falhar o upload por causa da limpeza
       }
 
       const fileExt = file.name.split(".").pop();
-      const timestamp = Date.now();
-      const fileName = `${user.id}_${timestamp}.${fileExt}`;
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
-
-      console.log("📤 Fazendo upload do avatar:", { fileName, filePath });
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, {
-          cacheControl: "0", // Sem cache para evitar problemas
-          upsert: false, // Sempre criar novo arquivo
-        });
+        .upload(filePath, file, { cacheControl: "0", upsert: false });
 
-      if (uploadError) {
-        console.error("❌ Erro no upload:", uploadError);
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
       const { data: publicUrlData } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
-
-      if (publicUrlData) {
-        console.log("✅ URL pública gerada:", publicUrlData.publicUrl);
-        return publicUrlData.publicUrl;
-      }
-      return null;
+      return publicUrlData?.publicUrl ?? null;
     },
     [user]
   );
 
+  const isLoadingUser =
+    !sessionLoaded ||
+    (!!clientId && !!authUserId && isQueryLoading);
+
   return {
-    user,
+    user: user ?? null,
     isLoadingUser,
+    profileError: profileError ?? null,
     updateUserProfile,
     changeUserPassword,
     uploadAvatar,

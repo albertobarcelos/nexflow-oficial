@@ -1,29 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { getCurrentUserData } from "@/lib/auth";
+import { useClientStore } from "@/stores/clientStore";
 import { Deal } from "@/types/deals";
-import { toast } from "sonner";
 
+
+/**
+ * Detalhes do deal (multi-tenant: queryKey com clientId).
+ */
 export function useDealDetails(dealId: string) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["deal-details", dealId],
+    queryKey: ["deal-details", clientId, dealId],
     queryFn: async () => {
       if (!dealId) return null;
+      if (!clientId) return null;
 
       try {
-        const collaborator = await getCurrentUserData();
-
         const { data, error } = await supabase
           .from("web_deals")
           .select(`
             *,
             company:web_companies(*),
             person:web_people(*),
-            stage:web_funnel_stages(*),
-            funnel:web_funnels(*)
+            stage:web_flow_stages(*),
+            funnel:web_flows(*)
           `)
           .eq("id", dealId)
-          .eq("client_id", collaborator.client_id)
+          .eq("client_id", clientId)
           .single();
 
         if (error) {
@@ -31,8 +35,8 @@ export function useDealDetails(dealId: string) {
           return null;
         }
 
-        // Carregar tarefas
-        const { data: tasks, error: tasksError } = await supabase
+        // Carregar tarefas (tabela fora do tipo Database gerado)
+        const { data: tasks, error: tasksError } = await (supabase as any)
           .from("tasks")
           .select(`
             id,
@@ -52,8 +56,8 @@ export function useDealDetails(dealId: string) {
           throw tasksError;
         }
 
-        // Carregar histórico
-        const { data: history, error: historyError } = await supabase
+        // Carregar histórico (tabela fora do tipo Database gerado)
+        const { data: history, error: historyError } = await (supabase as any)
           .from("deal_history")
           .select(`
             id,
@@ -74,7 +78,7 @@ export function useDealDetails(dealId: string) {
         // Carregar pessoas da empresa
         let people = [];
         if (data.company_id) {
-          const { data: companyPeople, error: peopleError } = await supabase
+          const { data: companyPeople, error: peopleError } = await (supabase as any)
             .from("web_company_people")
             .select(`
               id,
@@ -88,7 +92,7 @@ export function useDealDetails(dealId: string) {
               )
             `)
             .eq("company_id", data.company_id)
-            .eq("client_id", collaborator.client_id)
+            .eq("client_id", clientId)
             .order("created_at", { ascending: false });
 
           if (peopleError) {
@@ -98,11 +102,11 @@ export function useDealDetails(dealId: string) {
 
           people = companyPeople.map(cp => cp.person);
         } else if (data.person_id) {
-          const { data: person, error: personError } = await supabase
+          const { data: person, error: personError } = await (supabase as any)
             .from("people")
             .select("*")
             .eq("id", data.person_id)
-            .eq("client_id", collaborator.client_id)
+            .eq("client_id", clientId)
             .single();
 
           if (personError) {
@@ -113,35 +117,38 @@ export function useDealDetails(dealId: string) {
           people = person ? [person] : [];
         }
 
-        // Processar os dados para manter a estrutura esperada
+        // Processar os dados para manter a estrutura esperada (company pode ter relations cities/states não tipadas)
+        const company = data.company as Record<string, unknown> | null;
         const dealData = {
           ...data,
           tasks,
           history,
           people,
-          company: data.company ? {
-            ...data.company,
-            cidade: data.company.cities?.name,
-            estado: data.company.states?.name,
-            uf: data.company.states?.uf,
-            address: {
-              cep: data.company.cep,
-              rua: data.company.rua,
-              numero: data.company.numero,
-              complemento: data.company.complemento,
-              bairro: data.company.bairro
-            }
-          } : null
+          company: company
+            ? {
+                ...company,
+                cidade: (company as { cities?: { name?: string } }).cities?.name,
+                estado: (company as { states?: { name?: string; uf?: string } }).states?.name,
+                uf: (company as { states?: { uf?: string } }).states?.uf,
+                address: {
+                  cep: company.cep,
+                  rua: company.rua,
+                  numero: company.numero,
+                  complemento: company.complemento,
+                  bairro: company.bairro,
+                },
+              }
+            : null,
         };
 
-        return dealData as Deal;
+        return dealData as unknown as Deal;
       } catch (error) {
         console.error("Erro ao buscar detalhes do negócio:", error);
         return null;
       }
     },
-    enabled: !!dealId,
+    enabled: !!clientId && !!dealId,
     staleTime: 1000 * 60 * 5, // Dados permanecem fresh por 5 minutos
-    cacheTime: 1000 * 60 * 30, // Cache por 30 minutos
+    gcTime: 1000 * 60 * 30, // Cache por 30 minutos (anteriormente cacheTime)
   });
 }

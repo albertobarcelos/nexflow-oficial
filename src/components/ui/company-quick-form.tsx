@@ -5,6 +5,7 @@ import { z } from "zod"
 import { toast } from "sonner"
 import { useLocation, City } from "@/hooks/useLocation"
 import { useCompanies } from "@/features/companies/hooks/useCompanies"
+import { getCompanyCreateErrorMessage } from "@/lib/supabase/companyErrors"
 import { ChevronDown, ChevronUp, Check } from "lucide-react"
 
 import {
@@ -140,9 +141,9 @@ export function CompanyQuickForm({
       
       // Callback de sucesso
       onSuccess?.(company);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao criar empresa:", error);
-      toast.error(error.message || "Erro ao criar empresa");
+      toast.error(getCompanyCreateErrorMessage(error));
     }
   };
 
