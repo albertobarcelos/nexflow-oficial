@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { nexflowClient } from "@/lib/supabase";
+import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Contact } from "@/hooks/useOpportunities";
 import { NexflowCard } from "@/types/nexflow";
 import type { Json } from "@/types/database";
@@ -21,19 +22,32 @@ export interface ContactDetails extends Contact {
   } | null;
 }
 
+/**
+ * Hook para detalhes do contato. Isolado por client_id: queryKey com clientId,
+ * filtro por client_id na busca e validação dupla no retorno.
+ */
 export function useContactDetails(contactId: string | null | undefined) {
+  const { currentClient } = useClientStore();
+  const clientId = currentClient?.id ?? null;
+
   return useQuery({
-    queryKey: ["contact-details", contactId],
+    queryKey: ["contact-details", clientId, contactId],
     queryFn: async (): Promise<ContactDetails | null> => {
       if (!contactId) {
         return null;
       }
 
-      // Buscar contato
+      const currentClientId = await getCurrentClientId();
+      if (!currentClientId) {
+        return null;
+      }
+
+      // Buscar contato restrito ao cliente atual
       const { data: contact, error: contactError } = await nexflowClient()
         .from("contacts" as any)
         .select("*")
         .eq("id", contactId)
+        .eq("client_id", currentClientId)
         .single();
 
       if (contactError || !contact) {
@@ -41,15 +55,23 @@ export function useContactDetails(contactId: string | null | undefined) {
         return null;
       }
 
-      // Buscar contato indicador separadamente (auto-referência não funciona com PostgREST)
+      // Validação dupla: contato deve pertencer ao cliente atual
+      const contactData = contact as { client_id?: string };
+      if (contactData.client_id !== currentClientId) {
+        console.error("[SECURITY] useContactDetails: contato de outro cliente detectado.");
+        return null;
+      }
+
+      // Buscar contato indicador separadamente (auto-referência não funciona com PostgREST); mesmo client_id
       let indicatedByContact = null;
       if ((contact as any).indicated_by) {
         const { data: indicatedByData } = await nexflowClient()
           .from("contacts" as any)
           .select("id, client_name, main_contact")
           .eq("id", (contact as any).indicated_by)
+          .eq("client_id", currentClientId)
           .single();
-        
+
         if (indicatedByData) {
           indicatedByContact = indicatedByData;
         }
@@ -106,13 +128,13 @@ export function useContactDetails(contactId: string | null | undefined) {
         createdAt: string;
       }> = [];
 
-      // Adicionar criação do contato ao histórico
-      const contactData = contact as any;
+      // Montar resultado (contactData já definido acima para validação)
+      const contactPayload = contact as any;
       interactionHistory.push({
-        id: contactData.id,
+        id: contactPayload.id,
         type: "created",
         description: "Contato criado",
-        createdAt: contactData.created_at || new Date().toISOString(),
+        createdAt: contactPayload.created_at || new Date().toISOString(),
       });
 
       // Adicionar criação de cards ao histórico
@@ -131,27 +153,27 @@ export function useContactDetails(contactId: string | null | undefined) {
       );
 
       return {
-        id: contactData.id,
-        client_id: contactData.client_id,
-        client_name: contactData.client_name || contactData.name || "",
-        main_contact: contactData.main_contact || "",
-        phone_numbers: contactData.phone_numbers || [],
-        company_names: contactData.company_names || [],
-        tax_ids: contactData.tax_ids || [],
+        id: contactPayload.id,
+        client_id: contactPayload.client_id,
+        client_name: contactPayload.client_name || contactPayload.name || "",
+        main_contact: contactPayload.main_contact || "",
+        phone_numbers: contactPayload.phone_numbers || [],
+        company_names: contactPayload.company_names || [],
+        tax_ids: contactPayload.tax_ids || [],
         related_card_ids: linkedCards.map((c) => c.id),
-        assigned_team_id: contactData.assigned_team_id || null,
-        avatar_type: contactData.avatar_type,
-        avatar_seed: contactData.avatar_seed,
-        created_at: contactData.created_at || new Date().toISOString(),
-        updated_at: contactData.updated_at || new Date().toISOString(),
-        indicated_by: contactData.indicated_by || null,
-        contact_type: contactData.contact_type || null,
+        assigned_team_id: contactPayload.assigned_team_id || null,
+        avatar_type: contactPayload.avatar_type,
+        avatar_seed: contactPayload.avatar_seed,
+        created_at: contactPayload.created_at || new Date().toISOString(),
+        updated_at: contactPayload.updated_at || new Date().toISOString(),
+        indicated_by: contactPayload.indicated_by || null,
+        contact_type: contactPayload.contact_type || null,
         indicated_by_contact: indicatedByContact || null,
         linkedCards,
         interactionHistory,
       };
     },
-    enabled: !!contactId,
+    enabled: !!contactId && !!clientId,
     staleTime: 1000 * 60 * 2, // 2 minutos
   });
 }

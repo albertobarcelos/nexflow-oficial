@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { useContactDetails } from "@/hooks/useContactDetails";
 import { useNavigate } from "react-router-dom";
+import { useClientStore } from "@/stores/clientStore";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { ContactCompaniesTab } from "./ContactCompaniesTab";
 import { ContactIndicatedBySelect } from "./ContactIndicatedBySelect";
@@ -51,6 +52,7 @@ export function ContactDetailsPanel({
   const { data: details, isLoading } = useContactDetails(contactId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   const updateContactType = useMutation({
     mutationFn: async (contactTypes: ("cliente" | "parceiro")[]) => {
@@ -74,7 +76,9 @@ export function ContactDetailsPanel({
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contact-details", contactId] });
+      if (clientId) {
+        queryClient.invalidateQueries({ queryKey: ["contact-details", clientId, contactId] });
+      }
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
       toast.success("Tipo de contato atualizado com sucesso!");
     },

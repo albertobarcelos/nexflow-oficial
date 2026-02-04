@@ -9,12 +9,19 @@ import { Sidebar } from "@/components/crm/sidebar/Sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { FlowBuilderProvider } from "@/contexts/FlowBuilderContext";
+import { useClientStore } from "@/stores/clientStore";
 
 export default function CRMLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const loadClientContext = useClientStore((s) => s.loadClientContext);
+
+  // Carrega contexto do cliente (multi-tenant) para que guard e hooks seguros tenham currentClient
+  useEffect(() => {
+    loadClientContext();
+  }, [loadClientContext]);
 
   // Rota do board: ajustar layout para altura fixa e apenas scroll horizontal no Kanban
   const isBoardRoute = /^\/crm\/flows\/[^/]+\/board\/?$/.test(location.pathname);

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useClientStore } from "@/stores/clientStore";
 import { useOpportunities, Contact } from "@/hooks/useOpportunities";
 import { useIndications } from "@/hooks/useIndications";
 import { Indication, Hunter } from "@/types/indications";
@@ -19,22 +20,25 @@ interface UseContactsWithIndicationsOptions {
 }
 
 /**
- * Hook que combina contatos e indicações em uma única lista unificada
+ * Hook que combina contatos e indicações em uma única lista unificada.
+ * Multi-tenant: validação dupla garante que todos os itens pertencem ao client_id atual.
  */
 export function useContactsWithIndications(
   options: UseContactsWithIndicationsOptions = {}
 ) {
   const { enabled = true, filterTypes } = options;
+  const { currentClient } = useClientStore();
+  const clientId = currentClient?.id ?? null;
 
-  // Buscar contatos
+  // Buscar contatos (useOpportunities já usa clientId na queryKey via userPermissions.clientId)
   const {
     contacts,
     isLoading: isLoadingContacts,
     isError: isErrorContacts,
     error: errorContacts,
-  } = useOpportunities({ enabled });
+  } = useOpportunities({ enabled: enabled && !!clientId });
 
-  // Buscar indicações
+  // Buscar indicações (queryKey já inclui clientId)
   const {
     indications,
     isLoading: isLoadingIndications,
@@ -42,7 +46,7 @@ export function useContactsWithIndications(
     error: errorIndications,
   } = useIndications();
 
-  // Combinar e normalizar dados
+  // Combinar e normalizar dados; validação dupla: apenas itens do cliente atual
   const unifiedContacts = useMemo((): UnifiedContact[] => {
     const result: UnifiedContact[] = [];
 
@@ -56,9 +60,8 @@ export function useContactsWithIndications(
 
     // Adicionar indicações como contatos unificados
     indications.forEach((indication) => {
-      // Mapear indicação para formato de contato
       const unifiedContact: UnifiedContact = {
-        id: `indication_${indication.id}`, // Prefixo para evitar conflitos
+        id: `indication_${indication.id}`,
         client_id: indication.client_id,
         client_name: indication.indication_name || "Indicação sem nome",
         main_contact: indication.responsible || null,
@@ -71,19 +74,26 @@ export function useContactsWithIndications(
         avatar_seed: undefined,
         created_at: indication.created_at,
         updated_at: indication.updated_at,
-        contact_type: null, // Indicações não têm tipo de contato ainda
+        contact_type: null,
         indicated_by: null,
         isIndication: true,
         indicationId: indication.id,
         hunter: indication.hunter || null,
         indicationStatus: indication.status,
       };
-
       result.push(unifiedContact);
     });
 
+    // Validação dupla: todos os itens devem pertencer ao cliente atual
+    if (clientId) {
+      const invalid = result.filter((c) => c.client_id !== clientId);
+      if (invalid.length > 0) {
+        console.error("[SECURITY] useContactsWithIndications: itens de outro cliente detectados:", invalid.length);
+        return [];
+      }
+    }
     return result;
-  }, [contacts, indications]);
+  }, [contacts, indications, clientId]);
 
   // Aplicar filtros se especificados
   const filteredContacts = useMemo(() => {

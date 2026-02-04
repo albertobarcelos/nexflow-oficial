@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Info, Plus, Layers, Settings2, Trash2, Tag, Workflow, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { useFlowPermissions } from "@/hooks/useFlowPermissions";
 import { supabase } from "@/lib/supabase";
@@ -22,8 +23,20 @@ import {
 
 export function FlowsPage() {
   const navigate = useNavigate();
+  const { hasAccess, accessError } = useClientAccessGuard();
   const { flows, isLoading, deleteFlow } = useNexflowFlows();
   const { permissions } = useFlowPermissions();
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso aos flows</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
   const [selectedFlow, setSelectedFlow] = useState<NexflowFlow | null>(null);
   const [flowToDelete, setFlowToDelete] = useState<NexflowFlow | null>(null);
   const [flowForTags, setFlowForTags] = useState<NexflowFlow | null>(null);

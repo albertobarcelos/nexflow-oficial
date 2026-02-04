@@ -1,11 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { nexflowClient, supabase } from "@/lib/supabase";
+import { useSecureClientQuery } from "@/hooks/useSecureClientQuery";
 import {
-  getCurrentClientId,
-  nexflowClient,
-  supabase,
-} from "@/lib/supabase";
-import { Database } from "@/types/database";
+  invalidateClientQueries,
+  useSecureClientMutation,
+} from "@/hooks/useSecureClientMutation";
 import {
   FlowCategory,
   NexflowFlow,
@@ -124,11 +124,11 @@ interface UpdateFlowInput {
 export function useNexflowFlows() {
   const queryClient = useQueryClient();
 
-  const flowsQuery = useQuery({
+  const flowsQuery = useSecureClientQuery<NexflowFlow[]>({
     queryKey: ["nexflow", "flows"],
-    queryFn: async (): Promise<NexflowFlow[]> => {
-      // Usar Edge Function get-flows que aplica filtros de visibilidade
-      const { data, error } = await supabase.functions.invoke("get-flows", {
+    queryFn: async (supabaseClient, clientId): Promise<NexflowFlow[]> => {
+      // Edge Function get-flows já filtra por client no backend
+      const { data, error } = await supabaseClient.functions.invoke("get-flows", {
         body: {},
       });
 
@@ -141,166 +141,133 @@ export function useNexflowFlows() {
         return [];
       }
 
-      // Mapear os dados retornados pela Edge Function
-      return data.flows.map(mapFlowRow);
+      // Validação dupla: todos os flows devem pertencer ao cliente atual (dados brutos têm client_id)
+      const rawFlows = data.flows as FlowRow[];
+      const invalid = rawFlows.filter((f) => f.client_id !== clientId);
+      if (invalid.length > 0) {
+        console.error("[SECURITY] Flows de outro cliente detectados:", invalid.length);
+        throw new Error("Violação de segurança: dados de outro cliente detectados");
+      }
+      if (typeof console !== "undefined" && console.log) {
+        console.log(`[AUDIT] Flows - Client: ${clientId}`);
+      }
+      return rawFlows.map(mapFlowRow);
     },
-    staleTime: 1000 * 30,
-    refetchOnMount: true, // Garante refetch ao montar o componente
-    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
-    // #endregion
+    validateClientIdOnData: false,
+    queryOptions: {
+      staleTime: 1000 * 30,
+      refetchOnMount: true,
+      refetchOnWindowFocus: false,
+    },
   });
 
-  const createFlowMutation = useMutation({
-    mutationFn: async ({
-      name,
-      description,
-      category,
-    }: CreateFlowInput): Promise<NexflowFlow> => {
-      // Verificar permissão para criar flow
-      const { data: permissionsData, error: permissionsError } = await supabase.functions.invoke(
+  const createFlowMutation = useSecureClientMutation<NexflowFlow, Error, CreateFlowInput>({
+    mutationFn: async (supabaseClient, clientId, { name, description, category }) => {
+      const { data: permissionsData, error: permissionsError } = await supabaseClient.functions.invoke(
         "check-flow-permissions",
         { body: {} }
       );
-
       if (permissionsError || !permissionsData?.canCreateFlow) {
         throw new Error(
           "Você não tem permissão para criar flows. Apenas leaders, admins de time e administrators podem criar flows."
         );
       }
-
-      const clientId = await getCurrentClientId();
       const {
         data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!clientId || !user) {
-        throw new Error("Não foi possível identificar o tenant atual.");
+      } = await supabaseClient.auth.getUser();
+      if (!user) {
+        throw new Error("Não foi possível identificar o usuário atual.");
       }
-
-      const payload: {
-        name: string;
-        category: FlowCategory;
-        client_id: string;
-        owner_id: string;
-        description?: string | null;
-      } = {
+      const payload = {
         name,
         category,
         client_id: clientId,
         owner_id: user.id,
+        ...(typeof description !== "undefined" && { description }),
       };
-
-      if (typeof description !== "undefined") {
-        payload.description = description;
-      }
-
-      const { data, error } = await (nexflowClient() as any)
-        .from("flows")
-        .insert(payload as any)
-        .select()
-        .single();
-
+      const client = nexflowClient();
+      const { data, error } = await client.from("flows").insert(payload).select().single();
       if (error || !data) {
         throw error ?? new Error("Falha ao criar flow.");
       }
-
-      const { error: stepError } = await (nexflowClient() as any)
-        .from("steps")
-        .insert({
-          flow_id: data.id,
-          title: "Formulário Inicial",
-          color: "#2563eb",
-          position: 0,
-        } as any);
-
+      const { error: stepError } = await client.from("steps").insert({
+        flow_id: data.id,
+        title: "Formulário Inicial",
+        color: "#2563eb",
+        position: 0,
+      });
       if (stepError) {
         throw stepError;
       }
-
       return mapFlowRow(data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "flows"] });
-      toast.success("Flow criado com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao criar flow. Tente novamente.");
+    validateClientIdOnResult: false,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["nexflow", "flows"]);
+        toast.success("Flow criado com sucesso!");
+      },
+      onError: () => {
+        toast.error("Erro ao criar flow. Tente novamente.");
+      },
     },
   });
 
-  const updateFlowMutation = useMutation({
-    mutationFn: async ({
-      id,
-      name,
-      description,
-      category,
-      isActive,
-      visibilityType,
-    }: UpdateFlowInput) => {
-      // Verificar permissão para editar flow
-      const { data: permissionsData, error: permissionsError } = await supabase.functions.invoke(
+  const updateFlowMutation = useSecureClientMutation<void, Error, UpdateFlowInput>({
+    mutationFn: async (supabaseClient, _clientId, { id, name, description, category, isActive, visibilityType }) => {
+      const { data: permissionsData, error: permissionsError } = await supabaseClient.functions.invoke(
         "check-flow-permissions",
         { body: { flowId: id } }
       );
-
       if (permissionsError) {
         throw new Error("Erro ao verificar permissões de edição.");
       }
-
       if (!permissionsData?.canEditFlow) {
         throw new Error(
           "Você não tem permissão para editar este flow. Apenas o dono, leaders, admins de time e administrators podem editar flows."
         );
       }
-
       const payload: Partial<FlowRow> = {};
-
       if (typeof name !== "undefined") payload.name = name;
       if (typeof description !== "undefined") payload.description = description;
       if (typeof category !== "undefined") payload.category = category;
-      if (typeof isActive !== "undefined")
-        payload.is_active = isActive ?? true;
-      if (typeof visibilityType !== "undefined")
-        payload.visibility_type = visibilityType;
-
-      const { error } = await (nexflowClient() as any)
-        .from("flows")
-        .update(payload as any)
-        .eq("id", id);
-
+      if (typeof isActive !== "undefined") payload.is_active = isActive ?? true;
+      if (typeof visibilityType !== "undefined") payload.visibility_type = visibilityType;
+      const { error } = await nexflowClient().from("flows").update(payload).eq("id", id);
       if (error) {
         throw error;
       }
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "flows"] });
-      queryClient.invalidateQueries({
-        queryKey: ["nexflow", "flow", variables.id],
-      });
-      toast.success("Flow atualizado com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao atualizar flow. Tente novamente.");
+    mutationOptions: {
+      onSuccess: (_, variables) => {
+        invalidateClientQueries(queryClient, ["nexflow", "flows"]);
+        queryClient.invalidateQueries({ queryKey: ["nexflow", "flow", variables.id] });
+        toast.success("Flow atualizado com sucesso!");
+      },
+      onError: () => {
+        toast.error("Erro ao atualizar flow. Tente novamente.");
+      },
     },
   });
 
-  const deleteFlowMutation = useMutation({
-    mutationFn: async (flowId: string) => {
-      const { error } = await (nexflowClient() as any)
+  const deleteFlowMutation = useSecureClientMutation<void, Error, string>({
+    mutationFn: async (supabaseClient, _clientId, flowId) => {
+      const { error } = await nexflowClient()
         .from("flows")
         .delete()
         .eq("id", flowId);
-
       if (error) {
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["nexflow", "flows"] });
-      toast.success("Flow removido com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao remover flow. Tente novamente.");
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["nexflow", "flows"]);
+        toast.success("Flow removido com sucesso!");
+      },
+      onError: () => {
+        toast.error("Erro ao remover flow. Tente novamente.");
+      },
     },
   });
 
@@ -319,21 +286,14 @@ export function useNexflowFlows() {
 }
 
 export function useNexflowFlow(flowId?: string) {
-  const flowQuery = useQuery({
-    queryKey: ["nexflow", "flow", flowId],
-    enabled: Boolean(flowId),
-    queryFn: async (): Promise<NexflowFlowDetails | null> => {
+  const flowQuery = useSecureClientQuery<NexflowFlowDetails | null>({
+    queryKey: ["nexflow", "flow", flowId ?? ""],
+    queryFn: async (supabaseClient, clientId): Promise<NexflowFlowDetails | null> => {
       if (!flowId) {
         return null;
       }
 
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        return null;
-      }
-
       const client = nexflowClient();
-
       const { data: flowData, error: flowError } = await client
         .from("flows")
         .select("*")
@@ -345,58 +305,53 @@ export function useNexflowFlow(flowId?: string) {
         throw flowError ?? new Error("Flow não encontrado.");
       }
 
-      // Usar Edge Function para filtrar steps baseado nas permissões do usuário (página Board)
-      const { data: stepsResponse, error: stepsError } = await supabase.functions.invoke("get-steps", {
+      // Validação: flow deve pertencer ao cliente atual
+      if ((flowData as unknown as FlowRow).client_id !== clientId) {
+        console.error("[SECURITY] Flow de outro cliente acessado:", flowId);
+        throw new Error("Flow não pertence ao cliente atual.");
+      }
+      if (typeof console !== "undefined" && console.log) {
+        console.log(`[AUDIT] Flow ${flowId} - Client: ${clientId}`);
+      }
+
+      const { data: stepsResponse, error: stepsError } = await supabaseClient.functions.invoke("get-steps", {
         body: { flowId },
       });
-
       if (stepsError) {
         throw new Error(`Erro ao carregar etapas: ${stepsError.message}`);
       }
-
       if (!stepsResponse || !stepsResponse.steps) {
         throw new Error("Resposta inválida da Edge Function get-steps");
       }
 
       const stepsData = stepsResponse.steps;
-      const stepIds = stepsData.map((step) => step.id);
+      const stepIds = stepsData.map((step: { id: string }) => step.id);
       let fieldsData: StepFieldRow[] = [];
-
-      // Buscar campos apenas das etapas visíveis
       if (stepIds.length > 0) {
-        const { data: rawFields, error: fieldsError } = await (client as any)
+        const { data: rawFields, error: fieldsError } = await client
           .from("step_fields")
           .select("*")
           .in("step_id", stepIds)
           .order("position", { ascending: true });
-
-        if (fieldsError) {
-          throw fieldsError;
-        }
-
-        fieldsData = rawFields ?? [];
+        if (fieldsError) throw fieldsError;
+        fieldsData = (rawFields ?? []) as StepFieldRow[];
       }
 
-      const steps = stepsData.map((step) => {
+      const steps = stepsData.map((step: StepRow & { id: string }) => {
         const mappedStep = mapStepRow(step);
         const stepFields = fieldsData
           .filter((field) => field.step_id === step.id)
           .map(mapStepFieldRow);
-
-        return {
-          ...mappedStep,
-          fields: stepFields,
-        };
+        return { ...mappedStep, fields: stepFields };
       });
 
-      return {
-        flow: mapFlowRow(flowData),
-        steps,
-      };
+      return { flow: mapFlowRow(flowData), steps };
     },
-    staleTime: 1000 * 10,
-    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
-    // #endregion
+    queryOptions: {
+      enabled: Boolean(flowId),
+      staleTime: 1000 * 10,
+      refetchOnWindowFocus: false,
+    },
   });
 
   return {

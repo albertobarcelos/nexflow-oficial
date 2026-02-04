@@ -1,165 +1,178 @@
-import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useEffect, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { useContactDetails } from "@/hooks/useContactDetails";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Loader2, User, Building2, Phone } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ContactDetails() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const {
+    hasAccess,
+    accessError,
+    currentClient,
+    isLoading: isGuardLoading,
+  } = useClientAccessGuard();
+  const hasLoggedAudit = useRef(false);
 
-  const { data: contact, isLoading, error } = useQuery({
-    queryKey: ['contact', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select(`
-          *,
-          assigned_to_collaborator:collaborators!opportunities_assigned_to_fkey (
-            name
-          ),
-          lead:leads!opportunities_lead_id_fkey (
-            name,
-            email,
-            company
-          )
-        `)
-        .eq('id', id)
-        .maybeSingle();
+  const { data: details, isLoading, error } = useContactDetails(id);
 
-      if (error) throw error;
-      return data;
+  useEffect(() => {
+    if (hasAccess && currentClient?.id && id && !hasLoggedAudit.current) {
+      console.info(
+        "[AUDIT] Contato",
+        id,
+        "- Client:",
+        currentClient.id,
+        currentClient.name ?? ""
+      );
+      hasLoggedAudit.current = true;
     }
-  });
+  }, [hasAccess, currentClient?.id, currentClient?.name, id]);
 
-  if (isLoading) {
-    return <div>Carregando...</div>;
-  }
-
-  if (error) {
+  if (isGuardLoading) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Erro ao carregar contato: {error.message}
-        </AlertDescription>
-      </Alert>
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Verificando acesso...</p>
+        </div>
+      </div>
     );
   }
 
-  if (!contact) {
+  if (!hasAccess) {
     return (
-      <div className="space-y-4">
+      <div className="p-4">
+        <Alert variant="destructive">
+          <AlertDescription>
+            {accessError ??
+              "Cliente não definido. Não é possível acessar este contato."}
+          </AlertDescription>
+        </Alert>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate(-1)}
+          className="mt-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 space-y-4">
+        <Alert variant="destructive">
+          <AlertDescription>Erro ao carregar contato: {error.message}</AlertDescription>
+        </Alert>
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar
+        </Button>
+      </div>
+    );
+  }
+
+  if (!details) {
+    return (
+      <div className="p-4 space-y-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Voltar
+        </Button>
         <Alert>
-          <AlertDescription>
-            Contato não encontrado
-          </AlertDescription>
+          <AlertDescription>Contato não encontrado ou sem acesso.</AlertDescription>
         </Alert>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-        >
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar
         </Button>
-        <h1 className="text-2xl font-bold">{contact.title}</h1>
+        <h1 className="text-2xl font-bold">{details.client_name}</h1>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
-            <CardTitle>Informações Gerais</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Informações do contato
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <span className="font-medium">Status:</span>
-              <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                ${contact.status === 'won' ? 'bg-green-100 text-green-800' :
-                contact.status === 'lost' ? 'bg-red-100 text-red-800' :
-                'bg-blue-100 text-blue-800'}`}>
-                {contact.status === 'won' ? 'Ganho' :
-                 contact.status === 'lost' ? 'Perdido' : 'Em Aberto'}
-              </span>
+              <span className="font-medium">Nome principal:</span>
+              <span className="ml-2">{details.main_contact || "—"}</span>
             </div>
-            <div>
-              <span className="font-medium">Valor:</span>
-              <span className="ml-2">
-                {contact.value
-                  ? `R$ ${contact.value.toLocaleString('pt-BR')}`
-                  : 'Não definido'}
-              </span>
-            </div>
-            <div>
-              <span className="font-medium">Previsão de Fechamento:</span>
-              <span className="ml-2">
-                {contact.expected_close_date
-                  ? new Date(contact.expected_close_date).toLocaleDateString('pt-BR')
-                  : 'Não definida'}
-              </span>
-            </div>
-            <div>
-              <span className="font-medium">Responsável:</span>
-              <span className="ml-2">
-                {contact.assigned_to_collaborator?.name || 'Não atribuído'}
-              </span>
-            </div>
+            {details.phone_numbers?.length ? (
+              <div>
+                <span className="font-medium flex items-center gap-1">
+                  <Phone className="h-4 w-4" /> Telefones:
+                </span>
+                <span className="ml-2">
+                  {details.phone_numbers.join(", ")}
+                </span>
+              </div>
+            ) : null}
+            {details.company_names?.length ? (
+              <div>
+                <span className="font-medium flex items-center gap-1">
+                  <Building2 className="h-4 w-4" /> Empresas:
+                </span>
+                <span className="ml-2">
+                  {details.company_names.join(", ")}
+                </span>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
-        {contact.lead && (
+        {details.linkedCards && details.linkedCards.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Informações do Lead</CardTitle>
+              <CardTitle>Cards vinculados</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div>
-                <span className="font-medium">Nome:</span>
-                <span className="ml-2">{contact.lead.name}</span>
-              </div>
-              {contact.lead.email && (
-                <div>
-                  <span className="font-medium">Email:</span>
-                  <span className="ml-2">{contact.lead.email}</span>
-                </div>
-              )}
-              {contact.lead.company && (
-                <div>
-                  <span className="font-medium">Empresa:</span>
-                  <span className="ml-2">{contact.lead.company}</span>
-                </div>
-              )}
+            <CardContent>
+              <ul className="list-disc list-inside space-y-1">
+                {details.linkedCards.map((card) => (
+                  <li key={card.id}>
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto"
+                      onClick={() =>
+                        navigate(`/crm/flows/${card.flowId}/board`)
+                      }
+                    >
+                      {card.title}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
         )}
       </div>
-
-      {contact.notes && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Notas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-wrap">{contact.notes}</p>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

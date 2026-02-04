@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FlowCategory } from "@/types/nexflow";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { toast } from "sonner";
 
@@ -37,11 +38,23 @@ const CATEGORY_OPTIONS: { value: FlowCategory; label: string; helper: string }[]
 
 export function NewNexflowPage() {
   const navigate = useNavigate();
+  const { hasAccess, accessError } = useClientAccessGuard();
   const { createFlow, isCreating } = useNexflowFlows();
 
   const [flowName, setFlowName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<FlowCategory>("onboarding");
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso aos flows</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   const selectedCategory = useMemo(
     () => CATEGORY_OPTIONS.find((option) => option.value === category),

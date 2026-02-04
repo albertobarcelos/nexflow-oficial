@@ -15,6 +15,7 @@ import { Toolbox } from "@/components/FlowBuilder/Toolbox";
 import { Canvas } from "@/components/FlowBuilder/Canvas";
 import { PropertiesPanel } from "@/components/FlowBuilder/PropertiesPanel";
 import { FieldCard } from "@/components/FlowBuilder/FieldCard";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useFlowBuilderState } from "@/hooks/useFlowBuilderState";
 import { useFlowPermissions } from "@/hooks/useFlowPermissions";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,7 @@ interface ActiveDragData {
 export function NexflowBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { hasAccess, accessError } = useClientAccessGuard();
   const { permissions, isLoading: isLoadingPermissions } = useFlowPermissions(id);
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -77,6 +79,17 @@ export function NexflowBuilderPage() {
     () => flowDraft.name || flow?.name || "Flow sem nome",
     [flowDraft.name, flow?.name]
   );
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso aos flows</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!id) {
     return (

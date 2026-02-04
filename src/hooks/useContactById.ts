@@ -1,21 +1,33 @@
 import { useQuery } from "@tanstack/react-query";
-import { nexflowClient } from "@/lib/supabase";
+import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Contact } from "@/hooks/useOpportunities";
 
+/**
+ * Hook para buscar um contato por ID. Isolado por client_id: queryKey com clientId,
+ * filtro por client_id na busca e validação dupla no retorno.
+ */
 export function useContactById(contactId: string | null | undefined) {
+  const { currentClient } = useClientStore();
+  const clientId = currentClient?.id ?? null;
+
   return useQuery({
-    queryKey: ["contacts", contactId],
+    queryKey: ["contacts", clientId, contactId],
     queryFn: async (): Promise<Contact | null> => {
       if (!contactId) {
         return null;
       }
 
-      // Buscar contato usando a mesma lógica do useOpportunities
-      // Por enquanto, vamos buscar diretamente da tabela
+      const currentClientId = await getCurrentClientId();
+      if (!currentClientId) {
+        return null;
+      }
+
       const { data, error } = await nexflowClient()
         .from("contacts")
         .select("*")
         .eq("id", contactId)
+        .eq("client_id", currentClientId)
         .single();
 
       if (error || !data) {
@@ -23,8 +35,12 @@ export function useContactById(contactId: string | null | undefined) {
         return null;
       }
 
-      // Mapear para o tipo Contact
-      // Nota: Isso pode precisar ser ajustado baseado na estrutura real da tabela
+      // Validação dupla: contato deve pertencer ao cliente atual
+      if ((data as { client_id?: string }).client_id !== currentClientId) {
+        console.error("[SECURITY] useContactById: contato de outro cliente detectado.");
+        return null;
+      }
+
       return {
         id: data.id,
         client_id: data.client_id,
@@ -41,11 +57,7 @@ export function useContactById(contactId: string | null | undefined) {
         updated_at: (data as any).updated_at || new Date().toISOString(),
       };
     },
-    enabled: !!contactId,
+    enabled: !!contactId && !!clientId,
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 }
-
-
-
-

@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
-import { supabase } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/lib/supabase";
+import { useSecureClientQuery } from "@/hooks/useSecureClientQuery";
 
 export interface RecentActivity {
   id: string;
@@ -11,7 +11,7 @@ export interface RecentActivity {
   responsible: string;
   date: string;
   value: number | null;
-  status: 'completed' | 'pending' | 'cancelled';
+  status: "completed" | "pending" | "cancelled";
 }
 
 interface UseRecentActivitiesOptions {
@@ -19,37 +19,35 @@ interface UseRecentActivitiesOptions {
   userId?: string | null;
 }
 
-export function useRecentActivities(limit: number = 10, options?: UseRecentActivitiesOptions) {
-  const { teamId, userId } = options || {};
+/**
+ * Atividades recentes (cards) do cliente atual (multi-tenant seguro).
+ * QueryKey inclui clientId; filtra flows/cards por client_id.
+ */
+export function useRecentActivities(
+  limit: number = 10,
+  options?: UseRecentActivitiesOptions
+) {
+  const { teamId, userId } = options ?? {};
   const queryClient = useQueryClient();
-  const queryKey = ['recent-activities', limit, teamId, userId];
-  
-  const { data, isLoading } = useQuery({
-    queryKey,
-    queryFn: async (): Promise<RecentActivity[]> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        return [];
-      }
-      
-      const client = nexflowClient();
-      
-      // Buscar flows do cliente
-      const { data: flows } = await (client as any)
-        .from('flows')
-        .select('id')
-        .eq('client_id', clientId);
-      
+
+  const { data, isLoading } = useSecureClientQuery<RecentActivity[]>({
+    queryKey: ["recent-activities", limit, teamId ?? null, userId ?? null],
+    queryFn: async (client, clientId): Promise<RecentActivity[]> => {
+      const { data: flows } = await client
+        .from("flows")
+        .select("id")
+        .eq("client_id", clientId);
+
       if (!flows || flows.length === 0) {
         return [];
       }
-      
-      const flowIds = flows.map(f => f.id);
-      
-      // Buscar cards recentes com filtros
-      let cardsQuery = (client as any)
-        .from('cards')
-        .select(`
+
+      const flowIds = flows.map((f) => f.id);
+
+      let cardsQuery = client
+        .from("cards")
+        .select(
+          `
           id,
           title,
           created_at,
@@ -59,108 +57,113 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
           assigned_to,
           assigned_team_id,
           flow_id
-        `)
-        .in('flow_id', flowIds);
-      
-      // Aplicar filtros
+        `
+        )
+        .in("flow_id", flowIds);
+
       if (teamId) {
-        cardsQuery = cardsQuery.eq('assigned_team_id', teamId);
+        cardsQuery = cardsQuery.eq("assigned_team_id", teamId);
       }
       if (userId) {
-        cardsQuery = cardsQuery.eq('assigned_to', userId);
+        cardsQuery = cardsQuery.eq("assigned_to", userId);
       }
-      
+
       const { data: cards } = await cardsQuery
-        .order('created_at', { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(limit);
-      
-      if (!cards) {
+
+      if (!cards || cards.length === 0) {
         return [];
       }
-      
-      // Buscar informações dos responsáveis
-      const userIds = [...new Set(cards.map(c => c.assigned_to).filter(Boolean) as string[])];
-      const { data: users } = userIds.length > 0
-        ? await client
-            .schema('public')
-            .from('core_client_users')
-            .select('id, name, surname')
-            .in('id', userIds)
-        : { data: [] };
-      
+
+      const userIds = [
+        ...new Set(
+          (cards as { assigned_to?: string }[])
+            .map((c) => c.assigned_to)
+            .filter(Boolean) as string[]
+        ),
+      ];
+      const { data: users } =
+        userIds.length > 0
+          ? await client
+              .from("core_client_users")
+              .select("id, name, surname")
+              .in("id", userIds)
+          : { data: [] };
+
       const userMap = new Map<string, string>(
-        (users?.map(u => [u.id, `${u.name || ''} ${u.surname || ''}`.trim() || 'Sem nome'] as [string, string]) || []) as [string, string][]
+        (users ?? []).map((u) => [
+          u.id,
+          `${u.name ?? ""} ${u.surname ?? ""}`.trim() || "Sem nome",
+        ])
       );
-      
-      // Buscar informações dos steps para determinar status
-      const { data: allSteps } = await (client as any)
-        .from('steps')
-        .select('id, flow_id, position')
-        .in('flow_id', flowIds);
-      
-      // Encontrar última etapa de cada flow (aproximação para cards completos)
+
+      const { data: allSteps } = await client
+        .from("steps")
+        .select("id, flow_id, position")
+        .in("flow_id", flowIds);
+
       const lastStepIdsByFlow = new Map<string, Set<string>>();
-      flowIds.forEach(flowId => {
-        const flowSteps = (allSteps?.filter((s: any) => s.flow_id === flowId) || []) as any[];
+      flowIds.forEach((flowId) => {
+        const flowSteps =
+          allSteps?.filter((s) => s.flow_id === flowId) ?? [];
         if (flowSteps.length > 0) {
-          const maxPosition = Math.max(...flowSteps.map((s: any) => s.position as number));
-          const lastSteps = new Set<string>(
-            flowSteps.filter((s: any) => s.position === maxPosition).map((s: any) => s.id as string)
+          const maxPosition = Math.max(...flowSteps.map((s) => s.position));
+          const lastSteps = new Set(
+            flowSteps
+              .filter((s) => s.position === maxPosition)
+              .map((s) => s.id)
           );
           lastStepIdsByFlow.set(flowId, lastSteps);
         }
       });
-      
-      return cards.map(card => {
-        // Determinar status baseado na posição do step
-        let status: 'completed' | 'pending' | 'cancelled' = 'pending';
-        
-        if (card.step_id) {
-          // Verificar se está na última etapa do flow
-          const cardFlow = flows.find(f => f.id === card.flow_id);
-          if (cardFlow) {
+
+      return (cards as { id: string; title: string; created_at: string; value: unknown; step_id: string; flow_id: string; assigned_to?: string; assigned_team_id?: string }[]).map(
+        (card) => {
+          let status: "completed" | "pending" | "cancelled" = "pending";
+          if (card.step_id) {
             const lastSteps = lastStepIdsByFlow.get(card.flow_id);
-            if (lastSteps && lastSteps.has(card.step_id)) {
-              status = 'completed';
+            if (lastSteps?.has(card.step_id)) {
+              status = "completed";
             }
           }
+          const responsibleName = card.assigned_to
+            ? userMap.get(card.assigned_to) ?? "Sem responsável"
+            : card.assigned_team_id
+              ? "Equipe"
+              : "Sem responsável";
+          return {
+            id: card.id,
+            cardName: card.title,
+            responsible: responsibleName,
+            date: format(new Date(card.created_at), "dd 'de' MMM, yyyy", {
+              locale: ptBR,
+            }),
+            value: card.value != null ? Number(card.value) : null,
+            status,
+          };
         }
-        
-        // Obter nome do responsável
-        const responsibleName = card.assigned_to
-          ? userMap.get(card.assigned_to) || 'Sem responsável'
-          : card.assigned_team_id
-          ? 'Equipe'
-          : 'Sem responsável';
-        
-        return {
-          id: card.id,
-          cardName: card.title,
-          responsible: responsibleName,
-          date: format(new Date(card.created_at), "dd 'de' MMM, yyyy", { locale: ptBR }),
-          value: card.value ? Number(card.value) : null,
-          status,
-        };
-      });
+      );
     },
-    staleTime: 1000 * 30, // 30 segundos para atualização mais rápida
-    refetchOnWindowFocus: false, // Fix: Disable auto refetch, rely on soft reload
+    queryOptions: {
+      staleTime: 1000 * 30,
+      refetchOnWindowFocus: false,
+    },
   });
-  
-  // Subscribe to real-time changes in cards table
+
+  // Invalidação em tempo real quando cards mudam (prefixo para cobrir qualquer clientId)
   useEffect(() => {
     const channel = supabase
-      .channel('recent-activities-changes')
+      .channel("recent-activities-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*', // INSERT, UPDATE, DELETE
-          schema: 'public',
-          table: 'cards',
+          event: "*",
+          schema: "public",
+          table: "cards",
         },
         () => {
-          // Invalidate and refetch when cards change
-          queryClient.invalidateQueries({ queryKey });
+          queryClient.invalidateQueries({ queryKey: ["recent-activities"] });
         }
       )
       .subscribe();
@@ -168,11 +171,10 @@ export function useRecentActivities(limit: number = 10, options?: UseRecentActiv
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [queryKey, queryClient]);
-  
+  }, [queryClient]);
+
   return {
-    activities: data || [],
+    activities: data ?? [],
     isLoading,
   };
 }
-

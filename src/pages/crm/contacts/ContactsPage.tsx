@@ -1,7 +1,6 @@
-import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useContactsWithIndications } from "@/hooks/useContactsWithIndications";
 import { ContactCard } from "@/components/crm/contacts/ContactCard";
 import { RocketLoader } from "@/components/ui/rocket-loader";
@@ -14,18 +13,14 @@ import { ContactsPageHeader } from "@/components/crm/contacts/ContactsPageHeader
 import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
 import { ContactDetailsPanel } from "@/components/crm/contacts/ContactDetailsPanel";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 export function ContactsPage() {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  // Fix: Use sessionStorage to persist hasAccess across remounts
-  const [hasAccess, setHasAccess] = useState(() => {
-    const stored = sessionStorage.getItem('contacts-page-has-access');
-    const hasAccessValue = stored === 'true';
-    return hasAccessValue;
-  });
-  const [isCheckingAccess, setIsCheckingAccess] = useState(!hasAccess);
+  const { hasAccess, accessError, currentClient, isLoading: isGuardLoading } = useClientAccessGuard();
+  const hasLoggedAudit = useRef(false);
+
   const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
@@ -33,14 +28,22 @@ export function ContactsPage() {
   const [contactForCard, setContactForCard] = useState<any>(null);
   const [filterTypes, setFilterTypes] = useState<("cliente" | "parceiro" | "indicações")[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  
+
+  // Log de auditoria ao acessar a lista de contatos (uma vez por montagem quando hasAccess)
+  useEffect(() => {
+    if (hasAccess && currentClient?.id && !hasLoggedAudit.current) {
+      console.info("[AUDIT] Contatos - Client:", currentClient.id, currentClient.name ?? "");
+      hasLoggedAudit.current = true;
+    }
+  }, [hasAccess, currentClient?.id, currentClient?.name]);
+
   const {
     contacts,
     isLoading,
     isError,
     contactsCount,
     indicationsCount,
-  } = useContactsWithIndications({ 
+  } = useContactsWithIndications({
     enabled: hasAccess,
     filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
   });
@@ -73,92 +76,7 @@ export function ContactsPage() {
     });
   }, [contacts, searchQuery]);
 
-  useEffect(() => {
-    // #region agent log - Fix: Skip check if we already have access
-    if (hasAccess) {
-      setIsCheckingAccess(false);
-      return;
-    }
-    // #endregion
-    
-    const checkAccess = async () => {
-      try {
-        // 1. Verificar autenticação
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          navigate("/crm/login");
-          return;
-        }
-
-        const userId = session.user.id;
-
-        // 2. Verificar role do usuário
-        const { data: clientUser, error: userError } = await supabase
-          .from('core_client_users')
-          .select('role, client_id')
-          .eq('id', userId)
-          .single();
-
-        if (userError || !clientUser) {
-          console.error('Erro ao buscar usuário:', userError);
-          toast({
-            title: "Erro de acesso",
-            description: "Não foi possível verificar suas permissões.",
-            variant: "destructive",
-          });
-          navigate("/crm/dashboard");
-          return;
-        }
-
-        // Verificar se é administrator
-        let hasRoleAccess = clientUser.role === 'administrator';
-
-        // Se não for administrator, verificar se é leader de time
-        if (!hasRoleAccess) {
-          const { data: teamMembers, error: teamError } = await (supabase as any)
-            .from('core_team_members')
-            .select('role')
-            .eq('user_profile_id', userId)
-            .eq('role', 'leader');
-
-          if (!teamError && teamMembers && teamMembers.length > 0) {
-            hasRoleAccess = true;
-          }
-        }
-
-        if (!hasRoleAccess) {
-          toast({
-            title: "Acesso negado",
-            description: "Apenas administrators e leaders de time podem acessar esta página.",
-            variant: "destructive",
-          });
-          navigate("/crm/dashboard");
-          return;
-        }
-
-        // Todas as validações passaram
-        setHasAccess(true);
-        // #region agent log - Fix: Persist hasAccess in sessionStorage
-        sessionStorage.setItem('contacts-page-has-access', 'true');
-        // #endregion
-      } catch (error) {
-        console.error('Erro ao verificar acesso:', error);
-        toast({
-          title: "Erro",
-          description: "Ocorreu um erro ao verificar seu acesso.",
-          variant: "destructive",
-        });
-        navigate("/crm/dashboard");
-      } finally {
-        setIsCheckingAccess(false);
-      }
-    };
-
-    checkAccess();
-  }, [navigate, toast]);
-
-  if (isCheckingAccess) {
+  if (isGuardLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
@@ -170,7 +88,13 @@ export function ContactsPage() {
   }
 
   if (!hasAccess) {
-    return null; // O redirecionamento já foi feito no useEffect
+    return (
+      <div className="p-4 md:p-6">
+        <Alert variant="destructive">
+          <AlertDescription>{accessError ?? "Cliente não definido. Não é possível acessar os contatos."}</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   const handleAddContact = () => {

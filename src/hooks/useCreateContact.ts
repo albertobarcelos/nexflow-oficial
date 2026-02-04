@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getCurrentClientId, nexflowClient } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useSecureClientMutation, invalidateClientQueries } from "@/hooks/useSecureClientMutation";
 
 export interface CreateContactInput {
   client_name: string;
@@ -19,19 +19,14 @@ export interface ContactCreated {
 
 /**
  * Hook para criar contato na tabela contacts (NexFlow).
- * Sempre usa client_id do usuário atual.
+ * Multi-tenant: usa useSecureClientMutation com client_id obrigatório e validação no retorno.
  */
 export function useCreateContact() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (input: CreateContactInput): Promise<ContactCreated> => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        throw new Error("Não foi possível identificar o tenant atual.");
-      }
-
-      const { data, error } = await nexflowClient()
+  return useSecureClientMutation({
+    mutationFn: async (client, clientId, input: CreateContactInput): Promise<ContactCreated> => {
+      const { data, error } = await client
         .from("contacts")
         .insert({
           client_id: clientId,
@@ -49,15 +44,19 @@ export function useCreateContact() {
 
       return data as ContactCreated;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contacts-for-select"] });
-      queryClient.invalidateQueries({ queryKey: ["contacts-partners"] });
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-      toast.success("Contato criado com sucesso!");
-    },
-    onError: (err: Error) => {
-      console.error("Erro ao criar contato:", err);
-      toast.error(err.message || "Erro ao criar contato.");
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["contacts-for-select"]);
+        invalidateClientQueries(queryClient, ["contacts-with-indications"]);
+        invalidateClientQueries(queryClient, ["contacts"]);
+        queryClient.invalidateQueries({ queryKey: ["contacts-partners"] });
+        toast.success("Contato criado com sucesso!");
+      },
+      onError: (err: Error) => {
+        console.error("Erro ao criar contato:", err);
+        toast.error(err.message || "Erro ao criar contato.");
+      },
     },
   });
 }

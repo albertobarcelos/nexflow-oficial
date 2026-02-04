@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getCurrentClientId, nexflowClient, supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Database, Json } from "@/types/database";
 import {
   CardMovementEntry,
@@ -86,19 +87,21 @@ export interface ReorderCardsInput {
 
 export function useNexflowCards(flowId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "cards", flowId];
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
+  const queryKey = ["nexflow", "cards", clientId, flowId];
 
   const cardsQuery = useQuery({
     queryKey,
-    enabled: Boolean(flowId),
+    enabled: Boolean(flowId) && Boolean(clientId),
     queryFn: async (): Promise<NexflowCard[]> => {
-      if (!flowId) {
+      if (!flowId || !clientId) {
         return [];
       }
 
       const { data, error } = await nexflowClient()
         .from("cards")
         .select("*")
+        .eq("client_id", clientId)
         .eq("flow_id", flowId)
         .order("step_id", { ascending: true })
         .order("position", { ascending: true });
@@ -108,7 +111,13 @@ export function useNexflowCards(flowId?: string) {
         return [];
       }
 
-      return data.map(mapCardRow);
+      const rows = data as CardRow[];
+      const invalid = rows.filter((c) => c.client_id !== clientId);
+      if (invalid.length > 0) {
+        console.error("[SECURITY] Cards de outro cliente detectados:", invalid.length);
+        throw new Error("Violação de segurança: dados de outro cliente detectados");
+      }
+      return rows.map(mapCardRow);
     },
     staleTime: 1000 * 10,
   });

@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useClientStore } from "@/stores/clientStore";
 
 export interface TimelineEvent {
   id: string;
@@ -24,12 +23,15 @@ export interface TimelineEvent {
 }
 
 /**
- * Hook para buscar timeline completa do contato
- * Inclui: criação do contato, cards vinculados, histórico de movimentação de cada card
+ * Hook para buscar timeline do contato (multi-tenant: queryKey com clientId).
+ * Inclui: criação do contato, cards vinculados, histórico de movimentação de cada card.
  */
 export function useContactTimeline(contactId: string | null) {
+  const { currentClient } = useClientStore();
+  const clientId = currentClient?.id ?? null;
+
   return useQuery({
-    queryKey: ["contact-timeline", contactId],
+    queryKey: ["contact-timeline", clientId, contactId],
     queryFn: async (): Promise<TimelineEvent[]> => {
       if (!contactId) return [];
 
@@ -200,7 +202,7 @@ export function useContactTimeline(contactId: string | null) {
 
       return events;
     },
-    enabled: !!contactId,
+    enabled: !!contactId && !!clientId,
     staleTime: 1000 * 60 * 2, // 2 minutos
   });
 }

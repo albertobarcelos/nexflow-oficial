@@ -4,20 +4,33 @@
 // AIDEV-NOTE: Página principal para acessar o FlowBuilder modular
 // Permite criar flows personalizados com templates e automações
 
-import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FlowBuilder } from '@/components/flows/FlowBuilder';
-import { toast } from 'sonner';
+import React from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FlowBuilder } from "@/components/flows/FlowBuilder";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { toast } from "sonner";
 
 export function FlowBuilderPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const flowId = searchParams.get('flowId');
+  const flowId = searchParams.get("flowId");
+  const { hasAccess, accessError } = useClientAccessGuard();
 
-  const handleFlowCreated = (flow: any) => {
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso aos flows</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const handleFlowCreated = (flow: { id: string; name: string }) => {
     toast.success(`Flow "${flow.name}" criado com sucesso!`);
     // Redireciona para a página do flow criado
     navigate(`/crm/flows/${flow.id}/board`);

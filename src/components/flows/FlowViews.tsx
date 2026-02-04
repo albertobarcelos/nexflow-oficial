@@ -8,6 +8,8 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, ArrowRight, RefreshCw, Trash2, Plus, Filter } from 'lucide-react';
 import { useFlowViews } from '@/hooks/useFlowViews';
 import { useAuth } from '@/hooks/useAuth';
+import { useClientStore } from '@/stores/clientStore';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +21,8 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface FlowViewsProps {
-  dealId: string;
+  /** Quando ausente, a página exibe estado vazio (ex.: FlowViewsPage sem deal em contexto). */
+  dealId?: string;
   onStageChange?: (dealId: string, flowId: string, stageId: string) => void;
 }
 
@@ -33,6 +36,7 @@ interface FlowViewCardProps {
 
 export function FlowViews({ dealId, onStageChange }: FlowViewsProps) {
   const { user } = useAuth();
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
   const {
     dealViews,
     isLoading,
@@ -65,7 +69,7 @@ export function FlowViews({ dealId, onStageChange }: FlowViewsProps) {
   // CARREGAR FLOWS DISPONÍVEIS
   // =====================================================
   const loadAvailableFlows = async () => {
-    if (!user?.client_id) return;
+    if (!clientId) return;
 
     try {
       const { data, error } = await supabase
@@ -76,7 +80,7 @@ export function FlowViews({ dealId, onStageChange }: FlowViewsProps) {
           description,
           stages:web_flow_stages(*)
         `)
-        .eq('client_id', user.client_id)
+        .eq('client_id', clientId)
         .order('name');
 
       if (error) throw error;
@@ -130,20 +134,21 @@ export function FlowViews({ dealId, onStageChange }: FlowViewsProps) {
       alert('Selecione um flow e uma etapa');
       return;
     }
+    if (!dealId || !clientId) {
+      alert('Cliente ou deal não definido.');
+      return;
+    }
 
     try {
       const { data, error } = await supabase
         .from('web_deal_flow_views')
         .insert({
+          client_id: clientId,
           deal_id: dealId,
           flow_id: selectedFlow,
           stage_id: selectedStage,
           visible_to_roles: [selectedRole],
           is_primary: false,
-          sync_data: {
-            created_manually: true,
-            created_by: user?.id
-          }
         })
         .select(`
           *,

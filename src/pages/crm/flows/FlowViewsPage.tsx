@@ -4,15 +4,28 @@
 // AIDEV-NOTE: Página para gerenciar visualizações duplicadas entre flows
 // Permite configurar automações e sincronização de dados
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FlowViews } from '@/components/flows/FlowViews';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FlowViews } from "@/components/flows/FlowViews";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 
 export function FlowViewsPage() {
   const navigate = useNavigate();
+  const { hasAccess, accessError } = useClientAccessGuard();
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso aos flows</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

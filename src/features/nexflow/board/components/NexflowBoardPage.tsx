@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { CardDetailsModal, type CardFormValues } from "@/features/nexflow/card-details/components/CardDetailsModal";
 import { NewCardWizard, type NewCardWizardResult } from "./NewCardWizard";
 import { buildCreateCardInputFromWizard } from "../utils/buildCreateCardInputFromWizard";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useNexflowFlow } from "@/hooks/useNexflowFlows";
 import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
 import { nexflowClient } from "@/lib/supabase";
@@ -32,6 +33,7 @@ export function NexflowBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { hasAccess, accessError } = useClientAccessGuard();
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [activeCard, setActiveCard] = useState<NexflowCard | null>(null);
   const [isStartFormOpen, setIsStartFormOpen] = useState(false);
@@ -620,6 +622,17 @@ export function NexflowBoardPage() {
   ]);
 
   const isLoadingPage = isLoading || isLoadingCards;
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso ao board</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(

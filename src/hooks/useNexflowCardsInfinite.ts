@@ -1,7 +1,9 @@
 import { useCallback } from "react";
 import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { getCurrentClientId, nexflowClient, supabase } from "@/lib/supabase";
+import { nexflowClient, supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
+import { invalidateClientQueries, useSecureClientMutation } from "@/hooks/useSecureClientMutation";
 import { Database } from "@/types/database";
 import {
   CardMovementEntry,
@@ -109,15 +111,16 @@ export function useNexflowCardsInfinite(
   options?: UseNexflowCardsInfiniteOptions
 ) {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
   const { assignedTo, assignedTeamId } = options ?? {};
-  const queryKey = ["nexflow", "cards", "infinite", flowId, assignedTo, assignedTeamId];
+  const queryKey = ["nexflow", "cards", "infinite", clientId, flowId, assignedTo, assignedTeamId];
 
   const cardsInfiniteQuery = useInfiniteQuery({
     queryKey,
-    enabled: Boolean(flowId),
+    enabled: Boolean(flowId) && Boolean(clientId),
     maxPages: undefined, // Permitir carregar todas as páginas necessárias
     queryFn: async ({ pageParam = 0 }): Promise<{ cards: NexflowCard[]; nextPage: number | null }> => {
-      if (!flowId) {
+      if (!flowId || !clientId) {
         return { cards: [], nextPage: null };
       }
 
@@ -127,9 +130,9 @@ export function useNexflowCardsInfinite(
       let query = nexflowClient()
         .from("cards")
         .select("*", { count: "exact" })
+        .eq("client_id", clientId)
         .eq("flow_id", flowId);
 
-      // Aplicar filtros se fornecidos
       if (assignedTo !== undefined && assignedTo !== null) {
         query = query.eq("assigned_to", assignedTo);
       }
@@ -145,6 +148,13 @@ export function useNexflowCardsInfinite(
       if (error || !data) {
         console.error("Erro ao carregar cards do Nexflow:", error);
         return { cards: [], nextPage: null };
+      }
+
+      // Validação dupla: todos os cards devem pertencer ao cliente atual
+      const invalid = (data as CardRow[]).filter((c) => c.client_id !== clientId);
+      if (invalid.length > 0) {
+        console.error("[SECURITY] Cards de outro cliente detectados:", invalid.length);
+        throw new Error("Violação de segurança: dados de outro cliente detectados");
       }
 
       const mappedCards = data.map(mapCardRow);
@@ -164,28 +174,17 @@ export function useNexflowCardsInfinite(
   // Flatten all pages into a single array
   const allCards = cardsInfiniteQuery.data?.pages.flatMap((page) => page.cards) ?? [];
 
-  const createCardMutation = useMutation({
-    mutationFn: async (input: CreateCardInput) => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        throw new Error("Não foi possível identificar o tenant atual.");
-      }
-
-      // Buscar o flow para obter a category
+  const createCardMutation = useSecureClientMutation<NexflowCard, Error, CreateCardInput>({
+    mutationFn: async (supabaseClient, clientId, input) => {
       const { data: flow, error: flowError } = await nexflowClient()
         .from("flows")
         .select("category")
         .eq("id", input.flowId)
         .single();
-
       if (flowError || !flow) {
         throw new Error("Não foi possível encontrar o flow.");
       }
-
-      // Determinar card_type baseado na category do flow
-      const cardType = flow.category === 'finance' ? 'finance' : 'onboarding';
-
-      // Produto: input.product ou primeiro item de field_values.products
+      const cardType = flow.category === "finance" ? "finance" : "onboarding";
       const fieldProducts = input.fieldValues?.products;
       const firstProductItemId =
         typeof fieldProducts === "object" &&
@@ -230,7 +229,6 @@ export function useNexflowCardsInfinite(
         .insert(payload)
         .select("*")
         .single();
-
       if (error || !data) {
         throw error ?? new Error("Falha ao criar card.");
       }
@@ -242,7 +240,6 @@ export function useNexflowCardsInfinite(
           : input.contactId
             ? [input.contactId]
             : [];
-
       if (contactIdsToLink.length > 0) {
         const cardContactsPayload = contactIdsToLink.map((contact_id) => ({
           card_id: cardId,
@@ -252,21 +249,21 @@ export function useNexflowCardsInfinite(
         const { error: cardContactsError } = await nexflowClient()
           .from("card_contacts")
           .insert(cardContactsPayload);
-
         if (cardContactsError) {
           console.error("Erro ao vincular contatos ao card (card_contacts):", cardContactsError);
-          // Card já foi criado; não falhar a mutation, apenas logar
         }
       }
-
       return mapCardRow(data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey });
-      toast.success("Card criado com sucesso!");
-    },
-    onError: () => {
-      toast.error("Erro ao criar card. Tente novamente.");
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["nexflow", "cards", "infinite"]);
+        queryClient.invalidateQueries({ queryKey });
+        toast.success("Card criado com sucesso!");
+      },
+      onError: () => {
+        toast.error("Erro ao criar card. Tente novamente.");
+      },
     },
   });
 
@@ -344,8 +341,8 @@ export function useNexflowCardsInfinite(
       return { card: updatedCard, silent: input.silent };
     },
     onSuccess: (result) => {
+      invalidateClientQueries(queryClient, ["nexflow", "cards", "infinite"]);
       queryClient.invalidateQueries({ queryKey });
-      // Invalidar histórico do card para atualização automática
       queryClient.invalidateQueries({ queryKey: ["card-timeline", result.card.id] });
       queryClient.invalidateQueries({ queryKey: ["card-step-history", result.card.id] });
       if (!result.silent) {
@@ -374,6 +371,7 @@ export function useNexflowCardsInfinite(
       }
     },
     onSuccess: () => {
+      invalidateClientQueries(queryClient, ["nexflow", "cards", "infinite"]);
       queryClient.invalidateQueries({ queryKey });
       toast.success("Card removido.");
     },
