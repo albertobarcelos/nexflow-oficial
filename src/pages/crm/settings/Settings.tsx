@@ -1,6 +1,9 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 import {
   Users,
   Bell,
@@ -32,6 +35,29 @@ const settingsNavItems = [
 ];
 
 export function Settings() {
+  const { hasAccess, accessError, isLoading } = useClientAccessGuard();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <div className="space-y-6">
+        <Alert variant="destructive">
+          <AlertDescription>
+            {accessError ??
+              "Cliente não definido. Não é possível acessar as configurações."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { CardMovementEntry } from "@/types/nexflow";
 import { Database } from "@/types/database";
 
@@ -34,9 +35,14 @@ const mapCardHistoryRow = (row: CardHistoryRow): CardMovementEntry => {
  * Para cards congelados (em etapa freezing), busca o histórico do card original
  * Cards filhos (com parent_card_id mas não em freezing) mantêm seu próprio histórico
  */
+/**
+ * Histórico de movimentação do card (multi-tenant: queryKey com clientId).
+ */
 export function useCardHistory(cardId: string | null | undefined, parentCardId?: string | null) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["card-history", cardId, parentCardId],
+    queryKey: ["card-history", clientId, cardId, parentCardId],
     queryFn: async (): Promise<CardMovementEntry[]> => {
       if (!cardId) {
         return [];
@@ -98,7 +104,7 @@ export function useCardHistory(cardId: string | null | undefined, parentCardId?:
 
       return (data || []).map(mapCardHistoryRow);
     },
-    enabled: !!cardId,
+    enabled: !!clientId && !!cardId,
     staleTime: 1000 * 60 * 5, // 5 minutos
   });
 }

@@ -1,8 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { supabase, nexflowClient } from '@/lib/supabase';
-import { getCurrentClientId } from '@/lib/supabase';
-import type { CardMessage, SendMessageInput } from '@/types/messages';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { supabase, nexflowClient } from "@/lib/supabase";
+import { getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
+import type { CardMessage, SendMessageInput } from "@/types/messages";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -28,11 +29,15 @@ export function parseMentions(text: string, users: Array<{ id: string; firstName
   return [...new Set(mentions)]; // Remove duplicatas
 }
 
+/**
+ * Mensagens do card (multi-tenant: queryKey com clientId).
+ */
 export function useCardMessages(cardId: string | null) {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   const query = useQuery({
-    queryKey: ['card-messages', cardId],
+    queryKey: ["card-messages", clientId, cardId],
     queryFn: async (): Promise<CardMessage[]> => {
       if (!cardId) return [];
 
@@ -67,7 +72,9 @@ export function useCardMessages(cardId: string | null) {
         }
       }
 
-      return (data || []).map((msg: any) => {
+      // Tipo mínimo da linha retornada pelo select (user_id necessário como índice)
+      type RawRow = { user_id: string; mentions?: unknown; [k: string]: unknown };
+      return (data || []).map((msg: RawRow) => {
         const user = usersMap[msg.user_id];
         return {
           ...msg,
@@ -82,7 +89,7 @@ export function useCardMessages(cardId: string | null) {
         };
       }) as CardMessage[];
     },
-    enabled: !!cardId,
+    enabled: !!clientId && !!cardId,
   });
 
   // Realtime subscription para novas mensagens
@@ -100,7 +107,9 @@ export function useCardMessages(cardId: string | null) {
           filter: `card_id=eq.${cardId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['card-messages', cardId] });
+          queryClient.invalidateQueries({
+            queryKey: ["card-messages", clientId, cardId],
+          });
         }
       )
       .subscribe();
@@ -108,7 +117,7 @@ export function useCardMessages(cardId: string | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [cardId, queryClient]);
+  }, [cardId, clientId, queryClient]);
 
   return query;
 }

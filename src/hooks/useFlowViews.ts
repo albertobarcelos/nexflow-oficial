@@ -4,10 +4,10 @@
 // AIDEV-NOTE: Hook para gerenciar visualizações múltiplas de deals entre flows
 // Mantém sincronização automática e visibilidade por papéis
 
-import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/hooks/useAuth';
-import type { Database } from '@/types/database';
+import { useState, useCallback, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
+import type { Database } from "@/types/database";
 
 type DealFlowView = Database['public']['Tables']['web_deal_flow_views']['Row'];
 type FlowAutomation = Database['public']['Tables']['web_flow_automations']['Row'];
@@ -28,8 +28,11 @@ interface CreateDealViewData {
   sync_data?: Record<string, any>;
 }
 
+/**
+ * Visualizações de deals em flows (multi-tenant: clientId do store e filtro client_id nas queries).
+ */
 export function useFlowViews() {
-  const { user } = useAuth();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
   const [state, setState] = useState<FlowViewsState>({
     isLoading: false,
     error: null,
@@ -40,84 +43,101 @@ export function useFlowViews() {
   // =====================================================
   // CARREGAR VISUALIZAÇÕES DE UM DEAL
   // =====================================================
-  const loadDealViews = useCallback(async (dealId: string) => {
-    if (!user?.client_id) return;
+  const loadDealViews = useCallback(
+    async (dealId: string) => {
+      if (!clientId) return;
 
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-    try {
-      const { data, error } = await supabase
-        .from('web_deal_flow_views')
-        .select(`
+      try {
+        const { data, error } = await supabase
+          .from("web_deal_flow_views")
+          .select(
+            `
           *,
           flow:web_flows(*),
           stage:web_flow_stages(*)
-        `)
-        .eq('deal_id', dealId)
-        .order('created_at', { ascending: true });
+        `
+          )
+          .eq("client_id", clientId)
+          .eq("deal_id", dealId)
+          .order("created_at", { ascending: true });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setState(prev => ({ 
-        ...prev, 
-        dealViews: data || [],
-        isLoading: false 
-      }));
-    } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        error: error instanceof Error ? error.message : 'Erro ao carregar visualizações',
-        isLoading: false 
-      }));
-    }
-  }, [user?.client_id]);
+        setState((prev) => ({
+          ...prev,
+          dealViews: data || [],
+          isLoading: false,
+        }));
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Erro ao carregar visualizações",
+          isLoading: false,
+        }));
+      }
+    },
+    [clientId]
+  );
 
   // =====================================================
   // CARREGAR AUTOMAÇÕES ATIVAS
   // =====================================================
   const loadActiveAutomations = useCallback(async () => {
-    if (!user?.client_id) return;
+    if (!clientId) return;
 
     try {
-      const { data, error } = await supabase
-        .from('web_flow_automations')
-        .select(`
+      // Tabela web_flow_automations pode não estar no tipo Database gerado
+      const { data, error } = await (supabase as any)
+        .from("web_flow_automations")
+        .select(
+          `
           *,
           source_flow:web_flows!source_flow_id(*),
           source_stage:web_flow_stages!source_stage_id(*)
-        `)
-        .eq('automation_type', 'duplicate')
-        .eq('is_active', true);
+        `
+        )
+        .eq("client_id", clientId)
+        .eq("automation_type", "duplicate")
+        .eq("is_active", true);
 
       if (error) throw error;
 
-      setState(prev => ({ 
-        ...prev, 
-        automations: data || []
+      setState((prev) => ({
+        ...prev,
+        automations: data || [],
       }));
     } catch (error) {
-      console.error('Erro ao carregar automações:', error);
+      console.error("Erro ao carregar automações:", error);
     }
-  }, [user?.client_id]);
+  }, [clientId]);
 
   // =====================================================
   // CRIAR VISUALIZAÇÃO DUPLICADA
   // =====================================================
-  const createDealView = useCallback(async (viewData: CreateDealViewData) => {
-    setState(prev => ({ ...prev, isLoading: true, error: null }));
+  const createDealView = useCallback(
+    async (viewData: CreateDealViewData) => {
+      if (!clientId) return null;
 
-    try {
-      const { data: newView, error } = await supabase
-        .from('web_deal_flow_views')
-        .insert({
-          deal_id: viewData.deal_id,
-          flow_id: viewData.flow_id,
-          stage_id: viewData.stage_id,
-          visible_to_roles: viewData.visible_to_roles || [],
-          is_primary: viewData.is_primary || false,
-          sync_data: viewData.sync_data || {},
-          last_sync_at: new Date().toISOString()
-        })
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+
+      try {
+        const { data: newView, error } = await supabase
+          .from("web_deal_flow_views")
+          .insert({
+            client_id: clientId,
+            deal_id: viewData.deal_id,
+            flow_id: viewData.flow_id,
+            stage_id: viewData.stage_id,
+            visible_to_roles: viewData.visible_to_roles || [],
+            is_primary: viewData.is_primary || false,
+            sync_data: viewData.sync_data || {},
+            last_sync_at: new Date().toISOString(),
+          })
         .select(`
           *,
           flow:web_flows(*),
@@ -125,24 +145,29 @@ export function useFlowViews() {
         `)
         .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setState(prev => ({ 
-        ...prev, 
-        dealViews: [...prev.dealViews, newView],
-        isLoading: false 
-      }));
+        setState((prev) => ({
+          ...prev,
+          dealViews: [...prev.dealViews, newView],
+          isLoading: false,
+        }));
 
-      return newView;
-    } catch (error) {
-      setState(prev => ({ 
-        ...prev, 
-        error: error instanceof Error ? error.message : 'Erro ao criar visualização',
-        isLoading: false 
-      }));
-      return null;
-    }
-  }, []);
+        return newView;
+      } catch (error) {
+        setState((prev) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Erro ao criar visualização",
+          isLoading: false,
+        }));
+        return null;
+      }
+    },
+    [clientId]
+  );
 
   // =====================================================
   // MOVER DEAL PARA NOVA STAGE
@@ -209,8 +234,8 @@ export function useFlowViews() {
     sourceStageId: string
   ) => {
     try {
-      // Buscar automações para esta combinação flow/stage
-      const { data: automations, error } = await supabase
+      // Buscar automações para esta combinação flow/stage (tabela pode não estar no tipo Database)
+      const { data: automations, error } = await (supabase as any)
         .from('web_flow_automations')
         .select(`
           *,
@@ -294,7 +319,7 @@ export function useFlowViews() {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('web_deal_flow_views')
         .update({
           sync_data: syncData,

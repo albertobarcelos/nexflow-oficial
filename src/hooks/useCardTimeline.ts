@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { nexflowClient, getCurrentClientId } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Database } from "@/types/database";
 
 type CardHistoryRow = Database["public"]["Tables"]["card_history"]["Row"];
@@ -100,9 +101,14 @@ interface GetCardTimelineResponse {
  * Hook para buscar timeline completa de eventos de um card
  * Usa Edge Function que executa função SQL no banco
  */
+/**
+ * Timeline do card (multi-tenant: queryKey com clientId).
+ */
 export function useCardTimeline(cardId: string | null | undefined, parentCardId?: string | null) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["card-timeline", cardId, parentCardId],
+    queryKey: ["card-timeline", clientId, cardId, parentCardId],
     queryFn: async (): Promise<CardTimelineEvent[]> => {
       if (!cardId) {
         return [];
@@ -153,7 +159,7 @@ export function useCardTimeline(cardId: string | null | undefined, parentCardId?
         process: event.process || null,
       }));
     },
-    enabled: !!cardId,
+    enabled: !!clientId && !!cardId,
     staleTime: 1000 * 30, // 30 segundos - dados frescos mas sem refetches excessivos
     refetchOnMount: true, // Sempre buscar dados frescos ao montar o componente
     refetchOnWindowFocus: true, // Atualizar quando o usuário voltar para a aba
@@ -161,11 +167,13 @@ export function useCardTimeline(cardId: string | null | undefined, parentCardId?
 }
 
 /**
- * Calcula o tempo total que o card permaneceu na etapa atual
+ * Calcula o tempo total que o card permaneceu na etapa atual (multi-tenant: queryKey com clientId).
  */
 export function useCurrentStageDuration(cardId: string | null) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["card-current-stage-duration", cardId],
+    queryKey: ["card-current-stage-duration", clientId, cardId],
     queryFn: async (): Promise<number | null> => {
       if (!cardId) return null;
 
@@ -197,7 +205,7 @@ export function useCurrentStageDuration(cardId: string | null) {
 
       return diffSeconds;
     },
-    enabled: !!cardId,
+    enabled: !!clientId && !!cardId,
     staleTime: 1000 * 60, // 1 minuto (atualizar mais frequentemente)
     refetchInterval: 1000 * 60, // Atualizar a cada minuto
   });

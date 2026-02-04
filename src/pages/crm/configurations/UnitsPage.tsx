@@ -1,34 +1,28 @@
 import { FranchisesManager } from "@/components/admin/users/FranchisesManager";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { useEffect } from "react";
 
 export function UnitsPage() {
-  const { user } = useAuth();
-  
-  // Buscar client_id do usuário
-  const { data: userData } = useQuery({
-    queryKey: ["user-client", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from("core_client_users")
-        .select("client_id")
-        .eq("id", user.id)
-        .single();
-      
-      if (error) {
-        console.error("Erro ao buscar client_id:", error);
-        return null;
-      }
-      
-      return data;
-    },
-    enabled: !!user?.id,
-  });
+  const { hasAccess, accessError, currentClient } = useClientAccessGuard();
 
-  const clientId = userData?.client_id;
+  useEffect(() => {
+    if (hasAccess && currentClient?.id) {
+      console.info("[AUDIT] Configurações (units) - Client:", currentClient.id);
+    }
+  }, [hasAccess, currentClient?.id]);
+
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso às configurações</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const clientId = currentClient?.id;
 
   if (!clientId) {
     return (

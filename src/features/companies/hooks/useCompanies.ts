@@ -5,6 +5,7 @@ import {
   useSecureClientMutation,
   invalidateClientQueries,
 } from "@/hooks/useSecureClientMutation";
+import { getCompanyCreateErrorMessage } from "@/lib/supabase/companyErrors";
 import { toast } from "sonner";
 
 type WebCompanyRow = Database["public"]["Tables"]["web_companies"]["Row"];
@@ -145,7 +146,7 @@ export function useCompanies() {
       },
       onError: (error: Error) => {
         console.error("Erro ao criar empresa:", error);
-        toast.error(error.message || "Erro ao criar empresa");
+        toast.error(getCompanyCreateErrorMessage(error));
       },
     },
   });

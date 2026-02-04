@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 import { Database } from "@/types/database";
 import {
   FlowAccessRole,
@@ -16,7 +17,7 @@ const mapAccessRow = (row: FlowAccessRow): NexflowFlowAccess => ({
   id: row.id,
   flowId: row.flow_id,
   userId: row.user_id,
-  role: row.role,
+  role: row.role as FlowAccessRole,
 });
 
 const mapVisibilityRow = (
@@ -30,9 +31,11 @@ const mapVisibilityRow = (
 });
 
 export function useNexflowFlowAccess(flowId?: string) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["nexflow", "permissions", "access", flowId],
-    enabled: Boolean(flowId),
+    queryKey: ["nexflow", "permissions", "access", clientId, flowId],
+    enabled: Boolean(clientId && flowId),
     queryFn: async (): Promise<NexflowFlowAccess[]> => {
       if (!flowId) {
         return [];
@@ -55,7 +58,8 @@ export function useNexflowFlowAccess(flowId?: string) {
 
 export function useSaveNexflowFlowAccess(flowId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "permissions", "access", flowId];
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+  const queryKey = ["nexflow", "permissions", "access", clientId, flowId];
 
   return useMutation({
     mutationFn: async ({
@@ -117,16 +121,14 @@ export function useSaveNexflowFlowAccess(flowId?: string) {
       queryClient.setQueryData(queryKey, nextState);
       return { previousAccess };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousAccess) {
-        queryClient.setQueryData(queryKey, context.previousAccess);
-      }
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Permissão salva com sucesso!");
     },
-    onError: () => {
+    onError: (_error, _variables, context) => {
+      if (context?.previousAccess) {
+        queryClient.setQueryData(queryKey, context.previousAccess);
+      }
       toast.error("Erro ao salvar permissão. Tente novamente.");
     },
   });
@@ -134,7 +136,8 @@ export function useSaveNexflowFlowAccess(flowId?: string) {
 
 export function useRemoveNexflowFlowAccess(flowId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "permissions", "access", flowId];
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+  const queryKey = ["nexflow", "permissions", "access", clientId, flowId];
 
   return useMutation({
     mutationFn: async (userId: string) => {
@@ -162,25 +165,25 @@ export function useRemoveNexflowFlowAccess(flowId?: string) {
       );
       return { previousAccess };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousAccess) {
-        queryClient.setQueryData(queryKey, context.previousAccess);
-      }
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Permissão removida com sucesso!");
     },
-    onError: () => {
+    onError: (_error, _variables, context) => {
+      if (context?.previousAccess) {
+        queryClient.setQueryData(queryKey, context.previousAccess);
+      }
       toast.error("Erro ao remover permissão. Tente novamente.");
     },
   });
 }
 
 export function useNexflowStepVisibility(flowId?: string) {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["nexflow", "permissions", "visibility", flowId],
-    enabled: Boolean(flowId),
+    queryKey: ["nexflow", "permissions", "visibility", clientId, flowId],
+    enabled: Boolean(clientId && flowId),
     queryFn: async (): Promise<NexflowStepVisibility[]> => {
       if (!flowId) {
         return [];
@@ -222,7 +225,8 @@ export interface StepVisibilityUpdate {
 
 export function useSaveNexflowStepVisibility(flowId?: string) {
   const queryClient = useQueryClient();
-  const queryKey = ["nexflow", "permissions", "visibility", flowId];
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+  const queryKey = ["nexflow", "permissions", "visibility", clientId, flowId];
 
   return useMutation({
     mutationFn: async ({
@@ -286,16 +290,14 @@ export function useSaveNexflowStepVisibility(flowId?: string) {
       queryClient.setQueryData(queryKey, draft);
       return { previousVisibility };
     },
-    onError: (_error, _variables, context) => {
-      if (context?.previousVisibility) {
-        queryClient.setQueryData(queryKey, context.previousVisibility);
-      }
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
       toast.success("Visibilidade atualizada com sucesso!");
     },
-    onError: () => {
+    onError: (_error, _variables, context) => {
+      if (context?.previousVisibility) {
+        queryClient.setQueryData(queryKey, context.previousVisibility);
+      }
       toast.error("Erro ao atualizar visibilidade. Tente novamente.");
     },
   });

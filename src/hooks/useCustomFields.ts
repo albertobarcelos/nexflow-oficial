@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useClientStore } from "@/stores/clientStore";
 
 export type FieldType = "text" | "textarea" | "number" | "boolean" | "select";
 
@@ -18,27 +19,25 @@ interface AddCustomFieldData {
 
 export type EntityType = "companies" | "people" | "partners";
 
+/**
+ * Campos customizados por entidade (multi-tenant: queryKey com clientId).
+ */
 export function useCustomFields(entityType: EntityType) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   const { data: fields = [], isLoading } = useQuery({
-    queryKey: ["custom-fields", entityType],
+    queryKey: ["custom-fields", clientId, entityType],
     queryFn: async () => {
       if (!user?.id) return [];
+      if (!clientId) throw new Error("Client not found");
 
-      const { data: collaborator } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (!collaborator) throw new Error("Colaborador não encontrado");
-
-      const { data, error } = await supabase
+      // Tabelas fora do tipo Database gerado; usar cast para evitar "excessively deep"
+      const { data, error } = await (supabase as any)
         .from("custom_fields")
         .select("*")
-        .eq("client_id", collaborator.client_id)
+        .eq("client_id", clientId)
         .eq("entity_type", entityType)
         .order("order_index");
 
@@ -49,31 +48,24 @@ export function useCustomFields(entityType: EntityType) {
 
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!clientId && !!user?.id,
   });
 
   const addField = useMutation({
     mutationFn: async (data: AddCustomFieldData) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
-
-      const { data: collaborator } = await supabase
-        .from("collaborators")
-        .select("client_id")
-        .eq("auth_user_id", user.id)
-        .single();
-
-      if (!collaborator) throw new Error("Colaborador não encontrado");
+      if (!clientId) throw new Error("Client not found");
 
       const newField = {
         ...data,
         entity_type: entityType,
-        client_id: collaborator.client_id,
+        client_id: clientId,
         id: crypto.randomUUID(),
       };
 
       console.log("Tentando adicionar campo:", newField);
 
-      const { data: createdField, error } = await supabase
+      const { data: createdField, error } = await (supabase as any)
         .from("custom_fields")
         .insert(newField as any)
         .select()
@@ -87,17 +79,22 @@ export function useCustomFields(entityType: EntityType) {
       return createdField;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["custom-fields", entityType] });
+      queryClient.invalidateQueries({
+        queryKey: ["custom-fields", clientId, entityType],
+      });
       toast.success("Campo adicionado com sucesso!");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
+      const err = error as Error & { details?: unknown; hint?: string };
       console.error("Erro ao adicionar campo:", {
         error,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
+        message: err.message,
+        details: err.details,
+        hint: err.hint,
       });
-      toast.error(`Erro ao adicionar campo: ${error.message || 'Erro desconhecido'}`);
+      toast.error(
+        `Erro ao adicionar campo: ${error instanceof Error ? error.message : "Erro desconhecido"}`
+      );
     },
   });
 
@@ -107,7 +104,7 @@ export function useCustomFields(entityType: EntityType) {
     mutationFn: async (fieldId: string) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("custom_fields")
         .delete()
         .eq("id", fieldId);
@@ -115,7 +112,9 @@ export function useCustomFields(entityType: EntityType) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["custom-fields", entityType] });
+      queryClient.invalidateQueries({
+        queryKey: ["custom-fields", clientId, entityType],
+      });
       toast.success("Campo excluído com sucesso!");
     },
     onError: (error) => {

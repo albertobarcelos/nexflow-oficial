@@ -27,13 +27,13 @@ Lista dos hooks do projeto que acessam dados por cliente (`client_id`), com stat
 
 | Hook | Arquivo | Status | Observação |
 |------|---------|--------|------------|
-| useDashboardStats | src/hooks/useDashboardStats.ts | Parcial | Incluir clientId na queryKey |
-| useContactFlowData | src/hooks/useContactFlowData.ts | Parcial | Idem |
-| useRecentActivities | src/hooks/useRecentActivities.ts | Parcial | Idem |
-| useOrganizationTeams | src/hooks/useOrganizationTeams.ts | Parcial | Idem |
-| useOrganizationUsers | src/hooks/useOrganizationUsers.ts | Parcial | Idem |
-| useIndications | (usado em useDashboardStats) | A verificar | Garantir filtro por client_id |
-| useOpportunities | (usado em useDashboardStats) | Parcial | Já filtra por client_id |
+| useDashboardStats | src/hooks/useDashboardStats.ts | Seguro | useSecureClientQuery; queryKey com clientId |
+| useContactFlowData | src/hooks/useContactFlowData.ts | Seguro | useSecureClientQuery; queryKey com clientId |
+| useRecentActivities | src/hooks/useRecentActivities.ts | Seguro | useSecureClientQuery; queryKey com clientId |
+| useOrganizationTeams | src/hooks/useOrganizationTeams.ts | Seguro | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useOrganizationUsers | src/hooks/useOrganizationUsers.ts | Seguro | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useIndications | (usado em useDashboardStats) | Seguro | queryKey clientId; body client_id; validação dupla |
+| useOpportunities | (usado em useDashboardStats) | Parcial | RPC get_contacts com p_client_id; queryKey pode incluir clientId |
 
 ### Flows ([flows.md](./flows.md))
 
@@ -44,25 +44,25 @@ Lista dos hooks do projeto que acessam dados por cliente (`client_id`), com stat
 | useFlowPermissions | src/hooks/useFlowPermissions.ts | Seguro | queryKey com clientId |
 | useNexflowCards | src/hooks/useNexflowCards.ts | Seguro | queryKey clientId; filtro e validação client_id |
 | useNexflowCardsInfinite | src/hooks/useNexflowCardsInfinite.ts | Seguro | queryKey clientId; createCard via useSecureClientMutation; filtro e validação client_id |
-| useFlow | src/hooks/useFlow.ts | Parcial | Idem |
-| useFlows | src/hooks/useFlows.ts | Parcial | Idem |
-| useFlowViews | src/hooks/useFlowViews.ts | Parcial | Idem |
+| useFlow | src/hooks/useFlow.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useFlows | src/hooks/useFlows.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useFlowViews | src/hooks/useFlowViews.ts | Seguro | clientId do store; filtro client_id nas queries; client_id no insert |
 | useFlowVisibility | src/hooks/useFlowVisibility.ts | Seguro | useFlowVisibilityData com queryKey clientId |
-| useFlowStages | src/hooks/useFlowStages.ts | Parcial | Idem |
+| useFlowStages | src/hooks/useFlowStages.ts | Seguro | queryKey com clientId; enabled com clientId |
 | useFlowBuilder | src/hooks/useFlowBuilder.ts | Parcial | Idem |
-| useNexflowPermissions | src/hooks/useNexflowPermissions.ts | Parcial | Idem |
+| useNexflowPermissions | src/hooks/useNexflowPermissions.ts | Seguro | queryKey com clientId em access e visibility |
 | useNexflowSteps | src/hooks/useNexflowSteps.ts | Seguro | queryKey com clientId |
-| useNexflowUsers | src/hooks/useNexflowUsers.ts | Parcial | Idem |
-| useCardMessages | src/hooks/useCardMessages.ts | Parcial | Idem |
-| useCardHistory | src/hooks/useCardHistory.ts | Parcial | Idem |
-| useCardTimeline | src/hooks/useCardTimeline.ts | Parcial | Idem |
-| useCardActivities | src/hooks/useCardActivities.ts | Parcial | Idem |
-| useCardAttachments | src/hooks/useCardAttachments.ts | Parcial | Idem |
-| useCardChildren | src/hooks/useCardChildren.ts | Parcial | Idem |
-| useStepChildCardAutomations | src/hooks/useStepChildCardAutomations.ts | Parcial | Idem |
+| useNexflowUsers | src/hooks/useNexflowUsers.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useCardMessages | src/hooks/useCardMessages.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useCardHistory | src/hooks/useCardHistory.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useCardTimeline | src/hooks/useCardTimeline.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useCardActivities | src/hooks/useCardActivities.ts | Seguro | queryKey com clientId; invalidações com clientId |
+| useCardAttachments | src/hooks/useCardAttachments.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useCardChildren | src/hooks/useCardChildren.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useStepChildCardAutomations | src/hooks/useStepChildCardAutomations.ts | Seguro | queryKey com clientId; enabled com clientId |
 | useCreateCardFromContact | src/hooks/useCreateCardFromContact.ts | Seguro | useSecureClientMutation; client_id no insert e validação do contato |
 | useCreateCardFromIndication | src/hooks/useCreateCardFromIndication.ts | Parcial | Idem |
-| useFlowActivityTypes | src/hooks/useFlowActivityTypes.ts | Parcial | QueryKey com clientId |
+| useFlowActivityTypes | src/hooks/useFlowActivityTypes.ts | Seguro | queryKey com clientId; invalidações com clientId |
 
 ### Contatos ([contacts.md](./contacts.md))
 
@@ -75,41 +75,41 @@ Lista dos hooks do projeto que acessam dados por cliente (`client_id`), com stat
 | useCreateContact | src/hooks/useCreateContact.ts | Seguro | useSecureClientMutation; validateClientIdOnResult |
 | useContactById | src/hooks/useContactById.ts | Seguro | queryKey clientId; filtro e validação dupla |
 | useContactsForSelect | src/hooks/useContactsForSelect.ts | Seguro | queryKey com clientId; enabled com clientId |
-| useContactAutomations | src/hooks/useContactAutomations.ts | Parcial | Idem |
+| useContactAutomations | src/hooks/useContactAutomations.ts | Seguro | queryKey com clientId; enabled com clientId |
 | useContactFlowData | src/hooks/useContactFlowData.ts | Seguro | useSecureClientQuery; queryKey com clientId |
-| useContactRelationships | src/hooks/useContactRelationships.ts | Parcial | Idem |
-| useIndicationDetails | src/hooks/useIndicationDetails.ts | Parcial | Validar escopo por client |
+| useContactRelationships | src/hooks/useContactRelationships.ts | Seguro | queryKey com clientId; enabled com clientId |
+| useIndicationDetails | src/hooks/useIndicationDetails.ts | Seguro | queryKey com clientId; .eq('client_id', clientId) na indicação; enabled com clientId |
 | useIndications | src/hooks/useIndications.ts | Seguro | queryKey clientId; body client_id; validação dupla |
 
 ### Empresas ([companies.md](./companies.md))
 
 | Hook | Arquivo | Status | Observação |
 |------|---------|--------|------------|
-| useCompanies | src/features/companies/hooks/useCompanies.ts | Parcial | Já usa client_id; queryKey com clientId |
-| useCompanyRelations | src/hooks/useCompanyRelations.ts | Parcial | Idem |
+| useCompanies | src/features/companies/hooks/useCompanies.ts | Seguro | useSecureClientQuery + useSecureClientMutation; queryKey com clientId |
+| useCompanyRelations | src/hooks/useCompanyRelations.ts | Seguro | useSecureClientQuery; queryKey com clientId; validação dupla |
 
 ### Configurações ([configurations.md](./configurations.md))
 
 | Hook | Arquivo | Status | Observação |
 |------|---------|--------|------------|
-| useOrganizationUsers | src/hooks/useOrganizationUsers.ts | Parcial | QueryKey com clientId |
-| useOrganizationTeams | src/hooks/useOrganizationTeams.ts | Parcial | Idem |
-| useCompanyUsers | src/hooks/useCompanyUsers.ts | Parcial | Idem |
-| useCompanyTeams | src/hooks/useCompanyTeams.ts | Parcial | Idem |
-| useItems | src/hooks/useItems.ts | Parcial | Idem |
-| useUsers | src/hooks/useUsers.ts | Seguro | queryKey clientId; enabled com clientId; validação dupla na lista |
-| useTeamLevels | src/hooks/useTeamLevels.ts | Parcial | Idem |
-| useTeamMemberLevels | src/hooks/useTeamMemberLevels.ts | Parcial | Idem |
-| useGlobalTeamLevels | src/hooks/useGlobalTeamLevels.ts | Parcial | Idem |
+| useOrganizationUsers | src/hooks/useOrganizationUsers.ts | Seguro | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useOrganizationTeams | src/hooks/useOrganizationTeams.ts | Seguro | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useCompanyUsers | src/hooks/useCompanyUsers.ts | Seguro | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useCompanyTeams | src/hooks/useCompanyTeams.ts | Seguro | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useItems | src/hooks/useItems.ts | Seguro | queryKey clientId; useSecureClientMutation em create/update/delete; validateClientIdOnResult |
+| useUsers | src/hooks/useUsers.ts | Seguro | queryKey clientId (store); validação dupla |
+| useTeamLevels | src/hooks/useTeamLevels.ts | Seguro | queryKey ['team-levels', clientId, teamId]; clientId do store |
+| useTeamMemberLevels | src/hooks/useTeamMemberLevels.ts | Seguro | queryKey ['team-member-levels', clientId, teamMemberId]; clientId do store |
+| useGlobalTeamLevels | src/hooks/useGlobalTeamLevels.ts | Parcial | Já usa clientId na key; garantir clientId do store nos consumidores |
 | useUsersByTeam | src/hooks/useUsersByTeam.ts | Parcial | Idem |
 
 ### Settings ([settings.md](./settings.md))
 
 | Hook | Arquivo | Status | Observação |
 |------|---------|--------|------------|
-| useNotificationSettings | src/hooks/useNotificationSettings.ts | Parcial | QueryKey com clientId; mutações com client_id |
-| useSidebarData | src/hooks/useSidebarData.ts | Parcial | Funnels por client_id; key com clientId |
-| useNotifications | src/hooks/useNotifications.ts | Parcial | Idem |
+| useNotificationSettings | src/hooks/useNotificationSettings.ts | Seguro | useSecureClientQuery + useSecureClientMutation; queryKey com clientId; validação dupla |
+| useSidebarData | src/hooks/useSidebarData.ts | Seguro | queryKey com clientId; validação dupla em funnels |
+| useNotifications | src/hooks/useNotifications.ts | Seguro | queryKey com clientId; validação dupla |
 
 ### Conta ([account.md](./account.md))
 
@@ -121,8 +121,8 @@ Lista dos hooks do projeto que acessam dados por cliente (`client_id`), com stat
 
 | Hook | Arquivo | Status | Observação |
 |------|---------|--------|------------|
-| usePublicContactForms | src/hooks/usePublicContactForms.ts | Parcial | QueryKey com clientId; validação dupla |
-| useCustomFields | src/hooks/useCustomFields.ts | Parcial | Idem |
+| usePublicContactForms | src/hooks/usePublicContactForms.ts | Seguro | useSecureClientQuery + useSecureClientMutation; queryKey clientId; validação dupla |
+| useCustomFields | src/hooks/useCustomFields.ts | Seguro | queryKey com clientId; enabled com clientId |
 | useCustomFieldValues | src/hooks/useCustomFieldValues.ts | Parcial | Idem |
 | useFields | src/hooks/useFields.ts | Parcial | Idem |
 
@@ -132,13 +132,13 @@ Lista dos hooks do projeto que acessam dados por cliente (`client_id`), com stat
 
 | Hook | Arquivo | Status | Guia(s) |
 |------|---------|--------|---------|
-| usePartners | src/hooks/usePartners.ts | Parcial | Contatos / Parceiros |
+| usePartners | src/hooks/usePartners.ts | Seguro | queryKey com clientId; enabled com clientId; invalidações com clientId |
 | usePartnersWithContacts | src/hooks/usePartnersWithContacts.ts | Parcial | Idem |
 | usePeople | src/hooks/usePeople.ts | Parcial | Contatos / Deals |
 | usePeopleAndPartners | src/hooks/usePeopleAndPartners.ts | Parcial | Idem |
-| useOpportunities | src/hooks/useOpportunities.ts | Parcial | Dashboard / Deals |
+| useOpportunities | src/hooks/useOpportunities.ts | Parcial | RPC get_contacts com p_client_id |
 | useOpportunitiesAccess | src/hooks/useOpportunitiesAccess.ts | Parcial | Idem |
-| useDealDetails | src/hooks/useDealDetails.ts | Parcial | Deals |
+| useDealDetails | src/hooks/useDealDetails.ts | Seguro | queryKey com clientId; enabled com clientId |
 | useTaskHistory | src/hooks/useTaskHistory.ts | Parcial | Tasks / Cards |
 | useHuntersAccess | src/hooks/useHuntersAccess.ts | Parcial | Hunters |
 | useFranchises | src/hooks/useFranchises.ts | Parcial | Configurações / Franchises |

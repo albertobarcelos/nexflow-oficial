@@ -1,25 +1,27 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { EntityType, OpportunityEntityRelationship } from '@/types/database/entities';
-import { useToast } from './use-toast';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
+import type {
+  EntityType,
+  OpportunityEntityRelationship,
+} from "@/types/database/entities.ts";
+import { useToast } from "./use-toast";
 
+/**
+ * Relacionamentos do contato (multi-tenant: queryKey com clientId).
+ */
 export function useContactRelationships(contactId: string) {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
   const { toast } = useToast();
 
   const { data: relationships = [], isLoading } = useQuery({
-    queryKey: ['contact-relationships', contactId],
+    queryKey: ["contact-relationships", clientId, contactId],
     queryFn: async () => {
-      const { data: collaborator } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
+      if (!clientId) throw new Error('Client not found');
 
-      if (!collaborator) throw new Error('Collaborator not found');
-
-      // AIDEV-NOTE: Sistema simplificado - relacionamentos diretos com deals
-      const { data, error } = await supabase
+      // Tabelas fora do tipo Database gerado; usar client tipado para evitar "excessively deep"
+      const { data, error } = await (supabase as any)
         .from('deal_relationships')
         .select(`
           id,
@@ -41,51 +43,47 @@ export function useContactRelationships(contactId: string) {
           )
         `)
         .eq('deal_id', contactId)
-        .eq('client_id', collaborator.client_id);
+        .eq('client_id', clientId);
 
       if (error) throw error;
 
       return data as OpportunityEntityRelationship[];
-    }
+    },
+    enabled: !!clientId && !!contactId,
   });
 
   const addRelationship = useMutation({
     mutationFn: async ({ entityType, entityId }: { entityType: EntityType; entityId: string }) => {
-      const { data: collaborator } = await supabase
-        .from('collaborators')
-        .select('client_id')
-        .eq('auth_user_id', (await supabase.auth.getUser()).data.user?.id)
-        .single();
-
-      if (!collaborator) throw new Error('Collaborator not found');
+      if (!clientId) throw new Error('Client not found');
 
       // AIDEV-NOTE: Sistema simplificado - inserção direta por tipo
-      const insertData: any = {
-        client_id: collaborator.client_id,
+      const insertData: Record<string, unknown> = {
+        client_id: clientId,
         deal_id: contactId,
-        entity_type: entityType
+        entity_type: entityType,
       };
 
-      // Mapear entity_id para campo específico
       if (entityType === 'company') insertData.company_id = entityId;
       else if (entityType === 'person') insertData.person_id = entityId;
       else if (entityType === 'partner') insertData.partner_id = entityId;
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('deal_relationships')
         .insert(insertData);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['opportunity-relationships', contactId]);
+      queryClient.invalidateQueries({
+        queryKey: ["contact-relationships", clientId, contactId],
+      });
       toast({
-        title: 'Relacionamento adicionado',
-        description: 'O relacionamento foi adicionado com sucesso.'
+        title: "Relacionamento adicionado",
+        description: "O relacionamento foi adicionado com sucesso.",
       });
     },
     onError: (error) => {
-      console.error('Error adding relationship:', error);
+      console.error("Error adding relationship:", error);
       toast({
         title: 'Erro ao adicionar relacionamento',
         description: 'Não foi possível adicionar o relacionamento.',
@@ -96,7 +94,7 @@ export function useContactRelationships(contactId: string) {
 
   const removeRelationship = useMutation({
     mutationFn: async (relationshipId: string) => {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('deal_relationships')
         .delete()
         .eq('id', relationshipId);
@@ -104,9 +102,11 @@ export function useContactRelationships(contactId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['opportunity-relationships', contactId]);
+      queryClient.invalidateQueries({
+        queryKey: ["contact-relationships", clientId, contactId],
+      });
       toast({
-        title: 'Relacionamento removido',
+        title: "Relacionamento removido",
         description: 'O relacionamento foi removido com sucesso.'
       });
     },

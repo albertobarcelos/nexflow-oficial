@@ -1,6 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import {
+  useSecureClientMutation,
+  invalidateClientQueries,
+} from "@/hooks/useSecureClientMutation";
 
 export interface WebItem {
   id: string;
@@ -53,82 +57,97 @@ export function useItems(clientId?: string | null) {
         .order("name", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as WebItem[];
     },
     enabled: !!clientId,
   });
 }
 
+/** Cria item com client_id garantido pelo useSecureClientMutation (multi-tenant seguro). */
 export function useCreateItem() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async (input: CreateItemInput): Promise<WebItem> => {
-      const { data, error } = await supabase
+  return useSecureClientMutation<WebItem, Error, CreateItemInput>({
+    mutationFn: async (client, clientId, input): Promise<WebItem> => {
+      const { data, error } = await client
         .from("web_items")
-        .insert(input)
+        .insert({ ...input, client_id: clientId })
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as WebItem;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["items", variables.client_id] });
-      toast.success("Item criado com sucesso!");
-    },
-    onError: (error: any) => {
-      toast.error(error?.message || "Erro ao criar item");
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["items"]);
+        toast.success("Item criado com sucesso!");
+      },
+      onError: (error: Error) => {
+        toast.error(error?.message || "Erro ao criar item");
+      },
     },
   });
 }
 
+export interface UpdateItemVariables {
+  id: string;
+  input: UpdateItemInput;
+}
+
+/** Atualiza item; client_id validado no resultado (multi-tenant seguro). */
 export function useUpdateItem() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({
-      id,
-      input,
-    }: {
-      id: string;
-      input: UpdateItemInput;
-    }): Promise<WebItem> => {
-      const { data, error } = await supabase
+  return useSecureClientMutation<WebItem, Error, UpdateItemVariables>({
+    mutationFn: async (client, clientId, { id, input }): Promise<WebItem> => {
+      const { data, error } = await client
         .from("web_items")
         .update({ ...input, updated_at: new Date().toISOString() })
         .eq("id", id)
+        .eq("client_id", clientId)
         .select()
         .single();
 
       if (error) throw error;
-      return data;
+      return data as WebItem;
     },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["items", data.client_id] });
-      toast.success("Item atualizado com sucesso!");
-    },
-    onError: (error: any) => {
-      toast.error(error?.message || "Erro ao atualizar item");
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["items"]);
+        toast.success("Item atualizado com sucesso!");
+      },
+      onError: (error: Error) => {
+        toast.error(error?.message || "Erro ao atualizar item");
+      },
     },
   });
 }
 
+/** Exclui item; apenas do client_id atual (multi-tenant seguro). */
 export function useDeleteItem() {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({ id, clientId }: { id: string; clientId: string }): Promise<void> => {
-      const { error } = await supabase.from("web_items").delete().eq("id", id);
+  return useSecureClientMutation<void, Error, { id: string }>({
+    mutationFn: async (client, clientId, { id }): Promise<void> => {
+      const { error } = await client
+        .from("web_items")
+        .delete()
+        .eq("id", id)
+        .eq("client_id", clientId);
 
       if (error) throw error;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["items", variables.clientId] });
-      toast.success("Item excluído com sucesso!");
-    },
-    onError: (error: any) => {
-      toast.error(error?.message || "Erro ao excluir item");
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["items"]);
+        toast.success("Item excluído com sucesso!");
+      },
+      onError: (error: Error) => {
+        toast.error(error?.message || "Erro ao excluir item");
+      },
     },
   });
 }

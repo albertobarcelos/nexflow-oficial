@@ -1,17 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { supabase, nexflowClient } from '@/lib/supabase';
-import { getCurrentClientId } from '@/lib/supabase';
-import { appConfig } from '@/lib/config';
-import type { CardAttachment, UploadAttachmentInput } from '@/types/messages';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { supabase, nexflowClient } from "@/lib/supabase";
+import { getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
+import { appConfig } from "@/lib/config";
+import type { CardAttachment, UploadAttachmentInput } from "@/types/messages";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
+/**
+ * Anexos do card (multi-tenant: queryKey com clientId).
+ */
 export function useCardAttachments(cardId: string | null) {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   const query = useQuery({
-    queryKey: ['card-attachments', cardId],
+    queryKey: ["card-attachments", clientId, cardId],
     queryFn: async (): Promise<CardAttachment[]> => {
       if (!cardId) return [];
 
@@ -59,7 +64,7 @@ export function useCardAttachments(cardId: string | null) {
         };
       }) as CardAttachment[];
     },
-    enabled: !!cardId,
+    enabled: !!clientId && !!cardId,
   });
 
   // Realtime subscription para novos anexos
@@ -77,7 +82,9 @@ export function useCardAttachments(cardId: string | null) {
           filter: `card_id=eq.${cardId}`,
         },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['card-attachments', cardId] });
+          queryClient.invalidateQueries({
+            queryKey: ["card-attachments", clientId, cardId],
+          });
         }
       )
       .subscribe();
@@ -85,13 +92,14 @@ export function useCardAttachments(cardId: string | null) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [cardId, queryClient]);
+  }, [cardId, clientId, queryClient]);
 
   return query;
 }
 
 export function useUploadAttachment() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async (input: UploadAttachmentInput): Promise<CardAttachment> => {
@@ -135,13 +143,16 @@ export function useUploadAttachment() {
       return data as CardAttachment;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['card-attachments', variables.card_id] });
+      queryClient.invalidateQueries({
+        queryKey: ["card-attachments", clientId, variables.card_id],
+      });
     },
   });
 }
 
 export function useDeleteAttachment() {
   const queryClient = useQueryClient();
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
 
   return useMutation({
     mutationFn: async ({ attachmentId, cardId }: { attachmentId: string; cardId: string }): Promise<void> => {
@@ -178,7 +189,9 @@ export function useDeleteAttachment() {
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['card-attachments', variables.cardId] });
+      queryClient.invalidateQueries({
+        queryKey: ["card-attachments", clientId, variables.cardId],
+      });
     },
   });
 }

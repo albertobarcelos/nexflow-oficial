@@ -1,6 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { getCurrentClientId } from "@/lib/supabase";
+import type { Database } from "@/types/database";
+import { useSecureClientQuery } from "@/hooks/useSecureClientQuery";
+import {
+  useSecureClientMutation,
+  invalidateClientQueries,
+} from "@/hooks/useSecureClientMutation";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 
@@ -64,65 +69,70 @@ export interface CreateFormInput {
   form_type?: "public" | "internal";
 }
 
+/** Mapeia linha do banco para PublicContactForm com defaults de form_type/requires_auth */
+function mapRowToForm(form: Record<string, unknown>): PublicContactForm {
+  return {
+    ...form,
+    form_type: (form.form_type as string) || "public",
+    requires_auth:
+      form.requires_auth ?? (form.form_type === "internal"),
+  } as PublicContactForm;
+}
+
 export function usePublicContactForms() {
   const queryClient = useQueryClient();
 
-  const { data: forms, isLoading, error } = useQuery({
+  const { data: forms, isLoading, error } = useSecureClientQuery<
+    PublicContactForm[]
+  >({
     queryKey: ["public-contact-forms"],
-    queryFn: async () => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        throw new Error("Cliente não identificado");
-      }
-
-      const { data, error } = await (supabase as any)
+    queryFn: async (client, clientId) => {
+      const { data, error: queryError } = await client
         .from("public_opportunity_forms")
         .select("*")
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      // Garantir compatibilidade com formulários existentes (default: public)
-      return (data || []).map((form: any) => ({
-        ...form,
-        form_type: form.form_type || "public",
-        requires_auth: form.requires_auth ?? (form.form_type === "internal"),
-      })) as PublicContactForm[];
+      if (queryError) throw queryError;
+      const list = (data || []).map(mapRowToForm) as PublicContactForm[];
+      return list;
     },
+    validateClientIdOnData: true,
   });
 
-  const createForm = useMutation({
-    mutationFn: async (input: CreateFormInput) => {
-      const clientId = await getCurrentClientId();
-      if (!clientId) {
-        throw new Error("Cliente não identificado");
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
+  const createForm = useSecureClientMutation<
+    PublicContactForm,
+    Error,
+    CreateFormInput
+  >({
+    mutationFn: async (client, clientId, input) => {
+      const {
+        data: { user },
+      } = await client.auth.getUser();
       if (!user) {
         throw new Error("Usuário não autenticado");
       }
 
-      // Gerar slug único baseado no título
       const baseSlug = input.title
         .toLowerCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "");
-      
-      // Adicionar timestamp para garantir unicidade
       const slug = `${baseSlug}-${Date.now()}`;
-      
-      // Gerar token secreto único
       const token = uuidv4();
-
-      // Determinar tipo de formulário e se requer autenticação
       const formType = input.form_type || "public";
       const requiresAuth = formType === "internal";
 
-      // Validar campos baseado no tipo
-      const PUBLIC_FIELD_TYPES = ["text", "email", "tel", "textarea", "number", "checkbox", "cpf_cnpj"];
+      const PUBLIC_FIELD_TYPES = [
+        "text",
+        "email",
+        "tel",
+        "textarea",
+        "number",
+        "checkbox",
+        "cpf_cnpj",
+      ];
       const INTERNAL_FIELD_TYPES = [
         ...PUBLIC_FIELD_TYPES,
         "select",
@@ -131,106 +141,135 @@ export function usePublicContactForms() {
         "company_toggle",
         "contact_type_select",
       ];
-
-      const allowedTypes = formType === "public" ? PUBLIC_FIELD_TYPES : INTERNAL_FIELD_TYPES;
-      const invalidFields = input.fields_config.filter((field) => !allowedTypes.includes(field.type));
-
+      const allowedTypes =
+        formType === "public" ? PUBLIC_FIELD_TYPES : INTERNAL_FIELD_TYPES;
+      const invalidFields = input.fields_config.filter(
+        (field) => !allowedTypes.includes(field.type)
+      );
       if (invalidFields.length > 0) {
         throw new Error(
           `Campos do tipo ${invalidFields.map((f) => f.type).join(", ")} não são permitidos em formulários ${formType === "public" ? "públicos" : "internos"}`
         );
       }
 
-      const { data, error } = await (supabase as any)
+      type FormInsert =
+        Database["public"]["Tables"]["public_opportunity_forms"]["Insert"];
+      const insertRow: FormInsert = {
+        client_id: clientId,
+        title: input.title,
+        description: input.description ?? null,
+        slug,
+        token,
+        fields_config: input.fields_config as unknown as FormInsert["fields_config"],
+        settings: (input.settings || {}) as unknown as FormInsert["settings"],
+        form_type: formType,
+        requires_auth: requiresAuth,
+        created_by: user.id,
+      };
+
+      const { data, error: insertError } = await client
         .from("public_opportunity_forms")
-        .insert({
-          client_id: clientId,
-          title: input.title,
-          description: input.description,
-          slug,
-          token,
-          fields_config: input.fields_config,
-          settings: input.settings || {},
-          form_type: formType,
-          requires_auth: requiresAuth,
-          created_by: user.id,
-        })
+        .insert(insertRow)
         .select()
         .single();
 
-      if (error) throw error;
-      return data as unknown as PublicContactForm;
+      if (insertError) throw insertError;
+      return mapRowToForm(data as Record<string, unknown>) as PublicContactForm;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["public-contact-forms"] });
-      toast.success("Formulário criado com sucesso!");
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao criar formulário: ${error.message}`);
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["public-contact-forms"]);
+        toast.success("Formulário criado com sucesso!");
+      },
+      onError: (err: Error) => {
+        toast.error(`Erro ao criar formulário: ${err.message}`);
+      },
     },
   });
 
-  const updateForm = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<PublicContactForm> & { id: string }) => {
-      const { data, error } = await (supabase as any)
+  const updateForm = useSecureClientMutation<
+    PublicContactForm,
+    Error,
+    Partial<PublicContactForm> & { id: string }
+  >({
+    mutationFn: async (client, clientId, { id, ...updates }) => {
+      type FormUpdate =
+        Database["public"]["Tables"]["public_opportunity_forms"]["Update"];
+      const { data, error: updateError } = await client
         .from("public_opportunity_forms")
-        .update(updates)
+        .update(updates as unknown as FormUpdate)
         .eq("id", id)
+        .eq("client_id", clientId)
         .select()
         .single();
 
-      if (error) throw error;
-      return data as unknown as PublicContactForm;
+      if (updateError) throw updateError;
+      return mapRowToForm(data as Record<string, unknown>) as PublicContactForm;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["public-contact-forms"] });
-      toast.success("Formulário atualizado com sucesso!");
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao atualizar formulário: ${error.message}`);
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["public-contact-forms"]);
+        toast.success("Formulário atualizado com sucesso!");
+      },
+      onError: (err: Error) => {
+        toast.error(`Erro ao atualizar formulário: ${err.message}`);
+      },
     },
   });
 
-  const deleteForm = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
+  const deleteForm = useSecureClientMutation<void, Error, string>({
+    mutationFn: async (client, clientId, id) => {
+      const { error: deleteError } = await client
         .from("public_opportunity_forms")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .eq("client_id", clientId);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["public-contact-forms"] });
-      toast.success("Formulário deletado com sucesso!");
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao deletar formulário: ${error.message}`);
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["public-contact-forms"]);
+        toast.success("Formulário deletado com sucesso!");
+      },
+      onError: (err: Error) => {
+        toast.error(`Erro ao deletar formulário: ${err.message}`);
+      },
     },
   });
 
-  const toggleActive = useMutation({
-    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
-      const { data, error } = await (supabase as any)
+  const toggleActive = useSecureClientMutation<
+    PublicContactForm,
+    Error,
+    { id: string; is_active: boolean }
+  >({
+    mutationFn: async (client, clientId, { id, is_active }) => {
+      const { data, error: updateError } = await client
         .from("public_opportunity_forms")
         .update({ is_active })
         .eq("id", id)
+        .eq("client_id", clientId)
         .select()
         .single();
 
-      if (error) throw error;
-      return data as unknown as PublicContactForm;
+      if (updateError) throw updateError;
+      return mapRowToForm(data as Record<string, unknown>) as PublicContactForm;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["public-contact-forms"] });
-    },
-    onError: (error: Error) => {
-      toast.error(`Erro ao alterar status: ${error.message}`);
+    validateClientIdOnResult: true,
+    mutationOptions: {
+      onSuccess: () => {
+        invalidateClientQueries(queryClient, ["public-contact-forms"]);
+      },
+      onError: (err: Error) => {
+        toast.error(`Erro ao alterar status: ${err.message}`);
+      },
     },
   });
 
   return {
-    forms: forms || [],
+    forms: forms ?? [],
     isLoading,
     error,
     createForm,
@@ -239,4 +278,3 @@ export function usePublicContactForms() {
     toggleActive,
   };
 }
-

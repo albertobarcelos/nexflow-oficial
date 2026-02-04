@@ -2,14 +2,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useNotificationSettings, useUpdateNotificationSettings } from '@/hooks/useNotificationSettings';
+import { useClientStore } from '@/stores/clientStore';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function NotificationSettings() {
   const { data: settings, isLoading } = useNotificationSettings();
   const updateSettings = useUpdateNotificationSettings();
+  const currentClient = useClientStore((s) => s.currentClient);
   const [soundEffectsEnabled, setSoundEffectsEnabled] = useState(true);
+  const hasLoggedAudit = useRef(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('soundEffectsEnabled');
@@ -17,6 +20,13 @@ export function NotificationSettings() {
       setSoundEffectsEnabled(saved === 'true');
     }
   }, []);
+
+  useEffect(() => {
+    if (!hasLoggedAudit.current && currentClient?.name) {
+      hasLoggedAudit.current = true;
+      console.log(`[AUDIT] Settings (notifications) - Client: ${currentClient.name}`);
+    }
+  }, [currentClient?.name]);
 
   const handleToggle = async (field: 'notify_card_assigned' | 'notify_mentions' | 'email_notifications_enabled', value: boolean) => {
     try {

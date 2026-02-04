@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase, getCurrentClientId } from "@/lib/supabase";
+import { useClientStore } from "@/stores/clientStore";
 
 export interface NexflowUser {
   id: string;
@@ -13,9 +14,14 @@ export interface NexflowUser {
   avatarUrl?: string | null;
 }
 
+/**
+ * Usuários Nexflow do cliente atual (multi-tenant: queryKey com clientId).
+ */
 export function useNexflowUsers() {
+  const clientId = useClientStore((s) => s.currentClient?.id ?? null);
+
   return useQuery({
-    queryKey: ["nexflow", "users"],
+    queryKey: ["nexflow", "users", clientId],
     queryFn: async (): Promise<NexflowUser[]> => {
       const clientId = await getCurrentClientId();
       if (!clientId) {
@@ -59,6 +65,7 @@ export function useNexflowUsers() {
         avatarUrl: user.avatar_url,
       }));
     },
+    enabled: !!clientId,
     staleTime: 1000 * 60 * 5,
   });
 }

@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FormBuilderHeader } from "./FormBuilderHeader";
-import { FieldTypesSidebar } from "@/components/crm/flows/FieldTypesSidebar";
+import { FieldTypesSidebar, type FieldType } from "@/components/crm/flows/FieldTypesSidebar";
 import { FormPreview } from "@/components/crm/flows/FormPreview";
 import { FieldConfigurationModal } from "@/components/crm/flows/FieldConfigurationModal";
 import { StageSelector } from "@/components/crm/flows/StageSelector";
@@ -41,6 +41,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   const [localFields, setLocalFields] = useState<FieldConfiguration[]>([]);
+  const [pendingPosition, setPendingPosition] = useState<number | null>(null);
 
   const {
     stages,
@@ -58,6 +59,7 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
       setSelectedField(null);
       setConfigModalOpen(false);
       setPendingField(null);
+      setPendingPosition(null);
       setDefaultValuesConfigOpen(false);
       setFormPreviewOpen(false);
     }
@@ -132,13 +134,55 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
               <TabsContent value="initial-form" className="m-0 h-full">
                 <div className="flex h-full">
                   <FieldTypesSidebar
-                    onFieldAdd={(field) => {
-                      setPendingField(field);
+                    onFieldDragStart={(fieldType) => {
+                      setPendingPosition(null);
+                      setPendingField({
+                        id: crypto.randomUUID(),
+                        type: fieldType.id,
+                        label: fieldType.label,
+                        required: false,
+                        editableInOtherStages: true,
+                        uniqueValue: false,
+                        compactView: false,
+                        order: localFields.length,
+                      });
                       setConfigModalOpen(true);
                     }}
                   />
                   <div className="flex-1 p-6 overflow-y-auto">
-                    <FormPreview fields={localFields} />
+                    <FormPreview
+                      title={formTitle}
+                      onTitleChange={setFormTitle}
+                      fields={localFields}
+                      onFieldAdd={(fieldType, position) => {
+                        setPendingPosition(position ?? localFields.length);
+                        setPendingField({
+                          id: crypto.randomUUID(),
+                          type: fieldType.id,
+                          label: fieldType.label,
+                          required: false,
+                          editableInOtherStages: true,
+                          uniqueValue: false,
+                          compactView: false,
+                          order: position ?? localFields.length,
+                        });
+                        setConfigModalOpen(true);
+                      }}
+                      onFieldEdit={(field) => {
+                        setSelectedField(field);
+                        setPendingField(null);
+                        setPendingPosition(null);
+                        setConfigModalOpen(true);
+                      }}
+                      onFieldDelete={(fieldId) => {
+                        setLocalFields((prev) => prev.filter((f) => f.id !== fieldId));
+                        setHasUnsavedChanges(true);
+                      }}
+                      onFieldReorder={(fields) => {
+                        setLocalFields(fields);
+                        setHasUnsavedChanges(true);
+                      }}
+                    />
                   </div>
                 </div>
               </TabsContent>
@@ -149,14 +193,10 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
                     <StageSelector
                       stages={stages}
                       selectedStageId={selectedStageId}
-                      onSelectStage={setSelectedStageId}
-                      onNewStage={() => setNewStageModalOpen(true)}
-                      onEditStage={(stage) => {
-                        setSelectedStageForEdit(stage);
-                        setEditStageModalOpen(true);
-                      }}
-                      onDeleteStage={deleteStage}
+                      onStageSelect={setSelectedStageId}
+                      onCreateStage={createStage}
                       isLoading={isLoadingStages}
+                      isCreating={isCreatingStage}
                     />
                   </div>
                 </div>
@@ -279,34 +319,53 @@ export function FormBuilderModal({ open, onOpenChange, flowId, flowName }: FormB
         <FieldConfigurationModal
           open={configModalOpen}
           onOpenChange={setConfigModalOpen}
-          field={selectedField || pendingField}
+          field={selectedField ?? pendingField}
           onSave={(field) => {
-            setLocalFields((prev) => [...prev, field]);
+            if (selectedField) {
+              setLocalFields((prev) =>
+                prev.map((f) => (f.id === field.id ? field : f))
+              );
+            } else {
+              setLocalFields((prev) => {
+                const next = [...prev];
+                const at = pendingPosition ?? prev.length;
+                next.splice(at, 0, field);
+                return next;
+              });
+            }
             setConfigModalOpen(false);
             setPendingField(null);
             setSelectedField(null);
+            setPendingPosition(null);
             setHasUnsavedChanges(true);
+          }}
+          onCancel={() => {
+            setConfigModalOpen(false);
+            setPendingField(null);
+            setSelectedField(null);
+            setPendingPosition(null);
           }}
         />
 
         <DefaultValuesConfigModal
           open={defaultValuesConfigOpen}
           onOpenChange={setDefaultValuesConfigOpen}
-          fields={localFields}
+          flowId={flowId}
+          flowName={flowName}
         />
 
         <FormPreviewModal
           open={formPreviewOpen}
           onOpenChange={setFormPreviewOpen}
-          fields={localFields}
-          formTitle={formTitle}
+          flowId={flowId}
+          flowName={flowName}
         />
 
         <NewStageModal
           open={newStageModalOpen}
           onOpenChange={setNewStageModalOpen}
-          onCreate={async (name) => {
-            await createStage({ name });
+          onCreateStage={(data) => {
+            createStage(data);
             setNewStageModalOpen(false);
           }}
           isCreating={isCreatingStage}

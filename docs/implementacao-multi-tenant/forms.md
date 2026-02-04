@@ -6,18 +6,18 @@ Gerenciar formulários (forms) do CRM para o cliente atual (FormsManagementPage)
 
 ## 2. Checklist de segurança
 
-- [ ] Usar **useClientAccessGuard()** na FormsManagementPage
-- [ ] Usar **useSecureClientQuery()** / **useSecureClientMutation()** para formulários
-- [ ] Incluir **client_id** em todas as query keys de formulários
-- [ ] Validar dados retornados (formulários, campos) pertencem ao cliente
-- [ ] Log de auditoria ao acessar gestão de formulários
+- [x] Usar **useClientAccessGuard()** na FormsManagementPage
+- [x] Usar **useSecureClientQuery()** / **useSecureClientMutation()** para formulários
+- [x] Incluir **client_id** em todas as query keys de formulários
+- [x] Validar dados retornados (formulários, campos) pertencem ao cliente
+- [x] Log de auditoria ao acessar gestão de formulários
 - [ ] Testar isolamento entre clientes
 
 ## 3. Hooks utilizados
 
 | Hook | Onde está | Seguro? | Ação |
 |------|------------|--------|------|
-| usePublicContactForms | src/hooks/usePublicContactForms.ts | Parcial | Já usa client_id nas queries; padronizar queryKey com clientId e validação dupla |
+| usePublicContactForms | src/hooks/usePublicContactForms.ts | Seguro | useSecureClientQuery + useSecureClientMutation; queryKey clientId; validação dupla |
 | useCustomFields | (se usado em forms) | Parcial | Filtro por client_id e key com clientId |
 | useFields | src/hooks/useFields.ts | Parcial | Idem |
 
@@ -53,7 +53,14 @@ Gerenciar formulários (forms) do CRM para o cliente atual (FormsManagementPage)
 
 ## 6. RLS
 
-Tabelas de formulários (e campos customizados, se houver) devem ter RLS por `client_id`. Documentar; não alterar banco.
+A tabela **public_opportunity_forms** já possui RLS ativo por `client_id`:
+
+- **SELECT:** o usuário só vê registros em que existe uma linha em `core_client_users` com `id = auth.uid()` e `client_id = public_opportunity_forms.client_id`.
+- **INSERT:** permitido apenas para usuários que estejam em `core_client_users` com o mesmo `client_id` do registro inserido e com `role = 'administrator'`.
+- **UPDATE:** mesma regra que INSERT (administrador do cliente).
+- **DELETE:** mesma regra que INSERT (administrador do cliente).
+
+Nenhuma alteração de banco ou de políticas é feita pelos guias; as políticas devem ser mantidas manualmente. Tabelas de campos customizados (se usadas na página de formulários) também devem ter RLS por `client_id`.
 
 ## 7. Testes sugeridos
 

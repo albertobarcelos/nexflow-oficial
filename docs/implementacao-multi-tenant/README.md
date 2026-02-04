@@ -60,3 +60,7 @@ O arquivo [hooks.md](./hooks.md) lista os hooks do projeto que acessam dados por
 5. Log de auditoria em acessos sensíveis (ex.: `[AUDIT] Página X - Client: ...`).
 
 Nenhuma alteração no banco de dados é feita por estes guias; as políticas RLS devem estar configuradas manualmente para isolamento por `client_id`.
+
+## Problemas conhecidos
+
+- **Erro ao criar empresa (ccu.user_id):** Veja [../troubleshooting.md](../troubleshooting.md#erro-ao-criar-empresa-ccuuser_id).

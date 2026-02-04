@@ -8,8 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff, ArrowRight, RefreshCw, Trash2, Plus, Filter } from 'lucide-react';
 import { useFlowViews } from '@/hooks/useFlowViews';
 import { useAuth } from '@/hooks/useAuth';
-import { useClientStore } from '@/stores/clientStore';
-import { supabase } from '@/lib/supabase';
+import { supabase, getCurrentClientId } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +35,6 @@ interface FlowViewCardProps {
 
 export function FlowViews({ dealId, onStageChange }: FlowViewsProps) {
   const { user } = useAuth();
-  const clientId = useClientStore((s) => s.currentClient?.id) ?? null;
   const {
     dealViews,
     isLoading,
@@ -69,6 +67,7 @@ export function FlowViews({ dealId, onStageChange }: FlowViewsProps) {
   // CARREGAR FLOWS DISPONÍVEIS
   // =====================================================
   const loadAvailableFlows = async () => {
+    const clientId = await getCurrentClientId();
     if (!clientId) return;
 
     try {
@@ -134,6 +133,7 @@ export function FlowViews({ dealId, onStageChange }: FlowViewsProps) {
       alert('Selecione um flow e uma etapa');
       return;
     }
+    const clientId = await getCurrentClientId();
     if (!dealId || !clientId) {
       alert('Cliente ou deal não definido.');
       return;

@@ -6,26 +6,26 @@ Gerenciar usuários, times, unidades e itens do cliente atual (UsersPage, TeamsP
 
 ## 2. Checklist de segurança
 
-- [ ] Usar **useClientAccessGuard()** em cada página de configuração
-- [ ] Usar **useSecureClientQuery()** / **useSecureClientMutation()** onde houver dados por cliente
-- [ ] Incluir **client_id** em todas as query keys
-- [ ] Validar dados retornados pertencem ao cliente
-- [ ] Log de auditoria ao acessar configurações
+- [x] Usar **useClientAccessGuard()** em cada página de configuração
+- [x] Usar **useSecureClientQuery()** / **useSecureClientMutation()** onde houver dados por cliente
+- [x] Incluir **client_id** em todas as query keys
+- [x] Validar dados retornados pertencem ao cliente
+- [x] Log de auditoria ao acessar configurações
 - [ ] Testar isolamento entre clientes
 
 ## 3. Hooks utilizados
 
 | Hook | Onde está | Seguro? | Ação |
 |------|------------|--------|------|
-| useOrganizationUsers | src/hooks/useOrganizationUsers.ts | Parcial | QueryKey com clientId; filtro por client_id |
-| useOrganizationTeams | src/hooks/useOrganizationTeams.ts | Parcial | Idem |
-| useCompanyUsers | src/hooks/useCompanyUsers.ts | Parcial | Idem |
-| useCompanyTeams | src/hooks/useCompanyTeams.ts | Parcial | Idem |
-| useItems | src/hooks/useItems.ts | Parcial | Já usa client_id; padronizar key com clientId |
-| useUsers | src/hooks/useUsers.ts | Parcial | Idem |
-| useTeamLevels | src/hooks/useTeamLevels.ts | Parcial | Idem |
-| useTeamMemberLevels | src/hooks/useTeamMemberLevels.ts | Parcial | Idem |
-| useGlobalTeamLevels | src/hooks/useGlobalTeamLevels.ts | Parcial | Idem |
+| useOrganizationUsers | src/hooks/useOrganizationUsers.ts | Sim | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useOrganizationTeams | src/hooks/useOrganizationTeams.ts | Sim | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useCompanyUsers | src/hooks/useCompanyUsers.ts | Sim | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useCompanyTeams | src/hooks/useCompanyTeams.ts | Sim | useSecureClientQuery; queryKey com clientId; validateClientIdOnData |
+| useItems | src/hooks/useItems.ts | Sim | queryKey clientId; useSecureClientMutation em create/update/delete |
+| useUsers | src/hooks/useUsers.ts | Sim | queryKey clientId do store; validação dupla |
+| useTeamLevels | src/hooks/useTeamLevels.ts | Sim | queryKey ['team-levels', clientId, teamId]; clientId do store |
+| useTeamMemberLevels | src/hooks/useTeamMemberLevels.ts | Sim | queryKey ['team-member-levels', clientId, teamMemberId]; clientId do store |
+| useGlobalTeamLevels | src/hooks/useGlobalTeamLevels.ts | Parcial | Já usa clientId na key; garantir clientId do store nos consumidores |
 
 **Páginas cobertas:** UsersPage, TeamsPage, UnitsPage, ItemsPage (e componentes como CompanyUsersManager).
 

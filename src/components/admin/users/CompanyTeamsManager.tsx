@@ -22,7 +22,10 @@ interface CompanyTeamsManagerProps {
 export function CompanyTeamsManager({ clientId, companyName }: CompanyTeamsManagerProps) {
   const [teamToEdit, setTeamToEdit] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const { data: teams = [], isLoading } = useCompanyTeams(clientId);
+  const { data: teams = [], isLoading } = useCompanyTeams();
+  const teamToEditData = teamToEdit
+    ? teams.find((t) => t.id === teamToEdit) ?? null
+    : null;
 
   if (isLoading) {
     return (
@@ -123,7 +126,7 @@ export function CompanyTeamsManager({ clientId, companyName }: CompanyTeamsManag
           onOpenChange={(open) => {
             if (!open) setTeamToEdit(null);
           }}
-          team={teams.find((t) => t.id === teamToEdit) || null}
+          team={teamToEditData ? { ...teamToEditData, clientName: companyName } : null}
           onSuccess={() => {
             setTeamToEdit(null);
           }}

@@ -6,6 +6,7 @@ export * from './admin';
 export * from './license';
 export * from './report';
 export * from './collaborator';
+export type { EntityType, OpportunityEntityRelationship, CustomFieldValue } from './entities';
 
 export type Json =
   | string
