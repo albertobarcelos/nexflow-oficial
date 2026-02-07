@@ -123,7 +123,7 @@ export function CardSearchBar({
           className="h-9 w-9 rounded-md"
           aria-label="Abrir pesquisa"
         >
-          <Search className="h-4 w-4 text-neutral-600 dark:text-neutral-400" />
+          <Search className="h-4 w-4 text-neutral-600 " />
         </Button>
       ) : (
         <div className="relative w-64">
@@ -156,7 +156,7 @@ export function CardSearchBar({
             <button
               onClick={handleClear}
               onMouseDown={(e) => e.preventDefault()} // Prevenir blur antes do click
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 :text-neutral-300 transition-colors"
               aria-label="Limpar pesquisa"
             >
               <X className="h-4 w-4" />

@@ -224,25 +224,25 @@ export function ProcessesSidebar({
     switch (status) {
       case "completed":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800  ">
             Concluído
           </span>
         );
       case "in_progress":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-800  ">
             Em andamento
           </span>
         );
       case "pending":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800  ">
             Pendente
           </span>
         );
       case "skipped":
         return (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-800  ">
             Pulado
           </span>
         );
@@ -262,7 +262,7 @@ export function ProcessesSidebar({
   if (processesByDay.length === 0) {
     return (
       <div className="flex items-center justify-center py-8 px-4">
-        <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+        <p className="text-xs text-gray-500  text-center">
           Nenhum processo encontrado
         </p>
       </div>
@@ -276,28 +276,28 @@ export function ProcessesSidebar({
         const hasCompleted = dayProcesses.every((p) => p.status === "completed");
         
         return (
-          <div key={day} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
+          <div key={day} className="border border-gray-200  rounded-lg overflow-hidden bg-white ">
             <button
               onClick={() => toggleDay(day)}
               className={cn(
-                "w-full flex items-center justify-between px-3 py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
-                isExpanded && "border-b border-gray-200 dark:border-gray-700"
+                "w-full flex items-center justify-between px-3 py-2.5 bg-gray-50  hover:bg-gray-100 :bg-gray-700 transition-colors",
+                isExpanded && "border-b border-gray-200 "
               )}
             >
               <div className="flex items-center gap-2">
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <ChevronDown className="h-4 w-4 text-gray-500 " />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  <ChevronRight className="h-4 w-4 text-gray-500 " />
                 )}
-                <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                <h3 className="text-xs font-semibold text-gray-700  uppercase tracking-wide">
                   Dia {day}
                 </h3>
                 {hasCompleted && (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-600 " />
                 )}
               </div>
-              <span className="text-[10px] text-gray-500 dark:text-gray-400">
+              <span className="text-[10px] text-gray-500 ">
                 {dayProcesses.length} {dayProcesses.length === 1 ? "atividade" : "atividades"}
               </span>
             </button>
@@ -326,10 +326,10 @@ export function ProcessesSidebar({
                           className={cn(
                             "px-3 py-2.5 rounded-lg border transition-colors cursor-pointer",
                             isSelected
-                              ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-600 shadow-sm"
+                              ? "bg-blue-50  border-blue-500  shadow-sm"
                               : isCompleted
-                              ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800"
-                              : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600"
+                              ? "bg-green-50  border-green-200 "
+                              : "bg-white  border-gray-200  hover:border-blue-300 :border-blue-600"
                           )}
                         >
                           <div className="flex items-start gap-2.5">
@@ -337,8 +337,8 @@ export function ProcessesSidebar({
                               className={cn(
                                 "mt-0.5 shrink-0",
                                 isCompleted
-                                  ? "text-green-600 dark:text-green-400"
-                                  : "text-gray-400 dark:text-gray-500"
+                                  ? "text-green-600 "
+                                  : "text-gray-400 "
                               )}
                             >
                               {isCompleted ? (
@@ -352,14 +352,14 @@ export function ProcessesSidebar({
                                 className={cn(
                                   "text-xs font-medium leading-tight mb-1",
                                   isCompleted
-                                    ? "text-gray-500 dark:text-gray-400 line-through"
-                                    : "text-gray-900 dark:text-white"
+                                    ? "text-gray-500  line-through"
+                                    : "text-gray-900 "
                                 )}
                               >
                                 {process.stepAction?.title || "Processo sem título"}
                               </p>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                                <span className="text-[10px] text-gray-500 ">
                                   {dateStr} • {timeStr}
                                 </span>
                                 {getStatusBadge(process.status)}

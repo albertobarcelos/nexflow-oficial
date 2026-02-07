@@ -2,7 +2,6 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
-	darkMode: ["class"],
 	content: [
 		"./pages/**/*.{ts,tsx}",
 		"./components/**/*.{ts,tsx}",
@@ -68,6 +67,11 @@ export default {
 					border: "hsl(var(--sidebar-border))",
 					ring: "hsl(var(--sidebar-ring))",
 				},
+				// Dashboard CRM (HTML referência Nexflow Sales Funnel Hub)
+				"background-light": "#F3F4F6",
+				"surface-light": "#FFFFFF",
+				"border-light": "#E5E7EB",
+				"primary-orange": "#F97316",
 				// NEXSYN Brand Colors
 				nexsyn: {
 					night: "hsl(var(--nexsyn-night))",

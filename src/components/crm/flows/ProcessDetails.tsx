@@ -63,9 +63,9 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
   // Verificar se process existe
   if (!process) {
     return (
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 ">
         <div className="flex items-center justify-center h-full">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 ">
             Processo não disponível
           </p>
         </div>
@@ -186,27 +186,27 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
   };
 
   return (
-    <main className="flex-1 flex flex-col h-full w-full overflow-hidden bg-gray-50 dark:bg-gray-900 relative">
+    <main className="flex-1 flex flex-col h-full w-full overflow-hidden bg-gray-50  relative">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 px-8 py-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between z-10 flex-shrink-0">
+      <header className="bg-white  px-8 py-5 border-b border-gray-200  flex items-center justify-between z-10 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+          <div className="p-2 bg-indigo-100  text-indigo-600  rounded-lg">
             <Icon className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
+            <h2 className="text-xl font-bold text-neutral-900 ">
               {process?.stepAction?.title || "Processo sem título"}
             </h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="text-sm text-neutral-500 ">
               {getActionTypeLabel(process.stepAction?.action_type ?? null)} e Diretrizes
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+          <button className="p-2 text-neutral-400 hover:text-neutral-600 :text-neutral-200 transition-colors">
             <History className="h-5 w-5" />
           </button>
-          <button className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
+          <button className="p-2 text-neutral-400 hover:text-neutral-600 :text-neutral-200 transition-colors">
             <HelpCircle className="h-5 w-5" />
           </button>
         </div>
@@ -217,9 +217,9 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
         <div className="flex-1 overflow-y-auto custom-scrollbar p-8 w-full">
           {/* Card Informativo */}
           {description && (
-            <div className="bg-blue-50 dark:bg-neutral-800/50 border border-blue-100 dark:border-neutral-700 rounded-lg p-4 mb-6 flex gap-3">
-              <Info className="h-5 w-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-neutral-700 dark:text-neutral-300">
+            <div className="bg-blue-50  border border-blue-100  rounded-lg p-4 mb-6 flex gap-3">
+              <Info className="h-5 w-5 text-blue-500  flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-neutral-700 ">
                 <p className="font-medium mb-1">Objetivo: {description}</p>
               </div>
             </div>
@@ -227,9 +227,9 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* Script Template */}
           {scriptTemplate && (
-            <article className="prose prose-neutral dark:prose-invert max-w-none">
+            <article className="prose prose-neutral  max-w-none">
               <div
-                className="text-base text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed"
+                className="text-base text-neutral-800  whitespace-pre-wrap leading-relaxed"
                 dangerouslySetInnerHTML={{
                   __html: processedScript
                     .split("\n")
@@ -237,7 +237,7 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
                       // Destacar variáveis não substituídas (ainda com [])
                       const highlighted = line.replace(
                         /\[([^\]]+)\]/g,
-                        '<span class="bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-200 text-yellow-800 px-1 py-0.5 rounded font-mono text-sm border border-yellow-200 dark:border-yellow-800">[$1]</span>'
+                        '<span class="bg-yellow-100   text-yellow-800 px-1 py-0.5 rounded font-mono text-sm border border-yellow-200 ">[$1]</span>'
                       );
                       return highlighted;
                     })
@@ -248,8 +248,8 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
           )}
           
           {!scriptTemplate && (
-            <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-6 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+            <div className="rounded-xl border border-dashed border-gray-300  bg-gray-50  p-6 text-center">
+              <p className="text-sm text-gray-500 ">
                 Nenhum script configurado para este processo
               </p>
             </div>
@@ -257,11 +257,11 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* Alertas de Ação */}
           {process?.stepAction?.is_required && (
-            <div className="my-6 p-4 bg-orange-50 dark:bg-orange-900/10 border-l-4 border-orange-400 rounded-r-md">
-              <p className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wide mb-1">
+            <div className="my-6 p-4 bg-orange-50  border-l-4 border-orange-400 rounded-r-md">
+              <p className="text-xs font-bold text-orange-600  uppercase tracking-wide mb-1">
                 Ação Requerida
               </p>
-              <p className="text-sm font-medium text-orange-900 dark:text-orange-100 italic">
+              <p className="text-sm font-medium text-orange-900  italic">
                 Este processo é obrigatório para avançar no fluxo
               </p>
             </div>
@@ -269,11 +269,11 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* Métrica de Sucesso */}
           {isCompleted && (
-            <div className="my-6 p-4 bg-green-50 dark:bg-green-900/10 border-l-4 border-green-500 rounded-r-md">
-              <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wide mb-1">
+            <div className="my-6 p-4 bg-green-50  border-l-4 border-green-500 rounded-r-md">
+              <p className="text-xs font-bold text-green-600  uppercase tracking-wide mb-1">
                 Processo Concluído
               </p>
-              <p className="text-sm font-medium text-green-900 dark:text-green-100 italic">
+              <p className="text-sm font-medium text-green-900  italic">
                 Este processo foi concluído com sucesso
               </p>
             </div>
@@ -284,33 +284,33 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
         {/* Sidebar Direita */}
         <div className={cn(
-          "w-80 flex-shrink-0 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto custom-scrollbar p-6",
+          "w-80 flex-shrink-0 bg-white  border-l border-gray-200  overflow-y-auto custom-scrollbar p-6",
           !isCompleted && "pb-28"
         )}>
           {/* Task Variables */}
           <div className="mb-8">
-            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-neutral-400  uppercase tracking-wider mb-4">
               Variáveis da Tarefa
             </h3>
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                <label className="block text-sm font-medium text-neutral-700  mb-1">
                   Nome do Produto
                 </label>
                 <Input
                   value={taskVariables.product_name || ""}
                   onChange={(e) => handleVariableChange("product_name", e.target.value)}
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
+                  className="w-full bg-white  border border-gray-200  rounded px-3 py-2 text-sm text-neutral-800  focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
+                <label className="block text-sm font-medium text-neutral-700  mb-1">
                   Nome do Cliente
                 </label>
                 <Input
                   value={taskVariables.client_name || ""}
                   onChange={(e) => handleVariableChange("client_name", e.target.value)}
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
+                  className="w-full bg-white  border border-gray-200  rounded px-3 py-2 text-sm text-neutral-800  focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
                 />
               </div>
             </div>
@@ -318,20 +318,20 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* Linked Notes */}
           <div className="mb-8">
-            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4">
+            <h3 className="text-sm font-semibold text-neutral-400  uppercase tracking-wider mb-4">
               Notas Vinculadas
             </h3>
-            <div className="bg-neutral-50 dark:bg-neutral-800/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="bg-neutral-50  p-3 rounded-lg border border-gray-200 ">
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 text-sm text-neutral-700 dark:text-neutral-300 resize-y min-h-[80px]"
+                className="w-full bg-transparent border-none focus:ring-0 text-sm text-neutral-700  resize-y min-h-[80px]"
                 placeholder="Adicione notas relacionadas a esta tarefa..."
               />
               <div className="flex justify-end mt-2">
                 <button
                   onClick={handleSaveNotes}
-                  className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                  className="text-indigo-600  text-sm font-medium hover:text-indigo-700 :text-indigo-300 transition-colors"
                 >
                   Salvar Nota
                 </button>
@@ -341,15 +341,15 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
           {/* To-Do List */}
           <div>
-            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-neutral-400  uppercase tracking-wider mb-4 flex items-center justify-between">
               Lista de Tarefas
-              <button className="text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+              <button className="text-neutral-400 hover:text-indigo-600 :text-indigo-400 transition-colors">
                 <Plus className="h-4 w-4" />
               </button>
             </h3>
             <div className="space-y-3">
               {todoItems.length === 0 ? (
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
+                <p className="text-sm text-neutral-500  text-center py-4">
                   Nenhuma tarefa adicionada
                 </p>
               ) : (
@@ -357,12 +357,12 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
                   <div key={index} className="flex items-start">
                     <input
                       type="checkbox"
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 dark:bg-neutral-700 dark:border-neutral-600 h-4 w-4 mt-1"
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600   h-4 w-4 mt-1"
                       id={`todo-${index}`}
                     />
                     <label
                       htmlFor={`todo-${index}`}
-                      className="ml-2 text-sm text-neutral-700 dark:text-neutral-300 flex-1"
+                      className="ml-2 text-sm text-neutral-700  flex-1"
                     >
                       {item}
                     </label>
@@ -379,7 +379,7 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
 
       {/* Footer com Ações */}
       {!isCompleted && (
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 shadow-lg flex items-center gap-4 z-20">
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-white  border-t border-gray-200  p-4 shadow-lg flex items-center gap-4 z-20">
           <Button
             onClick={handleComplete}
             disabled={isCompletingProcess || isCompleting}
@@ -397,13 +397,13 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
               </>
             )}
           </Button>
-          <button className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
+          <button className="text-neutral-500 hover:text-neutral-800  :text-neutral-200 p-2 rounded-full hover:bg-neutral-100 :bg-neutral-700 transition-colors">
             <History className="h-5 w-5" />
           </button>
-          <div className="h-6 w-px bg-neutral-300 dark:bg-neutral-600 mx-1"></div>
+          <div className="h-6 w-px bg-neutral-300  mx-1"></div>
           <button
             onClick={handleMarkAsFailed}
-            className="text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400 text-sm font-medium px-3 py-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            className="text-neutral-500 hover:text-red-500  :text-red-400 text-sm font-medium px-3 py-2 rounded hover:bg-red-50 :bg-red-900/20 transition-colors"
           >
             Marcar como Falhado
           </button>

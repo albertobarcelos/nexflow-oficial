@@ -44,10 +44,10 @@ export function ContactFlowChart({ data, isLoading }: ContactFlowChartProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardTitle className="text-lg font-semibold text-gray-900 ">
               Fluxo de Oportunidades
             </CardTitle>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-500  mt-1">
               Desempenho de criação vs conclusão
             </p>
           </div>
@@ -65,7 +65,7 @@ export function ContactFlowChart({ data, isLoading }: ContactFlowChartProps) {
         <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis 
                 dataKey="label" 
                 stroke="#6b7280"
@@ -83,7 +83,6 @@ export function ContactFlowChart({ data, isLoading }: ContactFlowChartProps) {
                   border: '1px solid #e5e7eb',
                   borderRadius: '0.5rem',
                 }}
-                className="dark:bg-gray-800 dark:border-gray-700"
               />
               <Legend 
                 wrapperStyle={{ paddingTop: '20px' }}

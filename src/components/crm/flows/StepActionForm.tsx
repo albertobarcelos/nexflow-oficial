@@ -142,10 +142,10 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
 
   if (!action && !formData.title) {
     return (
-      <div className="flex-1 flex flex-col h-full overflow-hidden bg-neutral-50 dark:bg-neutral-900 relative">
+      <div className="flex-1 flex flex-col h-full overflow-hidden bg-neutral-50  relative">
         <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
           <div className="text-center py-12">
-            <p className="text-neutral-500 dark:text-neutral-400">
+            <p className="text-neutral-500 ">
               Selecione uma ação da lista ou crie uma nova
             </p>
           </div>
@@ -155,14 +155,14 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-neutral-50 dark:bg-neutral-900 relative">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-neutral-50  relative">
       <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full">
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-neutral-800 dark:text-neutral-200">
+          <h2 className="text-lg font-semibold text-neutral-800 ">
             Configuração da Etapa
           </h2>
           {action && (
-            <span className="text-xs text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded">
+            <span className="text-xs text-neutral-500 bg-neutral-100  px-2 py-1 rounded">
               ID: {action.id.substring(0, 8).toUpperCase()}
             </span>
           )}
@@ -171,10 +171,10 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-20">
           <div className="lg:col-span-2 space-y-6">
             {/* Informações Básicas */}
-            <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 shadow-sm">
+            <div className="bg-white  border border-neutral-200  rounded-xl p-5 shadow-sm">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="col-span-1 md:col-span-2">
-                  <Label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                  <Label className="block text-sm font-medium text-neutral-700  mb-1.5">
                     Título da Etapa
                   </Label>
                   <Input
@@ -183,12 +183,12 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                       setFormData({ ...formData, title: e.target.value })
                     }
                     placeholder="Digite o título da etapa..."
-                    className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2.5 text-sm"
+                    className="w-full bg-neutral-50  border border-neutral-200  rounded-lg px-3 py-2.5 text-sm"
                   />
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                  <Label className="block text-sm font-medium text-neutral-700  mb-1.5">
                     Dia Agendado
                   </Label>
                   <div className="flex items-center gap-2">
@@ -202,17 +202,17 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                           dayOffset: parseInt(e.target.value) || 1,
                         })
                       }
-                      className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2.5 text-sm"
+                      className="w-full bg-neutral-50  border border-neutral-200  rounded-lg px-3 py-2.5 text-sm"
                       placeholder="1"
                     />
-                    <span className="text-neutral-500 dark:text-neutral-400 text-sm whitespace-nowrap">
+                    <span className="text-neutral-500  text-sm whitespace-nowrap">
                       dia(s)
                     </span>
                   </div>
                 </div>
 
                 <div>
-                  <Label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                  <Label className="block text-sm font-medium text-neutral-700  mb-1.5">
                     Tipo de Ação
                   </Label>
                   <Select
@@ -224,7 +224,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                       })
                     }
                   >
-                    <SelectTrigger className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2.5 text-sm">
+                    <SelectTrigger className="w-full bg-neutral-50  border border-neutral-200  rounded-lg px-3 py-2.5 text-sm">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -240,7 +240,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
 
                 {formData.actionType === "email" && (
                   <div className="col-span-1 md:col-span-2">
-                    <Label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1.5">
+                    <Label className="block text-sm font-medium text-neutral-700  mb-1.5">
                       Assunto do E-mail
                     </Label>
                     <Input
@@ -249,7 +249,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                         setFormData({ ...formData, title: e.target.value })
                       }
                       placeholder="Digite o assunto do e-mail..."
-                      className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-lg px-3 py-2.5 text-sm"
+                      className="w-full bg-neutral-50  border border-neutral-200  rounded-lg px-3 py-2.5 text-sm"
                     />
                   </div>
                 )}
@@ -258,33 +258,33 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
 
             {/* Script Template */}
             {requiresScriptTemplate && (
-              <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[400px]">
-                <div className="bg-neutral-50 dark:bg-neutral-800/50 border-b border-neutral-200 dark:border-neutral-700 px-4 py-2 flex items-center gap-2 flex-wrap">
+              <div className="bg-white  border border-neutral-200  rounded-xl shadow-sm flex flex-col overflow-hidden min-h-[400px]">
+                <div className="bg-neutral-50  border-b border-neutral-200  px-4 py-2 flex items-center gap-2 flex-wrap">
                   <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide mr-2">
                     Modelo de Script
                   </span>
-                  <div className="h-4 w-px bg-neutral-300 dark:bg-neutral-600 mx-1"></div>
+                  <div className="h-4 w-px bg-neutral-300  mx-1"></div>
                   <button
-                    className="p-1.5 text-neutral-500 hover:text-neutral-800 dark:hover:text-white rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                    className="p-1.5 text-neutral-500 hover:text-neutral-800 :text-white rounded hover:bg-neutral-200 :bg-neutral-700"
                     title="Negrito"
                   >
                     <Bold className="h-4 w-4" />
                   </button>
                   <button
-                    className="p-1.5 text-neutral-500 hover:text-neutral-800 dark:hover:text-white rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                    className="p-1.5 text-neutral-500 hover:text-neutral-800 :text-white rounded hover:bg-neutral-200 :bg-neutral-700"
                     title="Itálico"
                   >
                     <Italic className="h-4 w-4" />
                   </button>
                   <button
-                    className="p-1.5 text-neutral-500 hover:text-neutral-800 dark:hover:text-white rounded hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                    className="p-1.5 text-neutral-500 hover:text-neutral-800 :text-white rounded hover:bg-neutral-200 :bg-neutral-700"
                     title="Lista"
                   >
                     <List className="h-4 w-4" />
                   </button>
-                  <div className="h-4 w-px bg-neutral-300 dark:bg-neutral-600 mx-1"></div>
+                  <div className="h-4 w-px bg-neutral-300  mx-1"></div>
                   <button
-                    className="flex items-center gap-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-900/20 text-primary text-xs font-medium rounded hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                    className="flex items-center gap-1 px-2 py-1 bg-indigo-50  text-primary text-xs font-medium rounded hover:bg-indigo-100 :bg-indigo-900/40 transition-colors"
                     onClick={() => {
                       const vars = ["contact_name", "agent_name", "company_name"];
                       // Por enquanto, inserir o primeiro
@@ -306,10 +306,10 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                       })
                     }
                     placeholder="Digite seu script ou diretrizes aqui..."
-                    className="w-full h-full resize-none border-none bg-transparent focus:ring-0 text-neutral-700 dark:text-neutral-300 text-sm leading-relaxed min-h-[300px]"
+                    className="w-full h-full resize-none border-none bg-transparent focus:ring-0 text-neutral-700  text-sm leading-relaxed min-h-[300px]"
                   />
                 </div>
-                <div className="bg-neutral-50 dark:bg-neutral-800/50 border-t border-neutral-200 dark:border-neutral-700 px-4 py-2 text-xs text-neutral-500 flex justify-between">
+                <div className="bg-neutral-50  border-t border-neutral-200  px-4 py-2 text-xs text-neutral-500 flex justify-between">
                   <span>Markdown suportado</span>
                   <span>
                     {formData.scriptTemplate.split(/\s+/).filter(Boolean).length}{" "}
@@ -323,12 +323,12 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
             {/* Sidebar Options */}
           <div className="space-y-6">
             {/* Step Options */}
-            <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 shadow-sm space-y-4">
-              <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+            <div className="bg-white  border border-neutral-200  rounded-xl p-5 shadow-sm space-y-4">
+              <h3 className="text-sm font-semibold text-neutral-800 ">
                 Opções da Etapa
               </h3>
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-sm text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-200">
+                <span className="text-sm text-neutral-600  group-hover:text-neutral-900 :text-neutral-200">
                   Permitir Notas
                 </span>
                 <Switch
@@ -338,9 +338,9 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                   }
                 />
               </label>
-              <div className="h-px bg-neutral-100 dark:bg-neutral-700"></div>
+              <div className="h-px bg-neutral-100 "></div>
               <label className="flex items-center justify-between cursor-pointer group">
-                <span className="text-sm text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-200">
+                <span className="text-sm text-neutral-600  group-hover:text-neutral-900 :text-neutral-200">
                   Conclusão Obrigatória
                 </span>
                 <Switch
@@ -363,7 +363,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
         </div>
 
         {/* Save Button */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 border-t border-neutral-200 dark:border-neutral-700 p-4 flex justify-end gap-3 z-10">
+        <div className="fixed bottom-0 left-0 right-0 bg-white  border-t border-neutral-200  p-4 flex justify-end gap-3 z-10">
           <Button
             variant="outline"
             onClick={() => {

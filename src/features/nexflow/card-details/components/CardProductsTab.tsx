@@ -344,7 +344,7 @@ export function CardProductsTab({
   if (!card || card.cardType !== "finance") {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-500 ">
           Esta seção está disponível apenas para cards financeiros.
         </p>
       </div>
@@ -354,10 +354,10 @@ export function CardProductsTab({
   return (
     <div className="space-y-6">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <h2 className="text-xl font-semibold text-gray-900 ">
           Produtos e Valores
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-sm text-gray-500  mt-1">
           Gerencie os produtos vinculados a este card e adicione modulagens quando necessário.
         </p>
       </div>
@@ -372,10 +372,10 @@ export function CardProductsTab({
           return (
             <div
               key={field.id}
-              className="p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700"
+              className="p-5 bg-gray-50  rounded-xl border border-gray-200 "
             >
               <div className="flex items-start justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-sm font-semibold text-gray-900 ">
                   Produto {index + 1}
                 </h3>
                 {fields.length > 1 && (
@@ -385,7 +385,7 @@ export function CardProductsTab({
                     size="sm"
                     onClick={() => handleRemoveProduct(index)}
                     disabled={isDisabled}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 :bg-red-900/20"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -395,7 +395,7 @@ export function CardProductsTab({
               <div className="space-y-4">
                 {/* Seleção de Produto */}
                 <div>
-                  <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Label className="block text-sm font-medium text-gray-700  mb-2">
                     Produto
                   </Label>
                   <Select
@@ -408,15 +408,15 @@ export function CardProductsTab({
                     </SelectTrigger>
                     <SelectContent>
                       {isLoadingItems ? (
-                        <div className="py-2 px-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                        <div className="py-2 px-3 text-sm text-gray-500  text-center">
                           Carregando produtos...
                         </div>
                       ) : itemsError ? (
-                        <div className="py-2 px-3 text-sm text-red-500 dark:text-red-400 text-center">
+                        <div className="py-2 px-3 text-sm text-red-500  text-center">
                           Erro ao carregar produtos
                         </div>
                       ) : activeItems.length === 0 ? (
-                        <div className="py-2 px-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                        <div className="py-2 px-3 text-sm text-gray-500  text-center">
                           Nenhum produto disponível
                         </div>
                       ) : (
@@ -424,7 +424,7 @@ export function CardProductsTab({
                           <SelectItem key={item.id} value={item.id}>
                             {item.name}
                             {item.price !== null && item.price !== undefined && (
-                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                              <span className="ml-2 text-xs text-gray-500 ">
                                 (R$ {item.price.toFixed(2).replace(".", ",")})
                               </span>
                             )}
@@ -437,11 +437,11 @@ export function CardProductsTab({
 
                 {/* Valor do Produto */}
                 <div>
-                  <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Label className="block text-sm font-medium text-gray-700  mb-2">
                     Valor do Produto
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 ">
                       R$
                     </span>
                     <Input
@@ -469,12 +469,12 @@ export function CardProductsTab({
                 </div>
 
                 {/* Toggle Modulagem */}
-                <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-between p-3 bg-white  rounded-lg border border-gray-200 ">
                   <div className="flex flex-col">
-                    <Label className="text-sm font-medium text-gray-900 dark:text-white">
+                    <Label className="text-sm font-medium text-gray-900 ">
                       Modulagem
                     </Label>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-gray-500 ">
                       Adicione campos extras ao produto
                     </span>
                   </div>
@@ -487,9 +487,9 @@ export function CardProductsTab({
 
                 {/* Campos de Modulagem */}
                 {isModularEnabled && (
-                  <div className="space-y-3 p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <div className="space-y-3 p-4 bg-white  rounded-lg border border-gray-200 ">
                     <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-900 dark:text-white">
+                      <Label className="text-sm font-medium text-gray-900 ">
                         Campos de Modulagem
                       </Label>
                       <Button
@@ -509,7 +509,7 @@ export function CardProductsTab({
                         {product.modularFields.map((modularField, fieldIndex) => (
                           <div
                             key={modularField.id}
-                            className="flex gap-2 items-start p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                            className="flex gap-2 items-start p-3 bg-gray-50  rounded-lg"
                           >
                             <div className="flex-1 space-y-2">
                               <Input
@@ -536,7 +536,7 @@ export function CardProductsTab({
                                 className="text-sm"
                               />
                               <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500  text-sm">
                                   R$
                                 </span>
                                 <Input
@@ -573,7 +573,7 @@ export function CardProductsTab({
                               size="sm"
                               onClick={() => handleRemoveModularField(index, fieldIndex)}
                               disabled={isDisabled}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 :bg-red-900/20"
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -581,7 +581,7 @@ export function CardProductsTab({
                         ))}
                       </div>
                     ) : (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
+                      <p className="text-xs text-gray-500  text-center py-2">
                         Nenhum campo de modulagem adicionado. Clique em "Adicionar Campo" para começar.
                       </p>
                     )}
@@ -589,12 +589,12 @@ export function CardProductsTab({
                 )}
 
                 {/* Valor Total do Produto */}
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="p-3 bg-blue-50  rounded-lg border border-blue-200 ">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <span className="text-sm font-semibold text-gray-900 ">
                       Valor Total do Produto:
                     </span>
-                    <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    <span className="text-lg font-bold text-blue-600 ">
                       R$ {product?.totalValue?.toFixed(2).replace(".", ",") || "0,00"}
                     </span>
                   </div>
@@ -619,12 +619,12 @@ export function CardProductsTab({
 
       {/* Valor Total Geral */}
       {fields.length > 0 && (
-        <div className="p-5 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800">
+        <div className="p-5 bg-green-50  rounded-xl border border-green-200 ">
           <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold text-gray-900 dark:text-white">
+            <span className="text-lg font-semibold text-gray-900 ">
               Valor Total Geral:
             </span>
-            <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <span className="text-2xl font-bold text-green-600 ">
               R$ {totalValue.toFixed(2).replace(".", ",")}
             </span>
           </div>

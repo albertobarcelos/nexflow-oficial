@@ -94,8 +94,8 @@ export function StepHistoryCards({
       ))}
       {/* Indicador de início do fluxo */}
       <div className="relative pl-8 pb-4">
-        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full border-2 border-slate-300 dark:border-slate-600 bg-transparent" />
-        <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase">
+        <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full border-2 border-slate-300  bg-transparent" />
+        <span className="text-[10px] font-bold text-slate-300  uppercase">
           Início do Fluxo
         </span>
       </div>

@@ -5,7 +5,6 @@ import {
   Users,
   Handshake,
   DollarSign,
-  Search,
   Bell,
   LogOut,
   User,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +33,7 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { useHuntersAccess } from "@/hooks/useHuntersAccess";
 import { useOpportunitiesAccess } from "@/hooks/useOpportunitiesAccess";
 import { NotificationBell } from "@/components/crm/notifications/NotificationBell";
+import { GlobalSearchBar } from "@/components/crm/sidebar/GlobalSearchBar";
 import { Logo } from "@/components/ui/logo";
 // AIDEV-NOTE: Removido useEntities - sistema simplificado sem entidades dinâmicas
 
@@ -169,14 +168,7 @@ export function Sidebar() {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar..."
-            className="w-64 pl-8 text-foreground placeholder:text-muted-foreground"
-          />
-        </div>
+        <GlobalSearchBar />
 
         <NotificationBell />
 

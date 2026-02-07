@@ -1,6 +1,6 @@
 import { ChartConfig } from "./types";
 
-const THEMES = { light: "", dark: ".dark" } as const;
+const THEMES = { light: "" } as const;
 
 export function ChartStyle({ id, config }: { id: string; config: ChartConfig }) {
   const colorConfig = Object.entries(config).filter(

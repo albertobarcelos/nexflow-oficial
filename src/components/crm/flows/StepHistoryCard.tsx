@@ -54,10 +54,10 @@ function formatFieldValue(value: unknown, fieldType: string): string {
 export function StepHistoryCard({ step, isCurrent = false, isLast = false }: StepHistoryCardProps) {
   const lineColor = isCurrent 
     ? "bg-indigo-500" 
-    : "bg-slate-200 dark:bg-slate-700";
+    : "bg-slate-200 ";
   
   const circleColor = isCurrent
-    ? "bg-indigo-500 ring-4 ring-indigo-100 dark:ring-indigo-900/30"
+    ? "bg-indigo-500 ring-4 ring-indigo-100 "
     : "bg-slate-400";
 
   return (
@@ -80,10 +80,10 @@ export function StepHistoryCard({ step, isCurrent = false, isLast = false }: Ste
       {/* Card/Accordion */}
       {isCurrent ? (
         // Etapa atual - sempre visível, sem accordion
-        <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
-          <h3 className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-2">ETAPA ATUAL</h3>
+        <div className="bg-white  p-3 rounded-xl border border-indigo-100  shadow-sm">
+          <h3 className="text-xs font-bold text-indigo-600  mb-2">ETAPA ATUAL</h3>
           <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            <span className="text-sm font-semibold text-slate-700 ">
               {step.step_name}
             </span>
             <span className="text-[10px] text-slate-400">
@@ -95,19 +95,19 @@ export function StepHistoryCard({ step, isCurrent = false, isLast = false }: Ste
         </div>
       ) : (
         // Etapas históricas - formato accordion
-        <details className="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
+        <details className="group bg-white  rounded-xl border border-slate-200  shadow-sm transition-all">
           <summary className="list-none cursor-pointer p-3 flex justify-between items-center">
             <div>
               <span className="text-xs font-bold text-slate-400 mb-1 block uppercase">
                 Etapa {step.step_position}
               </span>
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              <span className="text-sm font-semibold text-slate-700 ">
                 {step.step_name}
               </span>
             </div>
             <ChevronDown className="h-4 w-4 text-slate-400 group-open:rotate-180 transition-transform" />
           </summary>
-          <div className="px-3 pb-3 pt-1 border-t border-slate-50 dark:border-slate-700/50 space-y-3">
+          <div className="px-3 pb-3 pt-1 border-t border-slate-50  space-y-3">
             {step.fields.length === 0 ? (
               <p className="text-[10px] text-slate-400 italic">Campos preenchidos nesta etapa...</p>
             ) : (
@@ -116,7 +116,7 @@ export function StepHistoryCard({ step, isCurrent = false, isLast = false }: Ste
                   <label className="text-[10px] font-medium text-slate-400 block mb-1">
                     {field.label}
                   </label>
-                  <p className="text-xs text-slate-600 dark:text-slate-300">
+                  <p className="text-xs text-slate-600 ">
                     {formatFieldValue(field.value, field.field_type)}
                   </p>
                 </div>

@@ -56,57 +56,6 @@
     --nexsyn-pear: 66 70% 49%; /* Pear #C9D921 */
   }
 
-  .dark {
-    /* NEXSYN Brand Colors - Dark Theme */
-    --background: 240 8% 7%; /* Night #100F13 */
-    --foreground: 180 20% 95%; /* Anti-flash White #F1F5F5 */
-
-    --card: 210 94% 7%; /* Rich Black #011123 */
-    --card-foreground: 180 20% 95%; /* Anti-flash White #F1F5F5 */
-
-    --popover: 210 94% 7%;
-    --popover-foreground: 180 20% 95%;
-
-    --primary: 25 100% 50%; /* Pumpkin #FF6F00 */
-    --primary-foreground: 0 0% 100%; /* White for contrast */
-
-    --secondary: 210 70% 45%; /* Celtic Blue #246BC2 */
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 240 8% 12%;
-    --muted-foreground: 180 20% 75%;
-
-    --accent: 25 100% 60%; /* Slightly lighter Pumpkin for dark theme */
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62.8% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 240 8% 15%;
-    --input: 240 8% 15%;
-    --ring: 25 100% 50%; /* Pumpkin #FF6F00 */
-
-    --sidebar-background: 210 94% 7%; /* Rich Black #011123 */
-    --sidebar-foreground: 180 20% 95%; /* Anti-flash White #F1F5F5 */
-    --sidebar-primary: 25 100% 50%; /* Pumpkin #FF6F00 */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 8% 12%;
-    --sidebar-accent-foreground: 180 20% 95%;
-    --sidebar-border: 240 8% 15%;
-    --sidebar-ring: 25 100% 50%;
-
-    /* NEXSYN Custom Color Variables (same in dark theme) */
-    --nexsyn-night: 240 8% 7%; /* Night #100F13 */
-    --nexsyn-pumpkin: 25 100% 50%; /* Pumpkin #FF6F00 */
-    --nexsyn-anti-flash-white: 180 20% 95%; /* Anti-flash White #F1F5F5 */
-    --nexsyn-rich-black: 210 94% 7%; /* Rich Black #011123 */
-    --nexsyn-celtic-blue: 210 70% 45%; /* Celtic Blue #246BC2 */
-    --nexsyn-oxford-blue: 210 100% 14%; /* Oxford Blue #002147 */
-    --nexsyn-sandy-brown: 25 100% 70%; /* Sandy Brown #FFA865 */
-    --nexsyn-mindaro: 66 60% 73%; /* Mindaro #DDE78B */
-    --nexsyn-pear: 66 70% 49%; /* Pear #C9D921 */
-  }
-
   * {
     @apply border-border;
   }
@@ -127,14 +76,6 @@
 
   ::-webkit-scrollbar-thumb {
     @apply bg-muted rounded-full hover:bg-muted-foreground/50 transition-colors;
-  }
-
-  .dark ::-webkit-scrollbar-track {
-    @apply bg-background;
-  }
-
-  .dark ::-webkit-scrollbar-thumb {
-    @apply bg-muted hover:bg-muted-foreground/50;
   }
 
   /* Hide scrollbar for Chrome, Safari and Opera */
@@ -163,10 +104,6 @@
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: #d4d4d4;
     border-radius: 20px;
-  }
-
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: #525252;
   }
 }
 

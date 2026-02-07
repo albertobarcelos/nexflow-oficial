@@ -69,7 +69,7 @@ export function ListView({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-neutral-100 dark:bg-neutral-800 text-left text-xs uppercase tracking-wide text-neutral-500">
+                  <tr className="bg-neutral-100  text-left text-xs uppercase tracking-wide text-neutral-500">
                     <th className="px-3 py-2 min-w-[200px] max-w-[300px]">Título</th>
                     <th className="px-3 py-2 min-w-[120px] max-w-[180px]">Etapa</th>
                     <th className="px-3 py-2 min-w-[150px] max-w-[200px]">Tags</th>
@@ -93,15 +93,15 @@ export function ListView({
                     return (
                       <tr
                         key={card.id}
-                        className="border-b border-neutral-100 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 cursor-pointer transition-colors"
+                        className="border-b border-neutral-100  hover:bg-neutral-50 :bg-neutral-800/50 cursor-pointer transition-colors"
                         onClick={() => onCardClick(card)}
                       >
-                        <td className="px-3 py-3 font-medium text-neutral-800 dark:text-neutral-100">
+                        <td className="px-3 py-3 font-medium text-neutral-800 ">
                           <div className="max-w-[300px] truncate" title={card.title}>
                             {card.title}
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-neutral-500 dark:text-neutral-400">
+                        <td className="px-3 py-3 text-neutral-500 ">
                           <div className="max-w-[180px] truncate" title={step?.title ?? "Etapa"}>
                             {step?.title ?? "Etapa"}
                           </div>
@@ -128,7 +128,7 @@ export function ListView({
                                     size="sm"
                                   />
                                 </div>
-                                <span className="text-xs text-neutral-600 dark:text-neutral-300 truncate" title={`${assignedUser.name} ${assignedUser.surname}`}>
+                                <span className="text-xs text-neutral-600  truncate" title={`${assignedUser.name} ${assignedUser.surname}`}>
                                   {assignedUser.name.split(" ")[0]} {assignedUser.surname.split(" ")[0]}
                                 </span>
                               </div>
@@ -143,7 +143,7 @@ export function ListView({
                                     size="sm"
                                   />
                                 </div>
-                                <span className="text-xs text-neutral-600 dark:text-neutral-300 truncate" title={assignedTeam.name}>
+                                <span className="text-xs text-neutral-600  truncate" title={assignedTeam.name}>
                                   {assignedTeam.name}
                                 </span>
                               </div>
@@ -155,17 +155,17 @@ export function ListView({
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             {card.status === "completed" && (
-                              <span className="bg-green-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white dark:border-gray-800">
+                              <span className="bg-green-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white ">
                                 Concluído
                               </span>
                             )}
                             {card.status === "canceled" && (
-                              <span className="bg-red-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white dark:border-gray-800">
+                              <span className="bg-red-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white ">
                                 Cancelado
                               </span>
                             )}
                             {isFrozenCard && (
-                              <span className="bg-blue-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white dark:border-gray-800">
+                              <span className="bg-blue-500 text-white rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap border-2 border-white ">
                                 Congelado
                               </span>
                             )}
@@ -174,7 +174,7 @@ export function ListView({
                             )}
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-neutral-400 dark:text-neutral-500 text-xs whitespace-nowrap">
+                        <td className="px-3 py-3 text-neutral-400  text-xs whitespace-nowrap">
                           <div>
                             {createdAt.toLocaleDateString("pt-BR", {
                               day: "2-digit",
@@ -195,8 +195,8 @@ export function ListView({
                 </tbody>
               </table>
             </div>
-            <div className="mt-4 px-6 pb-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-neutral-200 dark:border-neutral-800 pt-4">
-              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+            <div className="mt-4 px-6 pb-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-neutral-200  pt-4">
+              <div className="text-sm text-neutral-500 ">
                 Mostrando {startIndex + 1} a {Math.min(endIndex, cards.length)} de {cards.length} {cards.length === 1 ? "resultado" : "resultados"}
                 {hasNextPage && (
                   <span className="ml-2 text-xs text-neutral-400">

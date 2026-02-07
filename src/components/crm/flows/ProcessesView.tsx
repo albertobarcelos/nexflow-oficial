@@ -153,7 +153,7 @@ export function ProcessesView({ card, steps }: ProcessesViewProps) {
   if (!card) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <p className="text-sm text-gray-500 ">
           Nenhum card selecionado
         </p>
       </div>
@@ -183,10 +183,10 @@ export function ProcessesView({ card, steps }: ProcessesViewProps) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-sm text-red-500 dark:text-red-400 mb-2">
+          <p className="text-sm text-red-500  mb-2">
             Erro ao carregar processos
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-gray-500 ">
             {cardStepActionsError?.message || stepActionsError?.message || "Erro desconhecido"}
           </p>
         </div>
@@ -198,11 +198,11 @@ export function ProcessesView({ card, steps }: ProcessesViewProps) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500 ">
             Nenhum processo encontrado para este card
           </p>
           {card?.id && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+            <p className="text-xs text-gray-400  mt-1">
               Card ID: {card.id}
             </p>
           )}
@@ -212,7 +212,7 @@ export function ProcessesView({ card, steps }: ProcessesViewProps) {
   }
 
   return (
-    <div className="flex h-full overflow-hidden bg-white dark:bg-gray-900">
+    <div className="flex h-full overflow-hidden bg-white ">
       {/* Sidebar esquerda com Day e Activity */}
       <ProcessTimeline
         processes={processesWithActions}
@@ -225,8 +225,8 @@ export function ProcessesView({ card, steps }: ProcessesViewProps) {
       {selectedProcess && card ? (
         <ProcessDetails process={selectedProcess} card={card} />
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex-1 flex items-center justify-center bg-gray-50 ">
+          <p className="text-sm text-gray-500 ">
             Selecione um processo para visualizar os detalhes
           </p>
         </div>

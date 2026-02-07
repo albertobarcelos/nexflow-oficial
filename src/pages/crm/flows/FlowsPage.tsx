@@ -27,16 +27,7 @@ export function FlowsPage() {
   const { flows, isLoading, deleteFlow } = useNexflowFlows();
   const { permissions } = useFlowPermissions();
 
-  if (!hasAccess) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center text-destructive">
-          <p className="font-medium">Sem acesso aos flows</p>
-          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
-        </div>
-      </div>
-    );
-  }
+  // Hooks devem ser chamados incondicionalmente antes de qualquer return
   const [selectedFlow, setSelectedFlow] = useState<NexflowFlow | null>(null);
   const [flowToDelete, setFlowToDelete] = useState<NexflowFlow | null>(null);
   const [flowForTags, setFlowForTags] = useState<NexflowFlow | null>(null);
@@ -74,6 +65,18 @@ export function FlowsPage() {
       return false;
     };
   }, [isAdministrator, isLeader, isTeamAdmin, currentUserId]);
+
+  // Early return após todos os hooks (regras dos Hooks do React)
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso aos flows</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">

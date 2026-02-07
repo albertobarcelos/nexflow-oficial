@@ -173,7 +173,7 @@ export function CardDetailsModal({
       const items = field.configuration.items ?? [];
       const checkedCount = items.filter((item: string) => progress?.[item] === true).length;
       return (
-        <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+        <p className="text-xs text-gray-600  mt-0.5">
           {checkedCount} de {items.length} itens concluídos
         </p>
       );
@@ -187,7 +187,7 @@ export function CardDetailsModal({
           const date = new Date(value);
           if (!isNaN(date.getTime())) {
             return (
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
+              <p className="text-xs text-gray-600  mt-0.5">
                 {date.toLocaleDateString("pt-BR")}
               </p>
             );
@@ -201,7 +201,7 @@ export function CardDetailsModal({
     const value = card?.fieldValues?.[field.id];
     if (!value) return <p className="text-xs text-gray-400 italic mt-0.5">Não preenchido</p>;
     return (
-      <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 break-words">
+      <p className="text-xs text-gray-600  mt-0.5 break-words">
         {String(value)}
       </p>
     );
@@ -365,7 +365,7 @@ export function CardDetailsModal({
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <Workflow className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500 ">
                 Selecione um processo na sidebar para visualizar os detalhes
               </p>
             </div>
@@ -383,7 +383,7 @@ export function CardDetailsModal({
   return (
     <Dialog open={Boolean(card)} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-8xl flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 p-0 shadow-2xl"
+        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-8xl flex-col overflow-hidden rounded-2xl border border-gray-200  p-0 shadow-2xl"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         hideCloseButton
@@ -393,7 +393,7 @@ export function CardDetailsModal({
           Visualize e edite os detalhes do card, incluindo campos, histórico e processos
         </DialogDescription>
 
-        <div className="flex h-full flex-col bg-white dark:bg-gray-900">
+        <div className="flex h-full flex-col bg-white ">
           <CardDetailsHeader
             card={card}
             currentStep={currentStep}
@@ -415,19 +415,19 @@ export function CardDetailsModal({
               progressPercentage={progressPercentage}
             />
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white  p-6">
               {isReadOnly && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
-                  <Lock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                <div className="mb-4 flex items-center gap-2 rounded-lg bg-yellow-50  border border-yellow-200  px-4 py-3">
+                  <Lock className="h-4 w-4 text-yellow-600 " />
+                  <p className="text-sm text-yellow-800 ">
                     Este card pertence a outro flow. Você pode visualizar, mas não pode editar.
                   </p>
                 </div>
               )}
               {isFrozenCard && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3">
-                  <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                <div className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50  border border-blue-200  px-4 py-3">
+                  <Lock className="h-4 w-4 text-blue-600 " />
+                  <p className="text-sm text-blue-800 ">
                     Este card está congelado e não pode ser editado.
                   </p>
                 </div>

@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -147,9 +146,8 @@ export function ContactDetailsPanel({
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 min-h-0 overflow-hidden px-6 pb-6">
-              <ScrollArea className="h-full">
-                <div className="pr-4">
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+              <div className="pr-4">
                 <TabsContent value="informacoes" forceMount className="space-y-6 mt-4 data-[state=inactive]:hidden">
                 {/* Header com avatar e nome */}
                 <div className="flex items-start gap-4">
@@ -230,8 +228,8 @@ export function ContactDetailsPanel({
                             variant="secondary"
                             className={
                               type === "cliente"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                : "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-purple-100 text-purple-800"
                             }
                           >
                             {type === "cliente" ? "Cliente" : "Parceiro"}
@@ -279,6 +277,22 @@ export function ContactDetailsPanel({
                           <Badge key={idx} variant="secondary">
                             {companyName}
                           </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {details.tax_ids && details.tax_ids.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <FileText className="h-4 w-4" />
+                        CPF/CNPJ (Documentos)
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {details.tax_ids.map((taxId, idx) => (
+                          <span key={idx} className="text-sm font-mono">
+                            {taxId}
+                          </span>
                         ))}
                       </div>
                     </div>
@@ -345,8 +359,7 @@ export function ContactDetailsPanel({
                 <TabsContent value="historico" forceMount className="mt-4 data-[state=inactive]:hidden">
                   <ContactTimeline contactId={contactId} />
                 </TabsContent>
-                </div>
-              </ScrollArea>
+              </div>
             </div>
           </Tabs>
         )}

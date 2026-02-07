@@ -140,18 +140,18 @@ export function ParentCardWidget({
         <PopoverContent className="w-80 p-4" align="start">
           <div className="space-y-3">
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+              <h4 className="text-sm font-semibold text-gray-900  mb-1">
                 Card Pai
               </h4>
               {isLoading ? (
                 <Skeleton className="h-4 w-full" />
               ) : parentCardError ? (
-                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                <div className="flex items-center gap-2 text-sm text-red-600 ">
                   <AlertCircle className="h-4 w-4" />
                   <span>Erro ao carregar card pai</span>
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-gray-600 ">
                   {parentCard?.title || "Card não encontrado"}
                 </p>
               )}
@@ -162,7 +162,7 @@ export function ParentCardWidget({
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: parentStep.color }}
                 />
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-gray-500 ">
                   {parentStep.title}
                 </span>
               </div>

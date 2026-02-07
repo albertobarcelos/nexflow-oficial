@@ -241,9 +241,9 @@ export default function ContactsList() {
                   };
                   
                   const typeColors: Record<"cliente" | "parceiro" | "outro", string> = {
-                    cliente: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
-                    parceiro: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
-                    outro: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300",
+                    cliente: "bg-blue-100 text-blue-800 border-blue-200  ",
+                    parceiro: "bg-purple-100 text-purple-800 border-purple-200  ",
+                    outro: "bg-gray-100 text-gray-800 border-gray-200  ",
                   };
 
                   const handleRowClick = () => {
@@ -290,7 +290,7 @@ export default function ContactsList() {
                           {contact.isIndication && (
                             <Badge 
                               variant="outline" 
-                              className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 text-xs"
+                              className="bg-yellow-50 text-yellow-700 border-yellow-200   text-xs"
                             >
                               <Tag className="h-3 w-3 mr-1" />
                               Indicação

@@ -39,7 +39,7 @@ export const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onChange
     };
 
     return (
-        <section className="bg-white dark:bg-muted rounded-2xl shadow-sm">
+        <section className="bg-white  rounded-2xl shadow-sm">
             <div className="mb-6">
                 <div>
                     <h2 className="text-xl font-semibold text-foreground">Alterar Senha</h2>

@@ -22,9 +22,9 @@ const typeLabels: Record<"cliente" | "parceiro" | "outro", string> = {
 };
 
 const typeColors: Record<"cliente" | "parceiro" | "outro", string> = {
-  cliente: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
-  parceiro: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
-  outro: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300",
+  cliente: "bg-blue-100 text-blue-800 border-blue-200  ",
+  parceiro: "bg-purple-100 text-purple-800 border-purple-200  ",
+  outro: "bg-gray-100 text-gray-800 border-gray-200  ",
 };
 
 /**
@@ -54,9 +54,9 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
         transition: { duration: 0.2 },
       }}
       className={cn(
-        "group relative cursor-pointer rounded-xl border border-neutral-200 dark:border-neutral-700",
-        "bg-white dark:bg-neutral-800 p-5 shadow-sm transition-all",
-        "hover:shadow-md hover:border-neutral-300 dark:hover:border-neutral-600"
+        "group relative cursor-pointer rounded-xl border border-neutral-200 ",
+        "bg-white  p-5 shadow-sm transition-all",
+        "hover:shadow-md hover:border-neutral-300 :border-neutral-600"
       )}
       onClick={onClick}
     >
@@ -72,19 +72,19 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-neutral-900 dark:text-neutral-100 truncate">
+            <h3 className="font-semibold text-neutral-900  truncate">
               {contact.client_name}
             </h3>
             {/* Badge de Indicação */}
             {contact.isIndication && (
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 text-xs whitespace-nowrap">
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200   text-xs whitespace-nowrap">
                 <Tag className="h-3 w-3 mr-1" />
                 Indicação
               </Badge>
             )}
           </div>
           {contact.main_contact && (
-            <div className="flex items-center gap-1.5 mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+            <div className="flex items-center gap-1.5 mt-1 text-sm text-neutral-600 ">
               <User className="h-3.5 w-3.5" />
               <span className="truncate">{contact.main_contact}</span>
             </div>
@@ -124,20 +124,20 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
         {/* Empresas */}
         {contact.company_names && contact.company_names.length > 0 && (
           <div className="flex items-start gap-2">
-            <Building2 className="h-4 w-4 text-neutral-400 dark:text-neutral-500 mt-0.5 flex-shrink-0" />
+            <Building2 className="h-4 w-4 text-neutral-400  mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Empresas</p>
+              <p className="text-xs text-neutral-500  mb-1">Empresas</p>
               <div className="flex flex-wrap gap-1">
                 {contact.company_names.slice(0, 2).map((company, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                    className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-50  text-blue-700 "
                   >
                     {company}
                   </span>
                 ))}
                 {contact.company_names.length > 2 && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-400">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-neutral-100  text-neutral-600 ">
                     +{contact.company_names.length - 2}
                   </span>
                 )}
@@ -149,20 +149,20 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
         {/* Telefones */}
         {contact.phone_numbers && contact.phone_numbers.length > 0 && (
           <div className="flex items-start gap-2">
-            <Phone className="h-4 w-4 text-neutral-400 dark:text-neutral-500 mt-0.5 flex-shrink-0" />
+            <Phone className="h-4 w-4 text-neutral-400  mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-1">Telefones</p>
+              <p className="text-xs text-neutral-500  mb-1">Telefones</p>
               <div className="flex flex-wrap gap-1">
                 {contact.phone_numbers.slice(0, 2).map((phone, idx) => (
                   <span
                     key={idx}
-                    className="text-sm text-neutral-700 dark:text-neutral-300 font-mono"
+                    className="text-sm text-neutral-700  font-mono"
                   >
                     {phone}
                   </span>
                 ))}
                 {contact.phone_numbers.length > 2 && (
-                  <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                  <span className="text-sm text-neutral-500 ">
                     +{contact.phone_numbers.length - 2}
                   </span>
                 )}
@@ -173,9 +173,9 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
 
         {/* Data de criação */}
         {formattedDate && (
-          <div className="flex items-center gap-2 pt-2 border-t border-neutral-100 dark:border-neutral-700">
-            <Calendar className="h-3.5 w-3.5 text-neutral-400 dark:text-neutral-500" />
-            <span className="text-xs text-neutral-500 dark:text-neutral-400">
+          <div className="flex items-center gap-2 pt-2 border-t border-neutral-100 ">
+            <Calendar className="h-3.5 w-3.5 text-neutral-400 " />
+            <span className="text-xs text-neutral-500 ">
               Criado em {formattedDate}
             </span>
           </div>
@@ -196,7 +196,7 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
       </div>
 
       {/* Efeito de hover */}
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-50/0 via-blue-50/0 to-blue-50/0 group-hover:from-blue-50/50 group-hover:via-blue-50/30 group-hover:to-blue-50/0 dark:from-blue-950/0 dark:via-blue-950/0 dark:to-blue-950/0 dark:group-hover:from-blue-950/30 dark:group-hover:via-blue-950/20 dark:group-hover:to-blue-950/0 pointer-events-none transition-all duration-300" />
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-50/0 via-blue-50/0 to-blue-50/0 group-hover:from-blue-50/50 group-hover:via-blue-50/30 group-hover:to-blue-50/0    :from-blue-950/30 :via-blue-950/20 :to-blue-950/0 pointer-events-none transition-all duration-300" />
     </motion.div>
   );
 }

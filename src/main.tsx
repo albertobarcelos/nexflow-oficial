@@ -5,7 +5,6 @@ import { router } from "./routes";
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { FlowBuilderProvider } from "@/contexts/FlowBuilderContext";
-import { ThemeProvider } from "@/components/theme-provider";
 import { supabase } from "@/lib/supabase";
 import "./index.css";
 
@@ -76,14 +75,12 @@ function SoftReloadOnFocus() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider defaultTheme="light" storageKey="nexflow-theme" attribute="class" enableSystem={false}>
-      <QueryClientProvider client={queryClient}>
-        <FlowBuilderProvider>
-          <SoftReloadOnFocus />
-          <RouterProvider router={router} />
-          <Toaster />
-        </FlowBuilderProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <FlowBuilderProvider>
+        <SoftReloadOnFocus />
+        <RouterProvider router={router} />
+        <Toaster />
+      </FlowBuilderProvider>
+    </QueryClientProvider>
   </StrictMode>
 );

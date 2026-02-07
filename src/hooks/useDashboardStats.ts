@@ -75,6 +75,8 @@ function calculateTrend(current: number, previous: number): number {
 interface UseDashboardStatsOptions {
   teamId?: string | null;
   userId?: string | null;
+  /** Range customizado (usado quando period === "custom") */
+  customRange?: { start: Date; end: Date } | null;
 }
 
 /**
@@ -85,18 +87,37 @@ export function useDashboardStats(
   period: PeriodFilter = "today",
   options?: UseDashboardStatsOptions
 ) {
-  const { teamId, userId } = options ?? {};
+  const { teamId, userId, customRange } = options ?? {};
   const queryClient = useQueryClient();
 
   const { indications } = useIndications();
   const { opportunities } = useOpportunities();
 
-  const periodRange = getPeriodRange(period);
-  const previousPeriodRange = getPreviousPeriodRange(period);
+  const periodRange =
+    period === "custom" && customRange
+      ? { start: customRange.start, end: customRange.end }
+      : getPeriodRange(period);
+  const previousPeriodRange =
+    period === "custom" && customRange
+      ? (() => {
+          const diff = customRange.end.getTime() - customRange.start.getTime();
+          return {
+            start: new Date(customRange.start.getTime() - diff),
+            end: new Date(customRange.start.getTime() - 1),
+          };
+        })()
+      : getPreviousPeriodRange(period);
 
   const { data: cardsStats, isLoading: isLoadingCards } =
     useSecureClientQuery<CardsStats>({
-      queryKey: ["dashboard-cards-stats", period, teamId ?? null, userId ?? null],
+      queryKey: [
+        "dashboard-cards-stats",
+        period,
+        teamId ?? null,
+        userId ?? null,
+        customRange?.start?.toISOString() ?? null,
+        customRange?.end?.toISOString() ?? null,
+      ],
       queryFn: async (client, clientId): Promise<CardsStats> => {
         const { data: flows } = await client
           .from("flows")

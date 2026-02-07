@@ -119,7 +119,7 @@ export function ProcessBuilderPage() {
 
   if (isLoadingFlow || isLoadingSteps) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50  flex items-center justify-center">
         <div className="text-neutral-500">Carregando...</div>
       </div>
     );
@@ -127,7 +127,7 @@ export function ProcessBuilderPage() {
 
   if (!flow) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50  flex items-center justify-center">
         <div className="text-center">
           <p className="text-neutral-500 mb-4">Flow não encontrado</p>
           <Button onClick={() => navigate("/crm/flows")}>Voltar</Button>
@@ -138,7 +138,7 @@ export function ProcessBuilderPage() {
 
   if (steps.length === 0) {
     return (
-      <div className="min-h-screen bg-neutral-50 dark:bg-neutral-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50  flex items-center justify-center">
         <div className="text-center">
           <p className="text-neutral-500 mb-4">
             Este flow não possui etapas. Crie etapas primeiro.
@@ -152,7 +152,7 @@ export function ProcessBuilderPage() {
   }
 
   return (
-    <div className="bg-neutral-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 font-sans h-screen flex overflow-hidden">
+    <div className="bg-neutral-50  text-neutral-800  font-sans h-screen flex overflow-hidden">
       <ProcessSidebar
         stepId={selectedStepId || steps[0].id}
         selectedActionId={selectedActionId}
@@ -161,8 +161,8 @@ export function ProcessBuilderPage() {
         onDeleteAction={handleDeleteAction}
       />
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-neutral-50 dark:bg-neutral-900 relative">
-        <header className="bg-white dark:bg-neutral-800 px-8 py-4 border-b border-neutral-200 dark:border-neutral-700 flex items-center justify-between z-10">
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-neutral-50  relative">
+        <header className="bg-white  px-8 py-4 border-b border-neutral-200  flex items-center justify-between z-10">
           <div className="flex-1 max-w-2xl">
             <label className="block text-xs font-medium text-neutral-400 uppercase tracking-wide mb-1">
               Nome do Processo
@@ -171,7 +171,7 @@ export function ProcessBuilderPage() {
               <Input
                 value={processName}
                 onChange={(e) => setProcessName(e.target.value)}
-                className="text-xl font-bold text-neutral-900 dark:text-white bg-transparent border-0 border-b border-transparent group-hover:border-neutral-300 focus:border-primary focus:ring-0 px-0 py-1 w-full transition-colors placeholder-neutral-300 dark:placeholder-neutral-600"
+                className="text-xl font-bold text-neutral-900  bg-transparent border-0 border-b border-transparent group-hover:border-neutral-300 focus:border-primary focus:ring-0 px-0 py-1 w-full transition-colors placeholder-neutral-300 "
                 placeholder="Digite o nome do processo..."
               />
               <span className="material-icons-outlined text-neutral-400 text-lg opacity-0 group-hover:opacity-100 transition-opacity">
@@ -183,13 +183,13 @@ export function ProcessBuilderPage() {
             <Button
               variant="ghost"
               onClick={handleDiscard}
-              className="px-4 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              className="px-4 py-2 text-sm font-medium text-neutral-600  hover:text-neutral-900 :text-white transition-colors"
             >
               Descartar
             </Button>
             <Button
               variant="outline"
-              className="px-4 py-2 text-sm font-medium text-primary border border-primary/30 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+              className="px-4 py-2 text-sm font-medium text-primary border border-primary/30 bg-indigo-50  rounded-lg hover:bg-indigo-100 :bg-indigo-900/40 transition-colors"
             >
               <Eye className="w-4 h-4 mr-2" />
               Visualizar Fluxo
@@ -199,7 +199,7 @@ export function ProcessBuilderPage() {
 
         {/* Step Selector */}
         {steps.length > 1 && (
-          <div className="bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 px-8 py-2">
+          <div className="bg-white  border-b border-neutral-200  px-8 py-2">
             <div className="flex items-center gap-2">
               <label className="text-xs font-medium text-neutral-500">Etapa:</label>
               <select
@@ -208,7 +208,7 @@ export function ProcessBuilderPage() {
                   setSelectedStepId(e.target.value);
                   setSelectedActionId(null);
                 }}
-                className="text-sm bg-transparent border border-neutral-200 dark:border-neutral-700 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="text-sm bg-transparent border border-neutral-200  rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {steps.map((step) => (
                   <option key={step.id} value={step.id}>

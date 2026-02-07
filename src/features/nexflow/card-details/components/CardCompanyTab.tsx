@@ -37,15 +37,15 @@ export function CardCompanyTab({ card }: CardCompanyTabProps) {
 
   return (
     <div className="space-y-4 max-w-3xl">
-      <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+      <h2 className="text-xl font-bold text-slate-800 ">
         Empresa do card
       </h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-slate-500 ">
         Selecione uma empresa (web_companies) para vincular a este card.
       </p>
 
       <div className="space-y-2">
-        <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+        <label className="text-xs font-bold text-slate-400  uppercase tracking-wider">
           Empresa vinculada
         </label>
         <Popover open={open} onOpenChange={setOpen}>

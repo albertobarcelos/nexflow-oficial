@@ -636,7 +636,7 @@ export function NexflowBoardPage() {
 
   return (
     <div className={cn(
-      "bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300 font-sans flex flex-col transition-colors duration-200",
+      "bg-neutral-50  text-neutral-600  font-sans flex flex-col transition-colors duration-200",
       viewMode === "list" ? "h-full min-h-0" : "h-full min-h-0 overflow-hidden"
     )}>
       <BoardHeader
@@ -661,7 +661,7 @@ export function NexflowBoardPage() {
       />
 
       <main className={cn(
-        "flex-1 min-h-0 flex flex-col custom-scrollbar bg-neutral-50 dark:bg-neutral-950",
+        "flex-1 min-h-0 flex flex-col custom-scrollbar bg-neutral-50 ",
         viewMode === "list" 
           ? "overflow-y-auto overflow-x-hidden p-6 pb-8" 
           : "overflow-hidden p-6"

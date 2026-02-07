@@ -54,7 +54,7 @@ export function CardFormFields({
     if (isAgentsField) {
       return (
         <div>
-          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -93,7 +93,7 @@ export function CardFormFields({
       
       return (
         <div>
-          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -115,7 +115,7 @@ export function CardFormFields({
               }}
               disabled={isDisabled}
             >
-              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
+              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300   text-gray-900  focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue placeholder="Selecione um usuário">
                   {selectedUser ? `${selectedUser.name} ${selectedUser.surname}` : "Selecione um usuário"}
                 </SelectValue>
@@ -162,7 +162,7 @@ export function CardFormFields({
       
       return (
         <div>
-          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -184,7 +184,7 @@ export function CardFormFields({
               }}
               disabled={isDisabled}
             >
-              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
+              <SelectTrigger className="block w-full appearance-none rounded-lg border-gray-300   text-gray-900  focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-4 pr-10 disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue placeholder="Selecione um time">
                   {selectedTeam ? selectedTeam.name : "Selecione um time"}
                 </SelectValue>
@@ -215,7 +215,7 @@ export function CardFormFields({
       const items = field.configuration.items ?? [];
       return (
         <div>
-          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -226,11 +226,11 @@ export function CardFormFields({
           {items.length === 0 ? (
             <p className="text-xs text-gray-400">Sem itens configurados.</p>
           ) : (
-            <div className="space-y-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 p-3">
+            <div className="space-y-2 rounded-xl bg-gray-50  p-3">
               {items.map((item) => (
                 <label
                   key={item}
-                  className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 dark:text-gray-300 transition-colors hover:text-gray-900 dark:hover:text-white"
+                  className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700  transition-colors hover:text-gray-900 :text-white"
                 >
                   <Checkbox
                     checked={watchChecklist?.[field.id]?.[item] === true}
@@ -259,7 +259,7 @@ export function CardFormFields({
 
       return (
         <div>
-          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -277,7 +277,7 @@ export function CardFormFields({
                   type="button"
                   variant="outline"
                   className={cn(
-                    "block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-10 pr-4 transition-shadow text-left font-normal",
+                    "block w-full rounded-lg border-gray-300   text-gray-900  placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 pl-10 pr-4 transition-shadow text-left font-normal",
                     !parsedValue && "text-gray-400"
                   )}
                 >
@@ -306,7 +306,7 @@ export function CardFormFields({
     if (field.configuration.variant === "long") {
       return (
         <div>
-          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -318,7 +318,7 @@ export function CardFormFields({
             <Textarea
               rows={4}
               placeholder={(field.configuration.placeholder as string) ?? "Digite sua resposta..."}
-              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+              className="block w-full rounded-lg border-gray-300   text-gray-900  placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow resize-none disabled:opacity-50 disabled:cursor-not-allowed"
               {...form.register(`fields.${field.id}`)}
               disabled={isDisabled}
             />
@@ -331,7 +331,7 @@ export function CardFormFields({
       const cnpjCpfType = (field.configuration.cnpjCpfType as "auto" | "cpf" | "cnpj") ?? "auto";
       return (
         <div>
-          <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -365,7 +365,7 @@ export function CardFormFields({
                   }
                 }
               }}
-              className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+              className="block w-full rounded-lg border-gray-300   text-gray-900  placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isDisabled}
             />
           </div>
@@ -380,7 +380,7 @@ export function CardFormFields({
 
     return (
       <div>
-        <Label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
+        <Label className="block text-sm font-semibold text-gray-700  mb-2">
           {field.label}
           {field.isRequired && (
             <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -392,7 +392,7 @@ export function CardFormFields({
           <Input
             type={field.fieldType === "number" ? "number" : "text"}
             placeholder={(field.configuration.placeholder as string) ?? ""}
-            className="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+            className="block w-full rounded-lg border-gray-300   text-gray-900  placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
             {...form.register(`fields.${field.id}`)}
             disabled={isDisabled}
           />
