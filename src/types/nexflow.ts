@@ -141,6 +141,7 @@ export interface FlowTag {
 export interface StepActionSettings {
   allowNotes?: boolean;
   requiredCompletion?: boolean;
+  requireActivityOnClick?: boolean;
   [key: string]: Json | undefined;
 }
 
@@ -169,6 +170,13 @@ export interface StepActionsByDay {
 // Status de execução de uma ação vinculada a um card
 export type CardStepActionStatus = "pending" | "in_progress" | "completed" | "skipped";
 
+/** Nota de processo armazenada em executionData.process_notes */
+export interface ProcessNote {
+  id: string;
+  title: string;
+  content: string; // Markdown
+}
+
 // Vinculação entre card e step_action (processo)
 export interface CardStepAction {
   id: string;
@@ -183,6 +191,8 @@ export interface CardStepAction {
   executionData: Record<string, Json | undefined>;
   createdAt: string;
   updatedAt: string;
+  /** Indica se a atividade obrigatória (requireActivityOnClick) já foi criada para este card+processo */
+  activityCreated?: boolean;
 }
 
 // Automação para criar card filho quando card entra em etapa

@@ -103,6 +103,7 @@ export function ProcessesSidebar({
         executionData: (row.execution_data as Record<string, Json | undefined>) || {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        activityCreated: (row as { activity_created?: boolean }).activity_created ?? false,
       }));
     },
   });

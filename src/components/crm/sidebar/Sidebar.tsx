@@ -14,6 +14,7 @@ import {
   Target,
   Sparkles,
   Settings,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,11 @@ const baseMenuItems: MenuItem[] = [
     title: "Flows",
     icon: Workflow,
     href: "/crm/flows",
+  },
+  {
+    title: "Calendário",
+    icon: Calendar,
+    href: "/crm/calendar",
   },
   // AIDEV-NOTE: Empresas e Pessoas aparecem condicionalmente dentro de flows
   // Removido "Negócios" - funcionalidade desnecessária
@@ -147,7 +153,7 @@ export function Sidebar() {
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
               location.pathname + location.search === item.href :
-              (item.href === '/crm/flows' || item.href === '/crm/contacts') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
+              (item.href === '/crm/flows' || item.href === '/crm/contacts' || item.href === '/crm/calendar') ? location.pathname.startsWith(item.href) : location.pathname === item.href;
               
             return (
               <Button

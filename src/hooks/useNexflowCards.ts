@@ -13,7 +13,8 @@ import { separateSystemFields, SYSTEM_FIELDS, isSystemField } from "@/lib/flowBu
 
 type CardRow = Database["public"]["Tables"]["cards"]["Row"];
 
-const mapCardRow = (row: CardRow): NexflowCard => {
+/** Mapeia row do Supabase para NexflowCard (exportado para uso em queries de card único) */
+export const mapCardRow = (row: CardRow): NexflowCard => {
   const assignedTo = row.assigned_to ?? null;
   const assignedTeamId = row.assigned_team_id ?? null;
   const assigneeType = assignedTo ? 'user' : assignedTeamId ? 'team' : 'unassigned';

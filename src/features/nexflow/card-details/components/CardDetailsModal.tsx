@@ -17,6 +17,7 @@ import { useCardValidation } from "../hooks/useCardValidation";
 import { CardAttachments } from "@/components/crm/flows/CardAttachments";
 import { CardComments } from "@/components/crm/flows/CardComments";
 import { ProcessDetails } from "@/components/crm/flows/ProcessDetails";
+import { CardActivityForm } from "./CardActivityForm";
 import { toast } from "sonner";
 import type { NexflowCard, CardStepAction } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
@@ -43,6 +44,12 @@ interface CardDetailsModalProps {
   parentTitle?: string | null;
   onOpenParentCard?: (card: NexflowCard) => void;
   currentFlowId?: string;
+  /** Abre o modal já com a aba Processos e o processo selecionado (id do card_step_action) */
+  initialProcessId?: string | null;
+  /** Abre o modal já com a aba especificada (ex.: "activities" vindo do calendário) */
+  initialSection?: ActiveSection | null;
+  /** Quando initialSection="activities", ID da atividade para destacar (opcional) */
+  initialActivityId?: string | null;
 }
 
 export function CardDetailsModal({
@@ -57,12 +64,17 @@ export function CardDetailsModal({
   parentTitle,
   onOpenParentCard,
   currentFlowId,
+  initialProcessId,
+  initialSection,
+  initialActivityId,
 }: CardDetailsModalProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isMoving, setIsMoving] = useState(false);
   const [activeSection, setActiveSection] = useState<ActiveSection>("overview");
   const [activeTab, setActiveTab] = useState<"informacoes" | "processos">("informacoes");
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+  const [isProcessActivityFormOpen, setIsProcessActivityFormOpen] = useState(false);
+  const [pendingProcessId, setPendingProcessId] = useState<string | null>(null);
 
   const {
     currentStep,
@@ -110,6 +122,7 @@ export function CardDetailsModal({
         executionData: (row.execution_data as Record<string, any>) || {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        activityCreated: (row as { activity_created?: boolean }).activity_created ?? false,
       }));
     },
   });
@@ -156,16 +169,86 @@ export function CardDetailsModal({
     }
   }, [activeSection]);
 
+  // Ao abrir com initialProcessId (ex.: vindo do calendário), exibir aba Processos com processo já selecionado
   useEffect(() => {
-    if (activeSection === "processes" && !selectedProcessId && processesWithActions.length > 0) {
+    if (card && initialProcessId) {
+      setActiveSection("processes");
+      setSelectedProcessId(initialProcessId);
+    }
+  }, [card?.id, initialProcessId]);
+
+  // Ao abrir com initialSection (ex.: "activities" vindo do calendário), exibir aba Atividades
+  useEffect(() => {
+    if (card && initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [card?.id, initialSection]);
+
+  // Handler que intercepta seleção de processo: se requireActivityOnClick, valida se atividade já existe
+  const handleSelectProcess = useCallback(
+    (processId: string) => {
+      const process = processesWithActions.find((p) => p.id === processId);
+      if (!process) {
+        setSelectedProcessId(processId);
+        return;
+      }
+      const settings = process.stepAction?.settings as Record<string, unknown> | null | undefined;
+      const requireActivityOnClick = settings?.requireActivityOnClick === true;
+
+      if (requireActivityOnClick) {
+        const hasActivity = process.activityCreated === true;
+        if (hasActivity) {
+          setSelectedProcessId(processId);
+        } else {
+          setPendingProcessId(processId);
+          setIsProcessActivityFormOpen(true);
+        }
+      } else {
+        setSelectedProcessId(processId);
+      }
+    },
+    [processesWithActions]
+  );
+
+  const handleProcessActivityFormSuccess = useCallback(() => {
+    if (pendingProcessId) {
+      setSelectedProcessId(pendingProcessId);
+      setPendingProcessId(null);
+    }
+    setIsProcessActivityFormOpen(false);
+  }, [pendingProcessId]);
+
+  const handleProcessActivityFormClose = useCallback((open: boolean) => {
+    if (!open) {
+      setIsProcessActivityFormOpen(false);
+      setPendingProcessId(null);
+    }
+  }, []);
+
+  // Auto-selecionar primeiro processo ao abrir aba (usa handleSelectProcess para respeitar requireActivityOnClick)
+  useEffect(() => {
+    if (
+      activeSection === "processes" &&
+      !selectedProcessId &&
+      !pendingProcessId &&
+      !isProcessActivityFormOpen &&
+      processesWithActions.length > 0
+    ) {
       const firstActive = processesWithActions.find(
         (p) => p.status === "pending" || p.status === "in_progress"
       ) || processesWithActions[0];
       if (firstActive) {
-        setSelectedProcessId(firstActive.id);
+        handleSelectProcess(firstActive.id);
       }
     }
-  }, [activeSection, selectedProcessId, processesWithActions]);
+  }, [
+    activeSection,
+    selectedProcessId,
+    pendingProcessId,
+    isProcessActivityFormOpen,
+    processesWithActions,
+    handleSelectProcess,
+  ]);
 
   const renderTimelineFieldValue = useCallback((field: any) => {
     if (field.fieldType === "checklist") {
@@ -410,7 +493,7 @@ export function CardDetailsModal({
               setActiveSection={setActiveSection}
               card={card}
               selectedProcessId={selectedProcessId}
-              setSelectedProcessId={setSelectedProcessId}
+              setSelectedProcessId={handleSelectProcess}
               lastHistoryUpdate={lastHistoryUpdate}
               progressPercentage={progressPercentage}
             />
@@ -448,6 +531,26 @@ export function CardDetailsModal({
             onMoveBack={handleMoveBack}
             onDelete={handleDelete}
           />
+
+          {/* Dialog de criação de atividade ao clicar em processo com requireActivityOnClick */}
+          {card && (
+            <CardActivityForm
+              open={isProcessActivityFormOpen}
+              onOpenChange={handleProcessActivityFormClose}
+              card={card}
+              defaultTitle={
+                pendingProcessId
+                  ? processesWithActions.find((p) => p.id === pendingProcessId)?.stepAction?.title ?? undefined
+                  : undefined
+              }
+              stepActionId={
+                pendingProcessId
+                  ? processesWithActions.find((p) => p.id === pendingProcessId)?.stepActionId ?? null
+                  : null
+              }
+              onSuccess={handleProcessActivityFormSuccess}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

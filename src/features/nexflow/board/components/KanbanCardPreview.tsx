@@ -115,7 +115,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
 
   // Título do card: prioridade = nome da empresa (company_id) > contato > card.title
   const cardTitle =
-     contactName ?? companyNameFromId ?? companyName ?? card.title;
+      companyNameFromId ?? companyName ?? contactName ?? card.title;
 
   // Nome do usuário responsável
   const responsibleName = assignedUser 

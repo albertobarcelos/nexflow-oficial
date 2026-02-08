@@ -63,7 +63,7 @@ export function FunnelCard({
   const conv2 = convPercent(metrics.opportunities, metrics.completedCards);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-border-light p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-border-light p-6 relative z-0">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-lg font-bold text-slate-800">

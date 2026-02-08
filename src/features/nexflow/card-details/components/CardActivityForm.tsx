@@ -54,6 +54,10 @@ interface CardActivityFormProps {
   card: NexflowCard | null;
   activity?: CardActivity | null;
   onSuccess?: () => void;
+  /** Título pré-preenchido ao criar nova atividade (ex.: título do processo) */
+  defaultTitle?: string;
+  /** ID do step_action para vincular a atividade ao processo que a gerou */
+  stepActionId?: string | null;
 }
 
 export function CardActivityForm({
@@ -62,6 +66,8 @@ export function CardActivityForm({
   card,
   activity,
   onSuccess,
+  defaultTitle,
+  stepActionId,
 }: CardActivityFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateTypeDialogOpen, setIsCreateTypeDialogOpen] = useState(false);
@@ -126,10 +132,10 @@ export function CardActivityForm({
         assignee_id: activity.assignee_id || undefined,
       });
     } else if (!activity && open) {
-      // Resetar para valores padrão quando criar nova
+      // Resetar para valores padrão quando criar nova (usa defaultTitle se fornecido)
       form.reset({
         activity_type_id: '',
-        title: '',
+        title: defaultTitle ?? '',
         description: '',
         start_date: new Date(),
         start_time: '09:00',
@@ -138,7 +144,7 @@ export function CardActivityForm({
         assignee_id: undefined,
       });
     }
-  }, [activity, open, form]);
+  }, [activity, open, form, defaultTitle]);
 
   const onSubmit = async (values: ActivityFormValues) => {
     if (!card) return;
@@ -180,6 +186,7 @@ export function CardActivityForm({
           start_at: startAt.toISOString(),
           end_at: endAt.toISOString(),
           assignee_id: values.assignee_id || undefined,
+          step_action_id: stepActionId ?? undefined,
         };
 
         await createActivity.mutateAsync(createData);

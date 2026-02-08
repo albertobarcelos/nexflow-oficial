@@ -190,7 +190,7 @@ export function Home() {
         </div>
 
         {/* Grid 12 colunas: 8 (funil + vendas) + 4 (atividades). Em mobile: coluna única, ordem funil → vendas → atividades. */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:min-h-[calc(100vh-10rem)]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:min-h-[calc(100vh-10rem)] relative z-0">
           <div className="lg:col-span-8 flex flex-col gap-6">
             <FunnelCard
               metrics={funnelMetrics}

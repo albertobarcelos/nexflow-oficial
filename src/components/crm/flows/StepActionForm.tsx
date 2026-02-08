@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -20,9 +20,17 @@ interface StepActionFormProps {
   stepId: string;
   action: NexflowStepAction | null;
   onSave: () => void;
+  onDirtyChange?: (isDirty: boolean) => void;
+  saveRef?: React.MutableRefObject<(() => Promise<boolean>) | null>;
 }
 
-export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) {
+export function StepActionForm({
+  stepId,
+  action,
+  onSave,
+  onDirtyChange,
+  saveRef,
+}: StepActionFormProps) {
   const { updateStepAction, createStepAction } = useStepActions(stepId);
   const [formData, setFormData] = useState({
     title: "",
@@ -34,6 +42,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
     isRequired: true,
     allowNotes: true,
     requiredCompletion: true,
+    requireActivityOnClick: false,
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -50,6 +59,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
         isRequired: action.isRequired,
         allowNotes: action.settings.allowNotes ?? true,
         requiredCompletion: action.settings.requiredCompletion ?? true,
+        requireActivityOnClick: action.settings.requireActivityOnClick ?? false,
       });
     } else {
       setFormData({
@@ -62,15 +72,36 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
         isRequired: true,
         allowNotes: true,
         requiredCompletion: true,
+        requireActivityOnClick: false,
       });
     }
   }, [action]);
 
-  const handleSave = async () => {
-    if (!formData.title.trim()) {
-      return;
+  // Detecta se há alterações não salvas (form dirty)
+  const isFormDirty = (() => {
+    if (action) {
+      return (
+        formData.title !== action.title ||
+        formData.dayOffset !== action.dayOffset ||
+        formData.actionType !== action.actionType ||
+        formData.description !== (action.description || "") ||
+        formData.scriptTemplate !== (action.scriptTemplate || "") ||
+        JSON.stringify(formData.checklistItems) !== JSON.stringify(action.checklistItems || []) ||
+        formData.isRequired !== action.isRequired ||
+        formData.allowNotes !== (action.settings.allowNotes ?? true) ||
+        formData.requiredCompletion !== (action.settings.requiredCompletion ?? true) ||
+        formData.requireActivityOnClick !== (action.settings.requireActivityOnClick ?? false)
+      );
     }
+    return formData.title.trim() !== "" || formData.checklistItems.length > 0;
+  })();
 
+  useEffect(() => {
+    onDirtyChange?.(isFormDirty);
+  }, [isFormDirty, onDirtyChange]);
+
+  const saveForm = useCallback(async (): Promise<boolean> => {
+    if (!formData.title.trim()) return false;
     setIsSaving(true);
     try {
       if (action) {
@@ -86,6 +117,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
           settings: {
             allowNotes: formData.allowNotes,
             requiredCompletion: formData.requiredCompletion,
+            requireActivityOnClick: formData.requireActivityOnClick,
           },
         });
       } else {
@@ -101,16 +133,37 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
           settings: {
             allowNotes: formData.allowNotes,
             requiredCompletion: formData.requiredCompletion,
+            requireActivityOnClick: formData.requireActivityOnClick,
           },
         });
       }
       onSave();
+      return true;
     } catch (error) {
       console.error("Erro ao salvar ação:", error);
+      return false;
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [
+    formData,
+    action,
+    stepId,
+    updateStepAction,
+    createStepAction,
+    onSave,
+  ]);
+
+  useEffect(() => {
+    if (saveRef) {
+      saveRef.current = saveForm;
+    }
+    return () => {
+      if (saveRef) saveRef.current = null;
+    };
+  }, [saveRef, saveForm]);
+
+  const handleSave = () => saveForm();
 
   const requiresScriptTemplate =
     formData.actionType === "phone_call" ||
@@ -161,11 +214,13 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
           <h2 className="text-lg font-semibold text-neutral-800 ">
             Configuração da Etapa
           </h2>
-          {action && (
-            <span className="text-xs text-neutral-500 bg-neutral-100  px-2 py-1 rounded">
-              ID: {action.id.substring(0, 8).toUpperCase()}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {action && (
+              <span className="text-xs text-neutral-500 bg-neutral-100  px-2 py-1 rounded">
+                ID: {action.id.substring(0, 8).toUpperCase()}
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-20">
@@ -350,6 +405,18 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                   }
                 />
               </label>
+              <div className="h-px bg-neutral-100 "></div>
+              <label className="flex items-center justify-between cursor-pointer group">
+                <span className="text-sm text-neutral-600  group-hover:text-neutral-900 :text-neutral-200">
+                  Criação de Atividade
+                </span>
+                <Switch
+                  checked={formData.requireActivityOnClick}
+                  onCheckedChange={(checked) =>
+                    setFormData({ ...formData, requireActivityOnClick: checked })
+                  }
+                />
+              </label>
             </div>
 
             {/* To-Do Checklist */}
@@ -377,6 +444,7 @@ export function StepActionForm({ stepId, action, onSave }: StepActionFormProps) 
                 isRequired: true,
                 allowNotes: true,
                 requiredCompletion: true,
+                requireActivityOnClick: false,
               });
             }}
           >

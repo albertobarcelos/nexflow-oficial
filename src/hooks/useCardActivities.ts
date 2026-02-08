@@ -10,6 +10,7 @@ import type {
   UpdateCardActivityInput,
   GroupedCardActivities,
 } from "@/types/activities";
+import type { CardStepAction } from "@/types/nexflow";
 import { format, isToday, isFuture, parseISO, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -216,16 +217,21 @@ export function useCreateCardActivity() {
   return useMutation({
     mutationFn: async (input: CreateCardActivityInput): Promise<CardActivity> => {
       // Chamar Edge Function para criar atividade com melhor controle de segurança
+      const body: Record<string, unknown> = {
+        card_id: input.card_id,
+        activity_type_id: input.activity_type_id,
+        title: input.title,
+        description: input.description || null,
+        start_at: input.start_at,
+        end_at: input.end_at,
+        assignee_id: input.assignee_id || null,
+      };
+      if (input.step_action_id) {
+        body.step_action_id = input.step_action_id;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-card-activity', {
-        body: {
-          card_id: input.card_id,
-          activity_type_id: input.activity_type_id,
-          title: input.title,
-          description: input.description || null,
-          start_at: input.start_at,
-          end_at: input.end_at,
-          assignee_id: input.assignee_id || null,
-        },
+        body,
       });
 
       if (error) {
@@ -239,6 +245,16 @@ export function useCreateCardActivity() {
       return data.activity as CardActivity;
     },
     onSuccess: (data) => {
+      // Atualização otimista: adiciona a atividade ao cache imediatamente para evitar
+      // que o dialog de criação apareça novamente antes da refetch completar
+      queryClient.setQueryData<CardActivity[]>(
+        ["card-activities", clientId, data.card_id],
+        (old) => {
+          const updated = old ?? [];
+          if (updated.some((a) => a.id === data.id)) return updated;
+          return [...updated, data];
+        }
+      );
       queryClient.invalidateQueries({
         queryKey: ["card-activities", clientId, data.card_id],
       });
@@ -248,6 +264,27 @@ export function useCreateCardActivity() {
       queryClient.invalidateQueries({
         queryKey: ["flow-activity-types", clientId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["nexflow", "card_step_actions", data.card_id],
+      });
+
+      // Atualização otimista: marca activity_created = true no cache para evitar dialog
+      // antes da refetch (trigger no banco atualiza, mas refetch é assíncrono)
+      const stepActionId = (data as { step_action_id?: string }).step_action_id;
+      if (stepActionId) {
+        queryClient.setQueryData<CardStepAction[]>(
+          ["nexflow", "card_step_actions", data.card_id],
+          (old) => {
+            if (!old) return old;
+            return old.map((csa) =>
+              csa.stepActionId === stepActionId
+                ? { ...csa, activityCreated: true }
+                : csa
+            );
+          }
+        );
+      }
+
       toast.success('Atividade criada com sucesso');
     },
     onError: (error: Error) => {

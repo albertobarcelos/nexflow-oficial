@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Eye, X } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useParams, useNavigate, useBlocker } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProcessSidebar } from "@/components/crm/flows/ProcessSidebar";
@@ -8,7 +7,7 @@ import { StepActionForm } from "@/components/crm/flows/StepActionForm";
 import { CustomFieldsEditor } from "@/components/crm/flows/CustomFieldsEditor";
 import { ChecklistEditor } from "@/components/crm/flows/ChecklistEditor";
 import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
-import { useNexflowFlow } from "@/hooks/useNexflowFlows";
+import { useNexflowFlow, useNexflowFlows } from "@/hooks/useNexflowFlows";
 import { useNexflowSteps } from "@/hooks/useNexflowSteps";
 import { useStepActions } from "@/hooks/useStepActions";
 import { useNexflowStepFields } from "@/hooks/useNexflowStepFields";
@@ -30,22 +29,23 @@ export function ProcessBuilderPage() {
   const navigate = useNavigate();
   const { hasAccess, accessError } = useClientAccessGuard();
   const { flow, isLoading: isLoadingFlow } = useNexflowFlow(id);
+  const { updateFlow } = useNexflowFlows();
   const { steps, isLoading: isLoadingSteps } = useNexflowSteps(id);
   const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
-
-  if (!hasAccess) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center text-destructive">
-          <p className="font-medium">Sem acesso aos flows</p>
-          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
-        </div>
-      </div>
-    );
-  }
   const [selectedActionId, setSelectedActionId] = useState<string | null>(null);
   const [processName, setProcessName] = useState("");
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [formHasUnsavedChanges, setFormHasUnsavedChanges] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"navigate" | "create" | "select" | "changeStep" | null>(null);
+  const [pendingSelectActionId, setPendingSelectActionId] = useState<string | null>(null);
+  const [pendingStepId, setPendingStepId] = useState<string | null>(null);
+  const pendingNavigateRef = useRef<(() => void) | null>(null);
+  const stepActionFormSaveRef = useRef<(() => Promise<boolean>) | null>(null);
+
+  const { stepActions, deleteStepAction, createStepAction } = useStepActions(
+    selectedStepId || undefined
+  );
 
   // Selecionar o primeiro step por padrão
   useEffect(() => {
@@ -61,19 +61,62 @@ export function ProcessBuilderPage() {
     }
   }, [flow]);
 
-  const { stepActions, deleteStepAction, createStepAction } = useStepActions(
-    selectedStepId || undefined
+  // Verifica se há alterações não salvas (nome do processo ou formulário)
+  const processNameDirty = flow ? processName.trim() !== flow.name : false;
+  const hasUnsavedChanges = processNameDirty || formHasUnsavedChanges;
+
+  // Bloqueia navegação quando há alterações não salvas
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
   );
+
+  useEffect(() => {
+    if (blocker.state === "blocked" && !showUnsavedDialog) {
+      setPendingAction("navigate");
+      pendingNavigateRef.current = () => blocker.proceed();
+      setShowUnsavedDialog(true);
+    }
+  }, [blocker.state, showUnsavedDialog]);
+
+  // Aviso ao fechar/recarregar a página
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  // Guard: sem acesso - retornar após todos os hooks
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center text-destructive">
+          <p className="font-medium">Sem acesso aos flows</p>
+          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+        </div>
+      </div>
+    );
+  }
 
   const selectedAction = stepActions.find((a) => a.id === selectedActionId) || null;
   const selectedStep = steps.find((s) => s.id === selectedStepId);
   const canAddProcesses = selectedStep?.stepType === "standard" || !selectedStep?.stepType;
 
   const handleSelectAction = (actionId: string | null) => {
-    setSelectedActionId(actionId);
+    if (hasUnsavedChanges && actionId !== selectedActionId) {
+      setPendingAction("select");
+      setPendingSelectActionId(actionId);
+      setShowUnsavedDialog(true);
+    } else {
+      setSelectedActionId(actionId);
+    }
   };
 
-  const handleCreateAction = async () => {
+  const doCreateAction = useCallback(async () => {
     if (!selectedStepId) return;
 
     if (!canAddProcesses) {
@@ -92,6 +135,15 @@ export function ProcessBuilderPage() {
       setSelectedActionId(newAction.id);
     } catch (error) {
       console.error("Erro ao criar ação:", error);
+    }
+  }, [selectedStepId, canAddProcesses, createStepAction]);
+
+  const handleCreateAction = () => {
+    if (hasUnsavedChanges) {
+      setPendingAction("create");
+      setShowUnsavedDialog(true);
+    } else {
+      doCreateAction();
     }
   };
 
@@ -114,7 +166,61 @@ export function ProcessBuilderPage() {
   const confirmDiscard = () => {
     setSelectedActionId(null);
     setShowDiscardDialog(false);
-    // Resetar formulário se necessário
+  };
+
+  const handleUnsavedDialogSave = async () => {
+    if (stepActionFormSaveRef.current) {
+      await stepActionFormSaveRef.current();
+    }
+    if (processNameDirty && flow && id) {
+      await updateFlow({ id, name: processName.trim() });
+    }
+    setShowUnsavedDialog(false);
+    if (pendingAction === "navigate" && pendingNavigateRef.current) {
+      pendingNavigateRef.current();
+      pendingNavigateRef.current = null;
+    } else if (pendingAction === "create") {
+      doCreateAction();
+    } else if (pendingAction === "select" && pendingSelectActionId !== null) {
+      setSelectedActionId(pendingSelectActionId);
+      setPendingSelectActionId(null);
+    } else if (pendingAction === "changeStep" && pendingStepId !== null) {
+      setSelectedStepId(pendingStepId);
+      setSelectedActionId(null);
+      setPendingStepId(null);
+    }
+    setPendingAction(null);
+    if (blocker.state === "blocked") blocker.reset?.();
+  };
+
+  const handleUnsavedDialogDontSave = () => {
+    setShowUnsavedDialog(false);
+    setFormHasUnsavedChanges(false);
+    setProcessName(flow?.name ?? "");
+    if (pendingAction === "navigate" && pendingNavigateRef.current) {
+      pendingNavigateRef.current();
+      pendingNavigateRef.current = null;
+    } else if (pendingAction === "create") {
+      doCreateAction();
+    } else if (pendingAction === "select" && pendingSelectActionId !== null) {
+      setSelectedActionId(pendingSelectActionId);
+      setPendingSelectActionId(null);
+    } else if (pendingAction === "changeStep" && pendingStepId !== null) {
+      setSelectedStepId(pendingStepId);
+      setSelectedActionId(null);
+      setPendingStepId(null);
+    }
+    setPendingAction(null);
+    blocker.reset?.();
+  };
+
+  const handleUnsavedDialogCancel = () => {
+    setShowUnsavedDialog(false);
+    setPendingAction(null);
+    setPendingSelectActionId(null);
+    setPendingStepId(null);
+    pendingNavigateRef.current = null;
+    blocker.reset?.();
   };
 
   if (isLoadingFlow || isLoadingSteps) {
@@ -187,13 +293,6 @@ export function ProcessBuilderPage() {
             >
               Descartar
             </Button>
-            <Button
-              variant="outline"
-              className="px-4 py-2 text-sm font-medium text-primary border border-primary/30 bg-indigo-50  rounded-lg hover:bg-indigo-100 :bg-indigo-900/40 transition-colors"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Visualizar Fluxo
-            </Button>
           </div>
         </header>
 
@@ -205,8 +304,15 @@ export function ProcessBuilderPage() {
               <select
                 value={selectedStepId || ""}
                 onChange={(e) => {
-                  setSelectedStepId(e.target.value);
-                  setSelectedActionId(null);
+                  const newStepId = e.target.value;
+                  if (hasUnsavedChanges && newStepId !== selectedStepId) {
+                    setPendingAction("changeStep");
+                    setPendingStepId(newStepId);
+                    setShowUnsavedDialog(true);
+                  } else {
+                    setSelectedStepId(newStepId);
+                    setSelectedActionId(null);
+                  }
                 }}
                 className="text-sm bg-transparent border border-neutral-200  rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary"
               >
@@ -224,6 +330,8 @@ export function ProcessBuilderPage() {
           stepId={selectedStepId || steps[0].id}
           action={selectedAction}
           onSave={handleSave}
+          onDirtyChange={setFormHasUnsavedChanges}
+          saveRef={stepActionFormSaveRef}
         />
 
         {/* Custom Fields e Checklist - Serão integrados no StepActionForm futuramente */}
@@ -242,6 +350,28 @@ export function ProcessBuilderPage() {
             <AlertDialogAction onClick={confirmDiscard}>
               Descartar
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showUnsavedDialog} onOpenChange={setShowUnsavedDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterações não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas. Deseja salvar antes de continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleUnsavedDialogCancel}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={handleUnsavedDialogDontSave}>
+              Não salvar
+            </Button>
+            <Button onClick={handleUnsavedDialogSave}>
+              Salvar
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

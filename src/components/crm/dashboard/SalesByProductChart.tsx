@@ -1,5 +1,7 @@
 import { MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatCurrency } from "@/lib/format";
 
 /** Um item do gráfico: label (ex. nome do produto/flow) e valor */
 export interface SalesByProductItem {
@@ -59,7 +61,7 @@ export function SalesByProductChart({
   }
 
   return (
-    <div className="bg-white  rounded-xl shadow-sm border border-border-light  p-6 flex-1">
+    <div className="bg-white  rounded-xl shadow-sm border border-border-light  p-6 flex-2">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h2 className="text-lg font-bold text-slate-800 ">
@@ -69,13 +71,7 @@ export function SalesByProductChart({
             Distribuição de receita por produto/serviço (itens de orçamento)
           </p>
         </div>
-        <button
-          type="button"
-          className="p-1 rounded-lg hover:bg-slate-100 :bg-slate-700 text-slate-400"
-          aria-label="Mais opções"
-        >
-          <MoreHorizontal className="h-5 w-5" />
-        </button>
+        
       </div>
 
       {!hasData ? (
@@ -108,34 +104,38 @@ export function SalesByProductChart({
               );
               const colors = barColors[index % barColors.length];
               return (
-                <div
-                  key={`${item.label}-${index}`}
-                  className="flex-1 min-w-0 max-w-[80px] flex flex-col items-center gap-2 group"
-                >
-                  <div
-                    className={cn(
-                      "relative w-full rounded-t-lg overflow-hidden h-40 transition-all",
-                      colors.bg
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "absolute bottom-0 w-full rounded-t-lg",
-                        colors.fill
-                      )}
-                      style={{
-                        height: `${heightPx}px`,
-                        minHeight: item.value > 0 ? "4px" : "0",
-                      }}
-                    />
-                  </div>
-                  <span
-                    className="text-xs text-slate-500  font-medium text-center truncate w-full"
-                    title={item.label}
-                  >
-                    {item.label}
-                  </span>
-                </div>
+                <Tooltip key={`${item.label}-${index}`}>
+                  <TooltipTrigger asChild>
+                    <div className="flex-1 min-w-0 max-w-[80px] flex flex-col items-center gap-2 group cursor-help">
+                      <div
+                        className={cn(
+                          "relative w-full rounded-t-lg overflow-hidden h-40 transition-all",
+                          colors.bg
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "absolute bottom-0 w-full rounded-t-lg",
+                            colors.fill
+                          )}
+                          style={{
+                            height: `${heightPx}px`,
+                            minHeight: item.value > 0 ? "4px" : "0",
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-500  font-medium text-center truncate w-full">
+                        {item.label}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-center">
+                    <p className="font-medium">{item.label}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {formatCurrency(item.value)}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </div>
