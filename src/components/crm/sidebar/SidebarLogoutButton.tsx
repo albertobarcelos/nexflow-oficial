@@ -15,7 +15,7 @@ export function SidebarLogoutButton() {
     <div className="p-2 border-t">
       <Button
         variant="ghost"
-        className="w-full justify-start gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+        className="w-full justify-start gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 :bg-red-950"
         onClick={handleLogout}
       >
         <LogOut className="h-5 w-5" />

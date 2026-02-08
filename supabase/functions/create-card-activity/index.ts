@@ -24,6 +24,7 @@ interface CreateCardActivityPayload {
   start_at: string; // ISO 8601 string
   end_at: string; // ISO 8601 string
   assignee_id?: string | null; // Se não fornecido, usa creator_id
+  step_action_id?: string | null; // Vincula a atividade ao processo que a gerou (requer coluna no banco)
 }
 
 Deno.serve(async (req: Request) => {
@@ -50,7 +51,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { card_id, activity_type_id, title, description, start_at, end_at, assignee_id } = body;
+    const { card_id, activity_type_id, title, description, start_at, end_at, assignee_id, step_action_id } = body;
 
     // Validações básicas
     if (!card_id) {
@@ -332,21 +333,26 @@ Deno.serve(async (req: Request) => {
       finalAssigneeId = assignee_id;
     }
 
-    // Criar a atividade
+    // Criar a atividade (step_action_id opcional - requer coluna no banco)
+    const insertPayload: Record<string, unknown> = {
+      card_id,
+      activity_type_id,
+      title: title.trim(),
+      description: description?.trim() || null,
+      start_at: start_at,
+      end_at: end_at,
+      assignee_id: finalAssigneeId,
+      creator_id: user.id,
+      client_id: clientId,
+      completed: false,
+    };
+    if (step_action_id) {
+      insertPayload.step_action_id = step_action_id;
+    }
+
     const { data: activity, error: insertError } = await supabase
       .from('card_activities')
-      .insert({
-        card_id,
-        activity_type_id,
-        title: title.trim(),
-        description: description?.trim() || null,
-        start_at: start_at,
-        end_at: end_at,
-        assignee_id: finalAssigneeId,
-        creator_id: user.id,
-        client_id: clientId,
-        completed: false,
-      })
+      .insert(insertPayload)
       .select()
       .single();
 

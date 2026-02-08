@@ -31,26 +31,26 @@ export function CardFieldsTab({
             className="w-2 h-2 rounded-full"
             style={{ backgroundColor: currentStep?.color ?? "#F59E0B" }}
           />
-          <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+          <span className="text-xs font-bold text-gray-400  uppercase tracking-wide">
             Etapa Atual
           </span>
         </div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <h2 className="text-xl font-semibold text-gray-900 ">
           {currentStep?.title ?? "Etapa"}
         </h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-sm text-gray-500  mt-1">
           Preencha os campos abaixo para avançar o card no fluxo.
         </p>
       </div>
 
-      <div className="mb-6 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
-        <Label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+      <div className="mb-6 p-5 bg-gray-50  rounded-xl border border-dashed border-gray-300 ">
+        <Label className="block text-sm font-medium text-gray-700  mb-1">
           Nome do Card 
         </Label>
         <Input
           {...form.register("title")}
           disabled={isDisabled}
-          className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-blue-600 focus:ring-blue-600 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-md border-gray-300   text-gray-900  shadow-sm focus:border-blue-600 focus:ring-blue-600 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
@@ -63,8 +63,8 @@ export function CardFieldsTab({
           onDateChange={onDateChange}
         />
       ) : (
-        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="rounded-xl border border-dashed border-gray-300  bg-gray-50  p-6 text-center">
+          <p className="text-sm text-gray-500 ">
             Nenhum campo configurado nesta etapa.
           </p>
         </div>

@@ -145,7 +145,7 @@ export function KanbanColumn({
                 {isStartColumn && (
                   <button
                     onClick={onNewCard}
-                    className="w-full flex items-center justify-center gap-2 bg-white dark:bg-neutral-800 border-2 border-dashed border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 text-sm py-3 rounded-lg transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500"
+                    className="w-full flex items-center justify-center gap-2 bg-white  border-2 border-dashed border-gray-300  text-blue-600  text-sm py-3 rounded-lg transition-colors hover:bg-blue-50 :bg-blue-900/20 hover:border-blue-400 :border-blue-500"
                   >
                     <Plus className="h-4 w-4" />
                     Novo card
@@ -170,7 +170,7 @@ export function KanbanColumn({
                 {isStartColumn && (
                   <button
                     onClick={onNewCard}
-                    className="w-full flex items-center justify-center gap-2 bg-white dark:bg-neutral-800 border-2 border-dashed border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 text-sm py-3 rounded-lg transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-400 dark:hover:border-blue-500"
+                    className="w-full flex items-center justify-center gap-2 bg-white  border-2 border-dashed border-gray-300  text-blue-600  text-sm py-3 rounded-lg transition-colors hover:bg-blue-50 :bg-blue-900/20 hover:border-blue-400 :border-blue-500"
                   >
                     <Plus className="h-4 w-4" />
                     Novo card
@@ -183,7 +183,7 @@ export function KanbanColumn({
             <Button
               variant="ghost"
               size="sm"
-              className="w-full mt-2 text-xs text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
+              className="w-full mt-2 text-xs text-neutral-500 hover:text-neutral-700  :text-neutral-200"
               onClick={() => onLoadMore(step.id)}
               disabled={isFetchingNextPage}
             >

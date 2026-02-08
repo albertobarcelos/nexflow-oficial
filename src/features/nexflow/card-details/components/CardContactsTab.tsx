@@ -46,10 +46,10 @@ export function CardContactsTab({ card }: CardContactsTabProps) {
 
   return (
     <div className="space-y-4 max-w-3xl">
-      <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+      <h2 className="text-xl font-bold text-slate-800 ">
         Contatos do card
       </h2>
-      <p className="text-sm text-slate-500 dark:text-slate-400">
+      <p className="text-sm text-slate-500 ">
         Vincule contatos ao card. Apenas contatos do seu cliente estão disponíveis.
       </p>
 
@@ -61,11 +61,11 @@ export function CardContactsTab({ card }: CardContactsTabProps) {
       ) : (
         <>
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <label className="text-xs font-bold text-slate-400  uppercase tracking-wider">
               Contatos vinculados
             </label>
             {assignedContacts.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400 py-2">
+              <p className="text-sm text-slate-500  py-2">
                 Nenhum contato vinculado. Adicione um contato abaixo.
               </p>
             ) : (
@@ -73,9 +73,9 @@ export function CardContactsTab({ card }: CardContactsTabProps) {
                 {assignedContacts.map((contact) => (
                   <li
                     key={contact.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 px-3 py-2"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-slate-200  bg-slate-50/50  px-3 py-2"
                   >
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                    <span className="text-sm font-medium text-slate-700 ">
                       {displayName(contact)}
                     </span>
                     <Button

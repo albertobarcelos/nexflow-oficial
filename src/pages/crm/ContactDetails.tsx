@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useContactDetails } from "@/hooks/useContactDetails";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, User, Building2, Phone } from "lucide-react";
+import { ArrowLeft, Loader2, User, Building2, Phone, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -142,6 +142,16 @@ export default function ContactDetails() {
                 </span>
                 <span className="ml-2">
                   {details.company_names.join(", ")}
+                </span>
+              </div>
+            ) : null}
+            {details.tax_ids?.length ? (
+              <div>
+                <span className="font-medium flex items-center gap-1">
+                  <FileText className="h-4 w-4" /> CPF/CNPJ (Documentos):
+                </span>
+                <span className="ml-2">
+                  {details.tax_ids.join(", ")}
                 </span>
               </div>
             ) : null}

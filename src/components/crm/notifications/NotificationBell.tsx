@@ -53,7 +53,7 @@ export function NotificationBell() {
       key={notification.id}
       className={cn(
         "p-4 hover:bg-accent cursor-pointer transition-colors",
-        !notification.read && "bg-blue-50 dark:bg-blue-950/20"
+        !notification.read && "bg-blue-50 "
       )}
       onClick={() => handleNotificationClick(notification.id)}
     >

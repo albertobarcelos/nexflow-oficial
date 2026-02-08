@@ -493,7 +493,7 @@ export function ImportCardsCsvModal({
                     {importResult.errors.slice(0, 10).map((error, index) => (
                       <div
                         key={index}
-                        className="text-xs text-muted-foreground bg-red-50 dark:bg-red-950/20 p-2 rounded"
+                        className="text-xs text-muted-foreground bg-red-50  p-2 rounded"
                       >
                         <strong>Linha {error.rowNumber}:</strong> {error.error}
                       </div>
@@ -598,13 +598,13 @@ export function ImportCardsCsvModal({
                   </div>
                 )}
                 {!defaultStep && !isLoadingSteps && (
-                  <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-2 text-sm text-amber-600 ">
                     <AlertCircle className="h-4 w-4" />
                     O flow precisa ter pelo menos uma etapa para importar.
                   </div>
                 )}
                 {isStepsError && (
-                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <div className="flex items-center gap-2 text-sm text-red-600 ">
                     <AlertCircle className="h-4 w-4" />
                     Erro ao carregar etapas.{" "}
                     <Button
@@ -847,7 +847,7 @@ export function ImportCardsCsvModal({
                   </div>
                 )}
                 {!canAdvanceFromStep2 && csvHeaders.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <div className="flex items-center gap-2 text-sm text-amber-600 ">
                     <AlertCircle className="h-4 w-4" />
                     Selecione uma coluna como &quot;Título do card&quot;.
                   </div>

@@ -66,17 +66,17 @@ export function CardPipelineStages({
                   title={step.title}
                   className={cn(
                     "relative flex items-center justify-center h-7 w-7 rounded-full font-bold text-xs overflow-visible",
-                    "ring-4 ring-white dark:ring-slate-900",
+                    "ring-4 ring-white ",
                     isCurrent
-                      ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200 dark:shadow-none"
+                      ? "bg-emerald-500 text-white shadow-lg shadow-emerald-200 "
                       : isPast
-                        ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
-                        : "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                        ? "bg-indigo-100  text-indigo-600 "
+                        : "bg-indigo-100  text-indigo-600 "
                   )}
                 >
                   {step.position}
                   {isCurrent && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white dark:bg-slate-900 rounded-full border-2 border-emerald-500 z-10" />
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-white  rounded-full border-2 border-emerald-500 z-10" />
                   )}
                 </div>
 
@@ -85,8 +85,8 @@ export function CardPipelineStages({
                   className={cn(
                     "text-[10px] mt-1 max-w-[4.5rem] truncate",
                     isCurrent
-                      ? "text-slate-800 dark:text-slate-200 font-bold"
-                      : "text-slate-400 dark:text-slate-500 font-medium"
+                      ? "text-slate-800  font-bold"
+                      : "text-slate-400  font-medium"
                   )}
                   title={step.title}
                 >
@@ -98,7 +98,7 @@ export function CardPipelineStages({
 
               {/* Conector entre etapas */}
               {index < visibleSteps.length - 1 && (
-                <div className="h-0.5 w-6 bg-slate-200 dark:bg-slate-700 -mt-5 shrink-0" />
+                <div className="h-0.5 w-6 bg-slate-200  -mt-5 shrink-0" />
               )}
             </div>
           );

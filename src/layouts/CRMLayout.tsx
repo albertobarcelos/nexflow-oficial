@@ -25,6 +25,9 @@ export default function CRMLayout() {
 
   // Rota do board: ajustar layout para altura fixa e apenas scroll horizontal no Kanban
   const isBoardRoute = /^\/crm\/flows\/[^/]+\/board\/?$/.test(location.pathname);
+  // Rota do calendário: mesma altura fixa para layout estilo Google Calendar
+  const isCalendarRoute = /^\/crm\/calendar\/?$/.test(location.pathname);
+  const isFullHeightRoute = isBoardRoute || isCalendarRoute;
 
   // TEMPORÁRIO: Comentando toda a verificação de autenticação para permitir acesso direto ao CRM
   /*
@@ -100,22 +103,22 @@ export default function CRMLayout() {
       <TooltipProvider>
         <div
           className={
-            isBoardRoute
+            isFullHeightRoute
               ? "flex flex-col min-h-screen h-screen overflow-hidden"
               : "flex flex-col min-h-screen"
           }
         >
-          <header className="h-14 flex-shrink-0 fixed top-0 left-0 right-0 z-10 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]">
+          <header className="h-14 flex-shrink-0 fixed top-0 left-0 right-0 z-50 bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.08)]">
             <Sidebar />
           </header>
           <main
             className={
-              isBoardRoute
+              isFullHeightRoute
                 ? "flex-1 min-h-0 overflow-hidden flex flex-col mt-14"
                 : "flex-grow overflow-y-auto mt-14"
             }
           >
-            {isBoardRoute ? (
+            {isFullHeightRoute ? (
               <div className="flex-1 min-h-0">
                 <Outlet />
               </div>

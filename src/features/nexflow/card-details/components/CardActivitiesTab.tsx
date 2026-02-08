@@ -141,10 +141,10 @@ export function CardActivitiesTab({ card }: CardActivitiesTabProps) {
       {/* Lista de atividades */}
       {groupedActivities.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 ">
             <Calendar className="h-8 w-8 text-gray-400" />
           </div>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+          <p className="text-sm font-medium text-gray-600 ">
             Nenhuma atividade encontrada
           </p>
           <p className="mt-1 text-xs text-gray-400">
@@ -168,7 +168,7 @@ export function CardActivitiesTab({ card }: CardActivitiesTabProps) {
                       'text-sm font-semibold',
                       isGroupToday
                         ? 'text-primary'
-                        : 'text-gray-700 dark:text-gray-300'
+                        : 'text-gray-700 '
                     )}
                   >
                     {isGroupToday
@@ -196,9 +196,9 @@ export function CardActivitiesTab({ card }: CardActivitiesTabProps) {
                         className={cn(
                           'rounded-lg border p-4 transition-all hover:shadow-md',
                           activity.completed
-                            ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 opacity-75'
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700',
-                          isActivityPast && !activity.completed && 'border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/20'
+                            ? 'bg-gray-50  border-gray-200  opacity-75'
+                            : 'bg-white  border-gray-200 ',
+                          isActivityPast && !activity.completed && 'border-orange-200  bg-orange-50/50 '
                         )}
                       >
                         <div className="flex items-start gap-3">
@@ -235,7 +235,7 @@ export function CardActivitiesTab({ card }: CardActivitiesTabProps) {
                                     </Badge>
                                   )}
                                   {activity.completed && (
-                                    <Badge variant="outline" className="text-xs border-green-500 text-green-600 dark:text-green-400">
+                                    <Badge variant="outline" className="text-xs border-green-500 text-green-600 ">
                                       Concluída
                                     </Badge>
                                   )}

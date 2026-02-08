@@ -29,6 +29,7 @@ export interface CardActivity {
   created_at: string;
   updated_at: string;
   client_id: string;
+  step_action_id?: string | null; // Vincula a atividade ao processo que a gerou
   // Relacionamentos (opcionais, preenchidos via joins)
   activity_type?: FlowActivityType | null;
   assignee?: {
@@ -75,6 +76,7 @@ export interface CreateCardActivityInput {
   start_at: string; // ISO 8601 string
   end_at: string; // ISO 8601 string
   assignee_id?: string | null; // Se não fornecido, usa creator_id
+  step_action_id?: string | null; // Vincula a atividade ao processo que a gerou
 }
 
 export interface UpdateCardActivityInput {

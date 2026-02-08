@@ -115,7 +115,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
 
   // Título do card: prioridade = nome da empresa (company_id) > contato > card.title
   const cardTitle =
-     contactName ?? companyNameFromId ?? companyName ?? card.title;
+      companyNameFromId ?? companyName ?? contactName ?? card.title;
 
   // Nome do usuário responsável
   const responsibleName = assignedUser 
@@ -127,12 +127,12 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
   // Função para obter cor de fundo do avatar
   const getAvatarBgColor = (userName?: string): string => {
     const colors = [
-      'bg-orange-100 dark:bg-orange-900/40',
-      'bg-green-100 dark:bg-green-900/40',
-      'bg-purple-100 dark:bg-purple-900/40',
-      'bg-yellow-100 dark:bg-yellow-900/40',
-      'bg-red-100 dark:bg-red-900/40',
-      'bg-gray-100 dark:bg-gray-700',
+      'bg-orange-100 ',
+      'bg-green-100 ',
+      'bg-purple-100 ',
+      'bg-yellow-100 ',
+      'bg-red-100 ',
+      'bg-gray-100 ',
     ];
     if (!userName) return colors[5];
     const hash = userName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -146,7 +146,7 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
       {/* Topo: Título e Avatar do usuário */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-gray-900 dark:text-white leading-tight truncate-ellipsis max-w-[180px] overflow-hidden whitespace-nowrap">
+          <h3 className="font-semibold text-gray-900  leading-tight truncate-ellipsis max-w-[180px] overflow-hidden whitespace-nowrap">
             {cardTitle}
           </h3>
           {/* Tag abaixo do título com formato arredondado */}
@@ -198,22 +198,22 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
 
       {/* Nome do responsável (discreto) */}
       {responsibleName && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight truncate">
+        <p className="text-xs text-gray-500  leading-tight truncate">
           {responsibleName}
         </p>
       )}
 
       {/* Informações adicionais: empresa e valor */}
       {(companyName || (card.value !== null && card.value !== undefined)) && (
-        <div className="border-t border-gray-100 dark:border-gray-700 -mx-3 px-3 pt-2">
+        <div className="border-t border-gray-100  -mx-3 px-3 pt-2">
           <div className="flex justify-between items-center gap-2">
             {companyName && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-tight truncate flex-1">
+              <p className="text-xs text-gray-500  leading-tight truncate flex-1">
                 {companyName}
               </p>
             )}
             {card.value !== null && card.value !== undefined && (
-              <p className="font-bold text-gray-900 dark:text-gray-200 leading-tight truncate max-w-[120px] overflow-hidden ">
+              <p className="font-bold text-gray-900  leading-tight truncate max-w-[120px] overflow-hidden ">
                 {new Intl.NumberFormat('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
@@ -227,30 +227,30 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
       )}
 
       {/* Rodapé: Indicadores de relacionamentos e métricas */}
-      <div className="border-t border-gray-100 dark:border-gray-700 -mx-3 px-3 pt-2 flex items-center justify-between gap-2 flex-wrap">
+      <div className="border-t border-gray-100  -mx-3 px-3 pt-2 flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
           {card.parentCardId && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui card pai">
+            <div className="flex items-center gap-1 text-gray-500 " title="Possui card pai">
               <ArrowUp className="h-3.5 w-3.5" />
             </div>
           )}
           {hasChildren && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Possui cards filhos">
+            <div className="flex items-center gap-1 text-gray-500 " title="Possui cards filhos">
               <ArrowDown className="h-3.5 w-3.5" />
             </div>
           )}
           {card.contactId && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Contato">
+            <div className="flex items-center gap-1 text-gray-500 " title="Contato">
               <User className="h-3.5 w-3.5" />
             </div>
           )}
           {card.companyId && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Empresa">
+            <div className="flex items-center gap-1 text-gray-500 " title="Empresa">
               <Building2 className="h-3.5 w-3.5" />
             </div>
           )}
           {(card.product || (card.value != null && card.value !== undefined)) && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400" title="Produto / valor">
+            <div className="flex items-center gap-1 text-gray-500 " title="Produto / valor">
               <Package className="h-3.5 w-3.5" />
             </div>
           )}

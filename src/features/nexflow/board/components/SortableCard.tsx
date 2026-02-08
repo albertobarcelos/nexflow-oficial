@@ -113,28 +113,28 @@ export function SortableCard({
         damping: 20,
       }}
       className={cn(
-        "relative cursor-pointer rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-neutral-800 p-3 shadow-sm transition-all group",
+        "relative cursor-pointer rounded-lg border border-gray-100  bg-white  p-3 shadow-sm transition-all group",
         isActiveDrag ? "opacity-40" : "opacity-100",
         shouldShake 
           ? "ring-2 ring-red-300 bg-red-50/60" 
           : "hover:shadow-md transition-shadow",
-        card.status === "completed" && "bg-green-50/30 dark:bg-green-900/10 border-green-200 dark:border-green-800/50 relative overflow-hidden",
-        card.status === "canceled" && "bg-red-50/30 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 relative overflow-hidden",
-        isFrozenCard && "bg-blue-50/30 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/50 ring-2 ring-blue-300 dark:ring-blue-700/50 relative overflow-hidden"
+        card.status === "completed" && "bg-green-50/30  border-green-200  relative overflow-hidden",
+        card.status === "canceled" && "bg-red-50/30  border-red-200  relative overflow-hidden",
+        isFrozenCard && "bg-blue-50/30  border-blue-200  ring-2 ring-blue-300  relative overflow-hidden"
       )}
       onClick={onClick}
     >
       {card.status === "completed" && (
-        <div className="absolute inset-0 bg-gradient-to-br from-green-100/20 to-transparent dark:from-green-900/10 pointer-events-none rounded-xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-green-100/20 to-transparent  pointer-events-none rounded-xl" />
       )}
       
       {card.status === "canceled" && (
-        <div className="absolute inset-0 bg-gradient-to-br from-red-100/20 to-transparent dark:from-red-900/10 pointer-events-none rounded-xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-red-100/20 to-transparent  pointer-events-none rounded-xl" />
       )}
 
       {isFrozenCard && (
         <>
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/30 via-cyan-100/20 to-transparent dark:from-blue-900/20 dark:via-cyan-900/10 pointer-events-none rounded-xl" />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-100/30 via-cyan-100/20 to-transparent   pointer-events-none rounded-xl" />
           <div className="absolute inset-0 bg-gradient-to-t from-white/10 via-transparent to-transparent pointer-events-none rounded-xl" />
         </>
       )}

@@ -7,6 +7,7 @@ import { CardStepAction, CardStepActionStatus } from "@/types/nexflow";
 type CardStepActionRow = Database["public"]["Tables"]["card_step_actions"]["Row"];
 
 const mapCardStepActionRow = (row: CardStepActionRow): CardStepAction => {
+  const rowWithActivity = row as CardStepActionRow & { activity_created?: boolean };
   return {
     id: row.id,
     cardId: row.card_id,
@@ -20,6 +21,7 @@ const mapCardStepActionRow = (row: CardStepActionRow): CardStepAction => {
     executionData: (row.execution_data as Record<string, Json | undefined>) || {},
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    activityCreated: rowWithActivity.activity_created ?? false,
   };
 };
 

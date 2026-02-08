@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useMemo } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useContactsWithIndications } from "@/hooks/useContactsWithIndications";
 import { ContactCard } from "@/components/crm/contacts/ContactCard";
@@ -8,6 +7,7 @@ import { Loader2, Filter, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AddContactDialog } from "@/components/crm/contacts/AddContactDialog";
 import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConfigDialog";
 import { ContactsPageHeader } from "@/components/crm/contacts/ContactsPageHeader";
 import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
@@ -17,61 +17,78 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 export function ContactsPage() {
-  const { toast } = useToast();
-  const { hasAccess, accessError, currentClient, isLoading: isGuardLoading } = useClientAccessGuard();
+  const {
+    hasAccess,
+    accessError,
+    currentClient,
+    isLoading: isGuardLoading,
+  } = useClientAccessGuard();
   const hasLoggedAudit = useRef(false);
 
+  const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [isAutoCreateDialogOpen, setIsAutoCreateDialogOpen] = useState(false);
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [contactForCard, setContactForCard] = useState<any>(null);
-  const [filterTypes, setFilterTypes] = useState<("cliente" | "parceiro" | "indicações")[]>([]);
+  const [filterTypes, setFilterTypes] = useState<
+    ("cliente" | "parceiro" | "indicações")[]
+  >([]);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Log de auditoria ao acessar a lista de contatos (uma vez por montagem quando hasAccess)
   useEffect(() => {
     if (hasAccess && currentClient?.id && !hasLoggedAudit.current) {
-      console.info("[AUDIT] Contatos - Client:", currentClient.id, currentClient.name ?? "");
+      console.info(
+        "[AUDIT] Contatos - Client:",
+        currentClient.id,
+        currentClient.name ?? "",
+      );
       hasLoggedAudit.current = true;
     }
   }, [hasAccess, currentClient?.id, currentClient?.name]);
 
-  const {
-    contacts,
-    isLoading,
-    isError,
-    contactsCount,
-    indicationsCount,
-  } = useContactsWithIndications({
-    enabled: hasAccess,
-    filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
-  });
+  const { contacts, isLoading, isError, contactsCount, indicationsCount } =
+    useContactsWithIndications({
+      enabled: hasAccess,
+      filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
+    });
 
   // Filtro de busca
   const filteredBySearch = useMemo(() => {
     if (!searchQuery.trim()) {
       return contacts;
     }
-    
+
     const query = searchQuery.toLowerCase().trim();
-    
+
     return contacts.filter((contact) => {
       // Buscar em client_name
       if (contact.client_name?.toLowerCase().includes(query)) return true;
-      
+
       // Buscar em main_contact
       if (contact.main_contact?.toLowerCase().includes(query)) return true;
-      
+
       // Buscar em phone_numbers
-      if (contact.phone_numbers?.some(phone => phone.toLowerCase().includes(query))) return true;
-      
+      if (
+        contact.phone_numbers?.some((phone) =>
+          phone.toLowerCase().includes(query),
+        )
+      )
+        return true;
+
       // Buscar em company_names
-      if (contact.company_names?.some(company => company.toLowerCase().includes(query))) return true;
-      
+      if (
+        contact.company_names?.some((company) =>
+          company.toLowerCase().includes(query),
+        )
+      )
+        return true;
+
       // Buscar em tax_ids (CNPJ/CPF)
-      if (contact.tax_ids?.some(taxId => taxId.toLowerCase().includes(query))) return true;
-      
+      if (contact.tax_ids?.some((taxId) => taxId.toLowerCase().includes(query)))
+        return true;
+
       return false;
     });
   }, [contacts, searchQuery]);
@@ -91,18 +108,14 @@ export function ContactsPage() {
     return (
       <div className="p-4 md:p-6">
         <Alert variant="destructive">
-          <AlertDescription>{accessError ?? "Cliente não definido. Não é possível acessar os contatos."}</AlertDescription>
+          <AlertDescription>
+            {accessError ??
+              "Cliente não definido. Não é possível acessar os contatos."}
+          </AlertDescription>
         </Alert>
       </div>
     );
   }
-
-  const handleAddContact = () => {
-    toast({
-      title: "Em breve",
-      description: "A funcionalidade de adicionar novo contato estará disponível em breve.",
-    });
-  };
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -110,7 +123,7 @@ export function ContactsPage() {
       <ContactsPageHeader
         viewMode="cards"
         onOpenAutomations={() => setIsAutoCreateDialogOpen(true)}
-        onAddContact={handleAddContact}
+        onAddContact={() => setIsAddContactDialogOpen(true)}
       />
 
       {/* Campo de busca */}
@@ -144,7 +157,9 @@ export function ContactsPage() {
               }}
               className="h-8"
             >
-              {type === "indicações" ? "Indicações" : type.charAt(0).toUpperCase() + type.slice(1)}
+              {type === "indicações"
+                ? "Indicações"
+                : type.charAt(0).toUpperCase() + type.slice(1)}
             </Button>
           );
         })}
@@ -219,6 +234,11 @@ export function ContactsPage() {
       )}
 
       {/* Dialogs */}
+      <AddContactDialog
+        open={isAddContactDialogOpen}
+        onOpenChange={setIsAddContactDialogOpen}
+      />
+
       <AutoCreateConfigDialog
         open={isAutoCreateDialogOpen}
         onOpenChange={setIsAutoCreateDialogOpen}

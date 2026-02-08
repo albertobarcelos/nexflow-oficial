@@ -100,24 +100,24 @@ export function ProcessTimeline({
   }, [processesByDay]);
 
   return (
-    <aside className="w-80 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex-shrink-0 z-10 transition-colors duration-300">
+    <aside className="w-80 flex flex-col bg-white  border-r border-gray-200  flex-shrink-0 z-10 transition-colors duration-300">
       {/* Header */}
-      <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-neutral-900 dark:text-white">Process Flow</h1>
-        <button className="text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+      <div className="px-4 py-4 border-b border-gray-200  flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-neutral-900 ">Process Flow</h1>
+        <button className="text-neutral-400 hover:text-indigo-600 :text-indigo-400 transition-colors">
           <Settings className="h-5 w-5" />
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700">
+      <div className="flex border-b border-gray-200 ">
         <button
           onClick={() => setActiveTab("timeline")}
           className={cn(
             "flex-1 py-3 text-sm font-medium transition-colors",
             activeTab === "timeline"
-              ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-neutral-50 dark:bg-neutral-800/50"
-              : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+              ? "text-indigo-600  border-b-2 border-indigo-600  bg-neutral-50 "
+              : "text-neutral-500  hover:text-neutral-700 :text-neutral-200"
           )}
         >
           Timeline
@@ -127,8 +127,8 @@ export function ProcessTimeline({
           className={cn(
             "flex-1 py-3 text-sm font-medium transition-colors",
             activeTab === "upcoming"
-              ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-neutral-50 dark:bg-neutral-800/50"
-              : "text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+              ? "text-indigo-600  border-b-2 border-indigo-600  bg-neutral-50 "
+              : "text-neutral-500  hover:text-neutral-700 :text-neutral-200"
           )}
         >
           Upcoming
@@ -140,7 +140,7 @@ export function ProcessTimeline({
         {activeTab === "timeline" ? (
           <div className="flex h-full">
             {/* Coluna de Dias */}
-            <div className="w-12 flex flex-col items-center bg-neutral-50 dark:bg-neutral-800/30 border-r border-gray-200 dark:border-gray-700 py-4 space-y-2 text-xs font-medium text-neutral-400 dark:text-neutral-500">
+            <div className="w-12 flex flex-col items-center bg-neutral-50  border-r border-gray-200  py-4 space-y-2 text-xs font-medium text-neutral-400 ">
               <span className="text-[10px] uppercase tracking-wider mb-2">Day</span>
               {allDays.map((day) => {
                 const isActive = processesByDay.some(
@@ -164,25 +164,25 @@ export function ProcessTimeline({
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center transition-colors",
                       isActive
-                        ? "bg-indigo-600 dark:bg-indigo-500 text-white shadow-sm"
+                        ? "bg-indigo-600  text-white shadow-sm"
                         : hasCompleted
-                        ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50"
-                        : "hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400"
+                        ? "bg-green-100  text-green-600  hover:bg-green-200 :bg-green-900/50"
+                        : "hover:bg-neutral-200 :bg-neutral-700 text-neutral-600 "
                     )}
                   >
                     {day}
                   </button>
                 );
               })}
-              <div className="border-t border-gray-200 dark:border-gray-700 w-6 my-2"></div>
-              <button className="w-8 h-8 rounded-full hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 flex items-center justify-center transition-colors">
+              <div className="border-t border-gray-200  w-6 my-2"></div>
+              <button className="w-8 h-8 rounded-full hover:bg-neutral-200 :bg-neutral-700 text-neutral-600  flex items-center justify-center transition-colors">
                 <List className="h-4 w-4" />
               </button>
             </div>
 
             {/* Lista de Atividades */}
             <div className="flex-1 py-2">
-              <div className="flex items-center justify-between px-3 py-2 text-xs font-medium text-neutral-400 dark:text-neutral-500 uppercase tracking-wider">
+              <div className="flex items-center justify-between px-3 py-2 text-xs font-medium text-neutral-400  uppercase tracking-wider">
                 <span>Activity</span>
                 <span>Done</span>
               </div>
@@ -204,11 +204,11 @@ export function ProcessTimeline({
                         className={cn(
                           "group flex items-start px-3 py-3 cursor-pointer border-l-4 transition-colors",
                           isSelected
-                            ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-600 dark:border-indigo-400"
-                            : "hover:bg-neutral-50 dark:hover:bg-neutral-800/50 border-transparent"
+                            ? "bg-indigo-50  border-indigo-600 "
+                            : "hover:bg-neutral-50 :bg-neutral-800/50 border-transparent"
                         )}
                       >
-                        <div className={cn("mt-0.5 mr-3", isCompleted ? "text-green-500 dark:text-green-400" : isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-neutral-400")}>
+                        <div className={cn("mt-0.5 mr-3", isCompleted ? "text-green-500 " : isSelected ? "text-indigo-600 " : "text-neutral-400")}>
                           {isCompleted ? (
                             <CheckCircle2 className="h-4 w-4" />
                           ) : (
@@ -220,26 +220,26 @@ export function ProcessTimeline({
                             className={cn(
                               "text-sm leading-tight",
                               isCompleted
-                                ? "text-neutral-500 dark:text-neutral-500 line-through"
+                                ? "text-neutral-500  line-through"
                                 : isSelected
-                                ? "font-medium text-neutral-900 dark:text-white"
-                                : "text-neutral-700 dark:text-neutral-300"
+                                ? "font-medium text-neutral-900 "
+                                : "text-neutral-700 "
                             )}
                           >
                             {process.stepAction?.title || "Processo sem título"}
                           </p>
-                          <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">
+                          <p className="text-xs text-neutral-500  mt-1">
                             {dayStr} • {timeStr}
                           </p>
                         </div>
                         {isCompleted ? (
-                          <div className="text-indigo-600 dark:text-indigo-400 ml-2">
+                          <div className="text-indigo-600  ml-2">
                             <CheckCircle2 className="h-5 w-5" />
                           </div>
                         ) : (
                           <input
                             type="checkbox"
-                            className="ml-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 dark:bg-neutral-700 dark:border-neutral-600 h-4 w-4"
+                            className="ml-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600   h-4 w-4"
                             checked={false}
                             onChange={(e) => {
                               e.stopPropagation();
@@ -256,7 +256,7 @@ export function ProcessTimeline({
           </div>
         ) : (
           <div className="flex items-center justify-center h-full p-8">
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="text-sm text-neutral-500 ">
               Upcoming view em desenvolvimento
             </p>
           </div>

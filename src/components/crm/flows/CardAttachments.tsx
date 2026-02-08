@@ -209,15 +209,15 @@ export function CardAttachments({ cardId }: CardAttachmentsProps) {
         className={cn(
           'border-2 border-dashed rounded-lg p-8 text-center transition-colors',
           isDragging
-            ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/20'
-            : 'border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600'
+            ? 'border-blue-500 bg-blue-50 '
+            : 'border-gray-300  hover:border-gray-400 :border-gray-600'
         )}
       >
         <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <p className="text-sm text-gray-600  mb-2">
           Arraste arquivos aqui ou clique para selecionar
         </p>
-        <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
+        <p className="text-xs text-gray-500  mb-4">
           Tamanho máximo: 100MB por arquivo
         </p>
         <Button
@@ -276,7 +276,7 @@ export function CardAttachments({ cardId }: CardAttachmentsProps) {
             return (
               <div
                 key={attachment.id}
-                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 :bg-gray-800/50"
               >
                 {isImg ? (
                   <img
@@ -285,7 +285,7 @@ export function CardAttachments({ cardId }: CardAttachmentsProps) {
                     className="h-12 w-12 object-cover rounded"
                   />
                 ) : (
-                  <div className="h-12 w-12 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded">
+                  <div className="h-12 w-12 flex items-center justify-center bg-gray-100  rounded">
                     <FileIcon className="h-6 w-6 text-gray-400" />
                   </div>
                 )}

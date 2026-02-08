@@ -28,16 +28,16 @@ export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl p-5 shadow-sm">
+    <div className="bg-white  border border-neutral-200  rounded-xl p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+        <h3 className="text-sm font-semibold text-neutral-800 ">
           To-Do Checklist
         </h3>
       </div>
 
       <div className="space-y-2 mb-3">
         {items.length === 0 ? (
-          <p className="text-xs text-neutral-500 dark:text-neutral-400 text-center py-4">
+          <p className="text-xs text-neutral-500  text-center py-4">
             No checklist items yet
           </p>
         ) : (
@@ -49,7 +49,7 @@ export function ChecklistEditor({ items, onChange }: ChecklistEditorProps) {
               <Input
                 value={item}
                 onChange={(e) => handleUpdateItem(index, e.target.value)}
-                className="flex-1 text-xs bg-transparent border-none p-0 focus:ring-0 text-neutral-700 dark:text-neutral-300"
+                className="flex-1 text-xs bg-transparent border-none p-0 focus:ring-0 text-neutral-700 "
                 placeholder="Checklist item..."
               />
               <button

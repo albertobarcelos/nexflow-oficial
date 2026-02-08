@@ -17,6 +17,7 @@ import { NexflowBoardPage } from "@/pages/crm/flows/NexflowBoardPage";
 import { FlowViewsPage } from "@/pages/crm/flows/FlowViewsPage";
 import { FlowsPage } from "@/pages/crm/flows/FlowsPage";
 import { ProcessBuilderPage } from "@/pages/crm/flows/ProcessBuilderPage";
+import CalendarPage from "@/pages/crm/calendar/CalendarPage";
 import ContactDetails from "@/pages/crm/ContactDetails";
 
 
@@ -129,6 +130,10 @@ export const router = createBrowserRouter(
       {
         path: "flows/views",
         element: <FlowViewsPage />,
+      },
+      {
+        path: "calendar",
+        element: <CalendarPage />,
       },
       {
         path: "flow/:flowId/contacts/:id",

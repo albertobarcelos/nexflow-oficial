@@ -73,43 +73,43 @@ const getEventColor = (
   movementDirection?: string | null
 ) => {
   if (eventType === "stage_change" && movementDirection === "backward") {
-    return "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20";
+    return "text-orange-600  bg-orange-50 ";
   }
   if (eventType === "status_change") {
-    return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20";
+    return "text-green-600  bg-green-50 ";
   }
   if (eventType === "freeze") {
-    return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20";
+    return "text-blue-600  bg-blue-50 ";
   }
   if (eventType === "activity") {
-    return "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/20";
+    return "text-purple-600  bg-purple-50 ";
   }
   if (eventType === "process_status_change" || eventType === "process_completed") {
-    return "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20";
+    return "text-indigo-600  bg-indigo-50 ";
   }
   if (eventType === "title_change") {
-    return "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20";
+    return "text-amber-600  bg-amber-50 ";
   }
   if (eventType === "assignee_change") {
-    return "text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/20";
+    return "text-cyan-600  bg-cyan-50 ";
   }
   if (eventType === "checklist_change") {
-    return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20";
+    return "text-emerald-600  bg-emerald-50 ";
   }
   if (eventType === "product_value_change") {
-    return "text-lime-600 dark:text-lime-400 bg-lime-50 dark:bg-lime-950/20";
+    return "text-lime-600  bg-lime-50 ";
   }
   if (eventType === "parent_change") {
-    return "text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/20";
+    return "text-violet-600  bg-violet-50 ";
   }
   if (eventType === "agents_change") {
-    return "text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/20";
+    return "text-pink-600  bg-pink-50 ";
   }
   if (eventType === "attachment_uploaded") {
-    return "text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/20";
+    return "text-teal-600  bg-teal-50 ";
   }
   if (eventType === "message_created") {
-    return "text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/20";
+    return "text-sky-600  bg-sky-50 ";
   }
   return "text-primary bg-primary/10";
 };
@@ -180,7 +180,7 @@ export function CardTimelineHorizontal({ events, cardId }: CardTimelineHorizonta
                   "relative h-8 w-8 rounded-full border-2 flex items-center justify-center",
                   "transition-all duration-200 shadow-sm",
                   colorClass,
-                  isBackward && "ring-2 ring-orange-500 dark:ring-orange-400"
+                  isBackward && "ring-2 ring-orange-500 "
                 )}
                 style={{
                   backgroundColor: event.to_step?.color
@@ -207,7 +207,7 @@ export function CardTimelineHorizontal({ events, cardId }: CardTimelineHorizonta
                     variant="outline"
                     className={cn(
                       "text-xs whitespace-nowrap",
-                      isBackward && "border-orange-500 text-orange-600 dark:text-orange-400"
+                      isBackward && "border-orange-500 text-orange-600 "
                     )}
                   >
                     {event.event_type === "stage_change" && isBackward && (
@@ -291,14 +291,14 @@ export function CardTimelineHorizontal({ events, cardId }: CardTimelineHorizonta
                             {event.from_step.title}
                           </span>
                           {isBackward ? (
-                            <ArrowLeft className="h-3 w-3 text-orange-600 dark:text-orange-400 shrink-0" />
+                            <ArrowLeft className="h-3 w-3 text-orange-600  shrink-0" />
                           ) : (
                             <ArrowRight className="h-3 w-3 shrink-0" />
                           )}
                           <span
                             className={cn(
                               "font-medium truncate",
-                              isBackward && "text-orange-600 dark:text-orange-400"
+                              isBackward && "text-orange-600 "
                             )}
                           >
                             {event.to_step.title}

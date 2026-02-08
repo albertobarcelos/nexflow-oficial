@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { useClientAccessGuard } from '@/hooks/useClientAccessGuard';
-import { useContactsWithIndications } from '@/hooks/useContactsWithIndications';
-import { ContactDetailsPanel } from '@/components/crm/contacts/ContactDetailsPanel';
-import { CreateCardFromContactDialog } from '@/components/crm/contacts/CreateCardFromContactDialog';
-import { AutoCreateConfigDialog } from '@/components/crm/contacts/AutoCreateConfigDialog';
-import { ContactsPageHeader } from '@/components/crm/contacts/ContactsPageHeader';
-import { UserAvatar } from '@/components/ui/user-avatar';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Loader2, Filter, Tag, Search } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
+import { useContactsWithIndications } from "@/hooks/useContactsWithIndications";
+import { AddContactDialog } from "@/components/crm/contacts/AddContactDialog";
+import { ContactDetailsPanel } from "@/components/crm/contacts/ContactDetailsPanel";
+import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
+import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConfigDialog";
+import { ContactsPageHeader } from "@/components/crm/contacts/ContactsPageHeader";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, Loader2, Filter, Tag, Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -32,11 +32,18 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export default function ContactsList() {
-  const { toast } = useToast();
-  const { hasAccess, accessError, currentClient, isLoading: isGuardLoading } = useClientAccessGuard();
+  const {
+    hasAccess,
+    accessError,
+    currentClient,
+    isLoading: isGuardLoading,
+  } = useClientAccessGuard();
   const hasLoggedAudit = useRef(false);
 
-  const [filterTypes, setFilterTypes] = useState<("cliente" | "parceiro" | "indicações")[]>([]);
+  const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
+  const [filterTypes, setFilterTypes] = useState<
+    ("cliente" | "parceiro" | "indicações")[]
+  >([]);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
   const [contactForCard, setContactForCard] = useState<any>(null);
@@ -48,52 +55,65 @@ export default function ContactsList() {
   // Log de auditoria ao acessar a lista de contatos (uma vez por montagem quando hasAccess)
   useEffect(() => {
     if (hasAccess && currentClient?.id && !hasLoggedAudit.current) {
-      console.info("[AUDIT] Contatos - Client:", currentClient.id, currentClient.name ?? "");
+      console.info(
+        "[AUDIT] Contatos - Client:",
+        currentClient.id,
+        currentClient.name ?? "",
+      );
       hasLoggedAudit.current = true;
     }
   }, [hasAccess, currentClient?.id, currentClient?.name]);
 
-  const {
-    contacts,
-    isLoading,
-    isError,
-    contactsCount,
-    indicationsCount,
-  } = useContactsWithIndications({
-    enabled: hasAccess,
-    filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
-  });
+  const { contacts, isLoading, isError, contactsCount, indicationsCount } =
+    useContactsWithIndications({
+      enabled: hasAccess,
+      filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
+    });
 
   // Filtro de busca
   const filteredBySearch = useMemo(() => {
     if (!searchQuery.trim()) {
       return contacts;
     }
-    
+
     const query = searchQuery.toLowerCase().trim();
-    
+
     return contacts.filter((contact) => {
       // Buscar em client_name
       if (contact.client_name?.toLowerCase().includes(query)) return true;
-      
+
       // Buscar em main_contact
       if (contact.main_contact?.toLowerCase().includes(query)) return true;
-      
+
       // Buscar em phone_numbers
-      if (contact.phone_numbers?.some(phone => phone.toLowerCase().includes(query))) return true;
-      
+      if (
+        contact.phone_numbers?.some((phone) =>
+          phone.toLowerCase().includes(query),
+        )
+      )
+        return true;
+
       // Buscar em company_names
-      if (contact.company_names?.some(company => company.toLowerCase().includes(query))) return true;
-      
+      if (
+        contact.company_names?.some((company) =>
+          company.toLowerCase().includes(query),
+        )
+      )
+        return true;
+
       // Buscar em tax_ids (CNPJ/CPF)
-      if (contact.tax_ids?.some(taxId => taxId.toLowerCase().includes(query))) return true;
-      
+      if (contact.tax_ids?.some((taxId) => taxId.toLowerCase().includes(query)))
+        return true;
+
       return false;
     });
   }, [contacts, searchQuery]);
 
   // Calcular paginação
-  const totalPages = useMemo(() => Math.ceil(filteredBySearch.length / pageSize), [filteredBySearch.length, pageSize]);
+  const totalPages = useMemo(
+    () => Math.ceil(filteredBySearch.length / pageSize),
+    [filteredBySearch.length, pageSize],
+  );
   const paginatedContacts = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
@@ -120,26 +140,21 @@ export default function ContactsList() {
     return (
       <div className="p-4 md:p-6">
         <Alert variant="destructive">
-          <AlertDescription>{accessError ?? "Cliente não definido. Não é possível acessar os contatos."}</AlertDescription>
+          <AlertDescription>
+            {accessError ??
+              "Cliente não definido. Não é possível acessar os contatos."}
+          </AlertDescription>
         </Alert>
       </div>
     );
   }
-
-  const handleAddContact = () => {
-    toast({
-      title: "Em breve",
-      description:
-        "A funcionalidade de adicionar novo contato estará disponível em breve.",
-    });
-  };
 
   return (
     <div className="space-y-6 p-4 md:p-6">
       <ContactsPageHeader
         viewMode="list"
         onOpenAutomations={() => setIsAutoCreateDialogOpen(true)}
-        onAddContact={handleAddContact}
+        onAddContact={() => setIsAddContactDialogOpen(true)}
       />
 
       {/* Campo de busca */}
@@ -173,7 +188,9 @@ export default function ContactsList() {
               }}
               className="h-8"
             >
-              {type === "indicações" ? "Indicações" : type.charAt(0).toUpperCase() + type.slice(1)}
+              {type === "indicações"
+                ? "Indicações"
+                : type.charAt(0).toUpperCase() + type.slice(1)}
             </Button>
           );
         })}
@@ -234,16 +251,23 @@ export default function ContactsList() {
               </TableHeader>
               <TableBody>
                 {paginatedContacts.map((contact) => {
-                  const typeLabels: Record<"cliente" | "parceiro" | "outro", string> = {
+                  const typeLabels: Record<
+                    "cliente" | "parceiro" | "outro",
+                    string
+                  > = {
                     cliente: "Cliente",
                     parceiro: "Parceiro",
                     outro: "Outro",
                   };
-                  
-                  const typeColors: Record<"cliente" | "parceiro" | "outro", string> = {
-                    cliente: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300",
-                    parceiro: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300",
-                    outro: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300",
+
+                  const typeColors: Record<
+                    "cliente" | "parceiro" | "outro",
+                    string
+                  > = {
+                    cliente: "bg-blue-100 text-blue-800 border-blue-200  ",
+                    parceiro:
+                      "bg-purple-100 text-purple-800 border-purple-200  ",
+                    outro: "bg-gray-100 text-gray-800 border-gray-200  ",
                   };
 
                   const handleRowClick = () => {
@@ -264,7 +288,7 @@ export default function ContactsList() {
                       key={contact.id}
                       className={cn(
                         "hover:bg-muted",
-                        !contact.isIndication && "cursor-pointer"
+                        !contact.isIndication && "cursor-pointer",
                       )}
                       onClick={handleRowClick}
                     >
@@ -279,70 +303,91 @@ export default function ContactsList() {
                             size="sm"
                           />
                           <span className="font-medium">
-                            {contact.client_name || '-'}
+                            {contact.client_name || "-"}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{contact.main_contact || '-'}</TableCell>
+                      <TableCell>{contact.main_contact || "-"}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {/* Badge de Indicação */}
                           {contact.isIndication && (
-                            <Badge 
-                              variant="outline" 
-                              className="bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 text-xs"
+                            <Badge
+                              variant="outline"
+                              className="bg-yellow-50 text-yellow-700 border-yellow-200   text-xs"
                             >
                               <Tag className="h-3 w-3 mr-1" />
                               Indicação
                             </Badge>
                           )}
                           {/* Badges de tipo de contato */}
-                          {contact.contact_type && (() => {
-                            const types = Array.isArray(contact.contact_type) 
-                              ? contact.contact_type 
-                              : [contact.contact_type];
-                            
-                            return types.map((type) => {
-                              if (!type || !typeLabels[type as keyof typeof typeLabels]) return null;
-                              return (
-                                <Badge
-                                  key={type}
-                                  variant="outline"
-                                  className={cn(
-                                    "text-xs",
-                                    typeColors[type as keyof typeof typeColors]
-                                  )}
-                                >
-                                  {typeLabels[type as keyof typeof typeLabels]}
-                                </Badge>
-                              );
-                            });
-                          })()}
+                          {contact.contact_type &&
+                            (() => {
+                              const types = Array.isArray(contact.contact_type)
+                                ? contact.contact_type
+                                : [contact.contact_type];
+
+                              return types.map((type) => {
+                                if (
+                                  !type ||
+                                  !typeLabels[type as keyof typeof typeLabels]
+                                )
+                                  return null;
+                                return (
+                                  <Badge
+                                    key={type}
+                                    variant="outline"
+                                    className={cn(
+                                      "text-xs",
+                                      typeColors[
+                                        type as keyof typeof typeColors
+                                      ],
+                                    )}
+                                  >
+                                    {
+                                      typeLabels[
+                                        type as keyof typeof typeLabels
+                                      ]
+                                    }
+                                  </Badge>
+                                );
+                              });
+                            })()}
                         </div>
                       </TableCell>
                       <TableCell>
-                        {contact.phone_numbers && contact.phone_numbers.length > 0
-                          ? contact.phone_numbers.slice(0, 2).join(', ') + 
-                            (contact.phone_numbers.length > 2 ? ` (+${contact.phone_numbers.length - 2})` : '')
-                          : '-'}
+                        {contact.phone_numbers &&
+                        contact.phone_numbers.length > 0
+                          ? contact.phone_numbers.slice(0, 2).join(", ") +
+                            (contact.phone_numbers.length > 2
+                              ? ` (+${contact.phone_numbers.length - 2})`
+                              : "")
+                          : "-"}
                       </TableCell>
                       <TableCell>
-                        {contact.company_names && contact.company_names.length > 0
-                          ? contact.company_names.slice(0, 2).join(', ') + 
-                            (contact.company_names.length > 2 ? ` (+${contact.company_names.length - 2})` : '')
-                          : '-'}
+                        {contact.company_names &&
+                        contact.company_names.length > 0
+                          ? contact.company_names.slice(0, 2).join(", ") +
+                            (contact.company_names.length > 2
+                              ? ` (+${contact.company_names.length - 2})`
+                              : "")
+                          : "-"}
                       </TableCell>
                       <TableCell>
                         {contact.assigned_team_id ? (
-                          <Badge variant="outline">Time ID: {contact.assigned_team_id.slice(0, 8)}...</Badge>
+                          <Badge variant="outline">
+                            Time ID: {contact.assigned_team_id.slice(0, 8)}...
+                          </Badge>
                         ) : (
-                          '-'
+                          "-"
                         )}
                       </TableCell>
                       <TableCell>
                         {contact.created_at
-                          ? new Date(contact.created_at).toLocaleDateString('pt-BR')
-                          : '-'}
+                          ? new Date(contact.created_at).toLocaleDateString(
+                              "pt-BR",
+                            )
+                          : "-"}
                       </TableCell>
                       <TableCell>
                         <Button
@@ -373,7 +418,11 @@ export default function ContactsList() {
                       e.preventDefault();
                       setCurrentPage(Math.max(1, currentPage - 1));
                     }}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
                   />
                 </PaginationItem>
                 {(() => {
@@ -441,7 +490,11 @@ export default function ContactsList() {
                       e.preventDefault();
                       setCurrentPage(Math.min(totalPages, currentPage + 1));
                     }}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
                   />
                 </PaginationItem>
               </PaginationContent>
@@ -451,6 +504,11 @@ export default function ContactsList() {
       )}
 
       {/* Dialogs */}
+      <AddContactDialog
+        open={isAddContactDialogOpen}
+        onOpenChange={setIsAddContactDialogOpen}
+      />
+
       <AutoCreateConfigDialog
         open={isAutoCreateDialogOpen}
         onOpenChange={setIsAutoCreateDialogOpen}

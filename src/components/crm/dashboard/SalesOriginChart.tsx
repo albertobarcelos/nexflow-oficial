@@ -35,7 +35,7 @@ export function SalesOriginChart({ data, isLoading }: SalesOriginChartProps) {
   return (
     <Card className="flex flex-col h-full">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        <CardTitle className="text-lg font-semibold text-gray-900  mb-2">
           Origem das Vendas
         </CardTitle>
       </CardHeader>
@@ -64,7 +64,6 @@ export function SalesOriginChart({ data, isLoading }: SalesOriginChartProps) {
                   border: '1px solid #e5e7eb',
                   borderRadius: '0.5rem',
                 }}
-                className="dark:bg-gray-800 dark:border-gray-700"
               />
             </PieChart>
           </ResponsiveContainer>
@@ -72,7 +71,7 @@ export function SalesOriginChart({ data, isLoading }: SalesOriginChartProps) {
         
         {/* Center label */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl font-bold text-gray-800 dark:text-gray-200">Total</span>
+          <span className="text-2xl font-bold text-gray-800 ">Total</span>
           <span className="text-sm text-gray-500">{total}%</span>
         </div>
       </CardContent>
@@ -86,9 +85,9 @@ export function SalesOriginChart({ data, isLoading }: SalesOriginChartProps) {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-gray-600 dark:text-gray-300">{item.source}</span>
+              <span className="text-gray-600 ">{item.source}</span>
             </div>
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="font-medium text-gray-900 ">
               {item.percentage}%
             </span>
           </div>

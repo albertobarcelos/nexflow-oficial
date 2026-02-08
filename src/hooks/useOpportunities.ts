@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase, nexflowClient } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
+import { useClientStore } from "@/stores/clientStore";
 
 export interface Contact {
   id: string;
@@ -66,7 +67,9 @@ async function fetchViaRPC(userPermissions: {
  */
 export function useOpportunities(options: UseOpportunitiesOptions = {}) {
   const { enabled = true } = options;
-  // #region agent log - Fix: Load permissions from sessionStorage on initialization
+  const { currentClient, userRole } = useClientStore();
+
+  // Carregar do sessionStorage como fallback/cache inicial
   const loadPermissionsFromStorage = (): {
     isAdmin: boolean;
     isLeader: boolean;
@@ -74,130 +77,173 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
     clientId: string | null;
   } => {
     try {
-      const stored = sessionStorage.getItem('useOpportunities-permissions');
+      const stored = sessionStorage.getItem("useOpportunities-permissions");
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Verify the stored permissions are still valid (not expired)
-        const storedTimestamp = sessionStorage.getItem('useOpportunities-permissions-timestamp');
+        const storedTimestamp = sessionStorage.getItem("useOpportunities-permissions-timestamp");
         if (storedTimestamp) {
           const age = Date.now() - parseInt(storedTimestamp, 10);
-          // Consider permissions valid for 1 hour
-          if (age < 60 * 60 * 1000) {
-            return parsed;
-          }
+          if (age < 60 * 60 * 1000) return parsed;
         }
       }
-    } catch (e) {
-      // Ignore errors
+    } catch {
+      // Ignorar erros
     }
-    return {
-      isAdmin: false,
-      isLeader: false,
-      teamIds: [],
-      clientId: null,
-    };
+    return { isAdmin: false, isLeader: false, teamIds: [], clientId: null };
   };
-  // #endregion
-  const [userPermissions, setUserPermissions] = useState<{
-    isAdmin: boolean;
-    isLeader: boolean;
-    teamIds: string[];
-    clientId: string | null;
-  }>(loadPermissionsFromStorage);
-  // Fix: Set loading to false if we have valid permissions from storage
-  const [isLoadingPermissions, setIsLoadingPermissions] = useState(() => {
-    const stored = loadPermissionsFromStorage();
-    const hasValid = !!(stored.clientId && (stored.isAdmin || stored.isLeader));
-    return !hasValid;
-  });
-  // Fix: Use ref to track if permissions were already loaded
-  const initialStored = loadPermissionsFromStorage();
-  const hasLoadedPermissionsRef = useRef(!!(initialStored.clientId && (initialStored.isAdmin || initialStored.isLeader)));
 
-  // Verificar permissões do usuário
+  const [userPermissions, setUserPermissions] = useState(loadPermissionsFromStorage);
+  const [isLoadingPermissions, setIsLoadingPermissions] = useState(true);
+  const hasLoadedTeamIdsRef = useRef(false);
+  const lastClientIdRef = useRef<string | null>(null);
+
+  // Otimização: usar clientStore quando disponível (evita fetch duplicado de core_client_users)
+  const fromStore = currentClient?.id && userRole;
+  const clientIdFromStore = fromStore ? currentClient.id : null;
+  const isAdminFromStore = fromStore && userRole === "administrator";
+
+  // Buscar apenas teamIds quando não for admin (uma única query em vez de duas)
   useEffect(() => {
-    // Fix: Skip if we already have valid permissions and enabled is true
-    const hasValidPermissions = userPermissions.clientId && (userPermissions.isAdmin || userPermissions.isLeader);
-    if (enabled && hasValidPermissions && hasLoadedPermissionsRef.current) {
-      return; // Skip re-checking if we already have valid permissions
+    if (!enabled || !fromStore || isAdminFromStore) {
+      if (fromStore && isAdminFromStore) {
+        setUserPermissions((prev) => ({
+          ...prev,
+          clientId: clientIdFromStore,
+          isAdmin: true,
+          isLeader: false,
+          teamIds: [],
+        }));
+        setIsLoadingPermissions(false);
+      }
+      return;
     }
-    
-    const checkPermissions = async () => {
+
+    // Reset quando cliente mudar
+    if (lastClientIdRef.current !== clientIdFromStore) {
+      hasLoadedTeamIdsRef.current = false;
+      lastClientIdRef.current = clientIdFromStore;
+    }
+
+    // Só leaders precisam de teamIds
+    if (hasLoadedTeamIdsRef.current) return;
+
+    const fetchTeamIds = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
         if (!session) {
           setIsLoadingPermissions(false);
           return;
         }
 
-        const userId = session.user.id;
+        const { data: teamMembers, error } = await supabase
+          .from("core_team_members" as any)
+          .select("team_id, role")
+          .eq("user_profile_id", session.user.id)
+          .eq("role", "leader");
 
-        // Buscar dados do usuário
-        const { data: clientUser, error: userError } = await supabase
-          .from('core_client_users')
-          .select('role, client_id')
-          .eq('id', userId)
-          .single();
+        const teamIds =
+          !error && teamMembers?.length
+            ? (teamMembers as { team_id: string }[]).map((tm) => tm.team_id).filter(Boolean)
+            : [];
 
-        if (userError || !clientUser) {
-          console.error('Erro ao buscar usuário:', userError);
+        const newPermissions = {
+          clientId: clientIdFromStore,
+          isAdmin: false,
+          isLeader: teamIds.length > 0,
+          teamIds,
+        };
+        setUserPermissions(newPermissions);
+        hasLoadedTeamIdsRef.current = true;
+        try {
+          sessionStorage.setItem("useOpportunities-permissions", JSON.stringify(newPermissions));
+          sessionStorage.setItem("useOpportunities-permissions-timestamp", Date.now().toString());
+        } catch {
+          // Ignorar
+        }
+      } catch (err) {
+        console.error("Erro ao buscar times do usuário:", err);
+      } finally {
+        setIsLoadingPermissions(false);
+      }
+    };
+
+    setIsLoadingPermissions(true);
+    fetchTeamIds();
+  }, [enabled, fromStore, isAdminFromStore, clientIdFromStore]);
+
+  // Fallback: quando clientStore não está pronto, usar lógica legada
+  useEffect(() => {
+    if (fromStore) return;
+
+    const checkPermissions = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
           setIsLoadingPermissions(false);
           return;
         }
 
-        const isAdmin = clientUser.role === 'administrator';
+        const { data: clientUser, error: userError } = await supabase
+          .from("core_client_users")
+          .select("role, client_id")
+          .eq("id", session.user.id)
+          .single();
+
+        if (userError || !clientUser) {
+          console.error("Erro ao buscar usuário:", userError);
+          setIsLoadingPermissions(false);
+          return;
+        }
+
+        const isAdmin = clientUser.role === "administrator";
         let isLeader = false;
         const teamIds: string[] = [];
 
-        // Se não for admin, verificar se é leader de algum time
         if (!isAdmin) {
           const { data: teamMembers, error: teamError } = await supabase
-            .from('core_team_members' as any)
-            .select('team_id, role')
-            .eq('user_profile_id', userId)
-            .eq('role', 'leader');
+            .from("core_team_members" as any)
+            .select("team_id, role")
+            .eq("user_profile_id", session.user.id)
+            .eq("role", "leader");
 
-          if (!teamError && teamMembers && teamMembers.length > 0) {
+          if (!teamError && teamMembers?.length) {
             isLeader = true;
-            teamIds.push(...(teamMembers as any[]).map((tm: any) => tm.team_id).filter(Boolean));
+            teamIds.push(...(teamMembers as { team_id: string }[]).map((tm) => tm.team_id).filter(Boolean));
           }
         }
 
         const newPermissions = {
+          clientId: clientUser.client_id,
           isAdmin,
           isLeader,
           teamIds,
-          clientId: clientUser.client_id,
         };
         setUserPermissions(newPermissions);
-        // Fix: Persist permissions to sessionStorage
         try {
-          sessionStorage.setItem('useOpportunities-permissions', JSON.stringify(newPermissions));
-          sessionStorage.setItem('useOpportunities-permissions-timestamp', Date.now().toString());
-        } catch (e) {
-          // Ignore storage errors
+          sessionStorage.setItem("useOpportunities-permissions", JSON.stringify(newPermissions));
+          sessionStorage.setItem("useOpportunities-permissions-timestamp", Date.now().toString());
+        } catch {
+          // Ignorar
         }
-        // Fix: Mark as loaded after successful check
-        hasLoadedPermissionsRef.current = true;
-      } catch (error) {
-        console.error('Erro ao verificar permissões:', error);
+      } catch (err) {
+        console.error("Erro ao verificar permissões:", err);
       } finally {
         setIsLoadingPermissions(false);
       }
     };
 
     if (enabled) {
-      // Fix: Only set loading if we don't have valid permissions
-      if (!hasValidPermissions) {
-        setIsLoadingPermissions(true);
+      const stored = loadPermissionsFromStorage();
+      if (stored.clientId && (stored.isAdmin || stored.isLeader)) {
+        setUserPermissions(stored);
+        setIsLoadingPermissions(false);
+        return;
       }
       checkPermissions();
     } else {
-      // Fix: Reset loading state when disabled
       setIsLoadingPermissions(false);
     }
-  }, [enabled, userPermissions.clientId, userPermissions.isAdmin, userPermissions.isLeader]);
+  }, [enabled, fromStore]);
 
   // Query para buscar contatos
   const queryEnabled = enabled && !isLoadingPermissions && !!userPermissions.clientId && (userPermissions.isAdmin || userPermissions.isLeader);
@@ -254,8 +300,7 @@ export function useOpportunities(options: UseOpportunitiesOptions = {}) {
     },
     enabled: queryEnabled,
     staleTime: 1000 * 60 * 5, // Cache por 5 minutos
-    refetchOnWindowFocus: true, // #region agent log - Fix: Re-enable refetch on focus, but permissions won't reset
-    // #endregion
+    refetchOnWindowFocus: true,
   });
 
   return {

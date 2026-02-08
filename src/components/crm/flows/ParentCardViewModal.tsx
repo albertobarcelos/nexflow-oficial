@@ -75,7 +75,7 @@ export function ParentCardViewModal({
                   progress?.[item] ? "text-green-500" : "text-gray-300"
                 )}
               />
-              <span className={progress?.[item] ? "text-gray-900 dark:text-white" : "text-gray-400"}>
+              <span className={progress?.[item] ? "text-gray-900 " : "text-gray-400"}>
                 {item}
               </span>
             </li>
@@ -89,7 +89,7 @@ export function ParentCardViewModal({
       const parsed = new Date(rawValue);
       if (!Number.isNaN(parsed.getTime())) {
         return (
-          <span className="text-sm text-gray-900 dark:text-white">
+          <span className="text-sm text-gray-900 ">
             {format(parsed, "dd MMM yyyy", { locale: ptBR })}
           </span>
         );
@@ -100,7 +100,7 @@ export function ParentCardViewModal({
     if (field.configuration.validation === "cnpj_cpf" && typeof rawValue === "string") {
       const cnpjCpfType = (field.configuration.cnpjCpfType as "auto" | "cpf" | "cnpj") ?? "auto";
       return (
-        <span className="text-sm text-gray-900 dark:text-white">
+        <span className="text-sm text-gray-900 ">
           {formatCnpjCpf(rawValue, cnpjCpfType)}
         </span>
       );
@@ -111,7 +111,7 @@ export function ParentCardViewModal({
       const user = users.find((u) => u.id === rawValue);
       if (user) {
         return (
-          <span className="text-sm text-gray-900 dark:text-white">
+          <span className="text-sm text-gray-900 ">
             {user.name} {user.surname}
           </span>
         );
@@ -123,7 +123,7 @@ export function ParentCardViewModal({
       const team = teams.find((t) => t.id === rawValue);
       if (team) {
         return (
-          <span className="text-sm text-gray-900 dark:text-white">
+          <span className="text-sm text-gray-900 ">
             {team.name}
           </span>
         );
@@ -146,7 +146,7 @@ export function ParentCardViewModal({
           {agentNames.map((name, idx) => (
             <span
               key={idx}
-              className="text-sm px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-gray-900 dark:text-white"
+              className="text-sm px-2 py-1 bg-gray-100  rounded text-gray-900 "
             >
               {name}
             </span>
@@ -161,7 +161,7 @@ export function ParentCardViewModal({
     }
 
     return (
-      <span className="text-sm text-gray-900 dark:text-white">
+      <span className="text-sm text-gray-900 ">
         {typeof rawValue === "string" ? rawValue : JSON.stringify(rawValue)}
       </span>
     );
@@ -178,7 +178,7 @@ export function ParentCardViewModal({
     return (
       <div key={field.id} className="space-y-2">
         <div>
-          <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+          <p className="text-xs font-medium text-gray-500  mb-1">
             {field.label}
             {field.isRequired && (
               <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
@@ -206,10 +206,10 @@ export function ParentCardViewModal({
       if (user) {
         systemFields.push(
           <div key="assigned_to" className="space-y-2">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <p className="text-xs font-medium text-gray-500  mb-1">
               Responsável
             </p>
-            <p className="text-sm text-gray-900 dark:text-white">
+            <p className="text-sm text-gray-900 ">
               {user.name} {user.surname}
             </p>
           </div>
@@ -223,10 +223,10 @@ export function ParentCardViewModal({
       if (team) {
         systemFields.push(
           <div key="assigned_team" className="space-y-2">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <p className="text-xs font-medium text-gray-500  mb-1">
               Time
             </p>
-            <p className="text-sm text-gray-900 dark:text-white">
+            <p className="text-sm text-gray-900 ">
               {team.name}
             </p>
           </div>
@@ -246,14 +246,14 @@ export function ParentCardViewModal({
       if (agentNames.length > 0) {
         systemFields.push(
           <div key="agents" className="space-y-2">
-            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <p className="text-xs font-medium text-gray-500  mb-1">
               Agentes
             </p>
             <div className="flex flex-wrap gap-2">
               {agentNames.map((name, idx) => (
                 <span
                   key={idx}
-                  className="text-sm px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-gray-900 dark:text-white"
+                  className="text-sm px-2 py-1 bg-gray-100  rounded text-gray-900 "
                 >
                   {name}
                 </span>
@@ -265,8 +265,8 @@ export function ParentCardViewModal({
     }
 
     return systemFields.length > 0 ? (
-      <div className="space-y-4 mb-6 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="space-y-4 mb-6 p-5 bg-gray-50  rounded-xl border border-gray-200 ">
+        <h3 className="text-sm font-semibold text-gray-900  mb-4">
           Atribuições
         </h3>
         <div className="space-y-4">{systemFields}</div>
@@ -282,7 +282,7 @@ export function ParentCardViewModal({
           return (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-500 ">
                   Carregando campos...
                 </p>
               </div>
@@ -293,7 +293,7 @@ export function ParentCardViewModal({
         if (!card || !currentStep) {
           return (
             <div className="flex items-center justify-center py-12">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500 ">
                 Card não encontrado
               </p>
             </div>
@@ -308,48 +308,48 @@ export function ParentCardViewModal({
                   className="w-2 h-2 rounded-full"
                   style={{ backgroundColor: currentStep?.color ?? "#F59E0B" }}
                 />
-                <span className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+                <span className="text-xs font-bold text-gray-400  uppercase tracking-wide">
                   Etapa Atual
                 </span>
               </div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-gray-900 ">
                 {currentStep?.title ?? "Etapa"}
               </h2>
             </div>
 
             {/* Título do card */}
-            <div className="mb-6 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+            <div className="mb-6 p-5 bg-gray-50  rounded-xl border border-dashed border-gray-300 ">
+              <p className="text-xs font-medium text-gray-500  mb-1">
                 Nome do Card
               </p>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
+              <p className="text-sm font-medium text-gray-900 ">
                 {card.title}
               </p>
             </div>
 
             {/* Campos financeiros - apenas para cards do tipo finance */}
             {card.cardType === 'finance' && (
-              <div className="mb-6 p-5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="mb-6 p-5 bg-blue-50  rounded-xl border border-blue-200 ">
+                <h3 className="text-sm font-semibold text-gray-900  mb-4">
                   Informações Financeiras
                 </h3>
                 <div className="space-y-4">
                   {card.product && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      <p className="text-xs font-medium text-gray-500  mb-1">
                         Produto
                       </p>
-                      <p className="text-sm text-gray-900 dark:text-white">
+                      <p className="text-sm text-gray-900 ">
                         {card.product}
                       </p>
                     </div>
                   )}
                   {card.value !== null && card.value !== undefined && (
                     <div>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+                      <p className="text-xs font-medium text-gray-500  mb-1">
                         Valor
                       </p>
-                      <p className="text-sm text-gray-900 dark:text-white">
+                      <p className="text-sm text-gray-900 ">
                         R$ {card.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                     </div>
@@ -369,8 +369,8 @@ export function ParentCardViewModal({
                   .map((field) => renderReadOnlyField(field))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-6 text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="rounded-xl border border-dashed border-gray-300  bg-gray-50  p-6 text-center">
+                <p className="text-sm text-gray-500 ">
                   Nenhum campo configurado nesta etapa.
                 </p>
               </div>
@@ -400,7 +400,7 @@ export function ParentCardViewModal({
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 p-0 shadow-2xl"
+        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-6xl flex-col overflow-hidden rounded-2xl border border-gray-200  p-0 shadow-2xl"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         hideCloseButton={true}
@@ -410,18 +410,18 @@ export function ParentCardViewModal({
           Visualização somente leitura do card pai, incluindo campos, histórico e comentários
         </DialogDescription>
 
-        <div className="flex h-full flex-col bg-white dark:bg-gray-900">
+        <div className="flex h-full flex-col bg-white ">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-start shrink-0">
+          <div className="px-6 py-4 border-b border-gray-200  flex justify-between items-start shrink-0">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <Lock className="h-4 w-4 text-gray-400" />
-                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <span className="text-xs font-bold text-gray-500  uppercase tracking-wider">
                   Visualização Somente Leitura
                 </span>
               </div>
               <div className="flex items-center gap-3 mt-1">
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{card.title}</h1>
+                <h1 className="text-2xl font-bold text-gray-900 ">{card.title}</h1>
               </div>
               {currentStep && (
                 <div className="flex items-center gap-2 mt-2">
@@ -429,7 +429,7 @@ export function ParentCardViewModal({
                     className="w-2.5 h-2.5 rounded-full"
                     style={{ backgroundColor: currentStep.color }}
                   />
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  <span className="text-sm font-medium text-gray-600 ">
                     {currentStep.title}
                   </span>
                 </div>
@@ -437,7 +437,7 @@ export function ParentCardViewModal({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="text-gray-400 hover:text-gray-600 :text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 :bg-gray-700"
             >
               <X className="h-6 w-6" />
             </button>
@@ -446,7 +446,7 @@ export function ParentCardViewModal({
           {/* Conteúdo Principal */}
           <div className="flex flex-1 overflow-hidden">
             {/* Sidebar de Navegação */}
-            <div className="w-64 bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0">
+            <div className="w-64 bg-gray-50  border-r border-gray-200  flex flex-col shrink-0">
               <Tabs
                 value={activeSection}
                 onValueChange={(value) => setActiveSection(value as ActiveSection)}
@@ -456,21 +456,21 @@ export function ParentCardViewModal({
                 <TabsList className="flex-col h-auto w-full bg-transparent p-2 space-y-1">
                   <TabsTrigger
                     value="fields"
-                    className="w-full justify-start data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700"
+                    className="w-full justify-start data-[state=active]:bg-white =active]:bg-gray-700"
                   >
                     <FileEdit className="h-4 w-4 mr-2" />
                     Campos
                   </TabsTrigger>
                   <TabsTrigger
                     value="history"
-                    className="w-full justify-start data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700"
+                    className="w-full justify-start data-[state=active]:bg-white =active]:bg-gray-700"
                   >
                     <History className="h-4 w-4 mr-2" />
                     Histórico
                   </TabsTrigger>
                   <TabsTrigger
                     value="comments"
-                    className="w-full justify-start data-[state=active]:bg-white dark:data-[state=active]:bg-gray-700"
+                    className="w-full justify-start data-[state=active]:bg-white =active]:bg-gray-700"
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
                     Comentários

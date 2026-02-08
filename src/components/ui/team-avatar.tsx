@@ -55,7 +55,7 @@ export const TeamAvatar: React.FC<TeamAvatarProps> = ({
 
   return (
     <Avatar className={cn(sizeClasses[size], className)}>
-      <AvatarFallback className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium flex items-center justify-center">
+      <AvatarFallback className="bg-blue-100 text-blue-700 font-medium flex items-center justify-center">
         {team?.name ? (
           <span className="text-xs font-semibold">{getFallbackText()}</span>
         ) : (

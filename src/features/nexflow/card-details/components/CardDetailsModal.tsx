@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { X, Workflow, Lock } from "lucide-react";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { CardDetailsHeader } from "./CardDetailsHeader";
 import { CardDetailsSidebar } from "./CardDetailsSidebar";
 import { CardOverviewTab } from "./CardOverviewTab";
@@ -17,6 +22,7 @@ import { useCardValidation } from "../hooks/useCardValidation";
 import { CardAttachments } from "@/components/crm/flows/CardAttachments";
 import { CardComments } from "@/components/crm/flows/CardComments";
 import { ProcessDetails } from "@/components/crm/flows/ProcessDetails";
+import { CardActivityForm } from "./CardActivityForm";
 import { toast } from "sonner";
 import type { NexflowCard, CardStepAction } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
@@ -43,6 +49,12 @@ interface CardDetailsModalProps {
   parentTitle?: string | null;
   onOpenParentCard?: (card: NexflowCard) => void;
   currentFlowId?: string;
+  /** Abre o modal já com a aba Processos e o processo selecionado (id do card_step_action) */
+  initialProcessId?: string | null;
+  /** Abre o modal já com a aba especificada (ex.: "activities" vindo do calendário) */
+  initialSection?: ActiveSection | null;
+  /** Quando initialSection="activities", ID da atividade para destacar (opcional) */
+  initialActivityId?: string | null;
 }
 
 export function CardDetailsModal({
@@ -57,12 +69,22 @@ export function CardDetailsModal({
   parentTitle,
   onOpenParentCard,
   currentFlowId,
+  initialProcessId,
+  initialSection,
+  initialActivityId,
 }: CardDetailsModalProps) {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isMoving, setIsMoving] = useState(false);
   const [activeSection, setActiveSection] = useState<ActiveSection>("overview");
-  const [activeTab, setActiveTab] = useState<"informacoes" | "processos">("informacoes");
-  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"informacoes" | "processos">(
+    "informacoes",
+  );
+  const [selectedProcessId, setSelectedProcessId] = useState<string | null>(
+    null,
+  );
+  const [isProcessActivityFormOpen, setIsProcessActivityFormOpen] =
+    useState(false);
+  const [pendingProcessId, setPendingProcessId] = useState<string | null>(null);
 
   const {
     currentStep,
@@ -78,7 +100,10 @@ export function CardDetailsModal({
     effectiveSteps,
   } = useCardDetails({ card, steps, currentFlowId });
 
-  const { handleCheckboxChange, handleDateChange } = useCardForm({ form, isDisabled });
+  const { handleCheckboxChange, handleDateChange } = useCardForm({
+    form,
+    isDisabled,
+  });
 
   const { isMoveDisabled } = useCardValidation({
     form,
@@ -110,13 +135,15 @@ export function CardDetailsModal({
         executionData: (row.execution_data as Record<string, any>) || {},
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        activityCreated:
+          (row as { activity_created?: boolean }).activity_created ?? false,
       }));
     },
   });
 
   const stepActionIds = useMemo(
     () => cardStepActions.map((csa) => csa.stepActionId).filter(Boolean),
-    [cardStepActions]
+    [cardStepActions],
   );
 
   const { data: stepActions = [] } = useQuery({
@@ -135,7 +162,7 @@ export function CardDetailsModal({
 
   const processesWithActions: ProcessWithAction[] = useMemo(() => {
     const stepActionsMap = new Map<string, StepActionRow>(
-      stepActions.map((sa) => [sa.id, sa] as [string, StepActionRow])
+      stepActions.map((sa) => [sa.id, sa] as [string, StepActionRow]),
     );
     return cardStepActions.map((csa) => ({
       ...csa,
@@ -156,56 +183,149 @@ export function CardDetailsModal({
     }
   }, [activeSection]);
 
+  // Ao abrir com initialProcessId (ex.: vindo do calendário), exibir aba Processos com processo já selecionado
   useEffect(() => {
-    if (activeSection === "processes" && !selectedProcessId && processesWithActions.length > 0) {
-      const firstActive = processesWithActions.find(
-        (p) => p.status === "pending" || p.status === "in_progress"
-      ) || processesWithActions[0];
+    if (card && initialProcessId) {
+      setActiveSection("processes");
+      setSelectedProcessId(initialProcessId);
+    }
+  }, [card?.id, initialProcessId]);
+
+  // Ao abrir com initialSection (ex.: "activities" vindo do calendário), exibir aba Atividades
+  useEffect(() => {
+    if (card && initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [card?.id, initialSection]);
+
+  // Handler que intercepta seleção de processo: se requireActivityOnClick, valida se atividade já existe
+  const handleSelectProcess = useCallback(
+    (processId: string, isUserInitiated = true) => {
+      const process = processesWithActions.find((p) => p.id === processId);
+      if (!process) {
+        setSelectedProcessId(processId);
+        return;
+      }
+      const settings = process.stepAction?.settings as
+        | Record<string, unknown>
+        | null
+        | undefined;
+      const requireActivityOnClick = settings?.requireActivityOnClick === true;
+
+      if (requireActivityOnClick && isUserInitiated) {
+        const hasActivity = process.activityCreated === true;
+        if (hasActivity) {
+          setSelectedProcessId(processId);
+        } else {
+          setPendingProcessId(processId);
+          setIsProcessActivityFormOpen(true);
+        }
+      } else {
+        setSelectedProcessId(processId);
+      }
+    },
+    [processesWithActions],
+  );
+
+  const handleProcessActivityFormSuccess = useCallback(() => {
+    if (pendingProcessId) {
+      setSelectedProcessId(pendingProcessId);
+      setPendingProcessId(null);
+    }
+    setIsProcessActivityFormOpen(false);
+  }, [pendingProcessId]);
+
+  const handleProcessActivityFormClose = useCallback((open: boolean) => {
+    if (!open) {
+      setIsProcessActivityFormOpen(false);
+      setPendingProcessId(null);
+    }
+  }, []);
+
+  // Auto-selecionar primeiro processo ao abrir aba (sem abrir form - apenas selecionar para exibição)
+  useEffect(() => {
+    if (
+      activeSection === "processes" &&
+      !selectedProcessId &&
+      !pendingProcessId &&
+      !isProcessActivityFormOpen &&
+      processesWithActions.length > 0
+    ) {
+      const firstActive =
+        processesWithActions.find(
+          (p) => p.status === "pending" || p.status === "in_progress",
+        ) || processesWithActions[0];
       if (firstActive) {
-        setSelectedProcessId(firstActive.id);
+        handleSelectProcess(firstActive.id, false);
       }
     }
-  }, [activeSection, selectedProcessId, processesWithActions]);
+  }, [
+    activeSection,
+    selectedProcessId,
+    pendingProcessId,
+    isProcessActivityFormOpen,
+    processesWithActions,
+    handleSelectProcess,
+  ]);
 
-  const renderTimelineFieldValue = useCallback((field: any) => {
-    if (field.fieldType === "checklist") {
-      const progress = card?.checklistProgress?.[field.id] as Record<string, boolean> | undefined;
-      const items = field.configuration.items ?? [];
-      const checkedCount = items.filter((item: string) => progress?.[item] === true).length;
+  const renderTimelineFieldValue = useCallback(
+    (field: any) => {
+      if (field.fieldType === "checklist") {
+        const progress = card?.checklistProgress?.[field.id] as
+          | Record<string, boolean>
+          | undefined;
+        const items = field.configuration.items ?? [];
+        const checkedCount = items.filter(
+          (item: string) => progress?.[item] === true,
+        ).length;
+        return (
+          <p className="text-xs text-gray-600  mt-0.5">
+            {checkedCount} de {items.length} itens concluídos
+          </p>
+        );
+      }
+      if (field.fieldType === "date") {
+        const value = card?.fieldValues?.[field.id];
+        if (!value)
+          return (
+            <p className="text-xs text-gray-400 italic mt-0.5">
+              Não preenchido
+            </p>
+          );
+        try {
+          // Validar que o valor é string ou número antes de converter
+          if (typeof value === "string" || typeof value === "number") {
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+              return (
+                <p className="text-xs text-gray-600  mt-0.5">
+                  {date.toLocaleDateString("pt-BR")}
+                </p>
+              );
+            }
+          }
+          return (
+            <p className="text-xs text-gray-400 italic mt-0.5">Data inválida</p>
+          );
+        } catch {
+          return (
+            <p className="text-xs text-gray-400 italic mt-0.5">Data inválida</p>
+          );
+        }
+      }
+      const value = card?.fieldValues?.[field.id];
+      if (!value)
+        return (
+          <p className="text-xs text-gray-400 italic mt-0.5">Não preenchido</p>
+        );
       return (
-        <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-          {checkedCount} de {items.length} itens concluídos
+        <p className="text-xs text-gray-600  mt-0.5 break-words">
+          {String(value)}
         </p>
       );
-    }
-    if (field.fieldType === "date") {
-      const value = card?.fieldValues?.[field.id];
-      if (!value) return <p className="text-xs text-gray-400 italic mt-0.5">Não preenchido</p>;
-      try {
-        // Validar que o valor é string ou número antes de converter
-        if (typeof value === 'string' || typeof value === 'number') {
-          const date = new Date(value);
-          if (!isNaN(date.getTime())) {
-            return (
-              <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                {date.toLocaleDateString("pt-BR")}
-              </p>
-            );
-          }
-        }
-        return <p className="text-xs text-gray-400 italic mt-0.5">Data inválida</p>;
-      } catch {
-        return <p className="text-xs text-gray-400 italic mt-0.5">Data inválida</p>;
-      }
-    }
-    const value = card?.fieldValues?.[field.id];
-    if (!value) return <p className="text-xs text-gray-400 italic mt-0.5">Não preenchido</p>;
-    return (
-      <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5 break-words">
-        {String(value)}
-      </p>
-    );
-  }, [card]);
+    },
+    [card],
+  );
 
   const handleSave = useCallback(async () => {
     if (!card || saveStatus === "saving") return;
@@ -215,7 +335,8 @@ export function CardDetailsModal({
       const formValues: CardFormValues = {
         ...values,
         assignedTo: values.assignedTo !== undefined ? values.assignedTo : null,
-        assignedTeamId: values.assignedTeamId !== undefined ? values.assignedTeamId : null,
+        assignedTeamId:
+          values.assignedTeamId !== undefined ? values.assignedTeamId : null,
       };
       await onSave(card, formValues);
       setSaveStatus("saved");
@@ -229,6 +350,26 @@ export function CardDetailsModal({
       setSaveStatus("idle");
     }
   }, [card, form, onSave, saveStatus]);
+
+  const handleAssignChange = useCallback(
+    async (userId: string | null) => {
+      if (!card) return;
+      form.setValue("assignedTo", userId ?? null, { shouldDirty: true });
+      form.setValue("assignedTeamId", null, { shouldDirty: true });
+      const values = form.getValues();
+      const formValues: CardFormValues = {
+        ...values,
+        assignedTo: userId ?? null,
+        assignedTeamId: null,
+      };
+      try {
+        await onSave(card, formValues);
+      } catch (error) {
+        console.error("[Assign] Erro ao atribuir responsável:", error);
+      }
+    },
+    [card, form, onSave],
+  );
 
   const handleMoveNext = useCallback(async () => {
     if (!card || !nextStep || isMoveDisabled || isMoving) return;
@@ -269,7 +410,7 @@ export function CardDetailsModal({
   const handleDelete = useCallback(async () => {
     if (!card || !onDelete) return;
     const confirmed = window.confirm(
-      `Tem certeza que deseja deletar o card "${card.title}"? Esta ação não pode ser desfeita.`
+      `Tem certeza que deseja deletar o card "${card.title}"? Esta ação não pode ser desfeita.`,
     );
     if (!confirmed) return;
     try {
@@ -286,7 +427,7 @@ export function CardDetailsModal({
         onClose();
       }
     },
-    [onClose]
+    [onClose],
   );
 
   const renderSectionContent = () => {
@@ -303,11 +444,7 @@ export function CardDetailsModal({
           />
         );
       case "history":
-        return (
-          <CardHistoryTab
-            card={card}
-          />
-        );
+        return <CardHistoryTab card={card} />;
       case "fields":
         return (
           <CardFieldsTab
@@ -321,11 +458,7 @@ export function CardDetailsModal({
         );
       case "products":
         return (
-          <CardProductsTab
-            card={card}
-            form={form}
-            isDisabled={isDisabled}
-          />
+          <CardProductsTab card={card} form={form} isDisabled={isDisabled} />
         );
       case "attachments":
         return (
@@ -365,7 +498,7 @@ export function CardDetailsModal({
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <Workflow className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500 ">
                 Selecione um processo na sidebar para visualizar os detalhes
               </p>
             </div>
@@ -383,23 +516,29 @@ export function CardDetailsModal({
   return (
     <Dialog open={Boolean(card)} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-8xl flex-col overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 p-0 shadow-2xl"
+        className="flex h-[90vh] max-h-[900px] w-[90vw] max-w-8xl flex-col overflow-hidden rounded-2xl border border-gray-200  p-0 shadow-2xl"
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
         hideCloseButton
       >
-        <DialogTitle className="sr-only">Detalhes do Card: {card.title}</DialogTitle>
+        <DialogTitle className="sr-only">
+          Detalhes do Card: {card.title}
+        </DialogTitle>
         <DialogDescription className="sr-only">
-          Visualize e edite os detalhes do card, incluindo campos, histórico e processos
+          Visualize e edite os detalhes do card, incluindo campos, histórico e
+          processos
         </DialogDescription>
 
-        <div className="flex h-full flex-col bg-white dark:bg-gray-900">
+        <div className="flex h-full flex-col bg-white ">
           <CardDetailsHeader
             card={card}
             currentStep={currentStep}
             steps={steps}
             onClose={onClose}
             onOpenParentCard={onOpenParentCard}
+            assignedTo={form.watch("assignedTo") ?? null}
+            onAssignChange={handleAssignChange}
+            isDisabled={isDisabled}
           />
 
           <div className="flex flex-1 overflow-hidden">
@@ -410,24 +549,25 @@ export function CardDetailsModal({
               setActiveSection={setActiveSection}
               card={card}
               selectedProcessId={selectedProcessId}
-              setSelectedProcessId={setSelectedProcessId}
+              setSelectedProcessId={handleSelectProcess}
               lastHistoryUpdate={lastHistoryUpdate}
               progressPercentage={progressPercentage}
             />
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900 p-6">
+            <div className="flex-1 overflow-y-auto custom-scrollbar bg-white  p-6">
               {isReadOnly && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-4 py-3">
-                  <Lock className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                    Este card pertence a outro flow. Você pode visualizar, mas não pode editar.
+                <div className="mb-4 flex items-center gap-2 rounded-lg bg-yellow-50  border border-yellow-200  px-4 py-3">
+                  <Lock className="h-4 w-4 text-yellow-600 " />
+                  <p className="text-sm text-yellow-800 ">
+                    Este card pertence a outro flow. Você pode visualizar, mas
+                    não pode editar.
                   </p>
                 </div>
               )}
               {isFrozenCard && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 px-4 py-3">
-                  <Lock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <p className="text-sm text-blue-800 dark:text-blue-300">
+                <div className="mb-4 flex items-center gap-2 rounded-lg bg-blue-50  border border-blue-200  px-4 py-3">
+                  <Lock className="h-4 w-4 text-blue-600 " />
+                  <p className="text-sm text-blue-800 ">
                     Este card está congelado e não pode ser editado.
                   </p>
                 </div>
@@ -448,6 +588,28 @@ export function CardDetailsModal({
             onMoveBack={handleMoveBack}
             onDelete={handleDelete}
           />
+
+          {/* Dialog de criação de atividade ao clicar em processo com requireActivityOnClick */}
+          {card && (
+            <CardActivityForm
+              open={isProcessActivityFormOpen}
+              onOpenChange={handleProcessActivityFormClose}
+              card={card}
+              defaultTitle={
+                pendingProcessId
+                  ? (processesWithActions.find((p) => p.id === pendingProcessId)
+                      ?.stepAction?.title ?? undefined)
+                  : undefined
+              }
+              stepActionId={
+                pendingProcessId
+                  ? (processesWithActions.find((p) => p.id === pendingProcessId)
+                      ?.stepActionId ?? null)
+                  : null
+              }
+              onSuccess={handleProcessActivityFormSuccess}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -455,4 +617,3 @@ export function CardDetailsModal({
 }
 
 export type { CardFormValues } from "../types";
-

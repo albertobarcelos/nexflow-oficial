@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { DndContext, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { buildCreateCardInputFromWizard } from "../utils/buildCreateCardInputFro
 import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useNexflowFlow } from "@/hooks/useNexflowFlows";
 import { useNexflowCardsInfinite } from "@/hooks/useNexflowCardsInfinite";
+import { mapCardRow } from "@/hooks/useNexflowCards";
 import { nexflowClient } from "@/lib/supabase";
 import { useUsers } from "@/hooks/useUsers";
 import { useOrganizationTeams } from "@/hooks/useOrganizationTeams";
@@ -29,10 +30,23 @@ import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 const VISIBLE_INCREMENT = 10;
 const LIST_PAGE_SIZE = 20;
 
+interface BoardLocationState {
+  openCardId?: string;
+  openProcessId?: string;
+  openSection?: "activities";
+  openActivityId?: string;
+}
+
 export function NexflowBoardPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
+  const state = location.state as BoardLocationState | null;
+  const openCardId = state?.openCardId;
+  const openProcessId = state?.openProcessId;
+  const openSection = state?.openSection;
+  const openActivityId = state?.openActivityId;
   const { hasAccess, accessError } = useClientAccessGuard();
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [activeCard, setActiveCard] = useState<NexflowCard | null>(null);
@@ -126,6 +140,45 @@ export function NexflowBoardPage() {
   const { data: teams = [] } = useOrganizationTeams();
   const startStep = steps[0] ?? null;
   const { searchCards } = useBoardSearch();
+
+  // Buscar card específico quando vindo do calendário (state.openCardId)
+  const { data: openCardData } = useQuery({
+    queryKey: ["nexflow", "card", openCardId],
+    queryFn: async (): Promise<NexflowCard | null> => {
+      if (!openCardId) return null;
+      const { data, error } = await nexflowClient()
+        .from("cards")
+        .select("*")
+        .eq("id", openCardId)
+        .single();
+      if (error || !data) return null;
+      return mapCardRow(data);
+    },
+    enabled: Boolean(openCardId),
+  });
+
+  // Abrir modal com card quando vindo do calendário (processo ou atividade)
+  useEffect(() => {
+    const shouldOpen =
+      openCardId && (openProcessId || openActivityId || openSection);
+    if (!shouldOpen) return;
+
+    const cardFromList = cards.find((c) => c.id === openCardId);
+    const cardToOpen = cardFromList ?? openCardData ?? null;
+    if (cardToOpen) {
+      setActiveCard(cardToOpen);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [
+    openCardId,
+    openProcessId,
+    openActivityId,
+    openSection,
+    openCardData,
+    cards,
+    navigate,
+    location.pathname,
+  ]);
 
   useEffect(() => {
     successAudioRef.current = new Audio(successMp3Url);
@@ -636,7 +689,7 @@ export function NexflowBoardPage() {
 
   return (
     <div className={cn(
-      "bg-neutral-50 dark:bg-neutral-950 text-neutral-600 dark:text-neutral-300 font-sans flex flex-col transition-colors duration-200",
+      "bg-neutral-50  text-neutral-600  font-sans flex flex-col transition-colors duration-200",
       viewMode === "list" ? "h-full min-h-0" : "h-full min-h-0 overflow-hidden"
     )}>
       <BoardHeader
@@ -661,7 +714,7 @@ export function NexflowBoardPage() {
       />
 
       <main className={cn(
-        "flex-1 min-h-0 flex flex-col custom-scrollbar bg-neutral-50 dark:bg-neutral-950",
+        "flex-1 min-h-0 flex flex-col custom-scrollbar bg-neutral-50 ",
         viewMode === "list" 
           ? "overflow-y-auto overflow-x-hidden p-6 pb-8" 
           : "overflow-hidden p-6"
@@ -745,6 +798,9 @@ export function NexflowBoardPage() {
           setActiveCard(parentCard);
         }}
         currentFlowId={id}
+        initialProcessId={openProcessId ?? undefined}
+        initialSection={openSection ?? undefined}
+        initialActivityId={openActivityId ?? undefined}
       />
     </div>
   );

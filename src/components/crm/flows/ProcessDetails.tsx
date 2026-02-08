@@ -1,15 +1,34 @@
 import { useMemo, useState, useEffect } from "react";
-import { Phone, Mail, MessageSquare, Calendar, CheckSquare, Info, AlertTriangle, CheckCircle2, History, HelpCircle, Plus, Trash2 } from "lucide-react";
+import {
+  FileText,
+  CheckSquare,
+  FileEdit,
+  Loader2,
+  X,
+  Check,
+  StickyNote,
+  Plus,
+  ChevronUp,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NexflowCard } from "@/types/nexflow";
 import { CardStepAction } from "@/types/nexflow";
 import { Database, Json } from "@/types/database";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useCardStepActions } from "@/hooks/useCardStepActions";
-import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { v4 as uuidv4 } from "uuid";
+import type { ProcessNote } from "@/types/nexflow";
+import { ProcessNoteEditor } from "./ProcessNoteEditor";
+import { MarkdownPreview } from "./MarkdownPreview";
 
 type StepActionRow = Database["public"]["Tables"]["step_actions"]["Row"];
 
@@ -21,24 +40,6 @@ interface ProcessDetailsProps {
   process: ProcessWithAction;
   card: NexflowCard;
 }
-
-const getActionIcon = (actionType: string | null) => {
-  switch (actionType) {
-    case "phone_call":
-      return Phone;
-    case "email":
-      return Mail;
-    case "linkedin_message":
-    case "whatsapp":
-      return MessageSquare;
-    case "meeting":
-      return Calendar;
-    case "task":
-      return CheckSquare;
-    default:
-      return CheckSquare;
-  }
-};
 
 const getActionTypeLabel = (actionType: string | null) => {
   switch (actionType) {
@@ -59,13 +60,32 @@ const getActionTypeLabel = (actionType: string | null) => {
   }
 };
 
+/** Ícone com badge para seções do accordion */
+function AccordionSectionIcon({
+  icon: Icon,
+  className,
+}: {
+  icon: React.ElementType;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "flex items-center justify-center p-2.5 rounded-xl bg-primary/10 text-primary",
+        className
+      )}
+    >
+      <Icon className="h-5 w-5" />
+    </span>
+  );
+}
+
 export function ProcessDetails({ process, card }: ProcessDetailsProps) {
-  // Verificar se process existe
   if (!process) {
     return (
-      <main className="flex-1 flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <main className="flex flex-col h-full overflow-hidden bg-background">
         <div className="flex items-center justify-center h-full">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Processo não disponível
           </p>
         </div>
@@ -73,87 +93,142 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
     );
   }
 
-  // Verificar se card existe, mas permitir uso mesmo se id ainda não estiver disponível
   const cardId = card?.id;
-  
-  const { completeCardStepAction, updateCardStepAction, isCompleting } = useCardStepActions(cardId);
+  const { completeCardStepAction, updateCardStepAction, isCompleting } =
+    useCardStepActions(cardId);
   const [isCompletingProcess, setIsCompletingProcess] = useState(false);
-  
-  // Estados para variáveis e notas
+
   const fieldValues = card?.fieldValues || {};
-  const executionData = (process?.executionData as Record<string, Json | undefined>) || {};
+  const executionData =
+    (process?.executionData as Record<string, Json | undefined>) || {};
   const [taskVariables, setTaskVariables] = useState<Record<string, string>>({
-    product_name: (fieldValues.product_name as string) || executionData.product_name as string || "",
-    client_name: card?.title || executionData.client_name as string || "",
-    ...executionData as Record<string, string>,
+    product_name:
+      (fieldValues.product_name as string) ||
+      (executionData.product_name as string) ||
+      "",
+    client_name:
+      card?.title ||
+      (executionData.client_name as string) ||
+      "",
+    ...(executionData as Record<string, string>),
   });
-  const [notes, setNotes] = useState(process?.notes || "");
-  const [todoItems, setTodoItems] = useState<string[]>(
-    process?.stepAction?.checklist_items || []
-  );
+  const todoItems = process?.stepAction?.checklist_items || [];
 
-  // Sincronizar estados quando o processo mudar
+  // Notas do processo (executionData.process_notes), com fallback para notes legado
+  const [processNotes, setProcessNotes] = useState<ProcessNote[]>([]);
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [newNoteContent, setNewNoteContent] = useState("");
+
+  // Progresso do checklist (persistido em executionData.checklist_progress)
+  const checklistProgressFromData =
+    (executionData.checklist_progress as Record<string, boolean>) || {};
+  const [checklistProgress, setChecklistProgress] = useState<
+    Record<string, boolean>
+  >(checklistProgressFromData);
+
   useEffect(() => {
-    const fieldValues = card?.fieldValues || {};
-    const executionData = (process?.executionData as Record<string, Json | undefined>) || {};
+    const fv = card?.fieldValues || {};
+    const ed =
+      (process?.executionData as Record<string, Json | undefined>) || {};
     setTaskVariables({
-      product_name: (fieldValues.product_name as string) || executionData.product_name as string || "",
-      client_name: card?.title || executionData.client_name as string || "",
-      ...executionData as Record<string, string>,
+      product_name:
+        (fv.product_name as string) || (ed.product_name as string) || "",
+      client_name: card?.title || (ed.client_name as string) || "",
+      ...(ed as Record<string, string>),
     });
-    setNotes(process?.notes || "");
-    setTodoItems(process?.stepAction?.checklist_items || []);
-  }, [process?.id, process?.executionData, process?.notes, process?.stepAction?.checklist_items, card?.title, card?.fieldValues]);
+    setChecklistProgress(
+      (ed.checklist_progress as Record<string, boolean>) || {}
+    );
+    // Sincronizar processNotes quando o processo mudar
+    const notesFromData =
+      (ed.process_notes as unknown as ProcessNote[] | undefined) ?? [];
+    const hasLegacy = process?.notes?.trim() && notesFromData.length === 0;
+    if (notesFromData.length > 0) {
+      setProcessNotes(notesFromData);
+    } else if (hasLegacy) {
+      setProcessNotes([
+        { id: uuidv4(), title: "Nota", content: process?.notes || "" },
+      ]);
+    } else {
+      setProcessNotes([]);
+    }
+    setEditingNoteId(null);
+    setIsEditorOpen(false);
+  }, [
+    process?.id,
+    process?.executionData,
+    process?.notes,
+    card?.title,
+    card?.fieldValues,
+  ]);
 
-  const Icon = getActionIcon(process?.stepAction?.action_type ?? null);
   const isCompleted = process?.status === "completed";
   const scriptTemplate = process?.stepAction?.script_template || "";
   const description = process?.stepAction?.description || "";
 
-  // Substituir variáveis no template
   const processedScript = useMemo(() => {
     if (!scriptTemplate) return "";
-    
-    // Usar taskVariables para substituição
     const variables: Record<string, string> = {
       product_name: taskVariables.product_name || "[PRODUTO]",
       client_name: taskVariables.client_name || "[CLIENTE]",
       pain_points: taskVariables.pain_points || "[PONTOS RELEVANTES]",
       ...taskVariables,
     };
-    
-    // Substituir variáveis no formato [VARIABLE_NAME] ou [INSERT VARIABLE NAME]
     let processed = scriptTemplate;
-    
-    // Substituir padrões comuns
     processed = processed.replace(/\[INSERT PRODUCT NAME\]/gi, variables.product_name);
     processed = processed.replace(/\[INSERT CLIENT NAME\]/gi, variables.client_name);
-    processed = processed.replace(/\[MENTION PAINS AND RELEVANT POINTS THE CLIENT SAID\]/gi, variables.pain_points);
-    
-    // Substituir variáveis genéricas no formato [VARIABLE_NAME]
+    processed = processed.replace(
+      /\[MENTION PAINS AND RELEVANT POINTS THE CLIENT SAID\]/gi,
+      variables.pain_points
+    );
     Object.entries(variables).forEach(([key, value]) => {
-      const regex = new RegExp(`\\[${key.toUpperCase().replace(/_/g, ' ')}\\]`, 'gi');
+      const regex = new RegExp(`\\[${key.toUpperCase().replace(/_/g, " ")}\\]`, "gi");
       processed = processed.replace(regex, value);
-      
-      // Também substituir formato com underscores
-      const regexUnderscore = new RegExp(`\\[${key.toUpperCase()}\\]`, 'gi');
+      const regexUnderscore = new RegExp(`\\[${key.toUpperCase()}\\]`, "gi");
       processed = processed.replace(regexUnderscore, value);
     });
-    
     return processed;
   }, [scriptTemplate, taskVariables]);
 
-  const handleSaveNotes = async () => {
+  /** Retorna executionData completo (variáveis + checklist + notas) para persistência */
+  const getFullExecutionData = (): Record<string, Json | undefined> => ({
+    ...taskVariables,
+    checklist_progress: checklistProgress as unknown as Json,
+    process_notes: processNotes as unknown as Json,
+  });
+
+  const handleAddNote = async () => {
+    const title = newNoteTitle.trim() || "Sem título";
+    const content = newNoteContent.trim();
+    if (!content) {
+      toast.error("Adicione um conteúdo à nota.");
+      return;
+    }
+    const newNote: ProcessNote = {
+      id: uuidv4(),
+      title,
+      content,
+    };
+    const updatedNotes = [...processNotes, newNote];
+    setProcessNotes(updatedNotes);
+    setNewNoteTitle("");
+    setNewNoteContent("");
+    setIsEditorOpen(false);
     try {
       await updateCardStepAction({
         id: process.id,
-        notes: notes || null,
-        executionData: taskVariables,
+        executionData: {
+          ...getFullExecutionData(),
+          process_notes: updatedNotes as unknown as Json,
+        },
       });
-      toast.success("Notas salvas com sucesso!");
+      toast.success("Nota adicionada com sucesso!");
     } catch (error) {
-      console.error("Erro ao salvar notas:", error);
-      toast.error("Erro ao salvar notas. Tente novamente.");
+      console.error("Erro ao salvar nota:", error);
+      setProcessNotes(processNotes); // Reverte em caso de erro
+      toast.error("Erro ao salvar nota. Tente novamente.");
     }
   };
 
@@ -161,15 +236,42 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
     setTaskVariables((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleChecklistToggle = async (index: number, checked: boolean) => {
+    const newProgress = {
+      ...checklistProgress,
+      [String(index)]: checked,
+    };
+    setChecklistProgress(newProgress);
+    try {
+      await updateCardStepAction({
+        id: process.id,
+        executionData: {
+          ...taskVariables,
+          checklist_progress: newProgress,
+          process_notes: processNotes as unknown as Json,
+        },
+      });
+    } catch (error) {
+      console.error("Erro ao salvar checklist:", error);
+      setChecklistProgress(checklistProgress); // Reverte em caso de erro
+    }
+  };
+
   const handleComplete = async () => {
     if (isCompleted || isCompletingProcess) return;
-
     setIsCompletingProcess(true);
     try {
+      // Concatena conteúdo das notas para o campo notes legado (opcional)
+      const notesLegacy =
+        processNotes.length > 0
+          ? processNotes
+              .map((n) => `## ${n.title}\n${n.content}`)
+              .join("\n\n")
+          : undefined;
       await completeCardStepAction({
         id: process.id,
-        notes: notes || undefined,
-        executionData: taskVariables,
+        notes: notesLegacy,
+        executionData: getFullExecutionData(),
       });
       toast.success("Processo concluído com sucesso!");
     } catch (error) {
@@ -181,239 +283,259 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
   };
 
   const handleMarkAsFailed = async () => {
-    // TODO: Implementar marcação como falhado
     toast.info("Funcionalidade em desenvolvimento");
   };
 
   return (
-    <main className="flex-1 flex flex-col h-full w-full overflow-hidden bg-gray-50 dark:bg-gray-900 relative">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 px-8 py-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between z-10 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
-            <Icon className="h-5 w-5" />
+    <main className="flex flex-col w-full h-full overflow-hidden bg-card rounded-2xl border border-border">
+      {/* Header centralizado */}
+      <header className="p-4 text-center border-b border-border flex-shrink-0">
+        <h1 className="text-2xl font-bold tracking-tight text-primary uppercase">
+          {process?.stepAction?.title || "Processo sem título"}
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1 font-medium">
+          {getActionTypeLabel(process.stepAction?.action_type ?? null)} e
+          Diretrizes
+        </p>
+        
+        
+        
+        {/* Badge de processo concluído */}
+        {isCompleted && (
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
+            <Check className="h-5 w-5" />
+            <span className="text-sm font-semibold">Processo Concluído</span>
           </div>
-          <div>
-            <h2 className="text-xl font-bold text-neutral-900 dark:text-white">
-              {process?.stepAction?.title || "Processo sem título"}
-            </h2>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              {getActionTypeLabel(process.stepAction?.action_type ?? null)} e Diretrizes
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
-            <History className="h-5 w-5" />
-          </button>
-          <button className="p-2 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 transition-colors">
-            <HelpCircle className="h-5 w-5" />
-          </button>
-        </div>
+        )}
       </header>
 
-      {/* Conteúdo Principal */}
-      <div className="flex-1 flex overflow-hidden w-full relative">
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-8 w-full">
-          {/* Card Informativo */}
-          {description && (
-            <div className="bg-blue-50 dark:bg-neutral-800/50 border border-blue-100 dark:border-neutral-700 rounded-lg p-4 mb-6 flex gap-3">
-              <Info className="h-5 w-5 text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-neutral-700 dark:text-neutral-300">
-                <p className="font-medium mb-1">Objetivo: {description}</p>
+      {/* Accordion */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <Accordion
+          type="single"
+          collapsible
+          defaultValue="scripts"
+          className="w-full"
+        >
+          <AccordionItem value="scripts" className="border-b border-border">
+            <AccordionTrigger className="px-6 py-4 m-2 rounded-xl bg-gray-100 hover:no-underline hover:bg-muted/50 [&[data-state=open]]:bg-primary/5 outline-gray-200">
+              <div className="flex items-center gap-4">
+                <AccordionSectionIcon icon={FileText} />
+                <span className="text-lg font-semibold text-foreground tracking-wide uppercase">
+                  Scripts
+                </span>
               </div>
-            </div>
-          )}
-
-          {/* Script Template */}
-          {scriptTemplate && (
-            <article className="prose prose-neutral dark:prose-invert max-w-none">
-              <div
-                className="text-base text-neutral-800 dark:text-neutral-200 whitespace-pre-wrap leading-relaxed"
-                dangerouslySetInnerHTML={{
-                  __html: processedScript
-                    .split("\n")
-                    .map((line) => {
-                      // Destacar variáveis não substituídas (ainda com [])
-                      const highlighted = line.replace(
-                        /\[([^\]]+)\]/g,
-                        '<span class="bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-200 text-yellow-800 px-1 py-0.5 rounded font-mono text-sm border border-yellow-200 dark:border-yellow-800">[$1]</span>'
-                      );
-                      return highlighted;
-                    })
-                    .join("<br/>"),
-                }}
-              />
-            </article>
-          )}
-          
-          {!scriptTemplate && (
-            <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/50 p-6 text-center">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Nenhum script configurado para este processo
-              </p>
-            </div>
-          )}
-
-          {/* Alertas de Ação */}
-          {process?.stepAction?.is_required && (
-            <div className="my-6 p-4 bg-orange-50 dark:bg-orange-900/10 border-l-4 border-orange-400 rounded-r-md">
-              <p className="text-xs font-bold text-orange-600 dark:text-orange-400 uppercase tracking-wide mb-1">
-                Ação Requerida
-              </p>
-              <p className="text-sm font-medium text-orange-900 dark:text-orange-100 italic">
-                Este processo é obrigatório para avançar no fluxo
-              </p>
-            </div>
-          )}
-
-          {/* Métrica de Sucesso */}
-          {isCompleted && (
-            <div className="my-6 p-4 bg-green-50 dark:bg-green-900/10 border-l-4 border-green-500 rounded-r-md">
-              <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wide mb-1">
-                Processo Concluído
-              </p>
-              <p className="text-sm font-medium text-green-900 dark:text-green-100 italic">
-                Este processo foi concluído com sucesso
-              </p>
-            </div>
-          )}
-
-          <div className="h-20"></div>
-        </div>
-
-        {/* Sidebar Direita */}
-        <div className={cn(
-          "w-80 flex-shrink-0 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 overflow-y-auto custom-scrollbar p-6",
-          !isCompleted && "pb-28"
-        )}>
-          {/* Task Variables */}
-          <div className="mb-8">
-            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4">
-              Variáveis da Tarefa
-            </h3>
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                  Nome do Produto
-                </label>
-                <Input
-                  value={taskVariables.product_name || ""}
-                  onChange={(e) => handleVariableChange("product_name", e.target.value)}
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">
-                  Nome do Cliente
-                </label>
-                <Input
-                  value={taskVariables.client_name || ""}
-                  onChange={(e) => handleVariableChange("client_name", e.target.value)}
-                  className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded px-3 py-2 text-sm text-neutral-800 dark:text-neutral-200 focus:ring-2 focus:ring-indigo-600 focus:border-transparent outline-none transition-shadow"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Linked Notes */}
-          <div className="mb-8">
-            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4">
-              Notas Vinculadas
-            </h3>
-            <div className="bg-neutral-50 dark:bg-neutral-800/30 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="w-full bg-transparent border-none focus:ring-0 text-sm text-neutral-700 dark:text-neutral-300 resize-y min-h-[80px]"
-                placeholder="Adicione notas relacionadas a esta tarefa..."
-              />
-              <div className="flex justify-end mt-2">
-                <button
-                  onClick={handleSaveNotes}
-                  className="text-indigo-600 dark:text-indigo-400 text-sm font-medium hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
-                >
-                  Salvar Nota
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* To-Do List */}
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-400 dark:text-neutral-500 uppercase tracking-wider mb-4 flex items-center justify-between">
-              Lista de Tarefas
-              <button className="text-neutral-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                <Plus className="h-4 w-4" />
-              </button>
-            </h3>
-            <div className="space-y-3">
-              {todoItems.length === 0 ? (
-                <p className="text-sm text-neutral-500 dark:text-neutral-400 text-center py-4">
-                  Nenhuma tarefa adicionada
-                </p>
-              ) : (
-                todoItems.map((item, index) => (
-                  <div key={index} className="flex items-start">
-                    <input
-                      type="checkbox"
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 dark:bg-neutral-700 dark:border-neutral-600 h-4 w-4 mt-1"
-                      id={`todo-${index}`}
-                    />
-                    <label
-                      htmlFor={`todo-${index}`}
-                      className="ml-2 text-sm text-neutral-700 dark:text-neutral-300 flex-1"
-                    >
-                      {item}
-                    </label>
-                    <button className="text-neutral-400 hover:text-red-500 ml-2">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))
+            </AccordionTrigger>
+            <AccordionContent className="px-4 m-2 rounded-xl bg-muted/30">
+              {description && (
+                <div className="mb-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-sm text-foreground font-medium">
+                    Objetivo: {description}
+                  </p>
+                </div>
               )}
-            </div>
-          </div>
-        </div>
+              {scriptTemplate ? (
+                <div
+                  className="text-base text-foreground whitespace-pre-wrap leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: processedScript
+                      .split("\n")
+                      .map((line) =>
+                        line.replace(
+                          /\[([^\]]+)\]/g,
+                          '<span class="bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded font-mono text-sm border border-yellow-200">[$1]</span>'
+                        )
+                      )
+                      .join("<br/>"),
+                  }}
+                />
+              ) : (
+                <div className="rounded-xl border border-dashed border-border bg-muted/50 p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum script configurado para este processo
+                  </p>
+                </div>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="checklist" className="border-b border-border">
+            <AccordionTrigger className="px-6 py-4 m-2 rounded-xl bg-gray-100 hover:no-underline hover:bg-muted/50 [&[data-state=open]]:bg-primary/5 outline-gray-200">
+              <div className="flex items-center gap-4">
+                <AccordionSectionIcon icon={CheckSquare} />
+                <span className="text-lg font-semibold text-foreground tracking-wide uppercase">
+                  Check List
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 m-2 rounded-xl bg-muted/30">
+              <div className="pt-2 space-y-2">
+                {todoItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhuma tarefa adicionada
+                  </p>
+                ) : (
+                  todoItems.map((item, index) => {
+                    const checkboxId = `checklist-${process.id}-${index}`;
+                    return (
+                    <label
+                      key={index}
+                      htmlFor={checkboxId}
+                      className="flex items-center gap-3 text-sm text-foreground cursor-pointer select-none py-1"
+                    >
+                      <Checkbox
+                        id={checkboxId}
+                        className="rounded border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary shrink-0"
+                        checked={checklistProgress[String(index)] === true}
+                        onCheckedChange={(checked) =>
+                          handleChecklistToggle(index, checked === true)
+                        }
+                        disabled={isCompleted}
+                      />
+                      <span
+                        className={cn(
+                          checklistProgress[String(index)] && "line-through text-muted-foreground"
+                        )}
+                      >
+                        {item}
+                      </span>
+                    </label>
+                  );})
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          <AccordionItem value="notes" className="border-b border-border">
+            <AccordionTrigger className="px-6 py-4 m-2 rounded-xl bg-gray-100 hover:no-underline hover:bg-muted/50 [&[data-state=open]]:bg-primary/5 outline-gray-200">
+              <div className="flex items-center gap-4">
+                <AccordionSectionIcon icon={FileEdit} />
+                <span className="text-lg font-semibold text-foreground tracking-wide uppercase">
+                  Notas
+                </span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 bg-muted/30">
+              <div className="pt-2 space-y-4">
+                {/* Botão Adicionar nota / Editor colapsável */}
+                {!isEditorOpen ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditorOpen(true)}
+                    className="h-8 px-3 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1.5" />
+                    Adicionar nota
+                  </Button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditorOpen(false)}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <ChevronUp className="h-3 w-3 mr-1" />
+                        Fechar editor
+                      </Button>
+                    </div>
+                    <Input
+                      value={newNoteTitle}
+                      onChange={(e) => setNewNoteTitle(e.target.value)}
+                      placeholder="Título da nota"
+                      className="w-full bg-background text-sm h-9"
+                    />
+                    <ProcessNoteEditor
+                      value={newNoteContent}
+                      onChange={setNewNoteContent}
+                      placeholder="Digite em Markdown... *itálico*, **negrito**, listas, etc."
+                      minHeight={100}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddNote}
+                      className="h-8 px-3 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                    >
+                      Salvar Nota
+                    </Button>
+                  </div>
+                )}
+
+                {/* Lista de Notas - título + ícone à direita, ao clicar expande conteúdo */}
+                {processNotes.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                      Notas salvas
+                    </p>
+                    {processNotes.map((note) => (
+                      <div
+                        key={note.id}
+                        className="rounded-xl border border-border bg-background overflow-hidden"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditingNoteId((prev) =>
+                              prev === note.id ? null : note.id
+                            )
+                          }
+                          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/50 transition-colors"
+                        >
+                          <span className="text-sm font-medium text-foreground truncate flex-1">
+                            {note.title}
+                          </span>
+                          <StickyNote className="h-4 w-4 text-primary shrink-0 ml-2" />
+                        </button>
+                        {editingNoteId === note.id && (
+                          <div className="px-4 pb-4 pt-1 border-t border-border">
+                            <MarkdownPreview content={note.content} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          
+        </Accordion>
       </div>
 
-      {/* Footer com Ações */}
+      {/* Footer DESCARTAR e FINALIZA */}
       {!isCompleted && (
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 shadow-lg flex items-center gap-4 z-20">
+        <div className="p-4 bg-muted/30 border-t border-border flex justify-between gap-4 flex-shrink-0">
+          <Button
+            variant="destructive"
+            onClick={handleMarkAsFailed}
+            className="flex-1 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-wider border-2 border-destructive hover:bg-red-600"
+          >
+            <X className="h-5 w-5 mr-2" />
+            Descartar
+          </Button>
           <Button
             onClick={handleComplete}
             disabled={isCompletingProcess || isCompleting}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-lg font-medium shadow-md shadow-indigo-500/30 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+            className="flex-1 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-wider bg-green-600 hover:bg-green-500 text-white"
           >
             {isCompletingProcess || isCompleting ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Concluindo...
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Finalizando...
               </>
             ) : (
               <>
-                <Icon className="h-5 w-5" />
-                {taskVariables.client_name ? `Completar ${taskVariables.client_name}` : "Concluir Processo"}
+                Finaliza
+                <Check className="h-5 w-5 ml-2" />
               </>
             )}
           </Button>
-          <button className="text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200 p-2 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">
-            <History className="h-5 w-5" />
-          </button>
-          <div className="h-6 w-px bg-neutral-300 dark:bg-neutral-600 mx-1"></div>
-          <button
-            onClick={handleMarkAsFailed}
-            className="text-neutral-500 hover:text-red-500 dark:text-neutral-400 dark:hover:text-red-400 text-sm font-medium px-3 py-2 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-          >
-            Marcar como Falhado
-          </button>
-          <div className="flex-1"></div>
-          <button className="bg-indigo-600 hover:bg-indigo-700 text-white w-12 h-12 rounded-full shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-all hover:-translate-y-1">
-            <MessageSquare className="h-5 w-5" />
-          </button>
         </div>
       )}
     </main>
   );
 }
-

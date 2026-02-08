@@ -9,7 +9,7 @@ interface ClientInfoFormProps {
 
 export const ClientInfoForm: React.FC<ClientInfoFormProps> = ({ user }) => {
     return (
-        <section className="bg-white p-6 dark:bg-muted rounded-2xl shadow-sm">
+        <section className="bg-white p-6  rounded-2xl shadow-sm">
             <div className="mb-6">
                 <h2 className="text-xl font-semibold text-foreground">Informações da Equipe</h2>
                 <p className="text-sm text-muted-foreground">

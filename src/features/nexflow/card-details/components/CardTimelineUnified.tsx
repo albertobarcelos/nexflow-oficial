@@ -94,19 +94,19 @@ const getEventColor = (
   movementDirection?: string | null
 ) => {
   if (eventType === "stage_change" && movementDirection === "backward") {
-    return "text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20";
+    return "text-orange-600  bg-orange-50 ";
   }
   if (eventType === "status_change") {
-    return "text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20";
+    return "text-green-600  bg-green-50 ";
   }
   if (eventType === "freeze") {
-    return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20";
+    return "text-blue-600  bg-blue-50 ";
   }
   if (eventType === "activity") {
-    return "text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/20";
+    return "text-purple-600  bg-purple-50 ";
   }
   if (eventType === "process_status_change" || eventType === "process_completed") {
-    return "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20";
+    return "text-indigo-600  bg-indigo-50 ";
   }
   return "text-primary bg-primary/10";
 };
@@ -427,7 +427,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
             event.event_type === "field_update" ? "p-4" : "p-2.5"
           )}>
             <div className="flex items-center justify-between gap-1.5 mb-1.5">
-              <Badge variant="outline" className={cn("text-[11px] whitespace-nowrap", isBackward && "border-orange-500 text-orange-600 dark:text-orange-400")}>
+              <Badge variant="outline" className={cn("text-[11px] whitespace-nowrap", isBackward && "border-orange-500 text-orange-600 ")}>
                 <Icon className="mr-1 h-3 w-3" />
                 {cardTitle}
               </Badge>
@@ -470,7 +470,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
                         <div className="line-through opacity-60">
                           {formatFieldValue(event.previous_value.value, event.field?.field_type || 'text')}
                         </div>
-                        <div className="font-medium text-green-600 dark:text-green-400">
+                        <div className="font-medium text-green-600 ">
                           → {formatFieldValue(event.new_value.value, event.field?.field_type || 'text')}
                         </div>
                       </div>
@@ -508,7 +508,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
                       <>
                         {addedProducts.length > 0 && (
                           <div className="text-[10px] text-muted-foreground space-y-0.5">
-                            <div className="font-medium text-green-600 dark:text-green-400">
+                            <div className="font-medium text-green-600 ">
                               + {addedProducts.map((p: any) => p.itemName || p.itemId || 'Produto').join(", ")}
                             </div>
                           </div>
@@ -565,13 +565,13 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
           <div className={cn(
             "rounded-lg p-2.5 shadow-sm border w-full",
             isCurrent
-              ? "bg-white dark:bg-slate-800 border-indigo-100 dark:border-indigo-900/50"
-              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+              ? "bg-white  border-indigo-100 "
+              : "bg-white  border-slate-200 "
           )}>
             <div className="flex justify-between items-center mb-1.5">
               <span className={cn(
                 "text-xs font-semibold",
-                isCurrent ? "text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-200"
+                isCurrent ? "text-indigo-600 " : "text-slate-700 "
               )}>
                 {isCurrent ? "ETAPA ATUAL" : step.step_name}
               </span>
@@ -591,7 +591,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
                     <label className="text-[10px] font-medium text-slate-400 block mb-0.5">
                       {field.label}
                     </label>
-                    <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                    <p className="text-[11px] text-slate-600 ">
                       {formatFieldValue(field.value, field.field_type)}
                     </p>
                   </div>
@@ -622,7 +622,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
   if (timelineItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+        <p className="text-sm font-medium text-gray-600 ">
           Nenhum histórico disponível
         </p>
         <p className="mt-1 text-xs text-gray-400">
@@ -635,7 +635,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
   return (
     <div className="relative w-full py-4 md:py-6">
       {/* Linha vertical central - oculta em mobile */}
-      <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-200 dark:bg-slate-700 transform -translate-x-1/2 z-0" />
+      <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-200  transform -translate-x-1/2 z-0" />
       
       {/* Items da timeline */}
       <div className="space-y-0">
@@ -659,8 +659,8 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
               <div className={cn(
                 "hidden md:block absolute top-5 w-2.5 h-2.5 rounded-full border-2 z-10 transform -translate-x-1/2",
                 item.type === "event"
-                  ? "bg-indigo-500 border-white dark:border-slate-900"
-                  : "bg-emerald-500 border-white dark:border-slate-900",
+                  ? "bg-indigo-500 border-white "
+                  : "bg-emerald-500 border-white ",
                 "left-1/2"
               )} />
               
@@ -675,7 +675,7 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
               )}>
                 {/* Data/Título */}
                 <div className="mb-1.5">
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                  <span className="text-[10px] font-semibold text-slate-500 ">
                     {item.title}
                   </span>
                 </div>

@@ -23,6 +23,7 @@ const mapStepActionRow = (row: StepActionRow): NexflowStepAction => {
     settings: {
       allowNotes: settings.allowNotes ?? true,
       requiredCompletion: settings.requiredCompletion ?? true,
+      requireActivityOnClick: settings.requireActivityOnClick ?? false,
       ...settings,
     },
     createdAt: row.created_at,
@@ -187,7 +188,7 @@ export function useStepActions(stepId?: string) {
         scriptTemplate: input.scriptTemplate ?? null,
         checklistItems: input.checklistItems ?? [],
         isRequired: input.isRequired ?? true,
-        settings: input.settings || { allowNotes: true, requiredCompletion: true },
+        settings: input.settings || { allowNotes: true, requiredCompletion: true, requireActivityOnClick: false },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

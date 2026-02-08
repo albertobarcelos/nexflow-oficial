@@ -39,7 +39,7 @@ export function CardDetailsSidebar({
   progressPercentage,
 }: CardDetailsSidebarProps) {
   return (
-    <div className="w-80 bg-slate-50/50 dark:bg-slate-900/20 border-r border-slate-100 dark:border-slate-800 flex flex-col shrink-0">
+    <div className="w-80 bg-slate-50/50  border-r border-slate-100  flex flex-col shrink-0">
       {/* Navegação existente */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       <Tabs 
@@ -57,8 +57,8 @@ export function CardDetailsSidebar({
         }}
         className="flex flex-col h-full"
       >
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-700">
+        <div className="p-4 border-b border-gray-200 ">
+          <TabsList className="grid w-full grid-cols-2 bg-gray-100 ">
             <TabsTrigger 
               value="informacoes"
               className="text-xs font-medium"
@@ -84,8 +84,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "overview"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <Info className="text-xl" />
@@ -100,8 +100,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "history"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <History className="text-xl" />
@@ -123,8 +123,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "fields"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <FileEdit className="text-xl" />
@@ -140,8 +140,8 @@ export function CardDetailsSidebar({
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                   activeSection === "products"
-                    ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                    : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
                 )}
               >
                 <ShoppingCart className="text-xl" />
@@ -157,8 +157,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "contacts"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <Users className="text-xl" />
@@ -173,8 +173,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "company"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <Building2 className="text-xl" />
@@ -189,8 +189,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "attachments"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <Paperclip className="text-xl" />
@@ -205,8 +205,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "comments"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <MessageSquare className="text-xl" />
@@ -221,8 +221,8 @@ export function CardDetailsSidebar({
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
                 activeSection === "activities"
-                  ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-l-4 border-indigo-600"
-                  : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
               )}
             >
               <Calendar className="text-xl" />
@@ -241,18 +241,18 @@ export function CardDetailsSidebar({
       </Tabs>
       </div>
 
-      <div className="mt-auto p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0">
+      <div className="mt-auto p-4 border-t border-slate-100  flex-shrink-0">
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+          <span className="text-[10px] font-bold tracking-widest text-slate-400  uppercase">
             Progresso
           </span>
-          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+          <span className="text-[10px] font-bold text-indigo-600 ">
             {Math.round(progressPercentage)}%
           </span>
         </div>
-        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-slate-100  rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-600 dark:bg-indigo-400 rounded-full transition-all duration-300"
+            className="h-full bg-indigo-600  rounded-full transition-all duration-300"
             style={{ width: `${progressPercentage}%` }}
           />
         </div>

@@ -16,7 +16,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Filter, ChevronLeft, ChevronRight } from "lucide-react";
-import { RecentActivity } from "@/hooks/useRecentActivities";
+import type {
+  RecentActivity,
+  RecentActivityType,
+} from "@/hooks/useRecentActivities";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -25,24 +28,54 @@ interface RecentActivitiesTableProps {
   isLoading?: boolean;
 }
 
-function getStatusBadge(status: RecentActivity['status']) {
-  switch (status) {
-    case 'completed':
+function getTypeBadge(type: RecentActivityType) {
+  switch (type) {
+    case "card_created":
       return (
-        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+        <Badge className="bg-blue-100 text-blue-800  ">
+          Card criado
+        </Badge>
+      );
+    case "completed":
+      return (
+        <Badge className="bg-green-100 text-green-800  ">
           Completo
         </Badge>
       );
-    case 'cancelled':
+    case "cancelled":
       return (
-        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+        <Badge className="bg-red-100 text-red-800  ">
           Cancelado
+        </Badge>
+      );
+    case "in_progress":
+      return (
+        <Badge className="bg-purple-100 text-purple-800  ">
+          Em progresso
+        </Badge>
+      );
+    case "activity_created":
+      return (
+        <Badge className="bg-amber-100 text-amber-800  ">
+          Atividade criada
+        </Badge>
+      );
+    case "activity_completed":
+      return (
+        <Badge className="bg-green-100 text-green-800  ">
+          Atividade concluída
+        </Badge>
+      );
+    case "activity_updated":
+      return (
+        <Badge className="bg-slate-100 text-slate-800  ">
+          Atividade atualizada
         </Badge>
       );
     default:
       return (
-        <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-          {status === 'pending' ? 'Aguardando' : 'Em Progresso'}
+        <Badge className="bg-gray-100 text-gray-800  ">
+          Em progresso
         </Badge>
       );
   }
@@ -89,10 +122,10 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+            <CardTitle className="text-lg font-semibold text-gray-900 ">
               Últimas Atividades
             </CardTitle>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-500  mt-1">
               Detalhamento das movimentações recentes
             </p>
           </div>
@@ -121,23 +154,23 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50 dark:bg-gray-800/50">
-                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
+              <TableRow className="bg-gray-50 ">
+                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 ">
                   ID
                 </TableHead>
-                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
+                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 ">
                   Nome do Card
                 </TableHead>
-                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
+                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 ">
                   Responsável
                 </TableHead>
-                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
+                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 ">
                   Data
                 </TableHead>
-                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
+                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 ">
                   Valor
                 </TableHead>
-                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 dark:text-gray-400">
+                <TableHead className="px-6 py-4 text-xs uppercase font-semibold tracking-wider text-gray-500 ">
                   Status
                 </TableHead>
               </TableRow>
@@ -153,13 +186,15 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
                 activities.map((activity) => (
                   <TableRow
                     key={activity.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                    className="hover:bg-gray-50 :bg-gray-800/30 transition-colors"
                   >
-                    <TableCell className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                    <TableCell className="px-6 py-4 font-medium text-gray-900 ">
                       #{activity.id.substring(0, 8).toUpperCase()}
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-gray-700 dark:text-gray-300">
-                      {activity.cardName}
+                    <TableCell className="px-6 py-4 text-gray-700 ">
+                      {activity.kind === "activity"
+                        ? `${activity.activityTitle ?? "Atividade"} (${activity.cardName})`
+                        : activity.cardName}
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -171,15 +206,15 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
                         >
                           {getInitials(activity.responsible)}
                         </div>
-                        <span className="text-gray-700 dark:text-gray-300">
+                        <span className="text-gray-700 ">
                           {activity.responsible}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                    <TableCell className="px-6 py-4 text-gray-500 ">
                       {activity.date}
                     </TableCell>
-                    <TableCell className="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                    <TableCell className="px-6 py-4 font-medium text-gray-900 ">
                       {activity.value
                         ? new Intl.NumberFormat('pt-BR', {
                             style: 'currency',
@@ -188,7 +223,7 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
                         : '-'}
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      {getStatusBadge(activity.status)}
+                      {getTypeBadge(activity.type)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -198,8 +233,8 @@ export function RecentActivitiesTable({ activities, isLoading }: RecentActivitie
         </div>
         
         {/* Pagination */}
-        <div className="bg-gray-50 dark:bg-gray-800/50 px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="bg-gray-50  px-6 py-4 border-t border-gray-200  flex items-center justify-between">
+          <p className="text-sm text-gray-500 ">
             Mostrando 1 a {activities.length} de {activities.length} entradas
           </p>
           <div className="flex gap-2">
