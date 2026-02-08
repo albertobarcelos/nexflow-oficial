@@ -12,6 +12,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useCompanies } from "@/features/companies/hooks/useCompanies";
 import { useUpdateCardCompany } from "../hooks/useUpdateCardCompany";
+import { useCompanyDetails } from "../hooks/useCompanyDetails";
+import { CompanyDetailsCard } from "./CompanyDetailsCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { NexflowCard } from "@/types/nexflow";
 
 interface CardCompanyTabProps {
@@ -26,6 +29,8 @@ export function CardCompanyTab({ card }: CardCompanyTabProps) {
   const [open, setOpen] = useState(false);
   const { companies = [], isLoading: isLoadingCompanies } = useCompanies();
   const updateCompany = useUpdateCardCompany(card.id, card.flowId);
+  const { company: companyDetails, isLoading: isLoadingDetails } =
+    useCompanyDetails(card.companyId ?? null);
 
   const companyId = card.companyId ?? null;
   const selectedCompany = companies.find((c) => c.id === companyId);
@@ -107,6 +112,21 @@ export function CardCompanyTab({ card }: CardCompanyTabProps) {
           </PopoverContent>
         </Popover>
       </div>
+
+      {/* Painel de detalhes da empresa selecionada */}
+      {companyId && (
+        <div className="mt-6">
+          {isLoadingDetails ? (
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          ) : companyDetails ? (
+            <CompanyDetailsCard company={companyDetails} />
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }
