@@ -119,6 +119,8 @@ interface UpdateFlowInput {
   category?: FlowCategory;
   isActive?: boolean;
   visibilityType?: "company" | "team" | "user";
+  /** Quando true, suprime toasts de sucesso/erro (ex.: builder). Não enviado ao backend. */
+  _meta?: { skipToasts?: boolean };
 }
 
 export function useNexflowFlows() {
@@ -214,7 +216,8 @@ export function useNexflowFlows() {
   });
 
   const updateFlowMutation = useSecureClientMutation<void, Error, UpdateFlowInput>({
-    mutationFn: async (supabaseClient, _clientId, { id, name, description, category, isActive, visibilityType }) => {
+    mutationFn: async (supabaseClient, _clientId, variables) => {
+      const { id, name, description, category, isActive, visibilityType } = variables;
       const { data: permissionsData, error: permissionsError } = await supabaseClient.functions.invoke(
         "check-flow-permissions",
         { body: { flowId: id } }
@@ -242,10 +245,14 @@ export function useNexflowFlows() {
       onSuccess: (_, variables) => {
         invalidateClientQueries(queryClient, ["nexflow", "flows"]);
         queryClient.invalidateQueries({ queryKey: ["nexflow", "flow", variables.id] });
-        toast.success("Flow atualizado com sucesso!");
+        if (!variables._meta?.skipToasts) {
+          toast.success("Flow atualizado com sucesso!");
+        }
       },
-      onError: () => {
-        toast.error("Erro ao atualizar flow. Tente novamente.");
+      onError: (_err, variables) => {
+        if (!variables._meta?.skipToasts) {
+          toast.error("Erro ao atualizar flow. Tente novamente.");
+        }
       },
     },
   });
@@ -271,6 +278,16 @@ export function useNexflowFlows() {
     },
   });
 
+  /** Atualiza flow. Opção skipToasts: true suprime toasts de sucesso e erro (ex.: builder). */
+  const updateFlow = (
+    variables: Omit<UpdateFlowInput, "_meta">,
+    options?: { skipToasts?: boolean }
+  ) =>
+    updateFlowMutation.mutateAsync({
+      ...variables,
+      _meta: options?.skipToasts ? { skipToasts: true } : undefined,
+    });
+
   return {
     flows: flowsQuery.data ?? [],
     isLoading: flowsQuery.isLoading,
@@ -278,7 +295,7 @@ export function useNexflowFlows() {
     refetch: flowsQuery.refetch,
     createFlow: createFlowMutation.mutateAsync,
     isCreating: createFlowMutation.isPending,
-    updateFlow: updateFlowMutation.mutateAsync,
+    updateFlow,
     isUpdating: updateFlowMutation.isPending,
     deleteFlow: deleteFlowMutation.mutateAsync,
     isDeleting: deleteFlowMutation.isPending,
