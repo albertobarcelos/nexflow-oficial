@@ -340,7 +340,13 @@ export function CardActivityForm({
               <Label>
                 Data de Início <span className="text-red-500">*</span>
               </Label>
-              <Popover>
+              <Popover
+                onOpenChange={(open) => {
+                  if (open && !form.watch('start_date')) {
+                    form.setValue('start_date', new Date());
+                  }
+                }}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     type="button"
@@ -400,7 +406,13 @@ export function CardActivityForm({
               <Label>
                 Data de Término <span className="text-red-500">*</span>
               </Label>
-              <Popover>
+              <Popover
+                onOpenChange={(open) => {
+                  if (open && !form.watch('end_date')) {
+                    form.setValue('end_date', new Date());
+                  }
+                }}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     type="button"

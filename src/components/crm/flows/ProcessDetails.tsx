@@ -9,6 +9,8 @@ import {
   StickyNote,
   Plus,
   ChevronUp,
+  RotateCcw,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NexflowCard } from "@/types/nexflow";
@@ -29,6 +31,15 @@ import { v4 as uuidv4 } from "uuid";
 import type { ProcessNote } from "@/types/nexflow";
 import { ProcessNoteEditor } from "./ProcessNoteEditor";
 import { MarkdownPreview } from "./MarkdownPreview";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 type StepActionRow = Database["public"]["Tables"]["step_actions"]["Row"];
 
@@ -94,9 +105,15 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
   }
 
   const cardId = card?.id;
-  const { completeCardStepAction, updateCardStepAction, isCompleting } =
-    useCardStepActions(cardId);
+  const {
+    completeCardStepAction,
+    updateCardStepAction,
+    isCompleting,
+    isUpdating,
+  } = useCardStepActions(cardId);
   const [isCompletingProcess, setIsCompletingProcess] = useState(false);
+  const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
+  const [discardReason, setDiscardReason] = useState("");
 
   const fieldValues = card?.fieldValues || {};
   const executionData =
@@ -117,6 +134,9 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
   // Notas do processo (executionData.process_notes), com fallback para notes legado
   const [processNotes, setProcessNotes] = useState<ProcessNote[]>([]);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteInEditMode, setNoteInEditMode] = useState<string | null>(null);
+  const [editNoteTitle, setEditNoteTitle] = useState("");
+  const [editNoteContent, setEditNoteContent] = useState("");
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState("");
   const [newNoteContent, setNewNoteContent] = useState("");
@@ -154,10 +174,18 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
     } else {
       setProcessNotes([]);
     }
-    setEditingNoteId(null);
+    // Se processo descartado (skipped + nota Descartar), expandir nota por padrão
+    const discardNote = notesFromData.find((n) => n.title === "Descartar");
+    if (process?.status === "skipped" && discardNote) {
+      setEditingNoteId(discardNote.id);
+    } else {
+      setEditingNoteId(null);
+    }
+    setNoteInEditMode(null);
     setIsEditorOpen(false);
   }, [
     process?.id,
+    process?.status,
     process?.executionData,
     process?.notes,
     card?.title,
@@ -165,6 +193,10 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
   ]);
 
   const isCompleted = process?.status === "completed";
+  // Processo descartado = status skipped + nota "Descartar" (banco não permite status "descartado")
+  const isDiscarded =
+    process?.status === "skipped" &&
+    processNotes.some((n) => n.title === "Descartar");
   const scriptTemplate = process?.stepAction?.script_template || "";
   const description = process?.stepAction?.description || "";
 
@@ -236,6 +268,50 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
     setTaskVariables((prev) => ({ ...prev, [key]: value }));
   };
 
+  /** Abre modo de edição da nota */
+  const handleStartEditNote = (note: ProcessNote) => {
+    setNoteInEditMode(note.id);
+    setEditNoteTitle(note.title);
+    setEditNoteContent(note.content);
+  };
+
+  /** Salva edição da nota */
+  const handleSaveEditNote = async () => {
+    const noteId = noteInEditMode;
+    if (!noteId) return;
+    const title = editNoteTitle.trim() || "Sem título";
+    const content = editNoteContent.trim();
+    if (!content) {
+      toast.error("Adicione um conteúdo à nota.");
+      return;
+    }
+    const updatedNotes = processNotes.map((n) =>
+      n.id === noteId ? { ...n, title, content } : n
+    );
+    setProcessNotes(updatedNotes);
+    setNoteInEditMode(null);
+    try {
+      await updateCardStepAction({
+        id: process.id,
+        executionData: {
+          ...getFullExecutionData(),
+          process_notes: updatedNotes as unknown as Json,
+        },
+      });
+      toast.success("Nota atualizada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar nota:", error);
+      setProcessNotes(processNotes); // Reverte em caso de erro
+      setNoteInEditMode(noteId);
+      toast.error("Erro ao salvar nota. Tente novamente.");
+    }
+  };
+
+  /** Cancela edição da nota */
+  const handleCancelEditNote = () => {
+    setNoteInEditMode(null);
+  };
+
   const handleChecklistToggle = async (index: number, checked: boolean) => {
     const newProgress = {
       ...checklistProgress,
@@ -282,8 +358,58 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
     }
   };
 
-  const handleMarkAsFailed = async () => {
-    toast.info("Funcionalidade em desenvolvimento");
+  /** Abre modal para digitar motivo do descarte */
+  const handleOpenDiscardModal = () => {
+    setDiscardReason("");
+    setIsDiscardModalOpen(true);
+  };
+
+  /** Confirma descarte: cria nota "Descartar" com motivo e altera status */
+  const handleConfirmDiscard = async () => {
+    const reason = discardReason.trim();
+    if (!reason) {
+      toast.error("Informe o motivo do descarte.");
+      return;
+    }
+    const discardNote: ProcessNote = {
+      id: uuidv4(),
+      title: "Descartar",
+      content: reason,
+    };
+    const updatedNotes = [...processNotes, discardNote];
+    try {
+      // Usa "skipped" pois a constraint do banco só permite: pending, in_progress, completed, skipped
+      await updateCardStepAction({
+        id: process.id,
+        status: "skipped",
+        executionData: {
+          ...getFullExecutionData(),
+          process_notes: updatedNotes as unknown as Json,
+        },
+      });
+      setProcessNotes(updatedNotes);
+      setEditingNoteId(discardNote.id);
+      setIsDiscardModalOpen(false);
+      setDiscardReason("");
+    } catch (error) {
+      console.error("Erro ao descartar processo:", error);
+      toast.error("Erro ao descartar processo. Tente novamente.");
+    }
+  };
+
+  /** Reativa o processo alterando status de completed/descartado para pending */
+  const handleReactivate = async () => {
+    if ((!isCompleted && !isDiscarded) || isUpdating) return;
+    try {
+      await updateCardStepAction({
+        id: process.id,
+        status: "pending",
+      });
+      toast.success("Processo reativado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao reativar processo:", error);
+      toast.error("Erro ao reativar processo. Tente novamente.");
+    }
   };
 
   return (
@@ -300,11 +426,42 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
         
         
         
-        {/* Badge de processo concluído */}
+        {/* Badge de processo concluído + botão reativar */}
         {isCompleted && (
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
-            <Check className="h-5 w-5" />
-            <span className="text-sm font-semibold">Processo Concluído</span>
+          <div className="mt-4 inline-flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary">
+              <Check className="h-5 w-5" />
+              <span className="text-sm font-semibold">Processo Concluído</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReactivate}
+              disabled={isUpdating}
+              title="Reativar processo"
+              className="h-9 px-3 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        {/* Badge de processo descartado + botão reativar */}
+        {isDiscarded && (
+          <div className="mt-4 inline-flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 text-destructive">
+              <X className="h-5 w-5" />
+              <span className="text-sm font-semibold">Processo Descartado</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReactivate}
+              disabled={isUpdating}
+              title="Reativar processo"
+              className="h-9 px-3 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </header>
@@ -390,7 +547,7 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
                         onCheckedChange={(checked) =>
                           handleChecklistToggle(index, checked === true)
                         }
-                        disabled={isCompleted}
+                        disabled={isCompleted || isDiscarded}
                       />
                       <span
                         className={cn(
@@ -491,7 +648,59 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
                         </button>
                         {editingNoteId === note.id && (
                           <div className="px-4 pb-4 pt-1 border-t border-border">
-                            <MarkdownPreview content={note.content} />
+                            {noteInEditMode === note.id ? (
+                              <div className="space-y-3 pt-2">
+                                <Input
+                                  value={editNoteTitle}
+                                  onChange={(e) => setEditNoteTitle(e.target.value)}
+                                  placeholder="Título da nota"
+                                  className="w-full bg-background text-sm h-9"
+                                />
+                                <ProcessNoteEditor
+                                  value={editNoteContent}
+                                  onChange={setEditNoteContent}
+                                  placeholder="Digite em Markdown..."
+                                  minHeight={100}
+                                />
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleCancelEditNote}
+                                    className="h-8 px-3 text-xs"
+                                  >
+                                    Cancelar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleSaveEditNote}
+                                    disabled={isUpdating}
+                                    className="h-8 px-3 text-xs text-primary hover:text-primary hover:bg-primary/10"
+                                  >
+                                    Salvar
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-start justify-between gap-2 pt-1">
+                                <div className="flex-1 min-w-0">
+                                  <MarkdownPreview content={note.content} />
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditNote(note);
+                                  }}
+                                  className="h-8 px-2 shrink-0 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                  title="Editar nota"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -507,11 +716,11 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
       </div>
 
       {/* Footer DESCARTAR e FINALIZA */}
-      {!isCompleted && (
+      {!isCompleted && !isDiscarded && (
         <div className="p-4 bg-muted/30 border-t border-border flex justify-between gap-4 flex-shrink-0">
           <Button
             variant="destructive"
-            onClick={handleMarkAsFailed}
+            onClick={handleOpenDiscardModal}
             className="flex-1 px-6 py-4 rounded-xl font-bold text-sm uppercase tracking-wider border-2 border-destructive hover:bg-red-600"
           >
             <X className="h-5 w-5 mr-2" />
@@ -536,6 +745,46 @@ export function ProcessDetails({ process, card }: ProcessDetailsProps) {
           </Button>
         </div>
       )}
+
+      {/* Modal de motivo do descarte */}
+      <Dialog open={isDiscardModalOpen} onOpenChange={setIsDiscardModalOpen}>
+        <DialogContent
+          className="sm:max-w-md"
+          aria-describedby="discard-dialog-description"
+        >
+          <DialogHeader>
+            <DialogTitle>Descartar processo</DialogTitle>
+            <DialogDescription id="discard-dialog-description">
+              Informe o motivo do descarte. O motivo será registrado como nota no
+              processo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Textarea
+              placeholder="Digite o motivo do descarte..."
+              value={discardReason}
+              onChange={(e) => setDiscardReason(e.target.value)}
+              className="min-h-[120px]"
+              autoFocus
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsDiscardModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDiscard}
+              disabled={isUpdating}
+            >
+              Confirmar descarte
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

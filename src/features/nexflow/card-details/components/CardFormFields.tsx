@@ -271,7 +271,13 @@ export function CardFormFields({
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <CalendarIcon className="text-gray-400 group-focus-within:text-blue-600 transition-colors text-lg" />
             </div>
-            <Popover>
+            <Popover
+              onOpenChange={(open) => {
+                if (open && !parsedValue && !isDisabled) {
+                  onDateChange(field.id, new Date());
+                }
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   type="button"

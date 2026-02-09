@@ -64,7 +64,7 @@ function Calendar({
       captionLayout="dropdown-buttons"
       fromYear={1900}
       toYear={currentYear}
-      defaultMonth={new Date(currentYear - 25, 0)}
+      defaultMonth={new Date()}
       {...props}
     />
   );

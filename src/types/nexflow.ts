@@ -168,7 +168,7 @@ export interface StepActionsByDay {
 }
 
 // Status de execução de uma ação vinculada a um card
-export type CardStepActionStatus = "pending" | "in_progress" | "completed" | "skipped";
+export type CardStepActionStatus = "pending" | "in_progress" | "completed" | "skipped" | "descartado";
 
 /** Nota de processo armazenada em executionData.process_notes */
 export interface ProcessNote {

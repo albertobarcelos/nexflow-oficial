@@ -103,6 +103,15 @@ function ProcessEventContent({
           <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
 
+        {resource.description && (
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Descrição</p>
+            <p className="text-foreground text-sm whitespace-pre-wrap">
+              {resource.description}
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-2 pt-2">
           <Button variant="default" className="flex-1" onClick={onViewCard}>
             <ExternalLink className="h-4 w-4 mr-2" />
@@ -188,6 +197,15 @@ function ActivityEventContent({
             {isCompleted ? "Concluído" : "Pendente"}
           </Badge>
         </div>
+
+        {resource.description && (
+          <div>
+            <p className="text-sm text-muted-foreground mb-1">Descrição</p>
+            <p className="text-foreground text-sm whitespace-pre-wrap">
+              {resource.description}
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-2 pt-2">
           <Button variant="default" className="flex-1" onClick={onViewCard}>

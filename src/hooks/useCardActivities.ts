@@ -442,33 +442,43 @@ export function useCompleteCardActivity() {
         queryKey: ["card-activities-grouped", clientId, cardId],
       });
 
-      // Snapshot do valor anterior
-      const previousActivities = queryClient.getQueryData<CardActivity[]>(['card-activities', cardId]);
-      const previousGrouped = queryClient.getQueryData<GroupedCardActivities[]>(['card-activities-grouped', cardId]);
+      // Snapshot do valor anterior (chaves corretas com clientId para multi-tenant)
+      const previousActivities = queryClient.getQueryData<CardActivity[]>([
+        "card-activities",
+        clientId,
+        cardId,
+      ]);
+
+      // Snapshot de todas as variantes de grouped (uma por filter)
+      const groupedQueryFilter = {
+        queryKey: ["card-activities-grouped", clientId, cardId],
+      };
+      const previousGroupedQueries =
+        queryClient.getQueriesData<GroupedCardActivities[]>(groupedQueryFilter);
 
       // Atualizar otimisticamente a lista de atividades
       if (previousActivities) {
         queryClient.setQueryData<CardActivity[]>(
           ["card-activities", clientId, cardId],
           (old) => {
-          if (!old) return old;
-          return old.map((activity) =>
-            activity.id === id
-              ? {
-                  ...activity,
-                  completed,
-                  completed_at: completed ? new Date().toISOString() : null,
-                }
-              : activity
-          );
-        });
+            if (!old) return old;
+            return old.map((activity) =>
+              activity.id === id
+                ? {
+                    ...activity,
+                    completed,
+                    completed_at: completed ? new Date().toISOString() : null,
+                  }
+                : activity
+            );
+          }
+        );
       }
 
-      // Atualizar otimisticamente a lista agrupada
-      if (previousGrouped) {
-        queryClient.setQueryData<GroupedCardActivities[]>(
-          ["card-activities-grouped", clientId, cardId],
-          (old) => {
+      // Atualizar otimisticamente todas as variantes de lista agrupada
+      queryClient.setQueriesData<GroupedCardActivities[]>(
+        groupedQueryFilter,
+        (old) => {
           if (!old) return old;
           return old.map((group) => ({
             ...group,
@@ -482,11 +492,11 @@ export function useCompleteCardActivity() {
                 : activity
             ),
           }));
-        });
-      }
+        }
+      );
 
       // Retornar contexto com snapshot para rollback em caso de erro
-      return { previousActivities, previousGrouped };
+      return { previousActivities, previousGroupedQueries };
     },
     onSuccess: (data) => {
       // Invalidar queries para garantir sincronização com o servidor
@@ -508,11 +518,12 @@ export function useCompleteCardActivity() {
           context.previousActivities
         );
       }
-      if (context?.previousGrouped) {
-        queryClient.setQueryData(
-          ["card-activities-grouped", clientId, variables.cardId],
-          context.previousGrouped
-        );
+      if (context?.previousGroupedQueries?.length) {
+        for (const [queryKey, data] of context.previousGroupedQueries) {
+          if (data !== undefined) {
+            queryClient.setQueryData(queryKey, data);
+          }
+        }
       }
       console.error('[CompleteCardActivity] Erro:', error);
       toast.error('Erro ao atualizar atividade: ' + error.message);

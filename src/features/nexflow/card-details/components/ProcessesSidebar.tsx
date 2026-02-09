@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { ChevronRight, ChevronDown, CheckCircle2 } from "lucide-react";
+import { ChevronRight, ChevronDown, CheckCircle2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -221,7 +221,18 @@ export function ProcessesSidebar({
     return scheduledDate;
   };
 
-  const getStatusBadge = (status: CardStepAction["status"]) => {
+  const getStatusBadge = (process: ProcessWithAction) => {
+    const { status } = process;
+    const notes = (process.executionData?.process_notes as { title?: string }[] | undefined) ?? [];
+    const isDiscarded = status === "skipped" && notes.some((n) => n.title === "Descartar");
+
+    if (isDiscarded) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800  ">
+          Descartado
+        </span>
+      );
+    }
     switch (status) {
       case "completed":
         return (
@@ -314,6 +325,11 @@ export function ProcessesSidebar({
                   <div className="p-2 space-y-2">
                     {dayProcesses.map((process) => {
                       const isCompleted = process.status === "completed";
+                      const notes =
+                        (process.executionData?.process_notes as { title?: string }[] | undefined) ?? [];
+                      const isDiscarded =
+                        process.status === "skipped" &&
+                        notes.some((n) => n.title === "Descartar");
                       const Icon = getActionIcon(process.stepAction?.action_type ?? null);
                       const scheduledDate = getScheduledDate(process);
                       const dateStr = format(scheduledDate, "dd/MM", { locale: ptBR });
@@ -329,8 +345,10 @@ export function ProcessesSidebar({
                             isSelected
                               ? "bg-blue-50  border-blue-500  shadow-sm"
                               : isCompleted
-                              ? "bg-green-50  border-green-200 "
-                              : "bg-white  border-gray-200  hover:border-blue-300 :border-blue-600"
+                                ? "bg-green-50  border-green-200 "
+                                : isDiscarded
+                                  ? "bg-red-50  border-red-200 "
+                                  : "bg-white  border-gray-200  hover:border-blue-300 :border-blue-600"
                           )}
                         >
                           <div className="flex items-start gap-2.5">
@@ -339,11 +357,15 @@ export function ProcessesSidebar({
                                 "mt-0.5 shrink-0",
                                 isCompleted
                                   ? "text-green-600 "
-                                  : "text-gray-400 "
+                                  : isDiscarded
+                                    ? "text-red-600 "
+                                    : "text-gray-400 "
                               )}
                             >
                               {isCompleted ? (
                                 <CheckCircle2 className="h-4 w-4" />
+                              ) : isDiscarded ? (
+                                <X className="h-4 w-4" />
                               ) : (
                                 <Icon className="h-4 w-4" />
                               )}
@@ -352,7 +374,7 @@ export function ProcessesSidebar({
                               <p
                                 className={cn(
                                   "text-xs font-medium leading-tight mb-1",
-                                  isCompleted
+                                  isCompleted || isDiscarded
                                     ? "text-gray-500  line-through"
                                     : "text-gray-900 "
                                 )}
@@ -363,7 +385,7 @@ export function ProcessesSidebar({
                                 <span className="text-[10px] text-gray-500 ">
                                   {dateStr} • {timeStr}
                                 </span>
-                                {getStatusBadge(process.status)}
+                                {getStatusBadge(process)}
                               </div>
                             </div>
                           </div>
