@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useBlocker } from "react-router-dom";
 import {
   DndContext,
   DragCancelEvent,
@@ -19,7 +19,18 @@ import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useFlowBuilderState } from "@/hooks/useFlowBuilderState";
 import { useFlowPermissions } from "@/hooks/useFlowPermissions";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AlertCircle, UserRound, Type, AlignLeft, CheckSquare, CalendarDays, Mail, Phone, Paperclip, FileText } from "lucide-react";
 import type { FlowBuilderFieldDefinition } from "@/lib/flowBuilder/fieldLibrary";
 import type { NexflowStepField } from "@/types/nexflow";
@@ -74,6 +85,34 @@ export function NexflowBuilderPage() {
   } = useFlowBuilderState(id);
 
   const [activeDrag, setActiveDrag] = useState<ActiveDragData | null>(null);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [showStepDialog, setShowStepDialog] = useState(false);
+  const [pendingStepId, setPendingStepId] = useState<string | null>(null);
+  const pendingNavigateRef = useRef<(() => void) | null>(null);
+
+  // Bloqueia navegação quando há alterações não salvas
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      Boolean(hasPendingChanges && currentLocation.pathname !== nextLocation.pathname)
+  );
+
+  useEffect(() => {
+    if (blocker.state === "blocked" && !showLeaveDialog) {
+      pendingNavigateRef.current = () => blocker.proceed?.();
+      setShowLeaveDialog(true);
+    }
+  }, [blocker.state, showLeaveDialog]);
+
+  // Aviso ao fechar/recarregar a página
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasPendingChanges) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasPendingChanges]);
 
   const flowName = useMemo(
     () => flowDraft.name || flow?.name || "Flow sem nome",
@@ -213,12 +252,68 @@ export function NexflowBuilderPage() {
   };
 
   const handleStepUpdate = async (stepId: string, updates: { title?: string; color?: string }) => {
-    // Apenas atualizar título imediatamente (compatibilidade)
-    // A cor agora é gerenciada via stepDraft e salva apenas quando o usuário clicar em "Salvar"
     if (updates.title) {
       await renameStep(stepId, updates.title);
     }
-    // Cor removida daqui - agora é gerenciada via stepDraft
+  };
+
+  // Trocar de etapa: se houver alterações não salvas, mostrar diálogo
+  const handleSelectStepWithConfirm = (stepId: string) => {
+    if (stepId === activeStepId) return;
+    if (hasPendingChanges) {
+      setPendingStepId(stepId);
+      setShowStepDialog(true);
+    } else {
+      selectStep(stepId);
+    }
+  };
+
+  const handleStepDialogSaveAndSwitch = async () => {
+    if (pendingStepId === null) return;
+    await saveAll();
+    setShowStepDialog(false);
+    selectStep(pendingStepId);
+    setPendingStepId(null);
+  };
+
+  const handleStepDialogSwitchWithoutSave = () => {
+    if (pendingStepId === null) return;
+    setShowStepDialog(false);
+    selectStep(pendingStepId);
+    setPendingStepId(null);
+  };
+
+  const handleStepDialogCancel = () => {
+    setShowStepDialog(false);
+    setPendingStepId(null);
+  };
+
+  const handleBack = () => {
+    if (hasPendingChanges) {
+      setShowLeaveDialog(true);
+      pendingNavigateRef.current = () => navigate("/crm/flows");
+    } else {
+      navigate("/crm/flows");
+    }
+  };
+
+  const handleLeaveDialogLeave = () => {
+    setShowLeaveDialog(false);
+    if (pendingNavigateRef.current) {
+      pendingNavigateRef.current();
+      pendingNavigateRef.current = null;
+    }
+    if (blocker.state === "blocked") {
+      blocker.reset?.();
+    }
+  };
+
+  const handleLeaveDialogStay = () => {
+    setShowLeaveDialog(false);
+    pendingNavigateRef.current = null;
+    if (blocker.state === "blocked") {
+      blocker.reset?.();
+    }
   };
 
   return (
@@ -232,7 +327,7 @@ export function NexflowBuilderPage() {
           steps={steps}
           activeStepId={activeStepId}
           activeStepDraft={stepDraft}
-          onSelectStep={selectStep}
+          onSelectStep={handleSelectStepWithConfirm}
           onCreateStep={createStep}
           onRenameStep={renameStep}
           onDeleteStep={deleteStep}
@@ -241,7 +336,7 @@ export function NexflowBuilderPage() {
           isSaving={isSaving}
           canSave={hasPendingChanges}
           pendingMutations={pendingMutations}
-          onBack={() => navigate("/crm/flows")}
+          onBack={handleBack}
         />
       )}
 
@@ -332,6 +427,49 @@ export function NexflowBuilderPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Diálogo: alterações não salvas ao trocar de etapa */}
+      <AlertDialog open={showStepDialog} onOpenChange={setShowStepDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterações não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas. Deseja salvar antes de trocar de etapa?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleStepDialogCancel}>
+              Cancelar
+            </AlertDialogCancel>
+            <Button variant="outline" onClick={handleStepDialogSwitchWithoutSave}>
+              Trocar sem salvar
+            </Button>
+            <Button onClick={handleStepDialogSaveAndSwitch} disabled={isSaving}>
+              Salvar e trocar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo: alterações não salvas ao sair */}
+      <AlertDialog open={showLeaveDialog} onOpenChange={setShowLeaveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Alterações não salvas</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você tem alterações não salvas. Deseja sair sem salvar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleLeaveDialogStay}>
+              Ficar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleLeaveDialogLeave}>
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

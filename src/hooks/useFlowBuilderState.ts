@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   fieldLibrary,
   FlowBuilderFieldDefinition,
@@ -275,10 +274,7 @@ export function useFlowBuilderState(
       const stepTitle =
         title.trim() || `Etapa ${String(steps.length + 1).padStart(2, "0")}`;
       const createdStep = await trackMutation(
-        createStep({
-          title: stepTitle,
-          color,
-        })
+        createStep({ title: stepTitle, color }, { skipToasts: true })
       );
       if (createdStep?.id) {
         setActiveStepId(createdStep.id);
@@ -290,10 +286,7 @@ export function useFlowBuilderState(
   const handleRenameStep = useCallback(
     async (stepId: string, title: string) => {
       await trackMutation(
-        updateStep({
-          id: stepId,
-          title: title.trim(),
-        })
+        updateStep({ id: stepId, title: title.trim() }, { skipToasts: true })
       );
     },
     [updateStep, trackMutation]
@@ -302,10 +295,9 @@ export function useFlowBuilderState(
   const handleDeleteStep = useCallback(
     async (stepId: string) => {
       if (steps.length <= 1) {
-        toast.error("O flow precisa de pelo menos uma etapa.");
         return;
       }
-      await trackMutation(deleteStep(stepId));
+      await trackMutation(deleteStep(stepId, { skipToasts: true }));
     },
     [deleteStep, steps.length, trackMutation]
   );
@@ -316,12 +308,7 @@ export function useFlowBuilderState(
         id,
         position: index,
       }));
-
-      await trackMutation(
-        reorderSteps({
-          updates,
-        })
-      );
+      await trackMutation(reorderSteps({ updates }, { skipToasts: true }));
     },
     [reorderSteps, trackMutation]
   );
@@ -350,14 +337,12 @@ export function useFlowBuilderState(
   const handleCreateFieldFromLibrary = useCallback(
     async (definitionId: string, targetIndex?: number) => {
       if (!activeStepId) {
-        toast.error("Selecione uma etapa antes de adicionar campos.");
         return;
       }
 
       const definition = getFieldDefinition(definitionId);
 
       if (!definition) {
-        toast.error("Tipo de campo não encontrado.");
         return;
       }
 
@@ -368,16 +353,14 @@ export function useFlowBuilderState(
       if (definitionId === "assignee" || (definition.fieldType === "user_select" && defaultSlug === SYSTEM_FIELDS.ASSIGNED_TO)) {
         const existingResponsavelFields = fields.filter((field) => isResponsavelField(field));
         if (existingResponsavelFields.length > 0) {
-          toast.error("Já existe um campo 'Responsável' nesta etapa. Apenas um campo 'Responsável' é permitido por etapa.");
           return;
         }
       }
-      
+
       // Validar se já existe um campo "responsável time" na etapa
       if (definitionId === "assignee_team" || (definition.fieldType === "user_select" && defaultSlug === SYSTEM_FIELDS.ASSIGNED_TEAM_ID)) {
         const existingResponsavelTeamFields = fields.filter((field) => isResponsavelTeamField(field));
         if (existingResponsavelTeamFields.length > 0) {
-          toast.error("Já existe um campo 'Responsável (Time)' nesta etapa. Apenas um campo 'Responsável (Time)' é permitido por etapa.");
           return;
         }
       }
@@ -410,7 +393,6 @@ export function useFlowBuilderState(
         setSelectedFieldId(newField.id);
       } catch (error) {
         console.error("Erro ao criar campo:", error);
-        toast.error("Não foi possível criar o campo.");
       }
     },
     [
@@ -443,7 +425,6 @@ export function useFlowBuilderState(
   const handleDuplicateField = useCallback(
     async (fieldId: string) => {
       if (!activeStepId) {
-        toast.error("Selecione uma etapa para duplicar campos.");
         return;
       }
 
@@ -456,7 +437,6 @@ export function useFlowBuilderState(
       if (isResponsavelField(targetField)) {
         const existingResponsavelFields = fields.filter((field) => isResponsavelField(field));
         if (existingResponsavelFields.length > 0) {
-          toast.error("Já existe um campo 'Responsável' nesta etapa. Apenas um campo 'Responsável' é permitido por etapa.");
           return;
         }
       }
@@ -518,12 +498,10 @@ export function useFlowBuilderState(
 
   const saveAll = useCallback(async () => {
     if (!flowId) {
-      toast.error("Flow não encontrado.");
       return;
     }
 
     if (!flowDraft.name.trim()) {
-      toast.error("O flow precisa de um nome para ser salvo.");
       return;
     }
 
@@ -531,24 +509,25 @@ export function useFlowBuilderState(
     if (activeStepId) {
       const responsavelFields = fields.filter((field) => isResponsavelField(field));
       if (responsavelFields.length > 1) {
-        toast.error("Não é possível salvar: há mais de um campo 'Responsável' na etapa atual. Apenas um campo 'Responsável' é permitido por etapa.");
         return;
       }
     }
 
     setIsSaving(true);
-    const toastId = toast.loading("Salvando alterações...");
     try {
       await waitForPendingMutations();
-      
-      // Save flow with visibility type
-      await updateFlow({
-        id: flowId,
-        name: flowDraft.name.trim(),
-        description: flowDraft.description.trim() || null,
-        isActive: flowDraft.isActive,
-        visibilityType: flowDraft.visibilityType,
-      });
+
+      // Salvar flow (sem toasts no builder)
+      await updateFlow(
+        {
+          id: flowId,
+          name: flowDraft.name.trim(),
+          description: flowDraft.description.trim() || null,
+          isActive: flowDraft.isActive,
+          visibilityType: flowDraft.visibilityType,
+        },
+        { skipToasts: true }
+      );
 
       // Atualizar visibilidade usando Edge Function
       // O hook já faz o mapeamento de "user" para "user_exclusion" internamente
@@ -582,18 +561,16 @@ export function useFlowBuilderState(
         }
         
         if (Object.keys(stepUpdates).length > 0) {
-          await updateStep({
-            id: activeStepId,
-            ...stepUpdates,
-          });
+          await updateStep(
+            { id: activeStepId, ...stepUpdates },
+            { skipToasts: true }
+          );
         }
       }
 
       setHasLocalChanges(false);
-      toast.success("Flow salvo com sucesso!", { id: toastId });
     } catch (error) {
       console.error("Erro ao salvar flow:", error);
-      toast.error("Não foi possível salvar o flow.", { id: toastId });
     } finally {
       setIsSaving(false);
     }

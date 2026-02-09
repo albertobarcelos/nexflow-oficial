@@ -28,6 +28,7 @@ interface CreateStepInput {
   position?: number;
   isCompletionStep?: boolean;
   stepType?: StepType;
+  _meta?: { skipToasts?: boolean };
 }
 
 interface UpdateStepInput {
@@ -39,11 +40,16 @@ interface UpdateStepInput {
   stepType?: StepType;
   responsibleUserId?: string | null;
   responsibleTeamId?: string | null;
+  _meta?: { skipToasts?: boolean };
 }
 
 interface ReorderStepsInput {
   updates: { id: string; position: number }[];
+  _meta?: { skipToasts?: boolean };
 }
+
+/** Contexto opcional passado nas chamadas; skipToasts suprime toasts (ex.: builder). */
+export type NexflowStepsMutationContext = { skipToasts?: boolean };
 
 export function useNexflowSteps(flowId?: string) {
   const queryClient = useQueryClient();
@@ -76,14 +82,14 @@ export function useNexflowSteps(flowId?: string) {
     refetchOnMount: true, // Garantir refetch quando componente montar
   });
 
-  type CreateStepContext = { previousSteps: NexflowStep[] };
+  type CreateStepContext = { previousSteps?: NexflowStep[] };
   const createStepMutation = useMutation<
     NexflowStep,
     Error,
     CreateStepInput,
     CreateStepContext
   >({
-    mutationFn: async ({ title, color, position, isCompletionStep, stepType }: CreateStepInput) => {
+    mutationFn: async ({ title, color, position, isCompletionStep, stepType }) => {
       if (!flowId) {
         throw new Error("Flow não informado.");
       }
@@ -114,13 +120,14 @@ export function useNexflowSteps(flowId?: string) {
 
       return mapStepRow(data);
     },
-    onMutate: async ({ title, color, position, isCompletionStep, stepType }) => {
+    onMutate: async (variables) => {
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
       if (!flowId) {
         return { previousSteps };
       }
 
+      const { title, color, position, isCompletionStep, stepType } = variables;
       const provisionalPosition =
         position ??
         ((previousSteps[previousSteps.length - 1]?.position ?? 0) + 1);
@@ -143,20 +150,30 @@ export function useNexflowSteps(flowId?: string) {
 
       return { previousSteps };
     },
-    onError: (err, _variables, context: CreateStepContext | undefined) => {
+    onError: (_err, variables, context: CreateStepContext | undefined) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
-      toast.error("Erro ao criar etapa. Tente novamente.");
+      if (!variables._meta?.skipToasts) {
+        toast.error("Erro ao criar etapa. Tente novamente.");
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey });
-      toast.success("Etapa criada com sucesso!");
+      if (!variables._meta?.skipToasts) {
+        toast.success("Etapa criada com sucesso!");
+      }
     },
   });
 
-  const updateStepMutation = useMutation({
-    mutationFn: async ({ id, title, color, position, isCompletionStep, stepType, responsibleUserId, responsibleTeamId }: UpdateStepInput) => {
+  type UpdateStepContext = { previousSteps?: NexflowStep[] };
+  const updateStepMutation = useMutation<
+    void,
+    Error,
+    UpdateStepInput,
+    UpdateStepContext
+  >({
+    mutationFn: async ({ id, title, color, position, isCompletionStep, stepType, responsibleUserId, responsibleTeamId }) => {
       const payload: Partial<StepRow> = {};
       if (typeof title !== "undefined") payload.title = title;
       if (typeof color !== "undefined") payload.color = color;
@@ -182,7 +199,8 @@ export function useNexflowSteps(flowId?: string) {
         throw error;
       }
     },
-    onMutate: async ({ id, title, color, position, isCompletionStep, stepType, responsibleUserId, responsibleTeamId }) => {
+    onMutate: async (variables) => {
+      const { id, title, color, position, isCompletionStep, stepType, responsibleUserId, responsibleTeamId } = variables;
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
 
@@ -219,33 +237,39 @@ export function useNexflowSteps(flowId?: string) {
 
       return { previousSteps };
     },
-    onError: (_error, _variables, context: { previousSteps: NexflowStep[] } | undefined) => {
+    onError: (_error, variables, context: UpdateStepContext | undefined) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
-      toast.error("Erro ao atualizar etapa. Tente novamente.");
+      if (!variables._meta?.skipToasts) {
+        toast.error("Erro ao atualizar etapa. Tente novamente.");
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey });
-      // Invalidar também o cache do useNexflowFlow para atualizar os steps no board
       if (flowId) {
         queryClient.invalidateQueries({ queryKey: ["nexflow", "flow", flowId] });
       } else {
-        // Se não tiver flowId, invalidar todas as queries de flow
         queryClient.invalidateQueries({ queryKey: ["nexflow", "flow"] });
       }
-      toast.success("Etapa atualizada com sucesso!");
+      if (!variables._meta?.skipToasts) {
+        toast.success("Etapa atualizada com sucesso!");
+      }
     },
   });
 
-  const deleteStepMutation = useMutation({
-    mutationFn: async (stepId: string) => {
+  interface DeleteStepInput {
+    stepId: string;
+    _meta?: { skipToasts?: boolean };
+  }
+  type DeleteStepContext = { previousSteps?: NexflowStep[] };
+  const deleteStepMutation = useMutation<void, Error, DeleteStepInput, DeleteStepContext>({
+    mutationFn: async ({ stepId }) => {
       const { data, error } = await supabase.functions.invoke('delete-nexflow-step', {
         body: { stepId },
       });
 
       if (error) {
-        // Se houver data mesmo com error, pode conter a mensagem de erro
         const errorMessage = data?.error || error.message || "Falha ao excluir etapa.";
         throw new Error(errorMessage);
       }
@@ -254,7 +278,7 @@ export function useNexflowSteps(flowId?: string) {
         throw new Error(data?.error || "Falha ao excluir etapa.");
       }
     },
-    onMutate: async (stepId: string) => {
+    onMutate: async ({ stepId }) => {
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
       queryClient.setQueryData(
@@ -263,34 +287,38 @@ export function useNexflowSteps(flowId?: string) {
       );
       return { previousSteps };
     },
-    onError: (error, _variables, context) => {
+    onError: (error, variables, context: DeleteStepContext | undefined) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
-      toast.error(error.message || "Erro ao remover etapa. Tente novamente.");
+      if (!variables._meta?.skipToasts) {
+        toast.error(error.message || "Erro ao remover etapa. Tente novamente.");
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey });
-      // Invalidar também o cache do useNexflowFlow para atualizar os steps no board
       if (flowId) {
         queryClient.invalidateQueries({ queryKey: ["nexflow", "flow", flowId] });
       } else {
-        // Se não tiver flowId, invalidar todas as queries de flow
         queryClient.invalidateQueries({ queryKey: ["nexflow", "flow"] });
       }
-      toast.success("Etapa removida com sucesso!");
+      if (!variables._meta?.skipToasts) {
+        toast.success("Etapa removida com sucesso!");
+      }
     },
   });
 
-  const reorderStepsMutation = useMutation({
-    mutationFn: async ({ updates }: ReorderStepsInput) => {
+  type ReorderStepsContext = { previousSteps?: NexflowStep[] };
+  const reorderStepsMutation = useMutation<void, Error, ReorderStepsInput, ReorderStepsContext>({
+    mutationFn: async ({ updates }) => {
       await Promise.all(
         updates.map(({ id, position }) =>
           nexflowClient().from("steps").update({ position }).eq("id", id)
         )
       );
     },
-    onMutate: async ({ updates }: ReorderStepsInput) => {
+    onMutate: async (variables) => {
+      const { updates } = variables;
       await queryClient.cancelQueries({ queryKey });
       const previousSteps = queryClient.getQueryData<NexflowStep[]>(queryKey) ?? [];
       const updatedSteps = previousSteps.map((step) => {
@@ -300,11 +328,13 @@ export function useNexflowSteps(flowId?: string) {
       queryClient.setQueryData(queryKey, updatedSteps);
       return { previousSteps };
     },
-    onError: (_error, _variables, context: { previousSteps: NexflowStep[] } | undefined) => {
+    onError: (_error, variables, context: ReorderStepsContext | undefined) => {
       if (context?.previousSteps) {
         queryClient.setQueryData(queryKey, context.previousSteps);
       }
-      toast.error("Erro ao reordenar etapas. Tente novamente.");
+      if (!variables._meta?.skipToasts) {
+        toast.error("Erro ao reordenar etapas. Tente novamente.");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -319,13 +349,17 @@ export function useNexflowSteps(flowId?: string) {
     isLoading: stepsQuery.isLoading,
     isError: stepsQuery.isError,
     refetch: stepsQuery.refetch,
-    createStep: createStepMutation.mutateAsync,
+    createStep: (input: Omit<CreateStepInput, "_meta">, options?: NexflowStepsMutationContext) =>
+      createStepMutation.mutateAsync({ ...input, _meta: options }),
     isCreating: createStepMutation.isPending,
-    updateStep: updateStepMutation.mutateAsync,
+    updateStep: (input: Omit<UpdateStepInput, "_meta">, options?: NexflowStepsMutationContext) =>
+      updateStepMutation.mutateAsync({ ...input, _meta: options }),
     isUpdating: updateStepMutation.isPending,
-    deleteStep: deleteStepMutation.mutateAsync,
+    deleteStep: (stepId: string, options?: NexflowStepsMutationContext) =>
+      deleteStepMutation.mutateAsync({ stepId, _meta: options }),
     isDeleting: deleteStepMutation.isPending,
-    reorderSteps: reorderStepsMutation.mutateAsync,
+    reorderSteps: (input: Omit<ReorderStepsInput, "_meta">, options?: NexflowStepsMutationContext) =>
+      reorderStepsMutation.mutateAsync({ ...input, _meta: options }),
     isReordering: reorderStepsMutation.isPending,
   };
 }
