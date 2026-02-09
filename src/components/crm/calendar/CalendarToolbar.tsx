@@ -69,34 +69,8 @@ export function CalendarToolbar({
           {messages.previous}
         </button>
 
-        {/* Botão para abrir seletor de mês/ano */}
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              className={cn(
-                "rbc-button"
-
-              )}
-              
-            >
-              <CalendarIcon className="h-4 w-4 shrink-0" />
-              
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" >
-            <Calendar
-              mode="single"
-              defaultMonth={date}
-              selected={date}
-              onSelect={(selectedDate) => {
-                if (selectedDate) handleMonthSelect(selectedDate);
-              }}
-              onMonthChange={handleMonthSelect}
-              locale={ptBR}
-            />
-          </PopoverContent>
-        </Popover>
+        
+           
 
         <button
           type="button"

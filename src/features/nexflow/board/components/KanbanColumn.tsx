@@ -2,7 +2,7 @@ import { Plus, CheckCircle2, Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { cn, hexToRgba } from "@/lib/utils";
+import { cn, hexToRgba, hexToRgb } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
 import { StepResponsibleSelector } from "@/components/crm/flows/StepResponsibleSelector";
 import { SortableCard } from "./SortableCard";
@@ -80,6 +80,15 @@ export function KanbanColumn({
     return total;
   }, [columnCards]);
 
+  // Só usa texto preto quando o fundo é extremamente claro (próximo ao branco)
+  const headerTextColor = useMemo(() => {
+    const rgb = hexToRgb(accentColor);
+    if (!rgb) return undefined;
+    const luminance =
+      (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    return luminance > 0.9 ? "#0f172a" : undefined;
+  }, [accentColor]);
+
   return (
     <div className="w-80 shrink-0 flex flex-col h-full min-h-0">
       <div
@@ -88,42 +97,60 @@ export function KanbanColumn({
           colorClasses.header
         )}
         style={{
-          ...(isCustomHeader ? { borderBottom: `1px solid ${accentColor}` } : {}),
+          ...(isCustomHeader
+            ? {
+                backgroundColor: accentColor,
+                borderBottom: `1px solid ${accentColor}`,
+              }
+            : {}),
+          ...(headerTextColor ? { color: headerTextColor } : {}),
           boxShadow: `0 10px 15px -3px ${hexToRgba(accentColor, 0.1)}, 0 4px 6px -2px ${hexToRgba(accentColor, 0.01)}`,
         }}
       >
-       
-        <div className="flex flex-row text-white h-0.5 w-full ">
-        <h2 className="text-xs font-bold text-white flex  items-center w-full">
-          <span className="truncate-ellipsis max-w-[180px] overflow-hidden whitespace-nowrap">
-            {step.title}
-            </span>
-            <span className="text-xs px-1.5 py-0.25 text-white/50 font-semibold ">
-            {serverTotal != null && serverTotal > totalCards
-              ? `${totalCards} de ${serverTotal} cards`
-              : `${totalCards}`}
-          </span>
-        </h2>
-        <div className="flex flex-row items-center gap-2 mr-2">{step.isCompletionStep && (
-            <CheckCircle2 className="h-1.5 w-1.5  opacity-90 " />
+        <div
+          className={cn(
+            "flex flex-row min-h-0 w-full",
+            !headerTextColor && "text-white"
           )}
-          <span> {flowId && (
-            <StepResponsibleSelector step={step} flowId={flowId} />
-          )}</span></div>
-        
-        
-          <div className="flex items-center gap-2 justify-between flex-row ">
-          {totalProductsValue > 0 && (
-          <div className="text-[10px] font-semibold text-white/90 truncate max-w-[80px] overflow-hidden">
-            {formatCurrency(totalProductsValue)}
+        >
+          <h2 className="text-xs font-bold flex items-center w-full">
+            <span className="truncate-ellipsis max-w-[180px] overflow-hidden whitespace-nowrap">
+              {step.title}
+            </span>
+            <span
+              className={cn(
+                "text-xs px-1.5 py-0.25 font-semibold",
+                headerTextColor ? "opacity-50" : "text-white/50"
+              )}
+            >
+              {serverTotal != null && serverTotal > totalCards
+                ? `${totalCards} de ${serverTotal} cards`
+                : `${totalCards}`}
+            </span>
+          </h2>
+          <div className="flex flex-row items-center gap-2 mr-2">
+            {step.isCompletionStep && (
+              <CheckCircle2 className="h-1.5 w-1.5 opacity-90" />
+            )}
+            <span>
+              {flowId && (
+                <StepResponsibleSelector step={step} flowId={flowId} />
+              )}
+            </span>
           </div>
-        )}
-           
+          <div className="flex items-center gap-2 justify-between flex-row">
+            {totalProductsValue > 0 && (
+              <div
+                className={cn(
+                  "text-[10px] font-semibold truncate max-w-[80px] overflow-hidden",
+                  headerTextColor ? "opacity-90" : "text-white/90"
+                )}
+              >
+                {formatCurrency(totalProductsValue)}
+              </div>
+            )}
           </div>
-          
         </div>
-        
-        
       </div>
       <div
         className={cn(
