@@ -22,6 +22,7 @@ export interface CalendarEventResourceProcess {
   status: string;
   assignedTo: string | null;
   agents: string[];
+  description?: string | null;
 }
 
 /** Recurso de atividade (card_activity) */
@@ -34,6 +35,7 @@ export interface CalendarEventResourceActivity {
   cardTitle: string;
   completed: boolean;
   assignedTo: string | null;
+  description?: string | null;
 }
 
 /** Union discriminada por eventType */
@@ -47,10 +49,11 @@ interface CardStepActionSelect {
   scheduled_date: string | null;
   status: string;
   step_action_id: string;
+  activity_created?: boolean;
   /** PostgREST pode retornar objeto ou array conforme a relação FK */
   step_actions:
-    | { id: string; title: string }
-    | { id: string; title: string }[]
+    | { id: string; title: string; description: string | null }
+    | { id: string; title: string; description: string | null }[]
     | null;
 }
 
@@ -130,9 +133,11 @@ export function useCalendarActivities(params: UseCalendarActivitiesParams = {}) 
               scheduled_date,
               status,
               step_action_id,
+              activity_created,
               step_actions (
                 id,
-                title
+                title,
+                description
               )
             )
           `
@@ -156,11 +161,16 @@ export function useCalendarActivities(params: UseCalendarActivitiesParams = {}) 
           const actions = card.card_step_actions ?? [];
           for (const csa of actions) {
             if (!csa.scheduled_date) continue;
+            // Processos com atividade já criada não aparecem no calendário (evita duplicidade)
+            if (csa.activity_created) continue;
 
             const sa = csa.step_actions;
             const stepTitle = Array.isArray(sa)
               ? sa[0]?.title ?? "Atividade"
               : sa?.title ?? "Atividade";
+            const stepDescription = Array.isArray(sa)
+              ? sa[0]?.description ?? null
+              : sa?.description ?? null;
             const displayTitle = `${stepTitle} - ${card.title}`;
 
             if (searchQ) {
@@ -189,6 +199,7 @@ export function useCalendarActivities(params: UseCalendarActivitiesParams = {}) 
                 status: csa.status,
                 assignedTo: card.assigned_to,
                 agents: Array.isArray(card.agents) ? card.agents : [],
+                description: stepDescription,
               },
             });
           }
@@ -267,6 +278,7 @@ export function useCalendarActivities(params: UseCalendarActivitiesParams = {}) 
               cardTitle: card.title,
               completed: ca.completed,
               assignedTo: ca.assignee_id,
+              description: ca.description,
             },
           });
         }
@@ -278,6 +290,7 @@ export function useCalendarActivities(params: UseCalendarActivitiesParams = {}) 
     },
     queryOptions: {
       staleTime: 1000 * 60 * 2,
+      refetchOnMount: "always", // Garante dados atualizados ao acessar a página
     },
   });
 

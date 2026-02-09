@@ -7,17 +7,49 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useClientStore } from '@/stores/clientStore';
 import type { Database } from '@/types/database';
 
 type FlowStage = Database['public']['Tables']['web_flow_stages']['Row'];
-type FlowTemplate = Database['public']['Tables']['web_flow_templates']['Row'];
-type FlowAutomation = Database['public']['Tables']['web_flow_automations']['Row'];
+
+/** Tipo do template de flow (tabela pode não estar no Database gerado) */
+interface FlowTemplate {
+  id: string;
+  name: string;
+  description?: string | null;
+  category?: string | null;
+  is_system_template?: boolean | null;
+  client_id?: string | null;
+  template_data: Record<string, unknown>;
+}
+
+/** Payload de stage aceito pelo form/construtor (sem client_id, flow_id - preenchidos pelo hook) */
+export interface FlowStageInput {
+  name: string;
+  description?: string;
+  color?: string;
+  order_index?: number;
+  stage_type?: string;
+  is_final_stage?: boolean;
+}
+
+/** Payload de automação aceito pelo form/construtor (campos simplificados) */
+export interface FlowAutomationInput {
+  name: string;
+  description?: string;
+  source_stage?: string;
+  source_stage_id?: string;
+  automation_type?: 'duplicate' | 'move' | 'notify';
+  trigger_condition?: 'stage_change' | 'time_based' | 'field_change';
+  target_flow_name?: string;
+  visible_to_roles?: string[];
+}
 
 interface CreateFlowData {
   name: string;
   description?: string;
-  stages: Omit<FlowStage, 'id' | 'flow_id' | 'created_at' | 'updated_at'>[];
-  automations?: Omit<FlowAutomation, 'id' | 'source_flow_id' | 'created_at' | 'updated_at'>[];
+  stages: FlowStageInput[];
+  automations?: FlowAutomationInput[];
 }
 
 interface FlowBuilderState {
@@ -29,6 +61,7 @@ interface FlowBuilderState {
 
 export function useFlowBuilder() {
   const { user } = useAuth();
+  const { currentClient } = useClientStore();
   const [state, setState] = useState<FlowBuilderState>({
     isLoading: false,
     error: null,
@@ -40,15 +73,16 @@ export function useFlowBuilder() {
   // CARREGAR TEMPLATES DISPONÍVEIS
   // =====================================================
   const loadTemplates = useCallback(async () => {
-    if (!user?.client_id) return;
+    if (!currentClient?.id) return;
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      // Tabela web_flow_templates não está no Database gerado; cast evita "Type instantiation excessively deep"
       const { data, error } = await supabase
-        .from('web_flow_templates')
+        .from('web_flow_templates' as 'web_flows')
         .select('*')
-        .or(`client_id.eq.${user.client_id},is_system_template.eq.true`)
+        .or(`client_id.eq.${currentClient!.id},is_system_template.eq.true`)
         .order('category', { ascending: true })
         .order('name', { ascending: true });
 
@@ -56,7 +90,7 @@ export function useFlowBuilder() {
 
       setState(prev => ({ 
         ...prev, 
-        templates: data || [],
+        templates: (data || []) as unknown as FlowTemplate[],
         isLoading: false 
       }));
     } catch (error) {
@@ -66,20 +100,20 @@ export function useFlowBuilder() {
         isLoading: false 
       }));
     }
-  }, [user?.client_id]);
+  }, [currentClient?.id]);
 
   // =====================================================
   // CRIAR FLOW A PARTIR DE TEMPLATE
   // =====================================================
   const createFlowFromTemplate = useCallback(async (templateId: string, customName?: string) => {
-    if (!user?.client_id) return null;
+    if (!currentClient?.id) return null;
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Buscar template
+      // Buscar template (cast evita "Type instantiation excessively deep" - tabela não existe no Database gerado)
       const { data: template, error: templateError } = await supabase
-        .from('web_flow_templates')
+        .from('web_flow_templates' as 'web_flows')
         .select('*')
         .eq('id', templateId)
         .single();
@@ -87,11 +121,15 @@ export function useFlowBuilder() {
       if (templateError) throw templateError;
       if (!template) throw new Error('Template não encontrado');
 
-      const templateData = template.template_data as any;
+      const templateData = (template as unknown as FlowTemplate).template_data as {
+        flow: { name: string; description?: string };
+        stages: unknown[];
+        automations?: unknown[];
+      };
       
       // Criar flow
       const flowData = {
-        client_id: user.client_id,
+        client_id: currentClient!.id,
         name: customName || templateData.flow.name,
         description: templateData.flow.description,
         created_by: user.id
@@ -105,15 +143,14 @@ export function useFlowBuilder() {
 
       if (flowError) throw flowError;
 
-      // Criar stages
-      const stagesData = templateData.stages.map((stage: any) => ({
+      // Criar stages (apenas campos do schema: client_id, flow_id, name, description, color, order_index)
+      const stagesData = templateData.stages.map((stage: { name: string; description?: string; color?: string; order_index?: number }, index: number) => ({
         flow_id: newFlow.id,
+        client_id: currentClient!.id,
         name: stage.name,
-        description: stage.description,
-        color: stage.color,
-        order_index: stage.order_index,
-        stage_type: stage.stage_type,
-        is_final_stage: stage.is_final_stage || false
+        description: stage.description ?? null,
+        color: stage.color ?? null,
+        order_index: stage.order_index ?? index + 1
       }));
 
       const { data: newStages, error: stagesError } = await supabase
@@ -123,19 +160,22 @@ export function useFlowBuilder() {
 
       if (stagesError) throw stagesError;
 
-      // Criar automações se existirem
-      if (templateData.automations && templateData.automations.length > 0) {
-        const automationsData = templateData.automations.map((automation: any) => {
-          const sourceStage = newStages?.find(s => s.name === automation.source_stage);
+      // Criar automações se existirem (mapear template -> schema do banco: action_type, trigger_event, client_id, created_by, target_flow_id, target_stage_id)
+      if (templateData.automations && templateData.automations.length > 0 && newStages && newStages.length > 0) {
+        const automationsData = templateData.automations.map((automation: { source_stage?: string; automation_type?: string; trigger_condition?: string; name?: string; description?: string; visible_to_roles?: string[] }) => {
+          const sourceStage = newStages!.find((s) => s.name === automation.source_stage) ?? newStages![0];
           return {
             source_flow_id: newFlow.id,
-            source_stage_id: sourceStage?.id,
-            automation_type: automation.automation_type,
-            trigger_condition: automation.trigger_condition,
-            target_flow_name: automation.target_flow_name,
-            visible_to_roles: automation.visible_to_roles,
-            name: automation.name,
-            description: automation.description
+            source_stage_id: sourceStage.id,
+            target_flow_id: newFlow.id,
+            target_stage_id: sourceStage.id,
+            client_id: currentClient!.id,
+            created_by: user.id,
+            name: automation.name ?? '',
+            description: automation.description ?? null,
+            action_type: automation.automation_type ?? 'duplicate',
+            trigger_event: automation.trigger_condition ?? 'stage_change',
+            visible_to_roles: automation.visible_to_roles ?? []
           };
         });
 
@@ -166,13 +206,13 @@ export function useFlowBuilder() {
       }));
       return null;
     }
-  }, [user]);
+  }, [user, currentClient]);
 
   // =====================================================
   // CRIAR FLOW PERSONALIZADO DO ZERO
   // =====================================================
   const createCustomFlow = useCallback(async (flowData: CreateFlowData) => {
-    if (!user?.client_id) return null;
+    if (!currentClient?.id) return null;
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -181,7 +221,7 @@ export function useFlowBuilder() {
       const { data: newFlow, error: flowError } = await supabase
         .from('web_flows')
         .insert({
-          client_id: user.client_id,
+          client_id: currentClient!.id,
           name: flowData.name,
           description: flowData.description,
           created_by: user.id
@@ -191,10 +231,14 @@ export function useFlowBuilder() {
 
       if (flowError) throw flowError;
 
-      // Criar stages
-      const stagesData = flowData.stages.map(stage => ({
+      // Criar stages (adicionar client_id e flow_id - preenchidos pelo hook)
+      const stagesData = flowData.stages.map((stage, index) => ({
         flow_id: newFlow.id,
-        ...stage
+        client_id: currentClient!.id,
+        name: stage.name,
+        description: stage.description ?? null,
+        color: stage.color ?? null,
+        order_index: stage.order_index ?? index + 1
       }));
 
       const { data: newStages, error: stagesError } = await supabase
@@ -204,12 +248,26 @@ export function useFlowBuilder() {
 
       if (stagesError) throw stagesError;
 
-      // Criar automações se existirem
-      if (flowData.automations && flowData.automations.length > 0) {
-        const automationsData = flowData.automations.map(automation => ({
-          source_flow_id: newFlow.id,
-          ...automation
-        }));
+      // Criar automações se existirem (mapear FlowAutomationInput -> schema do banco)
+      if (flowData.automations && flowData.automations.length > 0 && newStages && newStages.length > 0) {
+        const automationsData = flowData.automations.map((automation) => {
+          const sourceStage = newStages!.find((s) => s.name === automation.source_stage) ?? newStages![0];
+          // target_flow_name no form é opcional; sem target usa o mesmo flow/stage
+          const targetStage = sourceStage;
+          return {
+            source_flow_id: newFlow.id,
+            source_stage_id: sourceStage.id,
+            target_flow_id: newFlow.id,
+            target_stage_id: targetStage.id,
+            client_id: currentClient!.id,
+            created_by: user!.id,
+            name: automation.name,
+            description: automation.description ?? null,
+            action_type: automation.automation_type ?? 'duplicate',
+            trigger_event: automation.trigger_condition ?? 'stage_change',
+            visible_to_roles: automation.visible_to_roles ?? []
+          };
+        });
 
         const { error: automationsError } = await supabase
           .from('web_flow_automations')
@@ -238,7 +296,7 @@ export function useFlowBuilder() {
       }));
       return null;
     }
-  }, [user]);
+  }, [user, currentClient]);
 
   // =====================================================
   // ADICIONAR STAGE A UM FLOW EXISTENTE
@@ -288,16 +346,29 @@ export function useFlowBuilder() {
       visible_to_roles?: string[];
     }
   ) => {
+    if (!currentClient?.id || !user?.id) return null;
+
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      // Mapear form -> schema do banco (action_type, trigger_event, client_id, created_by, target_flow_id, target_stage_id)
+      const insertData = {
+        source_flow_id: sourceFlowId,
+        source_stage_id: sourceStageId,
+        target_flow_id: sourceFlowId,
+        target_stage_id: sourceStageId,
+        client_id: currentClient.id,
+        created_by: user.id,
+        name: automationConfig.name,
+        description: automationConfig.description ?? null,
+        action_type: automationConfig.automation_type,
+        trigger_event: automationConfig.trigger_condition,
+        visible_to_roles: automationConfig.visible_to_roles ?? []
+      };
+
       const { data: automation, error } = await supabase
         .from('web_flow_automations')
-        .insert({
-          source_flow_id: sourceFlowId,
-          source_stage_id: sourceStageId,
-          ...automationConfig
-        })
+        .insert(insertData)
         .select()
         .single();
 
@@ -313,7 +384,7 @@ export function useFlowBuilder() {
       }));
       return null;
     }
-  }, []);
+  }, [currentClient?.id, user?.id]);
 
   // =====================================================
   // SALVAR FLOW COMO TEMPLATE
@@ -324,7 +395,7 @@ export function useFlowBuilder() {
     templateDescription: string,
     category: string = 'custom'
   ) => {
-    if (!user?.client_id) return null;
+    if (!currentClient?.id) return null;
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -352,16 +423,18 @@ export function useFlowBuilder() {
         automations: flow.automations
       };
 
+      // Insert em web_flow_templates (tabela não está no Database gerado; cast bypassa validação)
+      const insertPayload = {
+        client_id: currentClient!.id,
+        name: templateName,
+        description: templateDescription,
+        category,
+        is_system_template: false,
+        template_data: templateData
+      };
       const { data: template, error: templateError } = await supabase
-        .from('web_flow_templates')
-        .insert({
-          client_id: user.client_id,
-          name: templateName,
-          description: templateDescription,
-          category,
-          is_system_template: false,
-          template_data: templateData
-        })
+        .from('web_flow_templates' as 'web_flows')
+        .insert(insertPayload as never)
         .select()
         .single();
 
@@ -377,7 +450,7 @@ export function useFlowBuilder() {
       }));
       return null;
     }
-  }, [user?.client_id]);
+  }, [currentClient?.id]);
 
   return {
     ...state,

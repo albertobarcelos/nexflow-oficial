@@ -1,7 +1,17 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Phone, Mail, MessageSquare, Calendar, CheckSquare, List, Settings } from "lucide-react";
+import {
+  CheckCircle2,
+  Phone,
+  Mail,
+  MessageSquare,
+  Calendar,
+  CheckSquare,
+  List,
+  Settings,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NexflowCard } from "@/types/nexflow";
 import { CardStepAction } from "@/types/nexflow";
@@ -192,6 +202,11 @@ export function ProcessTimeline({
                   {dayProcesses.map((process) => {
                     const isSelected = process.id === selectedProcessId;
                     const isCompleted = process.status === "completed";
+                    const notes =
+                      (process.executionData?.process_notes as { title?: string }[] | undefined) ?? [];
+                    const isDiscarded =
+                      process.status === "skipped" &&
+                      notes.some((n) => n.title === "Descartar");
                     const Icon = getActionIcon(process.stepAction?.action_type ?? null);
                     const scheduledDate = getScheduledDate(process);
                     const timeStr = format(scheduledDate, "HH:mm", { locale: ptBR });
@@ -208,9 +223,22 @@ export function ProcessTimeline({
                             : "hover:bg-neutral-50 :bg-neutral-800/50 border-transparent"
                         )}
                       >
-                        <div className={cn("mt-0.5 mr-3", isCompleted ? "text-green-500 " : isSelected ? "text-indigo-600 " : "text-neutral-400")}>
+                        <div
+                          className={cn(
+                            "mt-0.5 mr-3",
+                            isCompleted
+                              ? "text-green-500 "
+                              : isDiscarded
+                                ? "text-red-500 "
+                                : isSelected
+                                  ? "text-indigo-600 "
+                                  : "text-neutral-400"
+                          )}
+                        >
                           {isCompleted ? (
                             <CheckCircle2 className="h-4 w-4" />
+                          ) : isDiscarded ? (
+                            <X className="h-4 w-4" />
                           ) : (
                             <Icon className="h-4 w-4" />
                           )}
@@ -219,11 +247,11 @@ export function ProcessTimeline({
                           <p
                             className={cn(
                               "text-sm leading-tight",
-                              isCompleted
+                              isCompleted || isDiscarded
                                 ? "text-neutral-500  line-through"
                                 : isSelected
-                                ? "font-medium text-neutral-900 "
-                                : "text-neutral-700 "
+                                  ? "font-medium text-neutral-900 "
+                                  : "text-neutral-700 "
                             )}
                           >
                             {process.stepAction?.title || "Processo sem título"}
@@ -235,6 +263,10 @@ export function ProcessTimeline({
                         {isCompleted ? (
                           <div className="text-indigo-600  ml-2">
                             <CheckCircle2 className="h-5 w-5" />
+                          </div>
+                        ) : isDiscarded ? (
+                          <div className="text-red-500  ml-2">
+                            <X className="h-5 w-5" />
                           </div>
                         ) : (
                           <input

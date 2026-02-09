@@ -303,7 +303,13 @@ export function StartFormModal({ open, step, onOpenChange, onSubmit }: StartForm
                   : undefined;
 
               return (
-                <Popover>
+                <Popover
+                  onOpenChange={(open) => {
+                    if (open && !dateValue) {
+                      controllerField.onChange(new Date().toISOString());
+                    }
+                  }}
+                >
                   <PopoverTrigger asChild>
                     <Button
                       type="button"

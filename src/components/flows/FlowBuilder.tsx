@@ -7,6 +7,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Settings, Trash2, Copy, ArrowRight, Save } from 'lucide-react';
 import { useFlowBuilder } from '@/hooks/useFlowBuilder';
+import { useAuth } from '@/hooks/useAuth';
+import { useClientStore } from '@/stores/clientStore';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +63,8 @@ const USER_ROLES = [
 ];
 
 export function FlowBuilder({ onFlowCreated, initialTemplate, flowId }: FlowBuilderProps) {
+  const { user } = useAuth();
+  const { currentClient } = useClientStore();
   const {
     templates,
     isLoading,
@@ -125,11 +129,38 @@ export function FlowBuilder({ onFlowCreated, initialTemplate, flowId }: FlowBuil
 
       if (automationsError) throw automationsError;
 
+      // Mapear stages do banco para formato do form (stage_type, is_final_stage podem não existir no DB)
+      const stagesList = (stagesData || []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description ?? '',
+        color: row.color ?? STAGE_COLORS[0],
+        order_index: row.order_index,
+        stage_type: ((row as { stage_type?: string }).stage_type as FlowStage['stage_type']) ?? 'active',
+        is_final_stage: (row as { is_final_stage?: boolean }).is_final_stage ?? false
+      })) as FlowStage[];
+
+      // Mapear automações do banco para formato do form (source_stage, automation_type, trigger_condition)
+      const mappedAutomations: FlowAutomation[] = (automationsData || []).map((row) => {
+        const sourceStageName = stagesList.find((s) => s.id === row.source_stage_id)?.name ?? '';
+        const automationType = (row.action_type as 'duplicate' | 'move' | 'notify') || 'duplicate';
+        const triggerCond = (row.trigger_event as 'stage_change' | 'time_based' | 'field_change') || 'stage_change';
+        return {
+          name: row.name,
+          description: row.description ?? '',
+          source_stage: sourceStageName,
+          automation_type: automationType,
+          trigger_condition: triggerCond,
+          target_flow_name: undefined,
+          visible_to_roles: row.visible_to_roles ?? []
+        };
+      });
+
       // Atualizar estados com dados carregados
       setFlowName(flowData.name || '');
       setFlowDescription(flowData.description || '');
-      setStages(stagesData || []);
-      setAutomations(automationsData || []);
+      setStages(stagesList);
+      setAutomations(mappedAutomations);
     } catch (error) {
       console.error('Erro ao carregar flow:', error);
       alert('Erro ao carregar dados do flow');
@@ -278,18 +309,25 @@ export function FlowBuilder({ onFlowCreated, initialTemplate, flowId }: FlowBuil
 
       if (deleteStagesError) throw deleteStagesError;
 
-      // Inserir stages atualizados
-      if (stages.length > 0) {
-        const { error: insertStagesError } = await supabase
+      // Inserir stages atualizados (apenas campos do schema: client_id, flow_id, name, description, color, order_index)
+      let newStages: { id: string; name: string }[] = [];
+      if (stages.length > 0 && currentClient?.id) {
+        const stagesData = stages.map(({ id, ...stage }) => ({
+          flow_id: flowId,
+          client_id: currentClient.id,
+          name: stage.name,
+          description: stage.description ?? null,
+          color: stage.color ?? null,
+          order_index: stage.order_index
+        }));
+
+        const { data: insertedStages, error: insertStagesError } = await supabase
           .from('web_flow_stages')
-          .insert(
-            stages.map(({ id, ...stage }) => ({
-              ...stage,
-              flow_id: flowId
-            }))
-          );
+          .insert(stagesData)
+          .select('id, name');
 
         if (insertStagesError) throw insertStagesError;
+        newStages = insertedStages ?? [];
       }
 
       // Remover automações existentes
@@ -300,16 +338,28 @@ export function FlowBuilder({ onFlowCreated, initialTemplate, flowId }: FlowBuil
 
       if (deleteAutomationsError) throw deleteAutomationsError;
 
-      // Inserir automações atualizadas
-      if (automations.length > 0) {
+      // Inserir automações atualizadas (mapear form -> schema do banco: action_type, trigger_event, source_stage_id, etc.)
+      if (automations.length > 0 && currentClient?.id && user?.id && newStages.length > 0) {
+        const automationsData = automations.map((automation) => {
+          const sourceStage = newStages.find((s) => s.name === automation.source_stage) ?? newStages[0];
+          return {
+            source_flow_id: flowId,
+            source_stage_id: sourceStage.id,
+            target_flow_id: flowId,
+            target_stage_id: sourceStage.id,
+            client_id: currentClient.id,
+            created_by: user.id,
+            name: automation.name,
+            description: automation.description ?? null,
+            action_type: automation.automation_type ?? 'duplicate',
+            trigger_event: automation.trigger_condition ?? 'stage_change',
+            visible_to_roles: automation.visible_to_roles ?? []
+          };
+        });
+
         const { error: insertAutomationsError } = await supabase
           .from('web_flow_automations')
-          .insert(
-            automations.map(({ id, ...automation }) => ({
-              ...automation,
-              source_flow_id: flowId
-            }))
-          );
+          .insert(automationsData);
 
         if (insertAutomationsError) throw insertAutomationsError;
       }

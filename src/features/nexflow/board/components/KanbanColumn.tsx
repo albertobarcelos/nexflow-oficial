@@ -93,7 +93,7 @@ export function KanbanColumn({
     <div className="w-80 shrink-0 flex flex-col h-full min-h-0">
       <div
         className={cn(
-          "rounded-t-2xl p-4 shadow-lg z-10 relative",
+          "rounded-t-2xl p-2 shadow-lg z-10 relative",
           colorClasses.header
         )}
         style={{

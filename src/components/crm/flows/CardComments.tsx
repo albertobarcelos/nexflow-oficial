@@ -626,10 +626,10 @@ export function CardComments({ cardId }: CardCommentsProps) {
                       </span>
                     </div>
 
-                    <div className="flex items-start gap-2 w-fit">
+                    <div className="flex items-start gap-2 w-fit max-w-full">
                       <div
                         className={cn(
-                          'rounded-lg px-2.5 py-1.5 max-w-[75%] shadow-sm w-full',
+                          'rounded-lg px-2.5 py-1.5 max-w-[75%] shadow-sm w-fit min-w-0',
                           isOwnMessage
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-100  text-gray-900 '

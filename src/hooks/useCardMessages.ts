@@ -245,8 +245,9 @@ export function useSendMessage() {
         mentions: Array.isArray((insertedData as any).mentions) ? (insertedData as any).mentions : [],
       } as CardMessage;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['card-messages', variables.card_id] });
+    onSuccess: () => {
+      // Invalida todas as queries de card-messages para refetch imediato após enviar
+      queryClient.invalidateQueries({ queryKey: ['card-messages'] });
     },
   });
 }
@@ -288,8 +289,9 @@ export function useDeleteMessage() {
 
       if (error) throw error;
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['card-messages', variables.cardId] });
+    onSuccess: () => {
+      // Invalida todas as queries de card-messages para refetch imediato após deletar
+      queryClient.invalidateQueries({ queryKey: ['card-messages'] });
     },
   });
 }
