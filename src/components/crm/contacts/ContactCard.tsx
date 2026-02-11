@@ -1,5 +1,16 @@
 import { motion } from "framer-motion";
-import { Phone, Building2, User, Calendar, Plus, Tag } from "lucide-react";
+import {
+  Phone,
+  Building2,
+  User,
+  Calendar,
+  Plus,
+  Tag,
+  MoreVertical,
+  Pencil,
+  UserX,
+  UserMinus,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UnifiedContact } from "@/hooks/useContactsWithIndications";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -7,11 +18,19 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ContactCardProps {
   contact: UnifiedContact;
   onClick?: () => void;
   onCreateCard?: () => void;
+  onEdit?: (contact: UnifiedContact) => void;
+  onDeactivate?: (contact: UnifiedContact) => void;
   index?: number;
 }
 
@@ -30,15 +49,37 @@ const typeColors: Record<"cliente" | "parceiro" | "outro", string> = {
 /**
  * Card flutuante para exibir um contato
  */
-export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: ContactCardProps) {
+export function ContactCard({
+  contact,
+  onClick,
+  onCreateCard,
+  onEdit,
+  onDeactivate,
+  index = 0,
+}: ContactCardProps) {
   const formattedDate = contact.created_at
-    ? format(new Date(contact.created_at), "dd 'de' MMM 'de' yyyy", { locale: ptBR })
+    ? format(new Date(contact.created_at), "dd 'de' MMM 'de' yyyy", {
+        locale: ptBR,
+      })
     : "";
 
   const handleCreateCard = (e: React.MouseEvent) => {
     e.stopPropagation();
     onCreateCard?.();
   };
+
+  const handleEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onEdit?.(contact);
+  };
+
+  const handleDeactivate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDeactivate?.(contact);
+  };
+
+  const showActionsMenu = !contact.isIndication && (onEdit || onDeactivate);
+  const isInactive = !contact.isIndication && contact.is_active === false;
 
   return (
     <motion.div
@@ -54,12 +95,22 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
         transition: { duration: 0.2 },
       }}
       className={cn(
-        "group relative cursor-pointer rounded-xl border border-neutral-200 ",
-        "bg-white  p-5 shadow-sm transition-all",
-        "hover:shadow-md hover:border-neutral-300 :border-neutral-600"
+        "group relative cursor-pointer rounded-xl border p-5 shadow-sm transition-all",
+        "hover:shadow-md",
+        isInactive
+          ? "border-neutral-200 bg-neutral-50/80 hover:border-neutral-300 opacity-90"
+          : "border-neutral-200 bg-white hover:border-neutral-300"
       )}
       onClick={onClick}
     >
+      {/* Faixa lateral indicando desativado */}
+      {isInactive && (
+        <div
+          className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-neutral-300"
+          aria-hidden
+        />
+      )}
+
       {/* Header com avatar e nome */}
       <div className="flex items-start gap-3 mb-4">
         <UserAvatar
@@ -69,10 +120,18 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
             name: contact.client_name,
           }}
           size="md"
+          className={isInactive ? "opacity-75" : undefined}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-neutral-900  truncate">
+            <h3
+              className={cn(
+                "font-semibold truncate",
+                isInactive
+                  ? "text-neutral-500 line-through decoration-neutral-400"
+                  : "text-neutral-900"
+              )}
+            >
               {contact.client_name}
             </h3>
             {/* Badge de Indicação */}
@@ -80,6 +139,16 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200   text-xs whitespace-nowrap">
                 <Tag className="h-3 w-3 mr-1" />
                 Indicação
+              </Badge>
+            )}
+            {/* Badge Desativado */}
+            {isInactive && (
+              <Badge
+                variant="secondary"
+                className="bg-neutral-200 text-neutral-600 border-neutral-300 text-xs whitespace-nowrap shrink-0"
+              >
+                <UserMinus className="h-3 w-3 mr-1" />
+                Desativado
               </Badge>
             )}
           </div>
@@ -182,17 +251,47 @@ export function ContactCard({ contact, onClick, onCreateCard, index = 0 }: Conta
         )}
       </div>
 
-      {/* Botão de ação flutuante */}
-      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCreateCard}
-          className="h-8 px-3 text-xs"
-        >
-          <Plus className="h-3.5 w-3.5 mr-1.5" />
-          Criar Card
-        </Button>
+      {/* Ações: menu Editar/Desativar sempre visível; Criar Card no hover */}
+      <div className="absolute top-3 right-3 flex items-center gap-1">
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCreateCard}
+            className="h-8 px-3 text-xs"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Criar Card
+          </Button>
+        </div>
+        {showActionsMenu && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 opacity-70 hover:opacity-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              {onEdit && (
+                <DropdownMenuItem onClick={handleEdit}>
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+              )}
+              {onDeactivate && (
+                <DropdownMenuItem onClick={handleDeactivate}>
+                  <UserX className="h-4 w-4 mr-2" />
+                  Desativar
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Efeito de hover */}

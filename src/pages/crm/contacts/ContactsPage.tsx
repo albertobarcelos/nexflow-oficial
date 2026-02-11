@@ -12,9 +12,20 @@ import { AutoCreateConfigDialog } from "@/components/crm/contacts/AutoCreateConf
 import { ContactsPageHeader } from "@/components/crm/contacts/ContactsPageHeader";
 import { CreateCardFromContactDialog } from "@/components/crm/contacts/CreateCardFromContactDialog";
 import { ContactDetailsPanel } from "@/components/crm/contacts/ContactDetailsPanel";
-import { Badge } from "@/components/ui/badge";
+import { EditContactDialog } from "@/components/crm/contacts/EditContactDialog";
+import { useDeactivateContact } from "@/hooks/useDeactivateContact";
+import type { UnifiedContact } from "@/hooks/useContactsWithIndications";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
 
 export function ContactsPage() {
   const {
@@ -30,10 +41,20 @@ export function ContactsPage() {
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState(false);
   const [isDetailsPanelOpen, setIsDetailsPanelOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<string | null>(null);
-  const [contactForCard, setContactForCard] = useState<any>(null);
+  const [contactForCard, setContactForCard] = useState<UnifiedContact | null>(
+    null
+  );
+  const [contactToEdit, setContactToEdit] = useState<UnifiedContact | null>(
+    null
+  );
+  const [contactToDeactivate, setContactToDeactivate] =
+    useState<UnifiedContact | null>(null);
   const [filterTypes, setFilterTypes] = useState<
     ("cliente" | "parceiro" | "indicações")[]
   >([]);
+  const [activeStatusFilter, setActiveStatusFilter] = useState<
+    "ativos" | "desativados" | "todos"
+  >("ativos");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Log de auditoria ao acessar a lista de contatos (uma vez por montagem quando hasAccess)
@@ -54,6 +75,33 @@ export function ContactsPage() {
       filterTypes: filterTypes.length > 0 ? filterTypes : undefined,
     });
 
+  const deactivateContact = useDeactivateContact();
+
+  const handleEditContact = (contact: UnifiedContact) => {
+    if (contact.isIndication) return;
+    setContactToEdit(contact);
+  };
+
+  const handleDeactivateContact = (contact: UnifiedContact) => {
+    if (contact.isIndication) return;
+    setContactToDeactivate(contact);
+  };
+
+  const handleConfirmDeactivate = async () => {
+    if (!contactToDeactivate) return;
+    const id = contactToDeactivate.id;
+    try {
+      await deactivateContact.mutateAsync({ contactId: id });
+      if (selectedContact === id) {
+        setIsDetailsPanelOpen(false);
+        setSelectedContact(null);
+      }
+      setContactToDeactivate(null);
+    } catch {
+      // Erro já tratado no hook
+    }
+  };
+
   // Filtro de busca
   const filteredBySearch = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -63,35 +111,36 @@ export function ContactsPage() {
     const query = searchQuery.toLowerCase().trim();
 
     return contacts.filter((contact) => {
-      // Buscar em client_name
       if (contact.client_name?.toLowerCase().includes(query)) return true;
-
-      // Buscar em main_contact
       if (contact.main_contact?.toLowerCase().includes(query)) return true;
-
-      // Buscar em phone_numbers
       if (
         contact.phone_numbers?.some((phone) =>
           phone.toLowerCase().includes(query),
         )
       )
         return true;
-
-      // Buscar em company_names
       if (
         contact.company_names?.some((company) =>
           company.toLowerCase().includes(query),
         )
       )
         return true;
-
-      // Buscar em tax_ids (CNPJ/CPF)
       if (contact.tax_ids?.some((taxId) => taxId.toLowerCase().includes(query)))
         return true;
-
       return false;
     });
   }, [contacts, searchQuery]);
+
+  // Filtro por status ativo/desativado (indicações sempre tratadas como ativas)
+  const filteredByStatus = useMemo(() => {
+    if (activeStatusFilter === "todos") return filteredBySearch;
+    return filteredBySearch.filter((contact) => {
+      if (contact.isIndication) return activeStatusFilter === "ativos";
+      const isInactive = contact.is_active === false;
+      if (activeStatusFilter === "ativos") return !isInactive;
+      return isInactive;
+    });
+  }, [filteredBySearch, activeStatusFilter]);
 
   if (isGuardLoading) {
     return (
@@ -137,6 +186,26 @@ export function ContactsPage() {
         />
       </div>
 
+      {/* Filtro por status (Ativos / Desativados / Todos) */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-sm text-muted-foreground">Status:</span>
+        {(["ativos", "desativados", "todos"] as const).map((status) => (
+          <Button
+            key={status}
+            variant={activeStatusFilter === status ? "default" : "outline"}
+            size="sm"
+            onClick={() => setActiveStatusFilter(status)}
+            className="h-8"
+          >
+            {status === "ativos"
+              ? "Ativos"
+              : status === "desativados"
+                ? "Desativados"
+                : "Todos"}
+          </Button>
+        ))}
+      </div>
+
       {/* Filtros por tipo */}
       <div className="flex items-center gap-2 flex-wrap">
         <Filter className="h-4 w-4 text-muted-foreground" />
@@ -175,7 +244,8 @@ export function ContactsPage() {
         )}
         {(contactsCount > 0 || indicationsCount > 0) && (
           <span className="text-xs text-muted-foreground ml-auto">
-            {contactsCount} contato(s) • {indicationsCount} indicação(ões)
+            {filteredByStatus.length} de {contactsCount} contato(s) •{" "}
+            {indicationsCount} indicação(ões)
           </span>
         )}
       </div>
@@ -193,11 +263,13 @@ export function ContactsPage() {
             </p>
           </div>
         </div>
-      ) : filteredBySearch.length === 0 ? (
+      ) : filteredByStatus.length === 0 ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center space-y-4">
             <p className="text-muted-foreground">
-              {filterTypes.length > 0 || searchQuery.trim()
+              {filterTypes.length > 0 ||
+              searchQuery.trim() ||
+              activeStatusFilter !== "todos"
                 ? "Nenhum contato encontrado com os filtros selecionados."
                 : "Nenhum contato encontrado."}
             </p>
@@ -211,7 +283,7 @@ export function ContactsPage() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           <AnimatePresence>
-            {filteredBySearch.map((contact, index) => (
+            {filteredByStatus.map((contact, index) => (
               <ContactCard
                 key={contact.id}
                 contact={contact}
@@ -227,6 +299,8 @@ export function ContactsPage() {
                   setContactForCard(contact);
                   setIsCreateCardDialogOpen(true);
                 }}
+                onEdit={handleEditContact}
+                onDeactivate={handleDeactivateContact}
               />
             ))}
           </AnimatePresence>
@@ -250,10 +324,62 @@ export function ContactsPage() {
         contact={contactForCard}
       />
 
+      <EditContactDialog
+        open={!!contactToEdit}
+        onOpenChange={(open) => !open && setContactToEdit(null)}
+        contact={contactToEdit}
+      />
+
+      <AlertDialog
+        open={!!contactToDeactivate}
+        onOpenChange={(open) => !open && setContactToDeactivate(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar contato?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Desativar este contato? Ele não aparecerá na listagem de contatos
+              ativos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDeactivate();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deactivateContact.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Desativando...
+                </>
+              ) : (
+                "Desativar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <ContactDetailsPanel
         open={isDetailsPanelOpen}
         onOpenChange={setIsDetailsPanelOpen}
         contactId={selectedContact}
+        onOpenEdit={() => {
+          const c = selectedContact
+            ? contacts.find((c) => c.id === selectedContact) ?? null
+            : null;
+          setContactToEdit(c);
+        }}
+        onDeactivate={() => {
+          const c = selectedContact
+            ? contacts.find((c) => c.id === selectedContact) ?? null
+            : null;
+          setContactToDeactivate(c);
+        }}
       />
     </div>
   );

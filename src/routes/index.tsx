@@ -40,6 +40,7 @@ import { UsersPage } from "@/pages/crm/configurations/UsersPage";
 import { TeamsPage } from "@/pages/crm/configurations/TeamsPage";
 import { UnitsPage } from "@/pages/crm/configurations/UnitsPage";
 import { ItemsPage } from "@/pages/crm/configurations/ItemsPage";
+import { ActivityTypesPage } from "../pages/crm/configurations/ActivityTypesPage";
 import { CompanyRelationsPage } from "@/pages/crm/companies/CompanyRelationsPage";
 
 // Páginas temporárias
@@ -191,6 +192,10 @@ export const router = createBrowserRouter(
           {
             path: "items",
             element: <ItemsPage />,
+          },
+          {
+            path: "activity-types",
+            element: <ActivityTypesPage />,
           },
         ],
       },

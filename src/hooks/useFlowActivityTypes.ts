@@ -5,6 +5,7 @@ import { getCurrentClientId } from "@/lib/supabase";
 import { useClientStore } from "@/stores/clientStore";
 import type {
   FlowActivityType,
+  FlowActivityTypeWithFlow,
   CreateFlowActivityTypeInput,
   UpdateFlowActivityTypeInput,
 } from "@/types/activities";
@@ -45,6 +46,48 @@ export function useFlowActivityTypes(flowId: string | null) {
   });
 }
 
+/**
+ * Lista todos os tipos de atividade do cliente (todos os flows).
+ * Usado no painel de configurações "Tipos de Atividade".
+ */
+export function useFlowActivityTypesByClient(clientId: string | null) {
+  return useQuery({
+    queryKey: ["flow-activity-types-by-client", clientId],
+    queryFn: async (): Promise<FlowActivityTypeWithFlow[]> => {
+      if (!clientId) return [];
+
+      const { data, error } = await (supabase as any)
+        .from("flow_activity_types")
+        .select("*, flow:flows(id, name)")
+        .eq("client_id", clientId)
+        .order("name", { ascending: true });
+
+      if (error) {
+        if (
+          error.code === "PGRST116" ||
+          error.message?.includes("404") ||
+          error.message?.includes("relation") ||
+          error.message?.includes("does not exist")
+        ) {
+          console.warn(
+            "[useFlowActivityTypesByClient] Tabela flow_activity_types não encontrada."
+          );
+          return [];
+        }
+        throw error;
+      }
+      // Normaliza relação: Supabase pode retornar "flow" (alias) ou "flows" (nome da tabela)
+      const rows = (data || []) as (FlowActivityTypeWithFlow & { flows?: { id: string; name: string } })[];
+      return rows.map((row) => {
+        const { flows, ...rest } = row;
+        return { ...rest, flow: row.flow ?? flows ?? null } as FlowActivityTypeWithFlow;
+      });
+    },
+    enabled: !!clientId,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+}
+
 export function useCreateFlowActivityType() {
   const queryClient = useQueryClient();
   const clientId = useClientStore((s) => s.currentClient?.id ?? null);
@@ -73,6 +116,9 @@ export function useCreateFlowActivityType() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["flow-activity-types", clientId, data.flow_id],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["flow-activity-types-by-client", clientId],
       });
       toast.success("Tipo de atividade criado com sucesso");
     },
@@ -117,6 +163,9 @@ export function useUpdateFlowActivityType() {
       queryClient.invalidateQueries({
         queryKey: ["flow-activity-types", clientId, data.flow_id],
       });
+      queryClient.invalidateQueries({
+        queryKey: ["flow-activity-types-by-client", clientId],
+      });
       toast.success("Tipo de atividade atualizado com sucesso");
     },
     onError: (error: Error) => {
@@ -145,6 +194,9 @@ export function useDeleteFlowActivityType() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: ["flow-activity-types", clientId, variables.flowId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["flow-activity-types-by-client", clientId],
       });
       toast.success("Tipo de atividade deletado com sucesso");
     },

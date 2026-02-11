@@ -1,6 +1,6 @@
 import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Users, UsersRound, Building2, Package } from "lucide-react";
+import { Users, UsersRound, Building2, Package, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -27,6 +27,12 @@ const menuItems = [
     label: "Itens Orçamento",
     icon: Package,
     path: "/crm/configurations/items",
+  },
+  {
+    id: "activity-types",
+    label: "Tipos de Atividade",
+    icon: ListTodo,
+    path: "/crm/configurations/activity-types",
   },
 ];
 

@@ -14,6 +14,11 @@ export interface FlowActivityType {
   client_id: string;
 }
 
+/** Tipo de atividade com nome do flow (join). Usado na listagem por cliente. */
+export type FlowActivityTypeWithFlow = FlowActivityType & {
+  flow?: { id: string; name: string } | null;
+};
+
 export interface CardActivity {
   id: string;
   card_id: string;

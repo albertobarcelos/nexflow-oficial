@@ -25,6 +25,8 @@ import {
   Info,
   Briefcase,
   History,
+  Pencil,
+  UserX,
 } from "lucide-react";
 import { useContactDetails } from "@/hooks/useContactDetails";
 import { useNavigate } from "react-router-dom";
@@ -41,12 +43,18 @@ interface ContactDetailsPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contactId: string | null;
+  /** Abre o dialog de edição com o contato atual (controlado pelo pai) */
+  onOpenEdit?: () => void;
+  /** Dispara o fluxo de desativação (confirmação no pai) */
+  onDeactivate?: () => void;
 }
 
 export function ContactDetailsPanel({
   open,
   onOpenChange,
   contactId,
+  onOpenEdit,
+  onDeactivate,
 }: ContactDetailsPanelProps) {
   const { data: details, isLoading } = useContactDetails(contactId);
   const navigate = useNavigate();
@@ -115,10 +123,40 @@ export function ContactDetailsPanel({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-4">
-          <DialogTitle>Detalhes do Contato</DialogTitle>
-          <DialogDescription>
-            Informações completas, empresas vinculadas e histórico
-          </DialogDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <DialogTitle>Detalhes do Contato</DialogTitle>
+              <DialogDescription>
+                Informações completas, empresas vinculadas e histórico
+              </DialogDescription>
+            </div>
+            {(onOpenEdit || onDeactivate) && (
+              <div className="flex items-center gap-2 shrink-0">
+                {onOpenEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onOpenEdit}
+                    className="gap-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                  </Button>
+                )}
+                {onDeactivate && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onDeactivate}
+                    className="gap-2 text-destructive hover:text-destructive"
+                  >
+                    <UserX className="h-4 w-4" />
+                    Desativar
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
         {isLoading ? (

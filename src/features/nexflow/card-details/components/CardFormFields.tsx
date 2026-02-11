@@ -2,7 +2,7 @@ import { useWatch } from "react-hook-form";
 import { CalendarIcon, ChevronDown } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { ResizableTextarea } from "@/components/ui/resizable-textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -320,15 +320,16 @@ export function CardFormFields({
               </span>
             )}
           </Label>
-          <div className="relative rounded-md shadow-sm">
-            <Textarea
-              rows={4}
-              placeholder={(field.configuration.placeholder as string) ?? "Digite sua resposta..."}
-              className="block w-full rounded-lg border-gray-300   text-gray-900  placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm py-3 px-4 transition-shadow resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-              {...form.register(`fields.${field.id}`)}
-              disabled={isDisabled}
-            />
-          </div>
+          <ResizableTextarea
+            fieldId={field.id}
+            defaultRows={4}
+            minRows={2}
+            maxHeight={400}
+            placeholder={(field.configuration.placeholder as string) ?? "Digite sua resposta..."}
+            className="block w-full border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm transition-shadow"
+            {...form.register(`fields.${field.id}`)}
+            disabled={isDisabled}
+          />
         </div>
       );
     }
@@ -380,6 +381,35 @@ export function CardFormFields({
               {form.formState.errors.fields?.[field.id]?.message as string}
             </p>
           )}
+        </div>
+      );
+    }
+
+    // Texto curto: textarea redimensionável (1 linha que pode expandir)
+    const isShortText =
+      field.fieldType === "text" && field.configuration?.variant === "short";
+
+    if (isShortText) {
+      return (
+        <div>
+          <Label className="block text-sm font-semibold text-gray-700  mb-2">
+            {field.label}
+            {field.isRequired && (
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide text-amber-600">
+                Obrigatório
+              </span>
+            )}
+          </Label>
+          <ResizableTextarea
+            fieldId={field.id}
+            defaultRows={1}
+            minRows={1}
+            maxHeight={300}
+            placeholder={(field.configuration.placeholder as string) ?? ""}
+            className="block w-full border-gray-300 text-gray-900 placeholder-gray-400 focus:border-blue-600 focus:ring-blue-600 sm:text-sm transition-shadow"
+            {...form.register(`fields.${field.id}`)}
+            disabled={isDisabled}
+          />
         </div>
       );
     }
