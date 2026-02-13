@@ -32,6 +32,8 @@ export function SortableCard({
   currentStep,
 }: SortableCardProps) {
   const isFrozenCard = currentStep?.stepType === 'freezing';
+  const isOnFire = card.points === 6 && card.cardType === 'finance';
+  const isStrikeAlert = card.points === 6 && card.cardType === 'onboarding';
   const cardRef = useRef<HTMLDivElement>(null);
   const [confettiPosition, setConfettiPosition] = useState<{ x: number; y: number } | null>(null);
   
@@ -120,10 +122,43 @@ export function SortableCard({
           : "hover:shadow-md transition-shadow",
         card.status === "completed" && "bg-green-50/30  border-green-200  relative overflow-hidden",
         card.status === "canceled" && "bg-red-50/30  border-red-200  relative overflow-hidden",
-        isFrozenCard && "bg-blue-50/30  border-blue-200  ring-2 ring-blue-300  relative overflow-hidden"
+        isFrozenCard && "bg-blue-50/30  border-blue-200  ring-2 ring-blue-300  relative overflow-hidden",
+        isOnFire && "border-orange-300 overflow-hidden",
+        isStrikeAlert && "ring-2 ring-amber-400 border-amber-300"
       )}
       onClick={onClick}
     >
+      {/* Animação de fogo quando 6 chamas (finance) */}
+      {isOnFire && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: [0.15, 0.35, 0.2],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+          style={{
+            background: "linear-gradient(135deg, rgba(251,146,60,0.25) 0%, rgba(239,68,68,0.2) 50%, rgba(251,146,60,0.15) 100%)",
+          }}
+        />
+      )}
+      {/* Animação de alerta quando 6 strikes (onboarding) */}
+      {isStrikeAlert && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none rounded-lg bg-amber-500/10"
+          initial={{ opacity: 0.2 }}
+          animate={{ opacity: [0.2, 0.5, 0.2] }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            repeatType: "reverse",
+          }}
+        />
+      )}
       {card.status === "completed" && (
         <div className="absolute inset-0 bg-gradient-to-br from-green-100/20 to-transparent  pointer-events-none rounded-xl" />
       )}

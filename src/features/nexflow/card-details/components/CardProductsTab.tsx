@@ -341,11 +341,12 @@ export function CardProductsTab({
   }, [form]);
 
 
-  if (!card || card.cardType !== "finance") {
+  // Permite produtos para qualquer tipo de card (finance e onboarding)
+  if (!card) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-sm text-gray-500 ">
-          Esta seção está disponível apenas para cards financeiros.
+          Nenhum card selecionado.
         </p>
       </div>
     );

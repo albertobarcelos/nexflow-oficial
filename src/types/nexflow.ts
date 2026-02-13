@@ -112,6 +112,8 @@ export interface NexflowCard {
   product?: string | null;
   value?: number | null;
   contact?: string | null;
+  /** Pontos de chamas (finance) ou strikes (onboarding), 1–6 */
+  points?: number | null;
 }
 
 export interface NexflowFlowAccess {

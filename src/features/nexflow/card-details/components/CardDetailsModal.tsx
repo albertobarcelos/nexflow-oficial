@@ -44,7 +44,7 @@ interface CardDetailsModalProps {
   onSave: (card: NexflowCard, values: CardFormValues) => Promise<void>;
   onMoveNext: (card: NexflowCard, values: CardFormValues) => Promise<void>;
   onDelete?: (cardId: string) => Promise<void>;
-  onUpdateCard?: (input: { id: string; stepId?: string }) => Promise<void>;
+  onUpdateCard?: (input: { id: string; stepId?: string; points?: number | null }) => Promise<void>;
   subtaskCount: number;
   parentTitle?: string | null;
   onOpenParentCard?: (card: NexflowCard) => void;
@@ -441,6 +441,11 @@ export function CardDetailsModal({
             currentStep={currentStep}
             subtaskCount={subtaskCount}
             parentTitle={parentTitle}
+            onUpdatePoints={
+              onUpdateCard
+                ? (points) => onUpdateCard({ id: card.id, points })
+                : undefined
+            }
           />
         );
       case "history":

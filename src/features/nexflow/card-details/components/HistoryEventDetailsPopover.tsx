@@ -16,6 +16,7 @@ import {
   Users,
   Paperclip,
   MessageSquare,
+  Flame,
 } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
@@ -60,6 +61,8 @@ const getEventIcon = (eventType: CardTimelineEvent["event_type"]) => {
       return Paperclip;
     case "message_created":
       return MessageSquare;
+    case "points_change":
+      return Flame;
     default:
       return Clock;
   }
@@ -101,6 +104,8 @@ const getEventTitle = (eventType: CardTimelineEvent["event_type"]): string => {
       return "Arquivo Anexado";
     case "message_created":
       return "Comentário Criado";
+    case "points_change":
+      return "Chamas/Strikes Alterados";
     default:
       return "Evento";
   }
@@ -290,6 +295,16 @@ const formatEventDetails = (event: CardTimelineEvent) => {
         before: "—",
         after: "—",
         showMessageInfo: true,
+      };
+
+    case "points_change":
+      return {
+        before:
+          previous_value?.value != null
+            ? `${previous_value.value} pontos`
+            : "—",
+        after:
+          new_value?.value != null ? `${new_value.value} pontos` : "—",
       };
 
     default:

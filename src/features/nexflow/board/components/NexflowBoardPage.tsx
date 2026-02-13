@@ -482,6 +482,13 @@ export function NexflowBoardPage() {
     return cards.find((card) => card.id === activeCard.parentCardId)?.title ?? null;
   }, [activeCard, cards]);
 
+  // Card “ao vivo” do cache: modal reflete atualização otimista de pontos (e outras alterações) na hora
+  const activeCardLive = useMemo(() => {
+    if (!activeCard?.id) return activeCard;
+    const fromCache = cards.find((c) => c.id === activeCard.id);
+    return fromCache ?? activeCard;
+  }, [activeCard, cards]);
+
   const handleWizardSuccess = async (data: NewCardWizardResult) => {
     if (!id || !startStep) return;
     const input = buildCreateCardInputFromWizard(data, id, startStep.id);
@@ -776,7 +783,7 @@ export function NexflowBoardPage() {
       />
 
       <CardDetailsModal
-        card={activeCard}
+        card={activeCardLive}
         steps={steps}
         onClose={() => setActiveCard(null)}
         onSave={handleSaveCardFields}
@@ -790,6 +797,7 @@ export function NexflowBoardPage() {
           await updateCard({
             id: input.id,
             stepId: input.stepId,
+            points: input.points,
           });
         }}
         subtaskCount={subtaskCount}

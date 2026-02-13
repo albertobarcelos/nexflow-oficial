@@ -1,5 +1,11 @@
 import { useCallback } from "react";
-import { useInfiniteQuery, useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+  useQuery,
+  type InfiniteData,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import { nexflowClient, supabase } from "@/lib/supabase";
 import { useClientStore } from "@/stores/clientStore";
@@ -42,6 +48,7 @@ const mapCardRow = (row: CardRow): NexflowCard => {
     cardType: row.card_type ?? 'onboarding',
     product: row.product ?? null,
     value: row.value ? Number(row.value) : null,
+    points: (row as { points?: number | null }).points ?? null,
   };
 };
 
@@ -83,6 +90,8 @@ export interface UpdateCardInput {
   status?: string | null;
   product?: string | null;
   value?: number | null;
+  /** Pontos de chamas (finance) ou strikes (onboarding), 0–6 (0 = limpar) */
+  points?: number | null;
   /** Quando true, não exibe toast de sucesso (útil para auto-save) */
   silent?: boolean;
 }
@@ -167,7 +176,7 @@ export function useNexflowCardsInfinite(
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 0,
     staleTime: 1000 * 10,
-    refetchOnWindowFocus: false, // #region agent log - Fix: Disable auto refetch, rely on soft reload
+    refetchOnWindowFocus: false,
     // #endregion
   });
 
@@ -284,6 +293,7 @@ export function useNexflowCardsInfinite(
         status?: 'inprogress' | 'completed' | 'canceled';
         product?: string | null;
         value?: number | null;
+        points?: number | null;
       } = {
         cardId: input.id,
       };
@@ -302,21 +312,28 @@ export function useNexflowCardsInfinite(
       }
       if (typeof input.product !== "undefined") edgeFunctionPayload.product = input.product;
       if (typeof input.value !== "undefined") edgeFunctionPayload.value = input.value;
+      if (typeof input.points !== "undefined") edgeFunctionPayload.points = input.points;
 
       // Chamar Edge Function
       const { data, error } = await supabase.functions.invoke('update-nexflow-card', {
         body: edgeFunctionPayload,
       });
 
+      // Em 4xx/5xx o Supabase preenche error; o body pode vir em data com { error: "mensagem" }
+      const serverMessage =
+        data && typeof data === "object" && "error" in data && data.error
+          ? String(data.error)
+          : null;
+
       if (error) {
-        throw new Error(error.message || "Falha ao atualizar card.");
+        throw new Error(serverMessage || error.message || "Falha ao atualizar card.");
       }
 
       if (!data || !data.success || !data.card) {
-        throw new Error(data?.error || "Falha ao atualizar card.");
+        throw new Error(serverMessage || data?.error || "Falha ao atualizar card.");
       }
 
-      // Mapear resposta da Edge Function para NexflowCard
+      // Mapear resposta da Edge Function para NexflowCard (incluir contactId/companyId para ícones do preview)
       const updatedCard: NexflowCard = {
         id: data.card.id,
         flowId: data.card.flowId,
@@ -336,26 +353,75 @@ export function useNexflowCardsInfinite(
         cardType: data.card.cardType ?? 'onboarding',
         product: data.card.product ?? null,
         value: data.card.value ? Number(data.card.value) : null,
+        points: data.card.points ?? null,
+        contactId: data.card.contactId ?? null,
+        companyId: data.card.companyId ?? null,
+        indicationId: data.card.indicationId ?? null,
       };
 
       return { card: updatedCard, silent: input.silent };
     },
-    onSuccess: (result) => {
-      invalidateClientQueries(queryClient, ["nexflow", "cards", "infinite"]);
-      queryClient.invalidateQueries({ queryKey });
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previousData =
+        queryClient.getQueryData<InfiniteData<{ cards: NexflowCard[]; nextPage: number | null }>>(
+          queryKey
+        );
+      if (previousData?.pages && typeof input.points !== "undefined") {
+        queryClient.setQueryData<InfiniteData<{ cards: NexflowCard[]; nextPage: number | null }>>(
+          queryKey,
+          {
+            ...previousData,
+            pages: previousData.pages.map((page) => ({
+              ...page,
+              cards: page.cards.map((c) =>
+                c.id === input.id ? { ...c, points: input.points ?? null } : c
+              ),
+            })),
+          }
+        );
+      }
+      return { previousData };
+    },
+    onSuccess: (result, _variables, context) => {
+      // Atualizar cache com o card retornado pelo servidor (evita refetch completo).
+      // Preservar contactId/companyId/indicationId do card anterior quando a API não os retorna (ex.: Edge Function antiga).
+      if (context?.previousData?.pages) {
+        queryClient.setQueryData<InfiniteData<{ cards: NexflowCard[]; nextPage: number | null }>>(
+          queryKey,
+          {
+            ...context.previousData,
+            pages: context.previousData.pages.map((page) => ({
+              ...page,
+              cards: page.cards.map((c) => {
+                if (c.id !== result.card.id) return c;
+                const fromServer = result.card;
+                const merged: NexflowCard = {
+                  ...fromServer,
+                  contactId: fromServer.contactId ?? c.contactId ?? null,
+                  companyId: fromServer.companyId ?? c.companyId ?? null,
+                  indicationId: fromServer.indicationId ?? c.indicationId ?? null,
+                };
+                return merged;
+              }),
+            })),
+          }
+        );
+      } else {
+        invalidateClientQueries(queryClient, ["nexflow", "cards", "infinite"]);
+        queryClient.invalidateQueries({ queryKey });
+      }
       queryClient.invalidateQueries({ queryKey: ["card-timeline", result.card.id] });
       queryClient.invalidateQueries({ queryKey: ["card-step-history", result.card.id] });
       if (!result.silent) {
         toast.success("Card atualizado.");
       }
     },
-    onError: (error: Error) => {
-      // Verificar se é erro de autorização
-      if (error.message.includes("Acesso negado") || error.message.includes("403")) {
-        toast.error("Você não tem permissão para alterar o título deste card.");
-      } else {
-        toast.error(error.message || "Erro ao atualizar card.");
+    onError: (error: Error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(queryKey, context.previousData);
       }
+      toast.error(error.message || "Erro ao atualizar card.");
     },
   });
 
@@ -411,8 +477,12 @@ export function useNexflowCardsInfinite(
               body: edgeFunctionPayload,
             });
 
+            const reorderServerMessage =
+              data && typeof data === "object" && "error" in data && data.error
+                ? String(data.error)
+                : null;
             if (error) {
-              throw new Error(error.message || "Falha ao atualizar card.");
+              throw new Error(reorderServerMessage || error.message || "Falha ao atualizar card.");
             }
           } else {
             // Para atualizações simples de posição, usar update direto

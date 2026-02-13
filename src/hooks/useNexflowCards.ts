@@ -42,6 +42,7 @@ export const mapCardRow = (row: CardRow): NexflowCard => {
     cardType: row.card_type ?? 'onboarding',
     product: row.product ?? null,
     value: row.value ? Number(row.value) : null,
+    points: (row as { points?: number | null }).points ?? null,
   };
 };
 
@@ -73,6 +74,8 @@ export interface UpdateCardInput {
   status?: string | null;
   product?: string | null;
   value?: number | null;
+  /** Pontos de chamas (finance) ou strikes (onboarding), 0–6 (0 = limpar) */
+  points?: number | null;
   /** Quando true, não exibe toast de sucesso (útil para auto-save) */
   silent?: boolean;
 }
@@ -317,6 +320,7 @@ export function useNexflowCards(flowId?: string) {
         status?: 'inprogress' | 'completed' | 'canceled';
         product?: string | null;
         value?: number | null;
+        points?: number | null;
       } = {
         cardId: input.id,
       };
@@ -335,6 +339,7 @@ export function useNexflowCards(flowId?: string) {
       }
       if (typeof input.product !== "undefined") edgeFunctionPayload.product = input.product;
       if (typeof input.value !== "undefined") edgeFunctionPayload.value = input.value;
+      if (typeof input.points !== "undefined") edgeFunctionPayload.points = input.points;
 
       // Chamar Edge Function
       const { data, error } = await supabase.functions.invoke('update-nexflow-card', {
@@ -370,6 +375,7 @@ export function useNexflowCards(flowId?: string) {
         cardType: data.card.cardType ?? 'onboarding',
         product: data.card.product ?? null,
         value: data.card.value ? Number(data.card.value) : null,
+        points: data.card.points ?? null,
       };
 
       return { card: updatedCard, silent: input.silent };

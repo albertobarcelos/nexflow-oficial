@@ -131,23 +131,22 @@ export function CardDetailsSidebar({
               <span>Campos da Etapa</span>
             </button>
 
-            {card.cardType === 'finance' && (
-              <button
-                onClick={() => {
-                  setActiveTab("informacoes");
-                  setActiveSection("products");
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
-                  activeSection === "products"
-                    ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
-                    : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
-                )}
-              >
-                <ShoppingCart className="text-xl" />
-                <span>Produtos</span>
-              </button>
-            )}
+            {/* Botão Produtos disponível para todos os tipos de card (finance e onboarding) */}
+            <button
+              onClick={() => {
+                setActiveTab("informacoes");
+                setActiveSection("products");
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold transition-colors text-left",
+                activeSection === "products"
+                  ? "bg-indigo-50  text-indigo-600  border-l-4 border-indigo-600"
+                  : "text-slate-500  hover:bg-slate-100 :bg-slate-800"
+              )}
+            >
+              <ShoppingCart className="text-xl" />
+              <span>Produtos</span>
+            </button>
 
             <button
               onClick={() => {

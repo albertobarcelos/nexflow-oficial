@@ -19,6 +19,7 @@ import {
   Users,
   Paperclip,
   MessageSquare,
+  Flame,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -63,6 +64,8 @@ const getEventIcon = (eventType: CardTimelineEvent["event_type"]) => {
       return Paperclip;
     case "message_created":
       return MessageSquare;
+    case "points_change":
+      return Flame;
     default:
       return Clock;
   }
@@ -110,6 +113,9 @@ const getEventColor = (
   }
   if (eventType === "message_created") {
     return "text-sky-600  bg-sky-50 ";
+  }
+  if (eventType === "points_change") {
+    return "text-orange-600  bg-orange-50 ";
   }
   return "text-primary bg-primary/10";
 };
@@ -237,6 +243,7 @@ export function CardTimelineHorizontal({ events, cardId }: CardTimelineHorizonta
                     {event.event_type === "agents_change" && <Users className="mr-1 h-3 w-3" />}
                     {event.event_type === "attachment_uploaded" && <Paperclip className="mr-1 h-3 w-3" />}
                     {event.event_type === "message_created" && <MessageSquare className="mr-1 h-3 w-3" />}
+                    {event.event_type === "points_change" && <Flame className="mr-1 h-3 w-3" />}
                     {event.event_type === "stage_change"
                       ? isBackward
                         ? "Regresso"
@@ -271,6 +278,8 @@ export function CardTimelineHorizontal({ events, cardId }: CardTimelineHorizonta
                       ? "Anexo"
                       : event.event_type === "message_created"
                       ? "Comentário"
+                      : event.event_type === "points_change"
+                      ? "Chamas/Strikes"
                       : "Evento"}
                   </Badge>
                   <span className="text-[10px] text-muted-foreground whitespace-nowrap">
@@ -393,6 +402,21 @@ export function CardTimelineHorizontal({ events, cardId }: CardTimelineHorizonta
                           Arquivo: {String(event.details.file_name)}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {event.event_type === "points_change" && (
+                    <div className="text-xs space-y-0.5">
+                      {event.previous_value?.value != null && (
+                        <div className="text-[10px] line-through opacity-60">
+                          {String(event.previous_value.value)} →
+                        </div>
+                      )}
+                      <div className="font-medium text-green-600 ">
+                        {event.new_value?.value != null
+                          ? `${String(event.new_value.value)} pontos`
+                          : "—"}
+                      </div>
                     </div>
                   )}
 

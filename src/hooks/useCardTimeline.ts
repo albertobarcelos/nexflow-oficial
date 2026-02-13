@@ -23,7 +23,8 @@ export type CardTimelineEventType =
   | 'parent_change'
   | 'agents_change'
   | 'attachment_uploaded'
-  | 'message_created';
+  | 'message_created'
+  | 'points_change';
 
 export interface CardTimelineEvent {
   id: string;

@@ -53,6 +53,7 @@ export interface CardDetailsModalProps {
   onUpdateCard?: (input: {
     id: string;
     stepId?: string;
+    points?: number | null;
   }) => Promise<void>;
   subtaskCount: number;
   parentTitle?: string | null;

@@ -327,36 +327,34 @@ export function ParentCardViewModal({
               </p>
             </div>
 
-            {/* Campos financeiros - apenas para cards do tipo finance */}
-            {card.cardType === 'finance' && (
-              <div className="mb-6 p-5 bg-blue-50  rounded-xl border border-blue-200 ">
-                <h3 className="text-sm font-semibold text-gray-900  mb-4">
-                  Informações Financeiras
-                </h3>
-                <div className="space-y-4">
-                  {card.product && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-500  mb-1">
-                        Produto
-                      </p>
-                      <p className="text-sm text-gray-900 ">
-                        {card.product}
-                      </p>
-                    </div>
-                  )}
-                  {card.value !== null && card.value !== undefined && (
-                    <div>
-                      <p className="text-xs font-medium text-gray-500  mb-1">
-                        Valor
-                      </p>
-                      <p className="text-sm text-gray-900 ">
-                        R$ {card.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  )}
-                </div>
+            {/* Produto e valor disponíveis para todos os tipos de card (finance e onboarding) */}
+            <div className="mb-6 p-5 bg-blue-50  rounded-xl border border-blue-200 ">
+              <h3 className="text-sm font-semibold text-gray-900  mb-4">
+                Informações Financeiras
+              </h3>
+              <div className="space-y-4">
+                {card.product && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500  mb-1">
+                      Produto
+                    </p>
+                    <p className="text-sm text-gray-900 ">
+                      {card.product}
+                    </p>
+                  </div>
+                )}
+                {card.value !== null && card.value !== undefined && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500  mb-1">
+                      Valor
+                    </p>
+                    <p className="text-sm text-gray-900 ">
+                      R$ {card.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Campos de sistema (atribuições) */}
             {renderSystemFields()}

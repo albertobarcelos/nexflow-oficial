@@ -7,8 +7,15 @@ import {
   CheckSquare,
   Timer,
   Building2,
+  Flame,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { TeamAvatar } from "@/components/ui/team-avatar";
 import { useUsers } from "@/hooks/useUsers";
@@ -149,19 +156,47 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
           <h3 className="font-semibold text-gray-900  leading-tight truncate-ellipsis max-w-[180px] overflow-hidden whitespace-nowrap">
             {cardTitle}
           </h3>
-          {/* Tag abaixo do título com formato arredondado */}
-          {firstTag && (
+          {/* Tag abaixo do título: hover exibe todas as tags do card */}
+          {firstTag && cardTags.length > 0 && (
             <div className="mt-1">
-              <span 
-                className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold truncate border"
-                style={{
-                  backgroundColor: `${firstTag.color}15`,
-                  color: firstTag.color,
-                  borderColor: firstTag.color,
-                }}
-              >
-                {firstTag.name}
-              </span>
+              <HoverCard openDelay={200} closeDelay={100}>
+                <HoverCardTrigger asChild>
+                  <span
+                    className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold truncate border cursor-default"
+                    style={{
+                      backgroundColor: `${firstTag.color}15`,
+                      color: firstTag.color,
+                      borderColor: firstTag.color,
+                    }}
+                  >
+                    {firstTag.name}
+                  </span>
+                </HoverCardTrigger>
+                <HoverCardContent
+                  align="start"
+                  sideOffset={6}
+                  className="w-auto max-w-[240px] p-2"
+                >
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                    Tags do card
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {cardTags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                        style={{
+                          backgroundColor: `${tag.color}15`,
+                          color: tag.color,
+                          borderColor: tag.color,
+                        }}
+                      >
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             </div>
           )}
         </div>
@@ -252,6 +287,29 @@ export function KanbanCardPreview({ card }: KanbanCardPreviewProps) {
           {(card.product || (card.value != null && card.value !== undefined)) && (
             <div className="flex items-center gap-1 text-gray-500 " title="Produto / valor">
               <Package className="h-3.5 w-3.5" />
+            </div>
+          )}
+          {/* Indicador de chamas (finance) ou strikes (onboarding): 1 ícone + contador */}
+          {card.cardType === "finance" && card.points != null && card.points > 0 && (
+            <div
+              className="flex items-center gap-1 text-gray-500 shrink-0"
+              title={`${card.points} chamas`}
+            >
+              <Flame className="h-3.5 w-3.5 text-orange-500 fill-orange-500" />
+              <span className="text-[10px] font-semibold tabular-nums text-orange-600">
+                {card.points}
+              </span>
+            </div>
+          )}
+          {card.cardType === "onboarding" && card.points != null && card.points > 0 && (
+            <div
+              className="flex items-center gap-1 text-gray-500 shrink-0"
+              title={`${card.points} strikes`}
+            >
+              <AlertTriangle className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+              <span className="text-[10px] font-semibold tabular-nums text-amber-600">
+                {card.points}
+              </span>
             </div>
           )}
         </div>

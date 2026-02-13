@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Flame, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { NexflowCard } from "@/types/nexflow";
 import type { NexflowStepWithFields } from "@/hooks/useNexflowFlows";
 import { useUsers } from "@/hooks/useUsers";
@@ -9,6 +12,8 @@ interface CardOverviewTabProps {
   currentStep: NexflowStepWithFields | null;
   subtaskCount: number;
   parentTitle?: string | null;
+  /** Callback para atualizar pontos (chamas/strikes). Só presente quando o modal permite edição. */
+  onUpdatePoints?: (points: number | null) => Promise<void>;
 }
 
 export function CardOverviewTab({
@@ -16,8 +21,27 @@ export function CardOverviewTab({
   currentStep,
   subtaskCount,
   parentTitle,
+  onUpdatePoints,
 }: CardOverviewTabProps) {
+  const [pointsUpdating, setPointsUpdating] = useState(false);
   const { data: users = [] } = useUsers();
+
+  const isFinance = card.cardType === "finance";
+  const isOnboarding = card.cardType === "onboarding";
+  const showPointsSection = (isFinance || isOnboarding) && onUpdatePoints;
+  const currentPoints = card.points ?? 0;
+  const label = isFinance ? "Chamas" : "Strikes";
+  const Icon = isFinance ? Flame : AlertTriangle;
+
+  const handleSetPoints = async (value: number) => {
+    if (!onUpdatePoints) return;
+    setPointsUpdating(true);
+    try {
+      await onUpdatePoints(value === 0 ? null : value);
+    } finally {
+      setPointsUpdating(false);
+    }
+  };
   const assignedUser = card.assignedTo
     ? users.find((user) => user.id === card.assignedTo)
     : null;
@@ -50,6 +74,38 @@ export function CardOverviewTab({
               <span className="text-base font-medium text-slate-700 ">
                 {currentStep.title}
               </span>
+            </div>
+          </section>
+        )}
+
+        {showPointsSection && (
+          <section className="border-t border-slate-50  pt-8">
+            <label className="text-xs font-bold text-slate-400  uppercase tracking-wider mb-2 block flex items-center gap-2">
+              <Icon className="h-4 w-4" />
+              {label}
+            </label>
+            <p className="text-xs text-slate-500  mb-2">
+              Selecione de 0 (nenhum) a 6
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {[0, 1, 2, 3, 4, 5, 6].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  disabled={pointsUpdating}
+                  onClick={() => handleSetPoints(n)}
+                  className={cn(
+                    "h-9 min-w-[2.25rem] rounded-md border text-sm font-medium transition-colors disabled:opacity-50",
+                    (n === 0 ? currentPoints === 0 : currentPoints === n)
+                      ? isFinance
+                        ? "border-orange-500 bg-orange-50 text-orange-700"
+                        : "border-amber-500 bg-amber-50 text-amber-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  {n === 0 ? "0" : n}
+                </button>
+              ))}
             </div>
           </section>
         )}

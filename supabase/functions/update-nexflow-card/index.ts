@@ -30,6 +30,8 @@ interface UpdateCardPayload {
   status?: 'inprogress' | 'completed' | 'canceled';
   product?: string | null;
   value?: number | null;
+  /** Pontos de chamas (finance) ou strikes (onboarding), 0–6 (0 = limpar) */
+  points?: number | null;
 }
 
 /**
@@ -92,28 +94,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, parentCardId, status, product, value } = body;
+    const { cardId, title, fieldValues, checklistProgress, assignedTo, assignedTeamId, stepId, position, parentCardId, status, product, value, points } = body;
     // NOTA: agents não será processado atualmente - será criado campo específico futuramente
-
-    // #region agent log
-    console.log(JSON.stringify({
-      location: 'update-nexflow-card/index.ts:100',
-      message: 'Edge Function received payload',
-      data: { 
-        cardId, 
-        assignedTo, 
-        assignedTeamId, 
-        stepId, 
-        hasAssignedTeamId: typeof assignedTeamId !== 'undefined',
-        assignedTeamIdType: typeof assignedTeamId,
-        assignedTeamIdValue: assignedTeamId
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B'
-    }));
-    // #endregion
 
     if (!cardId) {
       return new Response(
@@ -172,7 +154,7 @@ Deno.serve(async (req: Request) => {
     // Verificar se card existe e pertence ao mesmo client_id do usuário
     const { data: card, error: cardError } = await supabase
       .from('cards')
-      .select('client_id, flow_id, step_id')
+      .select('client_id, flow_id, step_id, points')
       .eq('id', cardId)
       .single();
 
@@ -462,37 +444,9 @@ Deno.serve(async (req: Request) => {
     
     // Campo Time (assigned_team_id) - independente do campo Responsável
     if (assignedTeamId !== undefined) {
-      // #region agent log
-      console.log(JSON.stringify({
-        location: 'update-nexflow-card/index.ts:301',
-        message: 'Processing assignedTeamId',
-        data: { assignedTeamId, cardId, willSetToNull: assignedTeamId === null },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'B'
-      }));
-      // #endregion
       updatePayload.assigned_team_id = assignedTeamId;
     }
 
-    // #region agent log
-    console.log(JSON.stringify({
-      location: 'update-nexflow-card/index.ts:310',
-      message: 'Update payload before database update',
-      data: { 
-        updatePayload, 
-        hasAssignedTeamId: 'assigned_team_id' in updatePayload,
-        assignedTeamIdValue: updatePayload.assigned_team_id,
-        assignedToValue: updatePayload.assigned_to
-      },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B'
-    }));
-    // #endregion
-    
     // NOTA: Campo agents não será usado atualmente
     // Futuramente será criado um campo específico para agents
     // Por enquanto, não atualizamos a coluna agents
@@ -511,18 +465,11 @@ Deno.serve(async (req: Request) => {
     }
     if (product !== undefined) updatePayload.product = product;
     if (value !== undefined) updatePayload.value = value;
-
-    // #region agent log
-    console.log(JSON.stringify({
-      location: 'update-nexflow-card/index.ts:318',
-      message: 'About to update card in database',
-      data: { cardId, updatePayload, finalStepId, hasAssignedTeamIdInPayload: 'assigned_team_id' in updatePayload, assignedTeamIdValue: updatePayload.assigned_team_id },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B'
-    }));
-    // #endregion
+    // Pontos (chamas/strikes): 0–6; 0 = limpar
+    if (points !== undefined) {
+      const clamped = points === null || points === undefined ? null : Math.min(6, Math.max(0, Number(points)));
+      updatePayload.points = clamped === 0 ? null : clamped;
+    }
 
     // Se stepId está mudando, registrar no histórico antes de atualizar
     // IMPORTANTE: Registrar histórico para TODAS as mudanças de step, incluindo finisher e fail
@@ -572,30 +519,6 @@ Deno.serve(async (req: Request) => {
       .select('*')
       .single();
 
-    // #region agent log
-    if (updateError) {
-      console.log(JSON.stringify({
-        location: 'update-nexflow-card/index.ts:327',
-        message: 'Database update error',
-        data: { cardId, error: updateError.message, code: updateError.code, updatePayload },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'B'
-      }));
-    } else {
-      console.log(JSON.stringify({
-        location: 'update-nexflow-card/index.ts:333',
-        message: 'Database update successful - raw card from DB',
-        data: { cardId: updatedCard.id, assigned_to: updatedCard.assigned_to, assigned_team_id: updatedCard.assigned_team_id, hasAssignedTeamId: updatedCard.assigned_team_id !== null },
-        timestamp: Date.now(),
-        sessionId: 'debug-session',
-        runId: 'run1',
-        hypothesisId: 'B'
-      }));
-    }
-    // #endregion
-
     if (updateError) {
       console.error('Erro ao atualizar card:', updateError);
       return new Response(
@@ -610,23 +533,33 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Registrar histórico de alteração de pontos (chamas/strikes) se points foi alterado
+    if (points !== undefined) {
+      const oldPoints = (card as { points?: number | null }).points ?? null;
+      const newPointsVal = updatePayload.points === undefined ? oldPoints : (updatePayload.points as number | null);
+      const changed = oldPoints !== newPointsVal;
+      if (changed) {
+        const { error: historyError } = await supabase
+          .from('card_history')
+          .insert({
+            card_id: cardId,
+            client_id: card.client_id,
+            event_type: 'points_change',
+            created_by: userId,
+            previous_value: { value: oldPoints },
+            new_value: { value: newPointsVal },
+          });
+        if (historyError) {
+          console.error('Erro ao inserir card_history points_change:', historyError);
+        }
+      }
+    }
+
     // Mapear resposta para formato esperado pelo frontend
     const assignedToValue = updatedCard.assigned_to ?? null;
     const assignedTeamIdValue = updatedCard.assigned_team_id ?? null;
     const assigneeType = assignedToValue ? 'user' : assignedTeamIdValue ? 'team' : 'unassigned';
 
-    // #region agent log
-    console.log(JSON.stringify({
-      location: 'update-nexflow-card/index.ts:307',
-      message: 'Card updated - response mapping',
-      data: { cardId: updatedCard.id, assignedToValue, assignedTeamIdValue, assigneeType, rawAssignedTeamId: updatedCard.assigned_team_id },
-      timestamp: Date.now(),
-      sessionId: 'debug-session',
-      runId: 'run1',
-      hypothesisId: 'B'
-    }));
-    // #endregion
-    
     const mappedCard = {
       id: updatedCard.id,
       flowId: updatedCard.flow_id,
@@ -648,6 +581,11 @@ Deno.serve(async (req: Request) => {
       cardType: updatedCard.card_type ?? 'onboarding',
       product: updatedCard.product ?? null,
       value: updatedCard.value ? Number(updatedCard.value) : null,
+      points: (updatedCard as { points?: number | null }).points ?? null,
+      // Incluir contactId/companyId para o cache do board não perder ícones ao atualizar pontos
+      contactId: (updatedCard as { contact_id?: string | null }).contact_id ?? null,
+      companyId: (updatedCard as { company_id?: string | null }).company_id ?? null,
+      indicationId: (updatedCard as { indication_id?: string | null }).indication_id ?? null,
     };
 
     return new Response(

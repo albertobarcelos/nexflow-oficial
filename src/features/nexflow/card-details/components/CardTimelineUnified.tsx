@@ -33,6 +33,8 @@ import {
   Paperclip,
   MessageSquare,
   Eye,
+  Flame,
+  AlertTriangle,
 } from "lucide-react";
 import type { NexflowCard } from "@/types/nexflow";
 import type { CardTimelineEvent } from "@/hooks/useCardTimeline";
@@ -84,6 +86,8 @@ const getEventIcon = (eventType: CardTimelineEvent["event_type"]) => {
       return Paperclip;
     case "message_created":
       return MessageSquare;
+    case "points_change":
+      return Flame; // Diferença chamas/strikes é pelo cardType no título
     default:
       return Clock;
   }
@@ -107,6 +111,9 @@ const getEventColor = (
   }
   if (eventType === "process_status_change" || eventType === "process_completed") {
     return "text-indigo-600  bg-indigo-50 ";
+  }
+  if (eventType === "points_change") {
+    return "text-orange-600  bg-orange-50 ";
   }
   return "text-primary bg-primary/10";
 };
@@ -408,6 +415,18 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
         cardSubtitle = productNames.length > 0 
           ? productNames.join(", ") 
           : "Alteração de produtos";
+      } else if (event.event_type === "points_change") {
+        const prevVal = event.previous_value?.value as number | null | undefined;
+        const newVal = event.new_value?.value as number | null | undefined;
+        const isFinance = card?.cardType === "finance";
+        cardTitle = isFinance ? "Chamas definidas" : "Strikes definidos";
+        if (prevVal != null && newVal != null) {
+          cardSubtitle = `${prevVal} → ${newVal}`;
+        } else if (newVal != null) {
+          cardSubtitle = `${newVal} ${isFinance ? "chamas" : "strikes"}`;
+        } else {
+          cardSubtitle = isFinance ? "Chamas" : "Strikes";
+        }
       } else {
         cardTitle = "Evento";
         cardSubtitle = event.event_type;
@@ -528,6 +547,23 @@ export function CardTimelineUnified({ card }: CardTimelineUnifiedProps) {
                       </>
                     );
                   })()}
+                </div>
+              )}
+
+              {event.event_type === "points_change" && (
+                <div className="text-xs space-y-1">
+                  <div className="text-[10px] text-muted-foreground space-y-0.5">
+                    {event.previous_value?.value != null && (
+                      <div className="line-through opacity-60">
+                        {String(event.previous_value.value)} →{" "}
+                      </div>
+                    )}
+                    <div className="font-medium text-green-600 ">
+                      {event.new_value?.value != null
+                        ? `${String(event.new_value.value)} ${card?.cardType === "finance" ? "chamas" : "strikes"}`
+                        : "—"}
+                    </div>
+                  </div>
                 </div>
               )}
 
