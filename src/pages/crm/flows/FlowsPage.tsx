@@ -1,6 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Info, Plus, Layers, Settings2, Trash2, Tag, Workflow, Upload } from "lucide-react";
+import {
+  Info,
+  Plus,
+  Layers,
+  Settings2,
+  Trash2,
+  Tag,
+  Workflow,
+  Upload,
+  BarChart2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useClientAccessGuard } from "@/hooks/useClientAccessGuard";
 import { useNexflowFlows } from "@/hooks/useNexflowFlows";
@@ -57,7 +67,11 @@ export function FlowsPage() {
       }
 
       // Leaders e admins de time podem editar/deletar flows que são donos
-      if ((isLeader || isTeamAdmin) && currentUserId && flow.ownerId === currentUserId) {
+      if (
+        (isLeader || isTeamAdmin) &&
+        currentUserId &&
+        flow.ownerId === currentUserId
+      ) {
         return true;
       }
 
@@ -72,7 +86,9 @@ export function FlowsPage() {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center text-destructive">
           <p className="font-medium">Sem acesso aos flows</p>
-          <p className="text-sm text-muted-foreground mt-1">{accessError ?? "Cliente não definido"}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {accessError ?? "Cliente não definido"}
+          </p>
         </div>
       </div>
     );
@@ -83,7 +99,9 @@ export function FlowsPage() {
       <div className="bg-card rounded-2xl p-4 md:p-8 shadow-sm border border-border">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 md:mb-8 space-y-4 md:space-y-0">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-foreground">Flows</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">
+              Flows
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
               Gerencie todos os seus flows e pipelines
             </p>
@@ -106,7 +124,9 @@ export function FlowsPage() {
         <div className="space-y-6 md:space-y-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <h2 className="text-base md:text-lg font-medium text-foreground">Meus Flows</h2>
+              <h2 className="text-base md:text-lg font-medium text-foreground">
+                Meus Flows
+              </h2>
               <Info className="w-4 h-4 text-muted-foreground" />
             </div>
 
@@ -141,7 +161,6 @@ export function FlowsPage() {
                         </div>
                         {canEditFlow(flow) && (
                           <div className="flex gap-2">
-                            
                             <Button
                               variant="ghost"
                               size="icon"
@@ -162,77 +181,92 @@ export function FlowsPage() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-                      {canEditFlow(flow) ? (
-                        <div className="flex flex-wrap items-center gap-2 min-h-[2.5rem]">
-                          {/* Botão Editar Estrutura */}
-                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
-                            <button
-                              className="flex items-center h-8 px-2 text-xs"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                navigate(`/crm/flows/${flow.id}/builder`);
-                              }}
-                            >
-                              <Layers className="h-4 w-4 flex-shrink-0" />
-                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
-                                Editar Estrutura
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Botão Editar Tags */}
-                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
-                            <button
-                              className="flex items-center h-8 px-2 text-xs"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setFlowForTags(flow);
-                              }}
-                            >
-                              <Tag className="h-4 w-4 flex-shrink-0" />
-                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
-                                Editar Tags
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Botão Editar Processos */}
-                          <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
-                            <button
-                              className="flex items-center h-8 px-2 text-xs"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                navigate(`/crm/flows/${flow.id}/processes`);
-                              }}
-                            >
-                              <Workflow className="h-4 w-4 flex-shrink-0" />
-                              <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
-                                Editar Processos
-                              </span>
-                            </button>
-                          </div>
-
-                          {/* Botão Importar CSV atualmente bloqueado*/}
-                          <div
-                            className="group relative overflow-hidden rounded-md border border-input bg-background cursor-not-allowed opacity-50"
-                            title="Importação de CSV temporariamente indisponível"
+                      <div className="flex flex-wrap items-center gap-2 min-h-[2.5rem]">
+                        {/* Botão Dashboard (visível para todos) */}
+                        <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                          <button
+                            className="flex items-center h-8 px-2 text-xs"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/crm/flows/${flow.id}/dashboard`);
+                            }}
                           >
-                            <button
-                              className="flex items-center h-8 px-2 text-xs pointer-events-none"
-                              type="button"
-                              disabled
-                              tabIndex={-1}
-                            >
-                              <Upload className="h-4 w-4 flex-shrink-0" />
-                              <span className="ml-2 whitespace-nowrap max-w-0 opacity-0 transition-all duration-300 ease-in-out overflow-hidden inline-block">
-                                BLOQUEADO TEMPORARIAMENTE
-                              </span>
-                            </button>
-                          </div>
+                            <BarChart2 className="h-4 w-4 flex-shrink-0" />
+                            <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                              Dashboard
+                            </span>
+                          </button>
                         </div>
-                      ) : (
-                        <div></div>
-                      )}
+                        {canEditFlow(flow) && (
+                          <>
+                            {/* Botão Editar Estrutura */}
+                            <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                              <button
+                                className="flex items-center h-8 px-2 text-xs"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  navigate(`/crm/flows/${flow.id}/builder`);
+                                }}
+                              >
+                                <Layers className="h-4 w-4 flex-shrink-0" />
+                                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                  Editar Estrutura
+                                </span>
+                              </button>
+                            </div>
+
+                            {/* Botão Editar Tags */}
+                            <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                              <button
+                                className="flex items-center h-8 px-2 text-xs"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setFlowForTags(flow);
+                                }}
+                              >
+                                <Tag className="h-4 w-4 flex-shrink-0" />
+                                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                  Editar Tags
+                                </span>
+                              </button>
+                            </div>
+
+                            {/* Botão Editar Processos */}
+                            <div className="group relative overflow-hidden rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors duration-200">
+                              <button
+                                className="flex items-center h-8 px-2 text-xs"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  navigate(`/crm/flows/${flow.id}/processes`);
+                                }}
+                              >
+                                <Workflow className="h-4 w-4 flex-shrink-0" />
+                                <span className="ml-2 whitespace-nowrap max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                  Editar Processos
+                                </span>
+                              </button>
+                            </div>
+
+                            {/* Botão Importar CSV atualmente bloqueado*/}
+                            <div
+                              className="group relative overflow-hidden rounded-md border border-input bg-background cursor-not-allowed opacity-50"
+                              title="Importação de CSV temporariamente indisponível"
+                            >
+                              <button
+                                className="flex items-center h-8 px-2 text-xs pointer-events-none"
+                                type="button"
+                                disabled
+                                tabIndex={-1}
+                              >
+                                <Upload className="h-4 w-4 flex-shrink-0" />
+                                <span className="ml-2 whitespace-nowrap max-w-0 opacity-0 transition-all duration-300 ease-in-out overflow-hidden inline-block">
+                                  BLOQUEADO TEMPORARIAMENTE
+                                </span>
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         Criado em{" "}
                         {new Date(flow.createdAt).toLocaleDateString("pt-BR")}
@@ -322,4 +356,3 @@ export function FlowsPage() {
 }
 
 export default FlowsPage;
-

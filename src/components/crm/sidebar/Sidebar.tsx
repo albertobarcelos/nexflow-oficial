@@ -148,7 +148,7 @@ export function Sidebar() {
   return (
     <div className="flex h-14 items-center justify-between px-4 bg-background border-b border-border shadow-sm" >
       <div className="flex items-center gap-4">
-        <Logo />
+        <Logo className="shrink-0" />
         <div className="flex items-center gap-3">
           {menuItems.map((item) => {
             const isActive = item.onClick ? 
